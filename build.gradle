@@ -172,6 +172,8 @@ subprojects {
 			url = 'https://maven.parchmentmc.org'
 		}
 
+		maven { url = "https://maven.bawnorton.com/releases" } // MixinSquared
+
         //Leukocyte
         exclusiveContent {
             forRepository {
