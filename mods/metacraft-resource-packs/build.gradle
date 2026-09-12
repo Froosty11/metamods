@@ -1,3 +1,8 @@
 version = project.resource_packs_version
 
 addPolymerDependency()
+
+dependencies {
+	compileOnly("eu.pb4:polymer-autohost:${project.polymer_version}")
+	include(implementation(annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-fabric:$rootProject.mixin_squared_version")))
+}
