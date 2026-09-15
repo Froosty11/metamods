@@ -20,8 +20,19 @@ look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
-belt, the hands and the cuffs: 32 cells, plus the seat, which takes a two-cell-wide 8×4 patch
-across it). The catalogue holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data
+belt, the hands and the cuffs), plus the seat, which takes a two-cell-wide 8×4 patch across it.
+Every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`), and which rows each part
+uses came out of the playtest:
+
+| part | faces | cell rows (`v`) |
+| --- | --- | --- |
+| body, chest | front (8 wide) | 21, 26 — row 20 is the collar, row 31 the belt |
+| body, back | back (8 wide) | 21 (two cells) *or* 22 (one big cell, see below) |
+| sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
+| legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
+| seat | both legs' back faces | 22, following `LEG_BACK_TOP` |
+
+The catalogue holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data
 (`Patches.java`): ITK, IT and Data are 12×12 and hang over their neighbours (IT is the PolymITer
 set's 16×16 brought down to 12: the diamond rebuilt at that size, the bolt sampled from the
 original); Rivals is the seat patch — Data's cerise with a creeper against IT's laser violet with

@@ -76,8 +76,8 @@ public final class WardrobePreview {
 	// ---- the figure's geometry
 
 	private static final int D = Spot.DETAIL;
-	/** Every box's side faces are skin rows 20-32: 12 px tall. */
-	private static final int FACE_ROW = 20, FACE_ROWS = 12;
+	/** Every box's side faces, the rows every cell is on: skin rows 20-32, 12 px tall ({@link Spot#FACE_ROW}). */
+	private static final int FACE_ROW = Spot.FACE_ROW, FACE_ROWS = Spot.FACE_ROWS;
 	private static final int FACE_V = FACE_ROW * D, FACE_H = FACE_ROWS * D;
 	/** Screen px per skin px. */
 	private static final int PX = 3;

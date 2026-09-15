@@ -95,7 +95,7 @@ public final class StandAim {
 		else if (axis == 0) { strip = part.strip + 4 + part.faceWidth; along = lz - part.z1; }		  // inner / left side: front → back
 		else { strip = part.strip + 8 + part.faceWidth; along = x2 - lx; }							  // back: left → right
 		int col = (int) Math.max(0, Math.min(part.faceWidth / 4 - 1, Math.floor(along / 4)));
-		double v = 20 + Math.max(0, Math.min(11.999, local.y - part.y1));
+		double v = Spot.FACE_ROW + Math.max(0, Math.min(Spot.FACE_ROWS - 0.001, local.y - part.y1));
 		return Spot.nearest(part.piece, strip + col * 4, v, part.side);
 	}
 
@@ -133,7 +133,7 @@ public final class StandAim {
 		int u = spot.u - part.strip;
 		int face = u < 4 ? 0 : u < 4 + part.faceWidth ? 1 : u < 8 + part.faceWidth ? 2 : 3;   // −x, front, +x, back
 		double along = (u - new int[]{0, 4, 4 + part.faceWidth, 8 + part.faceWidth}[face]) + 2;   // centre of the 4-wide column
-		double y = part.y1 + (spot.v - 20) + 2;
+		double y = part.y1 + (spot.v - Spot.FACE_ROW) + Spot.SIZE / 2.0;
 		double x1 = part.mirrored() ? -part.x2 : part.x1, x2 = part.mirrored() ? -part.x1 : part.x2;
 		double lx, lz;
 		Vector3f normal;

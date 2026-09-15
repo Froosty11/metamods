@@ -67,8 +67,8 @@ public final class PatchPieces {
 		}
 		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
 		int n = faceTexels(spot);
-		double halfFace = (n + 2 * inflate) / 2, halfTop = (12 + 2 * inflate) / 2;
-		int ax0 = columnInFace(spot) + (Spot.PX - w) / 2, ay0 = (spot.v - 20) * 2 + (Spot.PX - h) / 2;
+		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
+		int ax0 = columnInFace(spot) + (Spot.PX - w) / 2, ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + (Spot.PX - h) / 2;
 		// Column c's left edge and row r's top edge, in sixteenths from the face's centre.
 		int cL = 0, cR = w, rT = 0;
 		for (int c = 0; c < w; c++) {
@@ -76,12 +76,13 @@ public final class PatchPieces {
 			if (centre < -halfFace) cL = c + 1;
 			if (centre >= halfFace && cR == w) cR = c;
 		}
-		for (int r = 0; r < h; r++) if ((ay0 + r - 12) * a + a / 2 < -halfTop) rT = r + 1;
+		int halfRows = Spot.FACE_ROWS * Spot.DETAIL / 2;   // art pixels from the top of the side rows to their middle
+		for (int r = 0; r < h; r++) if ((ay0 + r - halfRows) * a + a / 2 < -halfTop) rT = r + 1;
 		List<Piece> out = new ArrayList<>();
 		out.add(new Piece(Where.FACE, cL, cR, rT, h, 0));
 		if (cR < w) out.add(new Piece(Where.RIGHT, cR, w, rT, h, Math.max(0, (ax0 + cR - n) * a - halfFace)));
 		if (cL > 0) out.add(new Piece(Where.LEFT, 0, cL, rT, h, Math.max(0, -halfFace - (ax0 + cL - n) * a)));
-		if (rT > 0) out.add(new Piece(Where.TOP, cL, cR, 0, rT, Math.max(0, -halfTop - (ay0 + rT - 12) * a)));
+		if (rT > 0) out.add(new Piece(Where.TOP, cL, cR, 0, rT, Math.max(0, -halfTop - (ay0 + rT - halfRows) * a)));
 		return out;
 	}
 }

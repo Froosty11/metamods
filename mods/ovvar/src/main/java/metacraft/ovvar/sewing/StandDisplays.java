@@ -226,8 +226,9 @@ public final class StandDisplays {
 		int w = element.patch.width(), h = element.patch.height(), n = PatchPieces.faceTexels(spot);
 		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
 		// The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
-		double cellX = (PatchPieces.columnInFace(spot) + Spot.PX / 2.0 - n) * a, cellY = ((spot.v - 20) * 2 + Spot.PX / 2.0 - 12) * a;
-		double halfFace = (n + 2 * inflate) / 2, halfTop = (12 + 2 * inflate) / 2;
+		double cellX = (PatchPieces.columnInFace(spot) + Spot.PX / 2.0 - n) * a,
+				cellY = ((spot.v - Spot.FACE_ROW) * Spot.DETAIL + Spot.PX / 2.0 - Spot.FACE_ROWS * Spot.DETAIL / 2.0) * a;
+		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
 		Vec3 centre, n2, u2, r2;
 		switch (piece.where()) {
 			case RIGHT -> {

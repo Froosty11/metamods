@@ -27,22 +27,26 @@ public enum Spot implements StringRepresentable {
 	FRONT_LOW_LEFT(Piece.TOP, 20, 26), FRONT_LOW_RIGHT(Piece.TOP, 24, 26),
 	BACK_TOP_LEFT(Piece.TOP, 32, 21), BACK_TOP_RIGHT(Piece.TOP, 36, 21),
 	BACK_LOW_LEFT(Piece.TOP, 32, 26), BACK_LOW_RIGHT(Piece.TOP, 36, 26),
-	// top: sleeves, outer, front and back faces, top and middle rows per arm (the bottom row is the hand)
-	SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT),
-	SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT),
-	SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 20, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 24, Side.RIGHT),
-	SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 20, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 24, Side.LEFT),
-	SLEEVE_BACK_TOP_R(Piece.TOP, 52, 20, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 24, Side.RIGHT),
-	SLEEVE_BACK_TOP_L(Piece.TOP, 52, 20, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 24, Side.LEFT),
-	// bottom: legs, outer, front and back faces, top and middle rows per leg (the bottom row is the cuff, under boots)
-	LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT),
-	LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT),
-	LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT),
-	LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT),
-	LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT),
-	LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT),
-	/** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */
-	SEAT(Piece.BOTTOM, 12, 20, Side.SEAT);
+	// top: sleeves, outer, front and back faces, top and middle rows per arm. The rows sit at v 21
+	// and 25, a texel below the shoulder (the playtest wanted them lower on the arm); the bottom
+	// row of the arm, v 31, is the hand.
+	SLEEVE_OUT_TOP_R(Piece.TOP, 40, 21, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 25, Side.RIGHT),
+	SLEEVE_OUT_TOP_L(Piece.TOP, 40, 21, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 25, Side.LEFT),
+	SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 21, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 25, Side.RIGHT),
+	SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 21, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 25, Side.LEFT),
+	SLEEVE_BACK_TOP_R(Piece.TOP, 52, 21, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 25, Side.RIGHT),
+	SLEEVE_BACK_TOP_L(Piece.TOP, 52, 21, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 25, Side.LEFT),
+	// bottom: legs, outer, front and back faces, top and middle rows per leg. The rows sit at v 22
+	// and 26, two texels below the waist (the playtest wanted them lower still, a patch on the thigh
+	// rather than on the hip); the cuff row under a boot stays clear, 26 + 4 = 30 < 31.
+	LEG_OUT_TOP_R(Piece.BOTTOM, 0, 22, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 26, Side.RIGHT),
+	LEG_OUT_TOP_L(Piece.BOTTOM, 0, 22, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 26, Side.LEFT),
+	LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 22, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 26, Side.RIGHT),
+	LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 22, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 26, Side.LEFT),
+	LEG_BACK_TOP_R(Piece.BOTTOM, 12, 22, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 26, Side.RIGHT),
+	LEG_BACK_TOP_L(Piece.BOTTOM, 12, 22, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 26, Side.LEFT),
+	/** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L), so it follows their row. */
+	SEAT(Piece.BOTTOM, 12, 22, Side.SEAT);
 
 	public static final Codec<Spot> CODEC = StringRepresentable.fromEnum(Spot::values);
 
@@ -56,6 +60,14 @@ public enum Spot implements StringRepresentable {
 
 	/** A cell's side in skin texels (the coordinates here). */
 	public static final int SIZE = 4;
+	/**
+	 * The box <em>side</em> rows of the armour layout, which is where every cell is: skin rows
+	 * {@value #FACE_ROW} to {@value #FACE_ROW} + {@value #FACE_ROWS}. Above them are the boxes' top
+	 * and bottom faces. Anything that measures a cell down a face — datagen's clip, the stand
+	 * sprites, the aim, the paper doll — reads these rather than writing 20 and 32 again, so moving
+	 * a row of cells is one edit in the enum above.
+	 */
+	public static final int FACE_ROW = 20, FACE_ROWS = 12;
 	/** Texels per skin texel in the garment and patch textures (128×64): patch art is {@link #PX} square. */
 	public static final int DETAIL = 2;
 	public static final int PX = SIZE * DETAIL;

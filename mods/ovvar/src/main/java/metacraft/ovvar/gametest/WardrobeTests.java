@@ -1550,6 +1550,33 @@ public final class WardrobeTests {
 	}
 
 	/**
+	 * The cells' own rectangles, the numbers the playtest asked for: the sleeves a texel lower than
+	 * they were (v 21 and 25), the legs two lower (22 and 26) with the seat following the back of the
+	 * legs, and the chest and back where they were (21 and 26 / 21). And, whatever the rows are, every
+	 * cell stays on the boxes' side rows and off the row at either end of them — the collar and the
+	 * waistband above, the belt, the hands and the cuff under a boot below.
+	 */
+	@GameTest
+	public void cellRowsAreWhereThePlaytestPutThem(GameTestHelper helper) {
+		int top = Spot.FACE_ROW, bottom = Spot.FACE_ROW + Spot.FACE_ROWS;
+		for (Spot spot : Spot.values()) {
+			String name = spot.name();
+			List<Integer> wanted;
+			if (spot == Spot.SEAT) wanted = List.of(Spot.LEG_BACK_TOP_R.v);
+			else if (name.startsWith("SLEEVE_")) wanted = List.of(21, 25);
+			else if (name.startsWith("LEG_")) wanted = List.of(22, 26);
+			else wanted = List.of(21, 26);   // the chest and back, which the playtest left alone
+			if (!wanted.contains(spot.v)) helper.fail(spot.id() + " is on row " + spot.v + ", wanted one of " + wanted);
+			// The rows at either end of the side rows are not ours to draw on.
+			if (spot.v <= top) helper.fail(spot.id() + " starts on row " + spot.v + ", which is the collar or the waistband");
+			if (spot.v + Spot.SIZE >= bottom) {
+				helper.fail(spot.id() + " reaches row " + (spot.v + Spot.SIZE - 1) + ", which is the belt, the hand or the cuff");
+			}
+		}
+		helper.succeed();
+	}
+
+	/**
 	 * The front view is where it always was: the geometry gives the chest and the front of the legs
 	 * the very slots the old hand-written table did, so nothing anybody has sewn moves on the screen
 	 * they already know. The figure turns in place, so the back's own cells land on the chest's slots.

@@ -497,7 +497,7 @@ public final class GeneratedAssets implements DataProvider {
 		boolean any = false;
 		for (int ax = 0; ax < art.width; ax++) {
 			int column = stripStart + Math.floorMod(x + ax - stripStart, stripWidth);
-			for (int row = Math.max(y, 20 * D); row < Math.min(y + art.height, 32 * D); row++) {
+			for (int row = Math.max(y, Spot.FACE_ROW * D); row < Math.min(y + art.height, (Spot.FACE_ROW + Spot.FACE_ROWS) * D); row++) {
 				int p = art.get(ax, row - y);
 				if (p != 0) { out = out.with(column, row, p); any = true; }
 			}
@@ -521,7 +521,7 @@ public final class GeneratedAssets implements DataProvider {
 			double w = Spot.anchored((column + 0.5) / D, inflate, anchor);
 			if (w < 0) continue;
 			int texel = stripStart + (int) Math.floor(w * D);
-			for (int row = 20 * D; row < 32 * D; row++) {
+			for (int row = Spot.FACE_ROW * D; row < (Spot.FACE_ROW + Spot.FACE_ROWS) * D; row++) {
 				int p = flat.get(texel, row);
 				if (p != 0) out = out.with(column, row, p);
 			}
