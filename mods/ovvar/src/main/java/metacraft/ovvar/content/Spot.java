@@ -5,7 +5,8 @@ import net.minecraft.util.StringRepresentable;
 import org.jspecify.annotations.NonNull;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout — the faces you see, keeping off
+ * A cell on the garment, in the 64×32 armour layout — {@value #SIZE}×{@value #SIZE} texels unless
+ * it says otherwise ({@link #width}, {@link #height}) — the faces you see, keeping off
  * the collar and the belt (the body's top and bottom texel rows), the hands (the bottom row of
  * the arms), the cuffs (the bottom row of the legs), and the inner faces.
  * Items store cells by name, so entries may be added or removed; the ordinal only travels in the
@@ -26,7 +27,14 @@ public enum Spot implements StringRepresentable {
 	FRONT_TOP_LEFT(Piece.TOP, 20, 21), FRONT_TOP_RIGHT(Piece.TOP, 24, 21),
 	FRONT_LOW_LEFT(Piece.TOP, 20, 26), FRONT_LOW_RIGHT(Piece.TOP, 24, 26),
 	BACK_TOP_LEFT(Piece.TOP, 32, 21), BACK_TOP_RIGHT(Piece.TOP, 36, 21),
-	BACK_LOW_LEFT(Piece.TOP, 32, 26), BACK_LOW_RIGHT(Piece.TOP, 36, 26),
+	/**
+	 * The big back cell: the whole back face below the collar, {@value #BIG}×{@value #BIG} texels
+	 * (rows 22–29, the belt row 31 and the collar row 20 clear), which takes a patch at
+	 * {@link Patches#MAX_ART} square without any of it hanging over onto another face. It covers the
+	 * two {@code BACK_TOP} cells, so {@link #overlapping} makes the three mutually exclusive: the back
+	 * wears either the big one or the top two.
+	 */
+	BACK_BIG(Piece.TOP, 32, 22, Side.BODY, Spot.BIG, Spot.BIG),
 	// top: sleeves, outer, front and back faces, top and middle rows per arm. The rows sit at v 21
 	// and 25, a texel below the shoulder (the playtest wanted them lower on the arm); the bottom
 	// row of the arm, v 31, is the hand.
@@ -46,7 +54,7 @@ public enum Spot implements StringRepresentable {
 	LEG_BACK_TOP_R(Piece.BOTTOM, 12, 22, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 26, Side.RIGHT),
 	LEG_BACK_TOP_L(Piece.BOTTOM, 12, 22, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 26, Side.LEFT),
 	/** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L), so it follows their row. */
-	SEAT(Piece.BOTTOM, 12, 22, Side.SEAT);
+	SEAT(Piece.BOTTOM, 12, 22, Side.SEAT, 2 * Spot.SIZE, Spot.SIZE);
 
 	public static final Codec<Spot> CODEC = StringRepresentable.fromEnum(Spot::values);
 
@@ -58,8 +66,10 @@ public enum Spot implements StringRepresentable {
 	/** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on; SEAT = both legs. Ordinal is what the shader reads. */
 	public enum Side { BODY, RIGHT, LEFT, SEAT }
 
-	/** A cell's side in skin texels (the coordinates here). */
+	/** A cell's side in skin texels (the coordinates here), unless the entry names its own. */
 	public static final int SIZE = 4;
+	/** The side of a big cell: two cells each way, so its art can be {@link Patches#MAX_ART} square. */
+	public static final int BIG = 2 * SIZE;
 	/**
 	 * The box <em>side</em> rows of the armour layout, which is where every cell is: skin rows
 	 * {@value #FACE_ROW} to {@value #FACE_ROW} + {@value #FACE_ROWS}. Above them are the boxes' top
@@ -134,16 +144,38 @@ public enum Spot implements StringRepresentable {
 	public final Side side;
 	/** Cell origin in the standard layout (the right limb's strip for limb cells). */
 	public final int u, v;
+	/**
+	 * The cell's own size in skin texels: {@value #SIZE} square for nearly all of them, {@link #BIG}
+	 * square for {@link #BACK_BIG}, and two cells by one for the {@link #SEAT}, which is a cell on
+	 * each leg. A patch is centred in this, so it is what {@link Patches.Patch#offsetX} and
+	 * {@code offsetY} measure against, and {@link #px}/{@link #pxHeight} is it in texture pixels.
+	 */
+	public final int width, height;
 
 	Spot(Piece piece, int u, int v) {
 		this(piece, u, v, Side.BODY);
 	}
 
 	Spot(Piece piece, int u, int v, Side side) {
+		this(piece, u, v, side, SIZE, SIZE);
+	}
+
+	Spot(Piece piece, int u, int v, Side side, int width, int height) {
 		this.piece = piece;
 		this.u = u;
 		this.v = v;
 		this.side = side;
+		this.width = width;
+		this.height = height;
+	}
+
+	/** The cell's width in texture pixels ({@link #DETAIL} per skin texel): {@value #PX} for most. */
+	public int px() {
+		return width * DETAIL;
+	}
+
+	public int pxHeight() {
+		return height * DETAIL;
 	}
 
 	/**
@@ -193,13 +225,18 @@ public enum Spot implements StringRepresentable {
 		return java.util.Arrays.stream(values()).filter(s -> s.piece == piece).toList();
 	}
 
-	/** The cell nearest a strip position in its column (u, side), or null if the column has none. */
+	/**
+	 * The cell nearest a strip position, or null if nothing of this side is in that column: the
+	 * cells whose own columns hold {@code u} (a big cell spans two of the aim's 4-texel columns),
+	 * the nearest of them down the face. Ties go to the earlier entry, which is how a small cell
+	 * wins the rows it shares with the big one it lies inside.
+	 */
 	public static Spot nearest(Piece piece, int u, double v, Side side) {
 		Spot best = null;
 		double bestDistance = Double.MAX_VALUE;
 		for (Spot s : values()) {
-			if (s.piece != piece || s.u != u || s.side != side) continue;
-			double d = v < s.v ? s.v - v : v >= s.v + SIZE ? v - (s.v + SIZE) + 1 : 0;
+			if (s.piece != piece || s.side != side || u < s.u || u >= s.u + s.width) continue;
+			double d = v < s.v ? s.v - v : v >= s.v + s.height ? v - (s.v + s.height) + 1 : 0;
 			if (d < bestDistance) { bestDistance = d; best = s; }
 		}
 		return best;
@@ -209,15 +246,33 @@ public enum Spot implements StringRepresentable {
 		return name().toLowerCase(java.util.Locale.ROOT);
 	}
 
-	/** Cells that overlap this one (a seat patch covers two leg cells). */
+	/**
+	 * Cells whose own rectangle this one lands on, so the two cannot both be sewn: a seat patch
+	 * covers the two leg-back cells, and {@link #BACK_BIG} covers the two back-top cells. Worked out
+	 * from the rectangles rather than listed, so a cell added or resized above says this for itself.
+	 * The seat's two legs count as the same side as each leg's own.
+	 */
 	public java.util.List<Spot> overlapping() {
-		if (this == SEAT) return SEAT_CELLS;
-		return SEAT_CELLS.contains(this) ? java.util.List.of(SEAT) : java.util.List.of();
+		java.util.List<Spot> out = new java.util.ArrayList<>();
+		for (Spot s : values()) {
+			if (s == this || s.piece != piece || !sameSide(s.side, side)) continue;
+			boolean acrossU = s.u < u + width && u < s.u + s.width;
+			boolean acrossV = s.v < v + height && v < s.v + s.height;
+			if (acrossU && acrossV) out.add(s);
+		}
+		return java.util.List.copyOf(out);
+	}
+
+	/** Do two cells draw on the same part of the model? (The seat is on both legs, so on either side.) */
+	private static boolean sameSide(Side a, Side b) {
+		if (a == b) return true;
+		return (a == Side.SEAT || b == Side.SEAT) && a != Side.BODY && b != Side.BODY;
 	}
 
 	/** "chest, top left" / "left sleeve, outer top" — for tooltips. */
 	public String label() {
 		if (this == SEAT) return "seat";
+		if (this == BACK_BIG) return "back, all of it";
 		String n = name().toLowerCase(java.util.Locale.ROOT);
 		String limb = side == Side.LEFT ? "left " : side == Side.RIGHT ? "right " : "";
 		if (n.startsWith("front_")) return "chest, " + n.substring(6).replace('_', ' ');

@@ -28,10 +28,17 @@ public final class Looks {
 	 * The instant channel: up to {@value #INSTANT} placements per half ride in the dye colour, as
 	 * the rank of their set among all sets of (cell, design) states — cells × {@value #INSTANT_DESIGNS}
 	 * designs, the first ones in the catalogue. Ranked combinations use the bits far better than
-	 * fixed slots: three on the top (20 cells × 22 = 440 states, C(440,3) ≈ 14.1M) fit under 255³.
-	 * The shader's binomials are exact up to 448 states; {@link #rank} checks the range.
+	 * fixed slots: three on the top (19 cells × 22 = 418 states, C(418,3) ≈ 12.1M) fit under 255³.
+	 * The shader's binomials are exact up to {@value #INSTANT_STATES} states; {@link #rank} checks
+	 * the range, and a game test checks every half against it, so cells or designs added later
+	 * cannot quietly walk past what the shader can unrank.
 	 */
 	public static final int INSTANT = 3, INSTANT_DESIGNS = 22;
+	/**
+	 * The most (cell, design) states a half may have: past this the shader's float binomials
+	 * (ovvar_c3) stop being exact, C(c,3) having to stay under 2²⁴.
+	 */
+	public static final int INSTANT_STATES = 448;
 
 	/** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
 	public static boolean instant(Placement p) {
@@ -173,7 +180,7 @@ public final class Looks {
 	/** 1 + the rank of the set among k-sets of the half's states, after all smaller k (0 = empty set). */
 	static int rank(Piece piece, List<Placement> set) {
 		int m = Spot.cells(piece).size() * INSTANT_DESIGNS;
-		if (m > 448) throw new IllegalStateException("instant channel: " + m + " states; the shader's binomials are exact up to 448");
+		if (m > INSTANT_STATES) throw new IllegalStateException("instant channel: " + m + " states; the shader's binomials are exact up to " + INSTANT_STATES);
 		int[] s = set.stream().mapToInt(Looks::state).sorted().toArray();
 		if (s.length > INSTANT) throw new IllegalArgumentException("more than " + INSTANT + " instant placements");
 		for (int i = 1; i < s.length; i++) if (s[i] == s[i - 1]) throw new IllegalArgumentException("duplicate placement");

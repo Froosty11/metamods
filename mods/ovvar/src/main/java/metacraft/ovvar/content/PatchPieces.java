@@ -43,7 +43,7 @@ public final class PatchPieces {
 	public static int columnInFace(Spot spot) {
 		int faceStart = Spot.stripStart(spot) + faceStartLocal(spot), n = faceTexels(spot);
 		int fromStart = (spot.u - faceStart) * 2;
-		return spot.side == Spot.Side.LEFT ? 2 * n - fromStart - Spot.PX : fromStart;   // the model mirrors the left limb
+		return spot.side == Spot.Side.LEFT ? 2 * n - fromStart - spot.px() : fromStart;   // the model mirrors the left limb
 	}
 
 	private static int faceStartLocal(Spot spot) {
@@ -68,7 +68,7 @@ public final class PatchPieces {
 		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
 		int n = faceTexels(spot);
 		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
-		int ax0 = columnInFace(spot) + (Spot.PX - w) / 2, ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + (Spot.PX - h) / 2;
+		int ax0 = columnInFace(spot) + patch.offsetX(spot), ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + patch.offsetY(spot);
 		// Column c's left edge and row r's top edge, in sixteenths from the face's centre.
 		int cL = 0, cR = w, rT = 0;
 		for (int c = 0; c < w; c++) {

@@ -286,7 +286,7 @@ public final class WardrobePreview {
 		// Datagen pre-mirrors the art of a limb the model mirrors, and the doll mirrors that limb for
 		// the same reason — so the art is windowed in the mirrored order and put back afterwards.
 		Tex baked = part.mirror() ? piece.flipX() : piece;
-		int x = spot.u * D + patch.offsetX(), y = spot.v * D + (Spot.PX - baked.height) / 2;
+		int x = spot.u * D + patch.offsetX(spot), y = spot.v * D + patch.offsetY(spot);
 		int strip = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
 		int texels = part.w() * D;
 		Tex out = Tex.blank(baked.width, baked.height);
@@ -318,8 +318,8 @@ public final class WardrobePreview {
 	private static Tex cellMask(Spot spot) {
 		int w = 64 * D, h = 32 * D;
 		int[] px = new int[w * h];
-		for (int y = spot.v * D; y < (spot.v + Spot.SIZE) * D; y++) {
-			for (int x = spot.u * D; x < (spot.u + Spot.SIZE) * D; x++) px[y * w + x] = 0xFFFFFFFF;
+		for (int y = spot.v * D; y < spot.v * D + spot.pxHeight(); y++) {
+			for (int x = spot.u * D; x < spot.u * D + spot.px(); x++) px[y * w + x] = 0xFFFFFFFF;
 		}
 		return Tex.of(w, h, px);
 	}

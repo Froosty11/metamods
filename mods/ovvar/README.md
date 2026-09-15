@@ -27,10 +27,24 @@ uses came out of the playtest:
 | part | faces | cell rows (`v`) |
 | --- | --- | --- |
 | body, chest | front (8 wide) | 21, 26 — row 20 is the collar, row 31 the belt |
-| body, back | back (8 wide) | 21 (two cells) *or* 22 (one big cell, see below) |
+| body, back | back (8 wide) | 21 (`BACK_TOP_LEFT`/`_RIGHT`) *or* 22 (`BACK_BIG`, the whole face) |
 | sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
 | legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
 | seat | both legs' back faces | 22, following `LEG_BACK_TOP` |
+
+A cell is 4×4 texels except where the entry in `Spot` says otherwise (`Spot.width`/`height`), and
+there are two that do. The **seat** is two cells wide, one tall, across the back of both legs. The
+**big back cell** (`BACK_BIG`) is the whole back face below the collar, 8×8 texels — 16×16 px,
+exactly `Patches.MAX_ART` — so it is the one cell on which the biggest patch in the catalogue lies
+whole, with nothing wrapped round onto the face next door. It covers the two `BACK_TOP` cells, so
+the three are mutually exclusive the way the seat and the two leg-back cells are (`overlapping()`,
+worked out from the cells' own rectangles): the back wears either the big one or the top two.
+Any plain patch goes on it, centred.
+
+Cells come and go, and players' items and stored wardrobe rows name them by id, so
+`SpotPlacements.CODEC` drops a placement naming a cell or a patch this build has not got — with a
+log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
+and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data
 (`Patches.java`): ITK, IT and Data are 12×12 and hang over their neighbours (IT is the PolymITer
@@ -217,7 +231,7 @@ cropped to its own art, so the glyph is a dozen pixels square, and placed by spa
 own ascent. The title stacks the bare ovve and then one glyph per sewn placement, so a design is
 composed at the moment the screen opens. A cell sits on exactly one face of one box and a face is
 seen from exactly one of the four angles, so that is **6 × 4 = 24 bare glyphs plus one per (patch,
-cell the doll can show) — 64 for today's two patches — fixed**, however much anybody sews: nothing
+cell the doll can show) — fixed**, however much anybody sews: nothing
 is regenerated and no pack is pushed when a patch goes
 on. (v2 keyed the art by patch combination instead, which grew with every design, spent a glyph
 budget and needed a pack build and a loading screen each time somebody sewed something.) `Combos` is
@@ -496,8 +510,11 @@ when one of them is on the chest or the back (the trim, below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
-no byte is 0; 20 cells × 22 designs, C(440,3) ≈ 14M states under 255³). The preview texture holds the art of the first 22
-designs — any size, in a block of library cells — plus cell and design tables; the pack's entity core shader
+no byte is 0; on the top 19 cells × 22 designs, C(418,3) ≈ 12M states under 255³, and a game test
+holds every half under the 448 states the shader's float binomials are exact to —
+`Looks.INSTANT_STATES`). The preview texture holds the art of the first 22
+designs — any size, in a block of library cells — plus cell and design tables (a cell's row
+carries its own size beside its position, since a cell is not one size any more); the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
 past the first 22 in the catalogue only go through the pack. The tooltip's "Dyed" line is
@@ -509,7 +526,7 @@ colour, so datagen bakes every (body cell, design) pair as its own pattern
 (`textures/trims/entity/humanoid/<cell>_<design>.png`, the art anchored at the cell and bent round
 the corners the way the shader does; `trim_pattern/*.json`, one material `ovvar:patch` whose
 palette maps the patch's colours to themselves) and `OvveTop.dress` sets the newest placement
-that does not fit in the dye colour as the trim, if it is on one of the eight chest and back
+that does not fit in the dye colour as the trim, if it is on one of the chest and back
 cells (`Trims.fits`; vanilla draws the trim, so the squeeze to square pixels is done texel by
 texel by datagen, which costs about a column in sixteen on the body's faces but two in eight on
 a sleeve — hence body only). Trims are material-tinted, so the palette is the identity and the

@@ -171,7 +171,7 @@ public final class GeneratedAssets implements DataProvider {
 				}
 				// Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
 				// a left cell's art is mirrored (the model mirrors the left limb).
-				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX());
+				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX(spot));
 				png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
 				placementTextures++;
 			}
@@ -186,7 +186,7 @@ public final class GeneratedAssets implements DataProvider {
 				Placement placement = spot == Spot.SEAT || !patch.fits(spot) ? null : new Placement(spot, patch);
 				if (placement == null || !Trims.fits(placement)) continue;
 				String name = Trims.patternName(placement);
-				Tex tex = placedWrapped(spot, arts.get(patch.id()), spot.u * D + patch.offsetX());
+				Tex tex = placedWrapped(spot, arts.get(patch.id()), spot.u * D + patch.offsetX(spot));
 				png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
 				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
 				json(data.resolve("trim_pattern/" + name + ".json"),
@@ -241,6 +241,9 @@ public final class GeneratedAssets implements DataProvider {
 			for (int index = 0; index < cells.size(); index++) {
 				Spot spot = cells.get(index);
 				tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
+				// A cell is not one size any more (Spot.BACK_BIG is two cells each way, the seat two
+				// wide), and the shader centres the art in it, so the size travels beside it.
+				tex = tex.with(CELL_SIZE_TABLE_X + index / 16, index % 16, rgb(spot.px(), spot.pxHeight(), 0));
 			}
 			require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
 			png(assets.resolve("textures/entity/equipment/" + target.layer + "/" + target.name + ".png"), marked(tex, target.inflateAs));
@@ -490,7 +493,7 @@ public final class GeneratedAssets implements DataProvider {
 	 * comes round to the other end (past the outer face of a limb lies its back face).
 	 */
 	private static Tex placed(Spot spot, Tex art, int x) {
-		int y = spot.v * D + (Spot.PX - art.height) / 2;
+		int y = spot.v * D + (spot.pxHeight() - art.height) / 2;   // centred in the cell, whatever size the cell is
 		int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
 		require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
 		Tex out = Tex.blank(W, H);
@@ -545,11 +548,14 @@ public final class GeneratedAssets implements DataProvider {
 	private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**
 	 * Preview texture tables, column-major 16 tall, {@value #TABLE_COLUMNS} columns each: cell
-	 * index (in the half) → (u, v, side); design index → (library x, y, cells) and, {@value
+	 * index (in the half) → (u, v, side) and, {@value #TABLE_COLUMNS} columns further right, (the
+	 * cell's own width, its height); design index → (library x, y, cells) and, {@value
 	 * #TABLE_COLUMNS} columns further right, (art width, art height) — positions in texels of
 	 * this texture.
 	 */
 	private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_COLUMNS = 2 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
+	/** Beside the cell table: the cell's own size, since {@link Spot#BACK_BIG} is not {@value Spot#PX} square. */
+	private static final int CELL_SIZE_TABLE_X = CELL_TABLE_X + TABLE_COLUMNS;
 	/**
 	 * Preview library: the head rows (skin texels 0..64 × 0..16) as a grid of cells, minus the
 	 * tables' columns (40..48) and the cell holding the marker row's texels (60..64 × 12..16).

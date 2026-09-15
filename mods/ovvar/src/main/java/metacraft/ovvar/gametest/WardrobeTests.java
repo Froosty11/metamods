@@ -11,6 +11,7 @@ import metacraft.ovvar.content.Ownership;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
+import metacraft.ovvar.content.SpotPlacements;
 import metacraft.ovvar.datagen.Tex;
 import metacraft.ovvar.store.DesignStoreConfig;
 import metacraft.ovvar.store.FileBackend;
@@ -44,6 +45,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.JsonOps;
 
 import java.io.IOException;
@@ -1563,14 +1565,15 @@ public final class WardrobeTests {
 			String name = spot.name();
 			List<Integer> wanted;
 			if (spot == Spot.SEAT) wanted = List.of(Spot.LEG_BACK_TOP_R.v);
+			else if (spot == Spot.BACK_BIG) wanted = List.of(22);   // rows 22-29, clear of the collar and the belt
 			else if (name.startsWith("SLEEVE_")) wanted = List.of(21, 25);
 			else if (name.startsWith("LEG_")) wanted = List.of(22, 26);
-			else wanted = List.of(21, 26);   // the chest and back, which the playtest left alone
+			else wanted = List.of(21, 26);   // the chest and the back's top row, which the playtest left alone
 			if (!wanted.contains(spot.v)) helper.fail(spot.id() + " is on row " + spot.v + ", wanted one of " + wanted);
 			// The rows at either end of the side rows are not ours to draw on.
 			if (spot.v <= top) helper.fail(spot.id() + " starts on row " + spot.v + ", which is the collar or the waistband");
-			if (spot.v + Spot.SIZE >= bottom) {
-				helper.fail(spot.id() + " reaches row " + (spot.v + Spot.SIZE - 1) + ", which is the belt, the hand or the cuff");
+			if (spot.v + spot.height >= bottom) {
+				helper.fail(spot.id() + " reaches row " + (spot.v + spot.height - 1) + ", which is the belt, the hand or the cuff");
 			}
 		}
 		helper.succeed();
@@ -1581,6 +1584,153 @@ public final class WardrobeTests {
 	 * the very slots the old hand-written table did, so nothing anybody has sewn moves on the screen
 	 * they already know. The figure turns in place, so the back's own cells land on the chest's slots.
 	 */
+	/**
+	 * The big back cell and the two back-top cells cover each other, so a design wears either the big
+	 * one or the top two — the way the seat and the two leg-back cells already did. {@link
+	 * Spot#overlapping} works that out from the cells' own rectangles, so the test says both what it
+	 * gives for those five and that it gives nothing for any other cell, and then that sewing
+	 * behaves: the big one cannot go on over the top two, replaces them when it is applied over
+	 * them, and shuts them out once it is on.
+	 */
+	@GameTest
+	public void theBigBackCellAndTheBackTopCellsShutEachOtherOut(GameTestHelper helper) {
+		Object[][] pairs = {
+				{Spot.BACK_BIG, List.of(Spot.BACK_TOP_LEFT, Spot.BACK_TOP_RIGHT)},
+				{Spot.BACK_TOP_LEFT, List.of(Spot.BACK_BIG)},
+				{Spot.BACK_TOP_RIGHT, List.of(Spot.BACK_BIG)},
+				{Spot.SEAT, List.of(Spot.LEG_BACK_TOP_R, Spot.LEG_BACK_TOP_L)},
+				{Spot.LEG_BACK_TOP_R, List.of(Spot.SEAT)},
+				{Spot.LEG_BACK_TOP_L, List.of(Spot.SEAT)},
+		};
+		List<Spot> expected = new ArrayList<>();
+		for (Object[] pair : pairs) {
+			Spot spot = (Spot) pair[0];
+			@SuppressWarnings("unchecked") List<Spot> wanted = (List<Spot>) pair[1];
+			expected.add(spot);
+			List<Spot> got = new ArrayList<>(spot.overlapping());
+			if (!got.containsAll(wanted) || got.size() != wanted.size()) {
+				helper.fail(spot.id() + " overlaps " + got + ", wanted " + wanted);
+			}
+		}
+		for (Spot spot : Spot.values()) {
+			if (!expected.contains(spot) && !spot.overlapping().isEmpty()) {
+				helper.fail(spot.id() + " overlaps " + spot.overlapping() + ", and should overlap nothing");
+			}
+		}
+		// And what that means at the stand: the two are never both on.
+		Patches.Patch itk = Patches.get("itk");
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		if (!Looks.sew(ovve, new Placement(Spot.BACK_TOP_LEFT, itk))) helper.fail("could not sew on the back's top left");
+		if (!Looks.sew(ovve, new Placement(Spot.BACK_TOP_RIGHT, itk))) helper.fail("could not sew on the back's top right");
+		Placement big = new Placement(Spot.BACK_BIG, itk);
+		if (Looks.canSew(ovve, big)) helper.fail("the big back cell can be sewn while the two back-top cells are patched");
+		Looks.setSewn(ovve, SpotPlacements.apply(Looks.sewn(ovve), big));   // applied over them, as unpicking-and-sewing does
+		if (Looks.at(ovve, Spot.BACK_TOP_LEFT) != null || Looks.at(ovve, Spot.BACK_TOP_RIGHT) != null) {
+			helper.fail("the big back cell went on but the two it covers are still sewn");
+		}
+		if (Looks.at(ovve, Spot.BACK_BIG) == null) helper.fail("the big back cell is not sewn after applying it");
+		if (Looks.canSew(ovve, new Placement(Spot.BACK_TOP_LEFT, itk))) helper.fail("a back-top cell can be sewn under the big one");
+		// And a design can still fill everything at once — what {@code /ovvar patches all} builds —
+		// so long as it leaves out the cells already covered.
+		List<Placement> all = new ArrayList<>();
+		for (Spot every : Spot.values()) {
+			if (every == Spot.SEAT || Spot.SEAT_CELLS.contains(every)) continue;
+			if (all.stream().anyMatch(o -> every.overlapping().contains(o.spot()))) continue;
+			all.add(new Placement(every, itk));
+		}
+		all.add(new Placement(Spot.SEAT, Patches.get("rivals")));
+		if (SpotPlacements.fromList(all).result().isEmpty()) {
+			helper.fail("a design filling every cell that is not covered by another was rejected: " + all);
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The big back cell is {@link Patches#MAX_ART} square, so it is the one cell every patch in the
+	 * catalogue fits inside: nothing of the art is wrapped round onto the face next door, which is
+	 * what a patch bigger than its cell does everywhere else. Checked against what datagen really
+	 * draws — the placement texture must be the art, centred, inside the back face's own columns.
+	 */
+	@GameTest
+	public void theBigBackCellHoldsTheBiggestArtWholeAndCentred(GameTestHelper helper) {
+		Spot spot = Spot.BACK_BIG;
+		if (spot.px() != Patches.MAX_ART || spot.pxHeight() != Patches.MAX_ART) {
+			helper.fail("the big back cell is " + spot.px() + "x" + spot.pxHeight() + " px, wanted " + Patches.MAX_ART + " square");
+		}
+		int D = Spot.DETAIL, faceStart = spot.u * D, faceEnd = (spot.u + spot.width) * D;
+		for (Patches.Patch patch : Patches.all()) {
+			if (!patch.fits(spot)) continue;
+			if (patch.oversize(spot)) helper.fail(patch.id() + " hangs over the big back cell, which is " + Patches.MAX_ART + " square");
+			int x = faceStart + patch.offsetX(spot), y = spot.v * D + patch.offsetY(spot);
+			if (x < faceStart || x + patch.width() > faceEnd) {
+				helper.fail(patch.id() + " on the big back cell runs from texel " + x + " to " + (x + patch.width()) + ", off the back face (" + faceStart + ".." + faceEnd + ")");
+			}
+			Tex art = patchArt(patch);
+			Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id()).crop(x, y, patch.width(), patch.height());
+			if (!same(drawn, art)) helper.fail(patch.id() + "'s big-back-cell texture is not its art, centred at (" + x + ", " + y + ")");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The instant channel's arithmetic still fits the shader. Every (cell, design) state of a half
+	 * has to be under {@link Looks#INSTANT_STATES}, because past that the shader's float binomials
+	 * stop being exact — adding cells (the big back cell) or designs (a patch) is exactly what walks
+	 * into it, and {@code Looks.rank} would only throw once somebody wore the set that overflowed.
+	 * A look at a real ovve with the channel full goes through the ranking and the packing too.
+	 */
+	@GameTest
+	public void theInstantChannelStaysInsideWhatTheShaderCanUnrank(GameTestHelper helper) {
+		for (Piece piece : Piece.values()) {
+			int cells = Spot.cells(piece).size(), states = cells * Looks.INSTANT_DESIGNS;
+			if (states > Looks.INSTANT_STATES) {
+				helper.fail(piece + ": " + cells + " cells x " + Looks.INSTANT_DESIGNS + " designs = " + states
+						+ " states, and the shader's binomials are exact only up to " + Looks.INSTANT_STATES);
+			}
+		}
+		// The top is the half that grew: seven body cells (chest four, back three) and twelve sleeve ones.
+		if (Spot.cells(Piece.TOP).size() != 19) helper.fail("the top has " + Spot.cells(Piece.TOP).size() + " cells, wanted 19");
+		// And the channel packs a full set of the highest-numbered cells without overflowing.
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		List<Spot> top = Spot.cells(Piece.TOP);
+		Patches.Patch itk = Patches.get("itk");
+		for (int i = 0; i < Looks.INSTANT; i++) {
+			Placement placement = new Placement(top.get(top.size() - 1 - i), itk);
+			if (!Looks.sew(ovve, placement)) helper.fail("could not sew " + placement.key());
+		}
+		if (Looks.look(ovve, Piece.TOP, UUID.randomUUID(), false).dye() == 0) helper.fail("a full instant channel encoded to no dye colour");
+		helper.succeed();
+	}
+
+	/**
+	 * A design saved before a cell went away still opens. The back's two low cells went when the big
+	 * back cell arrived, and players' items and stored wardrobe rows name them: the codec drops what
+	 * this build has no cell (or no patch) for, logs it, and keeps the rest — rather than failing the
+	 * whole design and costing somebody everything they had sewn. A design that is nothing but
+	 * unknown cells is no design at all, and decodes as none.
+	 */
+	@GameTest
+	public void aSavedDesignSurvivesACellThisBuildNoLongerHas(GameTestHelper helper) {
+		Optional<SpotPlacements> kept = SpotPlacements.CODEC
+				.parse(JavaOps.INSTANCE, List.of("back_low_left.itk", "front_top_left.itk", "leg_front_top_r.nyckeln", "front_low_right.no_such_patch"))
+				.result();
+		if (kept.isEmpty()) {
+			helper.fail("a design naming one cell this build does not have decoded as nothing at all");
+		} else {
+			List<Placement> got = kept.get().asPlacementList();
+			if (got.size() != 2) helper.fail("kept " + got.size() + " placement(s), wanted the 2 this build can read: " + got);
+			if (kept.get().get(Spot.FRONT_TOP_LEFT).isEmpty()) helper.fail("the chest patch was dropped with the unknown ones");
+			if (kept.get().get(Spot.LEG_FRONT_TOP_R).isEmpty()) helper.fail("the leg patch was dropped with the unknown ones");
+		}
+		if (SpotPlacements.CODEC.parse(JavaOps.INSTANCE, List.of("back_low_right.itk")).result().isPresent()) {
+			helper.fail("a design of nothing but unknown cells decoded as a design");
+		}
+		helper.succeed();
+	}
+
+	/** The slot the big back cell's rectangle centres in: it covers the whole back face, and its centre falls here. */
+	private static final int BACK_BIG_SLOT = 25;
+
 	@GameTest
 	public void wardrobePreviewFrontSlotsAreWhereTheyAlwaysWere(GameTestHelper helper) {
 		Object[][] front = {
@@ -1598,7 +1748,7 @@ public final class WardrobeTests {
 		}
 		Object[][] back = {
 				{Spot.BACK_TOP_LEFT, 15}, {Spot.BACK_TOP_RIGHT, 16},
-				{Spot.BACK_LOW_LEFT, 24}, {Spot.BACK_LOW_RIGHT, 25},
+				{Spot.BACK_BIG, BACK_BIG_SLOT},
 		};
 		for (Object[] pair : back) {
 			Spot spot = (Spot) pair[0];

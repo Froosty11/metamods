@@ -22,8 +22,12 @@ import java.util.stream.Collectors;
 public final class Patches {
 	private Patches() {}
 
-	/** The most a patch's art may hang over: two cells each way. Even sizes only — the art is centred on a cell. */
-	public static final int MAX_ART = 2 * Spot.PX;
+	/**
+	 * The most a patch's art may be: two cells each way, which is exactly {@link Spot#BACK_BIG}'s
+	 * own size — on any other cell art this big hangs over its neighbours. Even sizes only, since
+	 * the art is centred in its cell.
+	 */
+	public static final int MAX_ART = Spot.BIG * Spot.DETAIL;
 
 	/**
 	 * @param id	 also the art file name and the item id suffix ({@code ovvar:patch_<id>})
@@ -71,18 +75,22 @@ public final class Patches {
 			return seat ? 2 : 1;
 		}
 
-		/** Does the art hang over its cell? */
-		public boolean oversize() {
-			return !seat && (width > Spot.PX || height > Spot.PX);
+		/** Does the art hang over the cell it is on? */
+		public boolean oversize(Spot spot) {
+			return width > spot.px() || height > spot.pxHeight();
 		}
 
-		/** Where the art's top-left lands relative to the cell's, in texels (centred). */
-		public int offsetX() {
-			return (Spot.PX * cells() - width) / 2;
+		/**
+		 * Where the art's top-left lands relative to the cell's, in texture pixels: centred in the
+		 * cell, which is not one size any more — {@link Spot#BACK_BIG} is two cells each way and the
+		 * seat two cells wide, so this is asked of the cell the patch is going on.
+		 */
+		public int offsetX(Spot spot) {
+			return (spot.px() - width) / 2;
 		}
 
-		public int offsetY() {
-			return (Spot.PX - height) / 2;
+		public int offsetY(Spot spot) {
+			return (spot.pxHeight() - height) / 2;
 		}
 	}
 

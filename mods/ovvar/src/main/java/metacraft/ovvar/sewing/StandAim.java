@@ -132,8 +132,8 @@ public final class StandAim {
 				.orElseThrow(() -> new IllegalArgumentException("no part for " + spot));
 		int u = spot.u - part.strip;
 		int face = u < 4 ? 0 : u < 4 + part.faceWidth ? 1 : u < 8 + part.faceWidth ? 2 : 3;   // −x, front, +x, back
-		double along = (u - new int[]{0, 4, 4 + part.faceWidth, 8 + part.faceWidth}[face]) + 2;   // centre of the 4-wide column
-		double y = part.y1 + (spot.v - Spot.FACE_ROW) + Spot.SIZE / 2.0;
+		double along = (u - new int[]{0, 4, 4 + part.faceWidth, 8 + part.faceWidth}[face]) + spot.width / 2.0;   // the cell's own centre along the face
+		double y = part.y1 + (spot.v - Spot.FACE_ROW) + spot.height / 2.0;
 		double x1 = part.mirrored() ? -part.x2 : part.x1, x2 = part.mirrored() ? -part.x1 : part.x2;
 		double lx, lz;
 		Vector3f normal;

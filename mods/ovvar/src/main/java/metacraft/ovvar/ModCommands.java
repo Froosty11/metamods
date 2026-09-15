@@ -191,6 +191,9 @@ public final class ModCommands {
 			int i = 0;
 			for (Spot spot : Spot.values()) {
 				if (spot == Spot.SEAT || Spot.SEAT_CELLS.contains(spot)) continue;
+				// Cells that cover each other cannot both be filled: the big back cell covers the two
+				// back-top ones, which come first here and so win.
+				if (out.stream().anyMatch(o -> spot.overlapping().contains(o.spot()))) continue;
 				out.add(new Placement(spot, plain.get(i++ % plain.size())));
 			}
 			Patches.all().stream().filter(Patches.Patch::seat).findFirst().ifPresent(p -> out.add(new Placement(Spot.SEAT, p)));

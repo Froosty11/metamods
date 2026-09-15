@@ -2,6 +2,8 @@ package metacraft.ovvar.content;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.JavaOps;
+import metacraft.ovvar.Ovvar;
 import net.minecraft.util.ExtraCodecs;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.PMap;
@@ -25,10 +27,35 @@ public record SpotPlacements(PMap<Spot, Patches.Patch> patchMap) {
 		return overlaps(spot, patches);
 	}
 
-	public static final Codec<SpotPlacements> CODEC = ExtraCodecs.nonEmptyList(Placement.CODEC.listOf()).comapFlatMap(
-			SpotPlacements::fromList,
-			SpotPlacements::asPlacementList
+	/**
+	 * On the wire and on disk a design is its placement keys, {@code cell.patch}. It is decoded key
+	 * by key so that one key this build cannot read does not cost a player the rest of their design:
+	 * cells and patches come and go (BACK_LOW_LEFT and BACK_LOW_RIGHT went when BACK_BIG arrived, and
+	 * their rows with them), and an item or a stored wardrobe row written before that must still open
+	 * — minus whatever no longer exists, which is logged rather than passed over in silence.
+	 */
+	public static final Codec<SpotPlacements> CODEC = ExtraCodecs.nonEmptyList(Codec.STRING.listOf()).comapFlatMap(
+			SpotPlacements::fromKeys,
+			placements -> placements.asPlacementList().stream().map(Placement::key).toList()
 	);
+
+	/** @see #CODEC */
+	public static DataResult<SpotPlacements> fromKeys(List<String> keys) {
+		List<Placement> placements = new ArrayList<>();
+		List<String> dropped = new ArrayList<>();
+		for (String key : keys) {
+			DataResult<Placement> parsed = Placement.CODEC.parse(JavaOps.INSTANCE, key);
+			parsed.ifSuccess(placements::add);
+			if (parsed.result().isEmpty()) dropped.add(key);
+		}
+		if (!dropped.isEmpty()) {
+			Ovvar.LOGGER.warn("[ovvar] a saved design names {} placement(s) this build has no cell or patch for; dropping {}", dropped.size(), dropped);
+		}
+		// Nothing left that can be drawn is nothing: the component goes away rather than becoming an
+		// empty design, which is a state the rest of the mod does not have (see remove()).
+		if (placements.isEmpty()) return DataResult.error(() -> "no placement in " + keys + " names a cell and a patch this build has");
+		return fromList(placements);
+	}
 
 	public static DataResult<SpotPlacements> fromList(List<Placement> placements) {
 		PMap<Spot, Patches.Patch> patchMap = TreePMap.empty();

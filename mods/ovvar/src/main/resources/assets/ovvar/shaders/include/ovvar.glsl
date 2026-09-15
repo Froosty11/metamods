@@ -12,7 +12,9 @@
 //	  2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
 //	  blank texel.
 //   2  the preview texture: every instant design's art in a library (head rows), a cell table at
-//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall) and a design
+//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 2·D columns
+//	  further right: the cell's own width and height, since a cell is not one size — the big back
+//	  cell is two cells each way and the seat two wide) and a design
 //	  table at x 44·D (design → library x, y, cells; 2·D columns further right: art width,
 //	  height); G = cells in the half, B = designs. The garment's dye
 //	  colour carries up to three placements as the rank of their set among all sets of
@@ -27,7 +29,7 @@
 // Texels per skin texel (Spot.DETAIL in the mod) and the texture size, cell size and fixed texels that follow.
 const float OVVAR_D = 2.0;
 const vec2 OVVAR_TEX = vec2(64.0, 32.0) * OVVAR_D;
-const float OVVAR_CELL = 4.0 * OVVAR_D;
+const float OVVAR_CELL = 4.0 * OVVAR_D;   // the default cell; a cell's own size comes from the cell table
 const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
 const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
 
@@ -275,6 +277,7 @@ vec2 ovvar_uv(vec2 uv) {
 		if (i >= count) break;
 		float cell = floor(s[i] / designs), design = s[i] - cell * designs;
 		vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));				   // u, v, side (texels)
+		vec4 cz = ovvar_read(40.0 * OVVAR_D + 2.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));   // the cell's own width, height
 		vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));			   // library x, y, cells
 		vec4 sz = ovvar_read(44.0 * OVVAR_D + 2.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0)); // art width, height
 		float side = ce.b;
@@ -289,8 +292,11 @@ vec2 ovvar_uv(vec2 uv) {
 		// The art, centred on its cell (a seat patch: one cell per leg), looked up on the side
 		// rows through the mapping a placement of its face gets — continuous round the box, so
 		// a big patch bends round the corners here just as it will once the pack has it.
-		float w = side > 2.5 ? OVVAR_CELL : sz.r, h = side > 2.5 ? OVVAR_CELL : sz.g;
-		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (OVVAR_CELL - w) * 0.5, (OVVAR_CELL - h) * 0.5);
+		// The cell's own size: OVVAR_CELL for nearly all of them, twice that each way for the big
+		// back cell, and two cells wide for the seat — half of which is one leg's.
+		float cw = cz.r, ch = cz.g;
+		float w = side > 2.5 ? cw * 0.5 : sz.r, h = side > 2.5 ? ch : sz.g;
+		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
 		float a = t.x;
 		if (sides) {
 			a = ovvar_squeezed_anchored(t.x, inflate, ovvar_face_of(body, ce.r / OVVAR_D - stripStart));
@@ -300,7 +306,7 @@ vec2 ovvar_uv(vec2 uv) {
 		if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
 		if (local.x < 0.0 || local.x >= w || local.y < 0.0 || local.y >= h) continue;
 		if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
-		return (pe.rg + vec2(column * OVVAR_CELL, 0.0) + local) / OVVAR_TEX;
+		return (pe.rg + vec2(column * w, 0.0) + local) / OVVAR_TEX;
 	}
 	return OVVAR_BLANK;
 }
