@@ -93,9 +93,11 @@ and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
-dress are 12×12 and hang over their neighbours (except on the big back cell). ITK also ships
-`itk_8x8.png` — Kexana's original 8×8 ITK, the art that shipped before the 12×12 — so it lands
-whole on a shoulder instead of losing its edges; see "art at more than one size" below. Ticket to my heart is
+dress are 12×12 and hang over their neighbours (except on the big back cell). Two of them are also
+drawn at a second size: ITK ships `itk_8x8.png` (Kexana's original 8×8 ITK, the art that shipped
+before the 12×12), so it lands whole on a shoulder instead of losing its edges, and IT ships
+`it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big back cell and is its own inventory
+icon at 1:1 — see "art at more than one size" below. Ticket to my heart is
 10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
@@ -578,7 +580,8 @@ fails loudly when that runs out.
 
 A patch may ship its art at another size as well: `<id>_<w>x<h>.png` beside its own PNG, so ITK is
 `itk.png` (12×12, the size its catalogue line declares) and `itk_8x8.png` (Kexana's original 8×8
-ITK, which is what the patch was before the 12×12 was drawn). Nothing is declared — the catalogue
+ITK, which is what the patch was before the 12×12 was drawn), and IT is `it.png` (Cactooz's 12×12)
+and `it_16x16.png` (PolymITer's own 16×16 sprite). Nothing is declared — the catalogue
 entry stays one line and datagen finds the variants by file name (even sizes up to 16×16; a seat
 patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
 underscore but is not a size this build can ask for fails datagen, so a misspelt name is not
@@ -596,14 +599,15 @@ what a patch with a single file gets everywhere. What a cell asks for is `Patche
 | fit | the cells | what it shows |
 | --- | --- | --- |
 | `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges |
-| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — nobody has drawn a 16 px patch, so today this always falls back |
+| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — IT fills the back with PolymITer's 16×16; ITK, drawn at no such size, falls back |
 | `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch |
 
 **The fall-back is the old behaviour, exactly.** A cell that finds nothing it can use takes the
 catalogue's art and does with it what it did before variants existed: the big back cell centres the
-12×12 in its 16×16, the item icon scales the catalogue's art to fill 16 px and centres it (no patch
-is drawn at 16, so every icon in the catalogue is this), and an ordinary cell hangs the art over its
-neighbours. So the only thing per-size art changes today is a shoulder's ITK.
+12×12 in its 16×16, the item icon scales the catalogue's art to fill 16 px and centres it, and an
+ordinary cell hangs the art over its neighbours. So per-size art changes exactly two things in
+today's catalogue — a shoulder's ITK, and IT on the big back cell and in the inventory — and every
+other patch on every other cell is drawn as it always was.
 
 Everything that draws a patch goes through the same call: the pack's placement textures, the instant
 channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one
@@ -789,7 +793,8 @@ MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
 Patch art: Nyckeln'26 by Kexana, and the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
 size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
 until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
-PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too); the
+PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too), with
+PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
 Maid dress by Mackan; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
 original to this mod, cut from the chapter skin
 overlays on metacraft.se/style.
