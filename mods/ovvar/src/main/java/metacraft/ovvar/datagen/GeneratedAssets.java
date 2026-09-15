@@ -160,12 +160,16 @@ public final class GeneratedAssets implements DataProvider {
 				if (spot == Spot.SEAT) {
 					// The art is drawn as seen from behind, so its left half sits on the wearer's LEFT leg
 					// (the viewer's left when looking at the seat) and the right half on the right leg:
-					// Spot.seatColumn is that convention and Spot.seatHalf the cut it makes.
-					Tex r = Tex.blank(W, H).blit(art, Spot.seatHalf(Spot.Side.RIGHT), 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
-					Tex l = Tex.blank(W, H).blit(art, Spot.seatHalf(Spot.Side.LEFT), 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D)
-							.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);   // the model mirrors the left leg
-					png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, spot, Spot.Side.RIGHT));
-					png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, spot, Spot.Side.LEFT));
+					// Spot.seatColumn is that convention and Spot.seatHalf the cut it makes. Each half is
+					// then placed like any other art — centred on the cell's row, so a seat patch taller
+					// than the row hangs onto the cloth below it, and clipped to the part's side rows.
+					for (Spot.Side side : new Spot.Side[]{Spot.Side.RIGHT, Spot.Side.LEFT}) {
+						Tex half = art.crop(Spot.seatHalf(side), 0, Spot.PX, art.height);
+						if (side == Spot.Side.LEFT) half = half.flipX();   // the model mirrors the left leg
+						Tex tex = placed(spot, half, spot.u * D);
+						String suffix = side == Spot.Side.LEFT ? "_l" : "_r";
+						png(assets.resolve(dir + "patch/seat/" + patch.id() + suffix + ".png"), sided(tex, spot, side));
+					}
 					placementTextures += 2;
 					continue;
 				}

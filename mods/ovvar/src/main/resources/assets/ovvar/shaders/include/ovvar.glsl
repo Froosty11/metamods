@@ -293,9 +293,11 @@ vec2 ovvar_uv(vec2 uv) {
 		// rows through the mapping a placement of its face gets — continuous round the box, so
 		// a big patch bends round the corners here just as it will once the pack has it.
 		// The cell's own size: OVVAR_CELL for nearly all of them, twice that each way for the big
-		// back cell, and two cells wide for the seat — half of which is one leg's.
+		// back cell, and two cells wide for the seat — half of which is one leg's. The art's height
+		// is the art's own either way, so a seat patch taller than the seat's row hangs over it just
+		// as a big patch hangs over a plain cell.
 		float cw = cz.r, ch = cz.g;
-		float w = side > 2.5 ? cw * 0.5 : sz.r, h = side > 2.5 ? ch : sz.g;
+		float w = side > 2.5 ? cw * 0.5 : sz.r, h = sz.g;
 		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
 		float a = t.x;
 		if (sides) {

@@ -53,7 +53,11 @@ public enum Spot implements StringRepresentable {
 	LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 22, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 26, Side.LEFT),
 	LEG_BACK_TOP_R(Piece.BOTTOM, 12, 22, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 26, Side.RIGHT),
 	LEG_BACK_TOP_L(Piece.BOTTOM, 12, 22, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 26, Side.LEFT),
-	/** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L), so it follows their row. */
+	/**
+	 * The seat: one patch two cells wide across the back of both legs (LEG_BACK_TOP_R +
+	 * LEG_BACK_TOP_L), so it follows their row. Seat art may be taller than the row
+	 * ({@link Patches#SEAT_HEIGHT_MAX}), centred on it and hanging onto the cloth below and above.
+	 */
 	SEAT(Piece.BOTTOM, 12, 22, Side.SEAT, 2 * Spot.SIZE, Spot.SIZE);
 
 	public static final Codec<Spot> CODEC = StringRepresentable.fromEnum(Spot::values);

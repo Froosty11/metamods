@@ -1272,11 +1272,79 @@ public final class WardrobeTests {
 		helper.succeed();
 	}
 
-	/** The cell of a seat patch's generated placement texture for one leg, as the client draws it. */
+	/**
+	 * A seat patch taller than the seat's own row keeps every row of it. The art is centred on the
+	 * two cells the way oversize plain art is centred on its cell, so the extra rows hang onto the
+	 * cloth below (and above) — and the rails at the very top and bottom of the art are exactly what
+	 * a path that clipped the art to the cell would lose, on both legs. Also that the paper doll
+	 * keeps them: they must be in the reference art the audit compares the glyph against, and their
+	 * colours in the glyph the doll really draws.
+	 */
+	@GameTest
+	public void aTallSeatPatchKeepsTheRowsThatHangOverTheSeat(GameTestHelper helper) {
+		int tall = 0;
+		for (Patches.Patch patch : Patches.all()) {
+			if (!patch.seat() || patch.height() <= Spot.PX) continue;
+			tall++;
+			Tex art = patchArt(patch);
+			int half = art.width / 2, last = art.height - 1;
+			if (patch.offsetY(Spot.SEAT) >= 0) {
+				helper.fail(patch.id() + " is " + patch.height() + " px tall but sits inside the seat's row; nothing hangs over");
+			}
+			for (Spot.Side side : new Spot.Side[]{Spot.Side.RIGHT, Spot.Side.LEFT}) {
+				Tex leg = seatCell(patch, side);
+				if (leg.height != patch.height()) {
+					helper.fail(patch.id() + " on the " + side + " leg is " + leg.height + " px tall, wanted " + patch.height());
+					continue;
+				}
+				// The half this leg wears, as drawn (the texture holds the left leg's mirrored).
+				Tex wanted = side == Spot.Side.LEFT ? art.crop(0, 0, half, art.height).flipX() : art.crop(half, 0, half, art.height);
+				for (int row : new int[]{0, last}) {
+					boolean any = false;
+					for (int x = 0; x < half; x++) {
+						int pixel = wanted.get(x, row);
+						if (Tex.a(pixel) == 0) continue;
+						any = true;
+						if (leg.get(x, row) != pixel) {
+							helper.fail(patch.id() + ": the " + side + " leg is missing art pixel (" + x + ", " + row + "), the "
+									+ (row == 0 ? "top" : "bottom") + " rail — the art was clipped to the seat's own row");
+						}
+					}
+					if (!any) helper.fail(patch.id() + "'s row " + row + " is empty, so this test could not tell whether it was drawn");
+				}
+			}
+			// And on the paper doll.
+			Tex shown = WardrobePreview.shownArt(Spot.SEAT, patch, art);
+			if (shown.height != art.height) helper.fail(patch.id() + ": the doll's reference art is " + shown.height + " px tall, wanted " + art.height);
+			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(Spot.SEAT, patch));
+			if (glyph == null) {
+				helper.fail("no preview glyph for " + patch.id() + " on the seat");
+				continue;
+			}
+			List<Integer> got = colours(glyph.art().get());
+			for (int row : new int[]{0, shown.height - 1}) {
+				List<Integer> rails = run(shown, row);
+				if (rails.isEmpty()) helper.fail(patch.id() + ": the doll drops the whole of row " + row + ", which hangs over the seat");
+				for (int colour : rails) {
+					if (!near(got, colour)) {
+						helper.fail(patch.id() + ": row " + row + " of the art has " + hex(colour) + ", which the seat's glyph has not — the doll clipped it to the cell");
+					}
+				}
+			}
+		}
+		if (tall == 0) helper.fail("no seat patch taller than the seat's own row to check");
+		helper.succeed();
+	}
+
+	/**
+	 * One leg's half of a seat patch, out of the generated placement texture the client draws it
+	 * with: the art's own rectangle, which for a seat patch taller than the seat's row starts above
+	 * the cell and ends below it.
+	 */
 	private static Tex seatCell(Patches.Patch patch, Spot.Side side) {
 		String name = "patch/seat/" + patch.id() + (side == Spot.Side.LEFT ? "_l" : "_r");
-		Tex tex = generated(Piece.BOTTOM, name);
-		return tex.crop(Spot.SEAT.u * Spot.DETAIL, Spot.SEAT.v * Spot.DETAIL, Spot.PX, Spot.PX);
+		int x = Spot.SEAT.u * Spot.DETAIL, y = Spot.SEAT.v * Spot.DETAIL + patch.offsetY(Spot.SEAT);
+		return generated(Piece.BOTTOM, name).crop(x, y, Spot.PX, patch.height());
 	}
 
 	/** A generated equipment layer texture, off the runtime classpath (datagen has to have run). */

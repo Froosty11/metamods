@@ -20,7 +20,7 @@ look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
-belt, the hands and the cuffs), plus the seat, which takes a two-cell-wide 8×4 patch across it.
+belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it.
 Every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`), and which rows each part
 uses came out of the playtest:
 
@@ -30,10 +30,14 @@ uses came out of the playtest:
 | body, back | back (8 wide) | 21 (`BACK_TOP_LEFT`/`_RIGHT`) *or* 22 (`BACK_BIG`, the whole face) |
 | sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
 | legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
-| seat | both legs' back faces | 22, following `LEG_BACK_TOP` |
+| seat | both legs' back faces | 22, following `LEG_BACK_TOP`; a tall seat patch hangs a texel over it each way |
 
 A cell is 4×4 texels except where the entry in `Spot` says otherwise (`Spot.width`/`height`), and
-there are two that do. The **seat** is two cells wide, one tall, across the back of both legs. The
+there are two that do. The **seat** is two cells wide, one tall, across the back of both legs — but
+a seat patch may be 16×8 up to 16×12 (`Patches.SEAT_HEIGHT_MAX`), centred on the two cells the way
+oversize plain art is centred on its own cell, so the extra rows hang onto the cloth below and
+above. It is always the full two cells wide: half of it goes on each leg, and there is nowhere for a
+narrower one to be. The
 **big back cell** (`BACK_BIG`) is the whole back face below the collar, 8×8 texels — 16×16 px,
 exactly `Patches.MAX_ART` — so it is the one cell on which the biggest patch in the catalogue lies
 whole, with nothing wrapped round onto the face next door. It covers the two `BACK_TOP` cells, so
@@ -47,11 +51,12 @@ log line — and keeps the rest of the design rather than failing the whole of i
 and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
-Spiken, Släggan, Ticket to my heart and the Maid dress. ITK, IT, Data, Spiken, Släggan and the Maid
+Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
 dress are 12×12 and hang over their neighbours (except on the big back cell); Ticket to my heart is
 10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
-Rivals is the seat patch — Data's cerise with a creeper against IT's laser violet with a VS — and
-Nyckeln'26 is Kexana's cell-sized 8×8. New entries go at the end of the list: a design's instant
+Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
+violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
+seat's row onto the cloth — and Nyckeln'26 is Kexana's cell-sized 8×8. New entries go at the end of the list: a design's instant
 code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
 repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
 so the ä lives in the display name only. Seat art is drawn as seen from behind, the only
@@ -103,8 +108,8 @@ otherwise). The cell under the needle carries the click. Datagen builds the glyp
 `art/ovvar/sewing/`: `cloth.png` (22×22, recoloured in every chapter's colour), `needle.png`
 (26×9, pointing right; mirrored and turned for the other directions), `thread.png` (3×3),
 `stitch_in.png`, `stitch_out.png` and `hole.png` (5×5), `band.png` (154×22, the text is stamped
-on), plus each patch's art scaled up whole to fit 96 px (an 8×8 at 12×, a 12×12 at 8×, the
-16×8 seat patch at 6×). It also
+on), plus each patch's art scaled up whole to fit 96 px (an 8×8 at 12×, a 12×12 at 8×, a
+16-wide seat patch at 6×). It also
 traces each patch's outline from its opaque texels into `ovvar/outlines.json` (`Outline`), which
 `Seam` spreads the holes along at runtime. Replace the PNGs and `runDatagen`; the
 `sewingLabelsFitTheirButtons` game test checks every label of every seam still measures what the
@@ -483,8 +488,8 @@ styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data d
 ## Adding a patch
 
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
-`src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 for a seat
-patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
+`src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 to 16×12 for a
+seat patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
 its cell and hangs over the neighbours, later-sewn on top, all the way round the part — past a
 limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
 armour layout at twice the skin's resolution, `Spot.DETAIL`). A big patch rides in the dye
@@ -608,7 +613,8 @@ MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
 Patch art: Nyckeln'26 by Kexana; ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
 until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too); the
-Maid dress by Mackan. The ovve garment art is original to this mod, cut from the chapter skin
+Maid dress by Mackan; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
+original to this mod, cut from the chapter skin
 overlays on metacraft.se/style.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
