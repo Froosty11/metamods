@@ -6,6 +6,7 @@ import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.OvveTopItem;
 import metacraft.ovvar.content.Ownership;
 import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
@@ -94,7 +95,7 @@ public final class StandSewing {
 				return InteractionResult.PASS;
 			}
 			if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return InteractionResult.PASS;
-			return click(serverPlayer, stand, aim(serverPlayer, stand));
+			return click(serverPlayer, stand, aim(serverPlayer, stand), true);
 		});
 		UseItemCallback.EVENT.register((player, level, hand) -> {
 			if (hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) return InteractionResult.PASS;
@@ -121,7 +122,7 @@ public final class StandSewing {
 			if (distance < bestDistance) { best = stand; bestHit = hit; bestDistance = distance; }
 		}
 		if (best == null) return InteractionResult.PASS;
-		return click(player, best, bestHit);
+		return click(player, best, bestHit, false);
 	}
 
 	private static void onSewFail(ServerLevel level, ServerPlayer player, Vec3 where) {
@@ -134,11 +135,17 @@ public final class StandSewing {
 	}
 
 	/**
-	 * A right-click on a stand wearing an ovve, aimed as given: sew the held patch, or unpick with
-	 * shears. A stash session's stand answers only to its player and to nothing but sewing; any
-	 * other stand only when the config allows sewing on any stand, and never on a minigame server.
+	 * A right-click on a stand wearing an ovve, aimed as given: sew the held patch, unpick with
+	 * shears, or — with an empty hand on the ovve's top — take the whole ovve off. A stash session's
+	 * stand answers only to its player and to nothing but sewing; any other stand only when the
+	 * config allows sewing on any stand, and never on a minigame server.
+	 *
+	 * @param onStand did the client attribute the click to the stand itself? Only then may it take the
+	 *   ovve off: a click the client reported as air or as a block is one we pick up for the aim's
+	 *   sake ({@link #clickThrough}), and undressing a stand from a click it did not know was on it
+	 *   would be a surprise.
 	 */
-	private static InteractionResult click(ServerPlayer player, ArmorStand stand, StandAim.Hit aimed) {
+	private static InteractionResult click(ServerPlayer player, ArmorStand stand, StandAim.Hit aimed, boolean onStand) {
 		ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
 		ItemStack held = player.getMainHandItem();
 		ServerLevel level = player.level();
@@ -146,6 +153,11 @@ public final class StandSewing {
 		boolean sewing = held.getItem() instanceof PatchItem || held.is(ConventionalItemTags.SHEAR_TOOLS);
 		if (session && !StashSession.mayUse(player, stand)) return InteractionResult.FAIL;   // someone else's stand
 		if (session && !sewing) return InteractionResult.FAIL;   // nothing else happens to a session stand (no taking the ovve)
+		if (onStand && !sewing && held.isEmpty() && aimed != null && TOP_PARTS.contains(aimed.part())) {
+			ItemStack chest = stand.getItemBySlot(EquipmentSlot.CHEST);
+			// Real chest armour over the ovve is the stand's own business: vanilla swaps that out.
+			if (chest.isEmpty() || chest.getItem() instanceof OvveTopItem) return takeOff(player, stand, ovve);
+		}
 		if (sewing) {
 			String refusal = OwnedSewing.editingRefusal(player);
 			if (refusal == null && !session && OvveItem.owner(ovve) != null && !OvvarConfig.get().stash().anyStand()) {
@@ -195,6 +207,35 @@ public final class StandSewing {
 			return InteractionResult.SUCCESS;
 		}
 		return InteractionResult.PASS;
+	}
+
+	/**
+	 * The stand's parts the ovve's <em>top</em> covers, which is what the chest slot is about. A click
+	 * on a leg is left to vanilla, which swaps the legs slot — the ovve itself — and already does the
+	 * right thing.
+	 */
+	private static final java.util.Set<String> TOP_PARTS = java.util.Set.of("body", "right arm", "left arm");
+
+	/**
+	 * Take the whole ovve off a stand, into the hand, exactly as clicking its legs does.
+	 *
+	 * <p>Without this, a click on the stand's chest was vanilla swapping the <b>chest slot</b>, which
+	 * holds the companion top ({@link OvveTopItem}) while the ovve's top is up. That companion is not
+	 * a possession: out of a chest slot it deletes itself on the next tick, and the ovve's own tick
+	 * puts a fresh one straight back — so the click looked like the top jumping back onto the stand
+	 * and nothing else happening. The whole garment is one item in the legs slot, so the only sensible
+	 * reading of "take the top off the stand" is to take the ovve off, which is what this does; the
+	 * companion goes with it, cleared here rather than left for the tick to notice.
+	 */
+	private static InteractionResult takeOff(ServerPlayer player, ArmorStand stand, ItemStack ovve) {
+		ItemStack taken = ovve.copy();
+		stand.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+		if (stand.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem) {
+			stand.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+		}
+		player.setItemInHand(InteractionHand.MAIN_HAND, taken);
+		player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
+		return InteractionResult.SUCCESS;
 	}
 
 	private static final Component FAILED = Component.literal("Cannot sew a patch on top of another patch!").withColor(TextColor.RED);

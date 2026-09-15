@@ -96,7 +96,14 @@ an armour stand, hold a patch, look at the stand — the patch shows washed out 
 at (a ghosted sprite, see below), the action bar
 names it, right-click sews it on; sneak to aim at the far face of the part you look at
 (the back of the body, the back of an arm). The aim follows the stand's pose. Shears on a sewn
-patch unpick it. No cap on the number of patches. While the ovve is on a stand its patches are flat item displays laid on their cells
+patch unpick it. No cap on the number of patches. An **empty hand** on the stand's top — its body or
+an arm — takes the whole ovve off, into your hand, as clicking its legs does. It has to be ours to
+do: the chest slot holds the companion top (`OvveTopItem`) while the ovve's top is up, and that is
+not a possession — out of a chest slot it deletes itself and the ovve's own tick puts a fresh one
+straight back, so vanilla's swap of that slot looked like the top jumping back onto the stand and
+nothing else happening. The garment is one item in the legs slot, so taking its top off the stand
+means taking the ovve off; the companion goes with it. Real chest armour over the ovve is still
+vanilla's to swap, and a session stand still refuses everything but sewing. While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
 is taken off and worn. A shoulder's sprite lies flat on the arm box's own top face, which faces
@@ -505,7 +512,9 @@ sneak far-face rule, checked against `StandAim.cell`, the independent cell → p
 shoulders are left out of the posed run: an arm rotated 60° about z swings the top of its box into
 the torso, so there is no line of sight to its top face); that a shoulder's plane faces straight up,
 that looking down at one resolves the shoulder and not the sleeve's front face beneath it, and that
-its sprite lies on that plane; and
+its sprite lies on that plane; that an empty-handed click on a stand's chest takes the whole ovve off
+with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
+swap; and
 the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
 sewn on the last pull, nothing sewn after cutting the thread). `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a

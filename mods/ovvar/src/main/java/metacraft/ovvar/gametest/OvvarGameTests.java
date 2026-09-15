@@ -5,6 +5,7 @@ import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.OvveTopItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
@@ -15,6 +16,7 @@ import metacraft.ovvar.sewing.SewingGame;
 import metacraft.ovvar.sewing.StandAim;
 import metacraft.ovvar.sewing.StandDisplays;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Rotations;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -26,6 +28,7 @@ import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.MultiActionDialog;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
@@ -117,6 +120,79 @@ public final class OvvarGameTests {
 			}
 			helper.succeed();
 		});
+	}
+
+	/**
+	 * Right-clicking a stand's <b>chest</b> with an empty hand takes the whole ovve off, into the
+	 * hand, and leaves no companion top behind.
+	 *
+	 * <p>It used to be vanilla swapping the chest slot, which holds the companion top
+	 * ({@link OvveTopItem}) while the ovve's top is up — and that is not a possession: out of a chest
+	 * slot it deletes itself on the next tick, while the ovve's own tick puts a fresh one straight
+	 * back, so the click looked like the top jumping back and nothing else happening. The garment is
+	 * one item in the legs slot, so taking its top off the stand means taking the ovve off.
+	 *
+	 * <p>A click on a leg is unchanged: our handler passes it, and vanilla's own swap — which is what
+	 * the second half of this test calls — still hands the ovve over.
+	 */
+	@GameTest(maxTicks = 200)
+	public void clickingAStandsChestTakesTheWholeOvveOff(GameTestHelper helper) {
+		ArmorStand stand = stand(helper, 0, REST, REST, REST, REST);
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		Placement placement = new Placement(Spot.SHOULDER_R, Patches.get("itk"));
+		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(placement)).getOrThrow());
+		OvveItem.setTopUp(ovve, true);
+		stand.setItemSlot(EquipmentSlot.LEGS, ovve);
+		ServerPlayer player = sewer(helper, stand);
+		player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+		helper.runAfterDelay(5, () -> {
+			// The companion top is there to be clicked on (the ovve's tick put it in the chest slot).
+			if (!(stand.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem)) {
+				helper.fail("the stand has no companion top in its chest slot, so this test cannot click on one");
+			}
+			// Aimed at the stand's body, which is the chest's own part.
+			StandAim.CellPoint at = StandAim.cell(stand, Spot.FRONT_TOP_LEFT);
+			aimAt(player, at);
+			InteractionResult result = UseEntityCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, stand, null);
+			if (!result.consumesAction()) helper.fail("a click on the stand's chest was not taken: " + result);
+			if (!stand.getItemBySlot(EquipmentSlot.LEGS).isEmpty()) helper.fail("the ovve is still on the stand's legs");
+			if (!stand.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) {
+				helper.fail("a companion top was left on the stand: " + stand.getItemBySlot(EquipmentSlot.CHEST));
+			}
+			ItemStack held = player.getMainHandItem();
+			if (!(held.getItem() instanceof OvveItem)) helper.fail("the player is holding " + held + ", not the ovve");
+			else if (!placement.equals(Looks.at(held, Spot.SHOULDER_R))) helper.fail("the ovve they got has lost its patch: " + Looks.sewn(held));
+
+			// And a leg: our handler leaves it to vanilla, whose swap hands the ovve over as before.
+			ArmorStand other = stand(helper, 0, REST, REST, REST, REST);
+			ItemStack second = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+			OvveItem.setTopUp(second, true);
+			other.setItemSlot(EquipmentSlot.LEGS, second);
+			ServerPlayer legsPlayer = sewer(helper, other);
+			legsPlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			aimAt(legsPlayer, StandAim.cell(other, Spot.LEG_FRONT_TOP_R));
+			StandAim.Hit hit = StandAim.aim(legsPlayer.getEyePosition(), legsPlayer.getViewVector(1.0f), other, false, 6);
+			if (hit == null || !hit.part().endsWith("leg")) helper.fail("the second player is not aimed at a leg: " + (hit == null ? "miss" : hit.part()));
+			InteractionResult legs = UseEntityCallback.EVENT.invoker().interact(legsPlayer, legsPlayer.level(), InteractionHand.MAIN_HAND, other, null);
+			if (legs != InteractionResult.PASS) helper.fail("a click on a leg was taken by us (" + legs + "), not left to vanilla's swap");
+			other.interact(legsPlayer, InteractionHand.MAIN_HAND, new Vec3(0, 0.5, 0));   // vanilla: y 0.5 is the legs slot
+			if (!other.getItemBySlot(EquipmentSlot.LEGS).isEmpty()) helper.fail("vanilla's legs swap left the ovve on the stand");
+			if (!(legsPlayer.getMainHandItem().getItem() instanceof OvveItem)) {
+				helper.fail("the legs click did not hand the ovve over: " + legsPlayer.getMainHandItem());
+			}
+			helper.succeed();
+		});
+	}
+
+	/** Puts a player where they are looking straight at a cell, from just outside it. */
+	private static void aimAt(ServerPlayer player, StandAim.CellPoint at) {
+		Vec3 from = at.centre().add(at.normal().scale(1.5));
+		player.setPos(from.x, from.y - player.getEyeHeight(), from.z);
+		Vec3 d = at.centre().subtract(player.getEyePosition());
+		double flat = Math.sqrt(d.x * d.x + d.z * d.z);
+		player.setYRot((float) Math.toDegrees(Math.atan2(-d.x, d.z)));
+		player.setXRot((float) -Math.toDegrees(Math.atan2(d.y, flat)));
+		player.setYHeadRot(player.getYRot());
 	}
 
 	@GameTest
