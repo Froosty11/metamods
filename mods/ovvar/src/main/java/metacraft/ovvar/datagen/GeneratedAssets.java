@@ -491,7 +491,12 @@ public final class GeneratedAssets implements DataProvider {
 	private static Tex marked(Tex tex, Piece piece) {
 		require(tex.width == W && tex.height == H, "a garment texture is " + tex.width + "×" + tex.height + ", not " + W + "×" + H);
 		require(tex.get(MARKER_X, MARKER_Y) == 0 && tex.get(LAYER_X, MARKER_Y) == 0, "a garment texture draws on the marker texels");
-		return tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
+		for (int i = 0; i < DEBUG.length; i++) {
+			require(tex.get(DEBUG_X + i, MARKER_Y) == 0, "a garment texture draws on the debug palette texels");
+		}
+		Tex out = tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
+		for (int i = 0; i < DEBUG.length; i++) out = out.with(DEBUG_X + i, MARKER_Y, DEBUG[i]);
+		return out;
 	}
 
 	/**
@@ -575,6 +580,16 @@ public final class GeneratedAssets implements DataProvider {
 	private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
 	private static final int LAYER_X = W - 3;
+	/**
+	 * Three, four and five left of the marker: the palette {@code OVVAR_DEBUG_TOP_FACES} paints a
+	 * box's top faces from — mirrored, unmirrored, no cell matched. A dev switch in the shader needs
+	 * somewhere to get a colour, and a coordinate is all a program of ours can return; every texture
+	 * of ours carries them. They are in the layout's unused top-right corner (skin x 56–64), which no
+	 * box and no mirror strip touches, and inside the library cell the preview texture reserves for
+	 * the marker row.
+	 */
+	private static final int DEBUG_X = W - 6;
+	private static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF};
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
 	private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**

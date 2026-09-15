@@ -89,6 +89,39 @@ const bool OVVAR_TOP_FACE_SAME_SENSE = true;
 // 1) and the mirrored left leg the other one.
 const float OVVAR_SEAT_COLUMN_RIGHT = 1.0;
 
+// ---- dev only: see what the shader makes of the boxes' top faces (where the shoulders are)
+//
+// Off in everything shipped, and a game test holds it off. With it on, a fragment of a limb box's
+// top or bottom face is painted instead of drawn:
+//
+//   by the BASE GARMENT layer, which covers every such fragment whatever is sewn:
+//	 RED   the mirror test calls this fragment mirrored (the wearer's left limb),
+//	 BLUE  it calls it unmirrored (the right);
+//   by the PREVIEW layer, over the top of that:
+//	 MAGENTA  no cell of the instant design matched this fragment.
+//
+// So, with a patch on BOTH shoulders and a design the dye colour still carries (a freshly given
+// one, before the pack catches up): the two arms' top faces should come out one solid red and one
+// solid blue with the patch art drawn over each. What each other reading means:
+//
+//   one red arm, one blue arm, one of them MAGENTA  the mirror test tells the arms apart, and the
+//	   magenta arm's fragments reached the cell table and matched no cell's window — the fault is
+//	   in the window (or in the fragment's texel position), not in the mirror test;
+//   both arms the SAME colour					  the mirror test does not tell a top face's arms
+//	   apart at all, so one cell is drawn on both arms and the other on neither, whatever the
+//	   sense is set to — the two shoulder cells cannot be told apart and the feature needs a
+//	   different discriminator than texture-over-geometry handedness;
+//   a speckled or half-and-half arm				 the handedness test degenerates on a top face
+//	   (a nearly edge-on face, or a normal that is not the face's own).
+//
+// The three colours are opaque texels datagen writes into every texture of ours, in the marker row
+// left of the layer texel (see GeneratedAssets: DEBUG_X), so painting is just a coordinate like any
+// other and no program needs a new output.
+const bool OVVAR_DEBUG_TOP_FACES = false;
+const vec2 OVVAR_DEBUG_MIRRORED = (vec2(OVVAR_TEX.x - 6.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
+const vec2 OVVAR_DEBUG_UNMIRRORED = (vec2(OVVAR_TEX.x - 5.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
+const vec2 OVVAR_DEBUG_NO_CELL = (vec2(OVVAR_TEX.x - 4.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
+
 bool ovvar_marked() {
 	return all(equal(ovvar_read(OVVAR_MARKER.x, OVVAR_MARKER.y), vec4(255.0, 0.0, 255.0, 2.0)));
 }
@@ -291,6 +324,8 @@ vec2 ovvar_uv(vec2 uv) {
 	}
 
 	if (kind.r < 0.5) {
+		// Dev only: paint a limb box's top (or bottom) face by what the mirror test makes of it.
+		if (OVVAR_DEBUG_TOP_FACES && limb && !sides) return mirrored ? OVVAR_DEBUG_MIRRORED : OVVAR_DEBUG_UNMIRRORED;
 		// Base garment: per-face centred, the margin filled by the face's edge column (and row);
 		// the mirrored limb reads the strip above.
 		float aEdge = t.x;
@@ -376,6 +411,10 @@ vec2 ovvar_uv(vec2 uv) {
 		if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
 		return (pe.rg + vec2(column * w, 0.0) + local) / OVVAR_TEX;
 	}
+	// Dev only: a limb box's top face that matched no cell of the design, over the base layer's
+	// red or blue. A shoulder that is sewn and comes out magenta is one whose fragments got past
+	// the mirror test and then missed the cell's own window.
+	if (OVVAR_DEBUG_TOP_FACES && limb && !sides) return OVVAR_DEBUG_NO_CELL;
 	return OVVAR_BLANK;
 }
 

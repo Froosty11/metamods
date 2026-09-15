@@ -1768,6 +1768,43 @@ public final class WardrobeTests {
 	}
 
 	/**
+	 * The dev switch that paints the boxes' top faces ({@code OVVAR_DEBUG_TOP_FACES}) ships OFF, and
+	 * the palette it paints from is in every texture of ours.
+	 *
+	 * <p>It exists because nothing about which arm a top-face fragment is on can be seen from here:
+	 * both arms' top faces are the same texels, the only thing that tells them apart is the
+	 * handedness of the texture over the geometry, and GLSL does not run in the game tests. With the
+	 * switch on, the base garment layer paints such a fragment red where the mirror test calls it
+	 * mirrored and blue where it does not, and the preview layer paints it magenta where no cell of
+	 * the design matched it — three readings that separate the three things that can be wrong. Left
+	 * on, it would paint every shoulder of every ovve on the server, so this holds it off.
+	 */
+	@GameTest
+	public void theTopFaceDebugPaintShipsOff(GameTestHelper helper) {
+		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
+		if (!glsl.contains("const bool OVVAR_DEBUG_TOP_FACES = false;")) {
+			helper.fail("OVVAR_DEBUG_TOP_FACES is not declared false in ovvar.glsl — every shoulder in the world would be painted");
+		}
+		// The palette the switch paints from: three opaque texels at the right-hand end of the marker
+		// row, in every kind of texture of ours (a base garment, a placement, a preview).
+		int[] wanted = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF};
+		List<Tex> textures = List.of(
+				generated(Piece.TOP, Chapter.values()[0].id + "/" + Piece.TOP.id),
+				generated(Piece.TOP, "patch/" + Spot.SHOULDER_R.id() + "/itk"),
+				generated(Piece.TOP, "patch/preview_" + Piece.TOP.id));
+		for (Tex tex : textures) {
+			for (int i = 0; i < wanted.length; i++) {
+				int got = tex.get(tex.width - 6 + i, tex.height / 2 - 1);
+				if (got != wanted[i]) {
+					helper.fail("a garment texture's debug palette texel " + i + " is " + Integer.toHexString(got)
+							+ ", wanted " + Integer.toHexString(wanted[i]));
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/**
 	 * <b>A patch texel is drawn at the colour it was painted, exactly as a texel of the garment's own
 	 * cloth is.</b> Nothing on the way from the art to the screen scales it, and this pins every step
 	 * of that path that a server-side test can see:
@@ -1804,7 +1841,7 @@ public final class WardrobeTests {
 			}
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot) || spot == Spot.SEAT) continue;   // the seat is cut in half per leg
-				List<Integer> got = generated(spot.piece, "patch/" + spot.id() + "/" + patch.id()).opaqueColours();
+				List<Integer> got = artColours(generated(spot.piece, "patch/" + spot.id() + "/" + patch.id()));
 				for (int colour : want) {
 					// A colour can be clipped off a cell (a shoulder keeps the art's middle), so only
 					// the ones that survive are required — but any that does must be its own colour.
@@ -1812,7 +1849,7 @@ public final class WardrobeTests {
 					checked++;
 				}
 				for (int colour : got) {
-					if (!want.contains(colour) && !dataTexel(colour)) {
+					if (!want.contains(colour)) {
 						helper.fail(patch.id() + " on " + spot.id() + ": the texture has " + Integer.toHexString(colour)
 								+ ", which the art has not — something on the way scaled a channel");
 					}
@@ -1820,7 +1857,7 @@ public final class WardrobeTests {
 			}
 			for (Piece piece : Piece.values()) {
 				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // not in the library at all
-				List<Integer> library = generated(piece, "patch/preview_" + piece.id).opaqueColours();
+				List<Integer> library = artColours(generated(piece, "patch/preview_" + piece.id));
 				for (int colour : want) {
 					if (!library.contains(colour)) {
 						helper.fail(patch.id() + ": the " + piece + " preview library has not got its colour "
@@ -1861,13 +1898,21 @@ public final class WardrobeTests {
 	}
 
 	/**
-	 * One of the opaque data texels datagen writes beside the marker — the kind texel (R = 1 or 2,
-	 * G and B the side and the face) and the layer texel (R = 2 x the model inflation). Their
-	 * channels are all tiny, so this lets a patch off with a colour that dark too; no art in the
-	 * catalogue is within four levels of black, and the marker itself is not opaque.
+	 * Every opaque colour a garment texture <em>draws</em> with: its art, without the data texels
+	 * datagen writes at the right-hand end of the marker row — the kind and layer texels and the
+	 * debug palette. Taken by position rather than by colour, so a patch is free to be painted in
+	 * any of those colours.
 	 */
-	private static boolean dataTexel(int argb) {
-		return Tex.r(argb) <= 2 && Tex.g(argb) <= 4 && Tex.b(argb) <= 4;
+	private static List<Integer> artColours(Tex tex) {
+		List<Integer> out = new ArrayList<>();
+		for (int y = 0; y < tex.height; y++) {
+			for (int x = 0; x < tex.width; x++) {
+				if (y == tex.height / 2 - 1 && x >= tex.width - 6) continue;   // the marker row's data texels
+				int p = tex.get(x, y);
+				if (Tex.a(p) == 255 && !out.contains(p)) out.add(p);
+			}
+		}
+		return out;
 	}
 
 	/**
@@ -2034,7 +2079,7 @@ public final class WardrobeTests {
 				for (int ty = 0; ty < H; ty++) {
 					for (int tx = 0; tx < W; tx++) {
 						if (tx >= x0 && tx < x1 && ty >= y0 && ty < y1) continue;
-						if (ty == H / 2 - 1 && tx >= W - 3) continue;   // the marker, kind and layer texels
+						if (ty == H / 2 - 1 && tx >= W - 6) continue;   // the marker row's data texels (marker, kind, layer, debug palette)
 						if (Tex.a(drawn.get(tx, ty)) != 0) {
 							helper.fail(patch.id() + " on " + spot.id() + " draws at (" + tx + ", " + ty + "), off the arm's top face");
 						}

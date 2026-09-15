@@ -667,6 +667,18 @@ of the marker: R = 2·inflate).
 
 ## Asymmetric sleeves and legs
 
+**Seeing what the shader makes of a top face.** `OVVAR_DEBUG_TOP_FACES` in `ovvar.glsl` (off, and
+`theTopFaceDebugPaintShipsOff` holds it off) paints a limb box's top face instead of drawing it: the
+base garment layer red where the mirror test calls the fragment mirrored and blue where it does not,
+the preview layer magenta where no cell of the design matched it. With a patch on both shoulders and
+a design the dye colour still carries, the two arms should come out one solid red and one solid blue
+with the art over each — one magenta arm means the mirror test told the arms apart and the fragment
+then missed its cell's window; both arms the same colour means the mirror test cannot tell a top
+face's arms apart at all (and then no setting of either sense can put one cell on each arm); a
+speckled or half-and-half arm means the handedness test degenerates there. It paints from three
+opaque texels datagen puts in every texture of ours (`DEBUG_X`, the marker row's right-hand end), so
+a program of ours still only ever returns a texture coordinate.
+
 The armour model draws the left arm and leg as mirror images of the right ones from the same
 texture strips, so vanilla can't show different art per side. The same shader detects mirrored
 fragments from the handedness of the texture mapping: on a base texture it samples the limb boxes
