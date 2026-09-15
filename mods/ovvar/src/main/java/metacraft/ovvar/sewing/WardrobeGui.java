@@ -75,7 +75,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class WardrobeGui extends SimpleGui {
 	private static final int ROWS = 6, WIDTH = 9;
-	private static final int TAB_ROW = 0, BODY_TOP = 1, BODY_ROWS = 4, ACTION_ROW = 5;
+	private static final int TAB_ROW = 0, BODY_TOP = 1, BODY_ROWS = 4;
+	/** The row of buttons along the bottom; public because the tests hold the title's glyphs off it. */
+	public static final int ACTION_ROW = 5;
 	private static final int PATCH_COL0 = 0, PATCH_COLS = 5;
 	/** The pocket's slots, and the two of them the page arrows take when there is more than one page. */
 	public static final int POCKET = BODY_ROWS * PATCH_COLS;

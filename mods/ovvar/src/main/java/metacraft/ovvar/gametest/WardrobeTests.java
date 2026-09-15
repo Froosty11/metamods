@@ -577,6 +577,139 @@ public final class WardrobeTests {
 		return out;
 	}
 
+	/**
+	 * <b>Where the title's glyphs really land.</b> The whole screen — the background, the tab
+	 * highlight, the paper doll, every patch on it, the empty-state notices, the page counter and the
+	 * stats — is one string of codepoints in one container title: a {@code space} provider walks the
+	 * cursor and each bitmap glyph draws at the cursor and advances it. Until now nothing checked
+	 * that arithmetic. A glyph anchored from the wrong corner, an advance that does not match the
+	 * texture, or one glyph too many appended, all come out as a picture somewhere it does not belong
+	 * on somebody's screen — and as nothing at all in any test here.
+	 *
+	 * <p>So the title is walked the way the client walks it: the advances read out of the very font
+	 * JSON the pack ships, each glyph's own advance, one cursor. Then:
+	 * <ul>
+	 *   <li>every glyph is inside the container's {@value WardrobeArt#WIDTH}×{@value WardrobeArt#HEIGHT};
+	 *   <li>nothing is drawn on the action row's buttons — the one row that is all slots and no
+	 *	   picture, so anything landing there is a pale square over a button (the page counter's own
+	 *	   two columns, which the design puts in that row's spare middle, are the exception);
+	 *   <li>every glyph lands at its own declared place, bar the three that move by design: the tab
+	 *	   highlight follows the active tab along the tab row, and the stats and page rows are laid
+	 *	   out from a computed x along their own row;
+	 *   <li>the cursor comes back to where it started, which is what lets the chapter's name follow
+	 *	   as ordinary text — and is the first thing a wrong advance breaks.
+	 * </ul>
+	 *
+	 * <p>Every position here is worked out by the server and sent in the title, so this also settles
+	 * what a client on an out-of-date pack can and cannot do: the codepoints it is sent may name the
+	 * wrong <em>picture</em> (adding a cell or a patch renumbers the preview glyphs), but never a
+	 * wrong <em>place</em>. A picture on the action row cannot come from this font at all.
+	 *
+	 * <p>The page counter's exception is carried but not exercised: with
+	 * {@value metacraft.ovvar.sewing.WardrobeGui#POCKET} pocket slots and {@link Patches#all} shorter
+	 * than that, {@code pageCount} is always 1 and the counter is never drawn. The exception is here
+	 * for the catalogue that outgrows the pocket.
+	 */
+	@GameTest
+	public void theTitlesGlyphsLandWhereTheScreenMeansThem(GameTestHelper helper) {
+		Map<Character, Integer> advances = spaceAdvances();
+		Map<Character, WardrobeFont.Glyph> byChar = new java.util.LinkedHashMap<>();
+		for (WardrobeFont.Glyph glyph : WardrobeFont.glyphs()) byChar.put(glyph.codepoint(), glyph);
+		// The states that change what the title carries: nothing sewn and nothing stashed (both
+		// notices), a design on every angle, a stash big enough to page (the page counter), and a
+		// look at somebody else's (the look-only notice).
+		List<Placement> sewn = List.of(new Placement(Spot.BACK_BIG, Patches.get("itk")), new Placement(Spot.SEAT, Patches.get("pung")),
+				new Placement(Spot.SLEEVE_OUT_TOP_R, Patches.get("spiken")), new Placement(Spot.LEG_OUT_MID_L, Patches.get("maid")));
+		Wardrobe bare = Wardrobe.NONE;
+		Wardrobe dressed = Wardrobe.NONE.withDesign(CHAPTER, SpotPlacements.fromList(sewn).getOrThrow());
+		Wardrobe stocked = dressed;
+		for (Patches.Patch patch : Patches.all()) stocked = stocked.add(patch, 3);
+		int checked = 0;
+		for (Chapter chapter : Chapter.values()) {
+			for (Angle angle : Angle.values()) {
+				for (Wardrobe wardrobe : List.of(bare, dressed, stocked)) {
+					for (boolean own : new boolean[]{true, false}) {
+						for (int tab = 0; tab < WardrobeGui.TAB_COLS; tab++) {
+							checked++;
+							walkTitle(helper, WardrobeGui.title(chapter, wardrobe, angle, tab, own, 0), chapter, advances, byChar);
+						}
+					}
+				}
+			}
+		}
+		if (checked == 0) helper.fail("no title walked");
+		helper.succeed();
+	}
+
+	/** The font's own space advances, read out of the generated JSON rather than written out again here. */
+	private static Map<Character, Integer> spaceAdvances() {
+		Map<Character, Integer> out = new java.util.LinkedHashMap<>();
+		for (JsonElement provider : WardrobeArt.fontJson().getAsJsonArray("providers")) {
+			JsonObject object = provider.getAsJsonObject();
+			if (!object.get("type").getAsString().equals("space")) continue;
+			for (Map.Entry<String, JsonElement> entry : object.getAsJsonObject("advances").entrySet()) {
+				out.put(entry.getKey().charAt(0), entry.getValue().getAsInt());
+			}
+		}
+		return out;
+	}
+
+	private static void walkTitle(GameTestHelper helper, Component title, Chapter chapter,
+			Map<Character, Integer> advances, Map<Character, WardrobeFont.Glyph> byChar) {
+		String string = title.getString();
+		int x = WardrobeFont.TITLE_X, at = 0;
+		for (; at < string.length(); at++) {
+			char c = string.charAt(at);
+			Integer advance = advances.get(c);
+			if (advance != null) {
+				x += advance;
+				continue;
+			}
+			Chapter background = null;
+			for (Chapter other : Chapter.values()) if (WardrobeArt.chapterChar(other) == c) background = other;
+			if (background != null) {
+				if (x != 0) helper.fail("the " + background.id + " background is drawn at x " + x + ", not at the container's own left edge");
+				x += WardrobeArt.WIDTH + 1;
+				continue;
+			}
+			WardrobeFont.Glyph glyph = byChar.get(c);
+			if (glyph == null) break;   // the chapter's name, appended last, in the ordinary font
+			checkGlyphPlace(helper, glyph, x, chapter);
+			x += glyph.advance();
+		}
+		// Everything after the glyphs is the title's own text, and the cursor is back where it began
+		// — the property every position on this screen is measured from.
+		String rest = string.substring(at);
+		if (!rest.equals(WardrobeGui.titleText(chapter))) {
+			helper.fail("after the glyphs the title reads '" + rest + "', wanted '" + WardrobeGui.titleText(chapter) + "'");
+		}
+		if (x != WardrobeFont.TITLE_X) {
+			helper.fail("the glyphs left the cursor at x " + x + ", not back at " + WardrobeFont.TITLE_X + ": an advance does not match its texture");
+		}
+	}
+
+	/** One glyph, drawn at cursor {@code x}: inside the screen, off the action row's buttons, and at its own place. */
+	private static void checkGlyphPlace(GameTestHelper helper, WardrobeFont.Glyph glyph, int x, Chapter chapter) {
+		int y = glyph.top(), x1 = x + glyph.width(), y1 = y + glyph.height();
+		String where = glyph.name() + " (" + chapter.id + ") at " + x + "," + y + " " + glyph.width() + "x" + glyph.height();
+		if (x < 0 || y < 0 || x1 > WardrobeArt.WIDTH || y1 > WardrobeArt.HEIGHT) {
+			helper.fail(where + " is outside the container's " + WardrobeArt.WIDTH + "x" + WardrobeArt.HEIGHT);
+		}
+		// The action row is buttons, not picture. Only the page counter belongs there, in the two
+		// columns the design keeps free for it.
+		boolean pageCounter = glyph.name().startsWith("page/");
+		for (int col = 0; col < 9; col++) {
+			if (pageCounter && (col == 5 || col == 6)) continue;
+			int boxX = WardrobeFont.ITEM_X + WardrobeFont.PITCH * col, boxY = WardrobeFont.ITEM_Y + WardrobeFont.PITCH * WardrobeGui.ACTION_ROW;
+			boolean overlaps = x < boxX + WardrobeFont.ICON && boxX < x1 && y < boxY + WardrobeFont.ICON && boxY < y1;
+			if (overlaps) helper.fail(where + " is drawn on the action row's slot at column " + col + ", which is a button");
+		}
+		// And at its own place, bar the three that move along a row by design.
+		boolean moves = pageCounter || glyph.name().startsWith("stats/") || glyph == WardrobeFont.ACTIVE_TAB;
+		if (!moves && x != glyph.x()) helper.fail(where + " is drawn at x " + x + ", but its own place is " + glyph.x());
+		if (moves && y != glyph.top()) helper.fail(where + " moved off its own row");
+	}
+
 	/** A wardrobe with 3 stash kinds and 2 sewn placements fills exactly that many collection and preview slots. */
 	@GameTest(maxTicks = 1200)
 	public void wardrobeSlotsFollowTheWardrobe(GameTestHelper helper) throws IOException {
