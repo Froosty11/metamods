@@ -46,11 +46,15 @@ Cells come and go, and players' items and stored wardrobe rows name them by id, 
 log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
 and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
-The catalogue holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data
-(`Patches.java`): ITK, IT and Data are 12×12 and hang over their neighbours (IT is the PolymITer
-set's 16×16 brought down to 12: the diamond rebuilt at that size, the bolt sampled from the
-original); Rivals is the seat patch — Data's cerise with a creeper against IT's laser violet with
-a VS — and Nyckeln'26 is Kexana's cell-sized 8×8. Seat art is drawn as seen from behind, the only
+The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
+Spiken, Släggan, Ticket to my heart and the Maid dress. ITK, IT, Data, Spiken, Släggan and the Maid
+dress are 12×12 and hang over their neighbours (except on the big back cell); Ticket to my heart is
+10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
+Rivals is the seat patch — Data's cerise with a creeper against IT's laser violet with a VS — and
+Nyckeln'26 is Kexana's cell-sized 8×8. New entries go at the end of the list: a design's instant
+code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
+repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
+so the ä lives in the display name only. Seat art is drawn as seen from behind, the only
 way anybody sees a seat, so it reads across the figure the way it was drawn: the art's left half
 goes on the wearer's left leg, which is the leg at the viewer's left from behind
 (`Spot.seatColumn`). The armour model draws that leg as a mirror image off the right leg's strips,
@@ -601,6 +605,12 @@ MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
 
 ## Credits
 
-Patch art: Nyckeln'26 by Kexana; IT (from the PolymITer set), ITK, METAcraft Rivals '26 and Data by
-Froosty11 (the last three are placeholders until redrawn). The ovve garment art is original to this mod, cut from the chapter skin overlays on
-metacraft.se/style.
+Patch art: Nyckeln'26 by Kexana; ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
+until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
+PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too); the
+Maid dress by Mackan. The ovve garment art is original to this mod, cut from the chapter skin
+overlays on metacraft.se/style.
+
+`art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
+the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be
+registered as a seat patch.

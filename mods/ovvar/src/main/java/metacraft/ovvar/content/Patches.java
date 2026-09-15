@@ -99,8 +99,14 @@ public final class Patches {
 			new Patch("itk", "ITK", 12, 12).by("Froosty11"),
 			new Patch("nyckeln", "Nyckeln'26").by("Kexana"),
 			Patch.seat("rivals", "METAcraft Rivals '26").by("Froosty11"),   // across the seat
-			new Patch("it", "IT", 12, 12).by("Froosty11"),
-			new Patch("data", "Data", 12, 12).by("Froosty11")
+			new Patch("it", "IT", 12, 12).by("Cactooz"),
+			new Patch("data", "Data", 12, 12).by("Froosty11"),
+			// Hugo/Cactooz's set, and Mackan's maid dress. New entries go last: a design's instant code
+			// is its position here, so inserting one in the middle would repaint everything already sewn.
+			new Patch("spiken", "Spiken", 12, 12).by("Cactooz"),
+			new Patch("slaggan", "Släggan", 12, 12).by("Cactooz"),   // the file is slaggan.png: a resource id is [a-z0-9_.-]
+			new Patch("ticket_to_my_heart", "Ticket to my heart", 10, 6).by("Cactooz"),   // drawn 9×6, padded to an even width
+			new Patch("maid", "Maid dress", 12, 12).by("Mackan")
 	);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()
