@@ -616,7 +616,7 @@ that is per combination, so each combination of placements on a half is its own 
 JSON. Datagen writes only the empty ones; `Combos` remembers every combination ever sewn in
 `<world>/ovvar/combos.json`, adds their JSONs when Polymer builds the pack, and when a new one
 appears (beyond what the dye colour shows, see below) rebuilds the pack. Each build is a generation and each player is on the generation they
-last loaded; who gets pushed a new pack, and when, is in "Reloads only when asked for" below;
+last loaded; who gets pushed a new pack, and when, is in "Reloads only when a design has outgrown the dye colour" below;
 once a client reports a pack loaded (a mixin on the resource-pack response) the equipment of
 every ovve it can see is sent again. Rebuilds are batched: a combination the dye colour can
 still show waits a minute and a half for company; one it cannot is built within two seconds.
@@ -684,19 +684,29 @@ back to three. The boots pass is
 inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
 (squeezed in x and y) and the two layers' pixels line up.
 
-## Reloads only when asked for
+## Reloads only when a design has outgrown the dye colour
 
-A pushed pack is a loading screen, so nobody gets one they did not cause. On an armour stand
-nothing needs the pack (the patches are display entities). The pack is pushed to a player in
-exactly two cases: an ovve came into their inventory — off a stand, `/ovvar give`, `/ovvar
-patches` — with more patches on a half than their pack plus the dye channels (and the trim) can show, in which
-case the pack is built at once and sent to them the moment it is ready (`Looks.claimIfNeeded`
-from `OvveItem.inventoryTick`); or they ran `/ovvar reload` (any player), which sends the
-current pack, after a build if one is pending. Everyone else keeps the pack they have and sees
-what it holds plus the newest patches in the dye channels; a half with more new patches than
-that shows the older state to them until they reload or rejoin (a joining player gets the
-current pack). Every combination is still built in the background within 90 s so the pack is
-complete for whoever joins next.
+A pushed pack is a loading screen, so no *build* happens that nothing needs: a combination the dye
+channels can still show waits up to 90 s for company and is never pushed at all — everyone sees it
+in the dye colour. On an armour stand nothing needs the pack either (the patches are display
+entities).
+
+But once an ovve comes into a player's inventory — off a stand, `/ovvar give`, `/ovvar patches` —
+with more patches on a half than their pack plus the dye channels (and the trim) can show, the pack
+is built at once and then sent **to everybody online**, not only to whoever sewed it
+(`Looks.claimIfNeeded` → `Combos.claim`/`built` → `needEveryone`). A garment is drawn by the people
+looking at it, so the wearer's own client is the one whose picture of it matters least: a viewer on
+an older pack draws that ovve with its newest patches missing, has no way of knowing that is what
+they are looking at, and nothing to do about it but `/ovvar reload`. "Everyone who could be tracking
+a wearer" is everyone. (This is the playtest bug: Edvin's design grew, Edvin was sent generation 2,
+and Rival — standing there looking at him — kept generation 1 and saw three of the patches until he
+reloaded by hand. `aPackBuiltForOneDesignGoesToEveryoneOnline` pins it.)
+
+One loading screen per player per generation: a player already on the current pack is never marked,
+a push is at least 5 s after that player's last one, and `/ovvar reload` (any player, any time)
+sends the current pack to whoever asked, after a build if one is pending. A joining player gets the
+current pack. Every combination is still built in the background within 90 s so the pack is complete
+for whoever joins next.
 
 ## Square pixels
 
