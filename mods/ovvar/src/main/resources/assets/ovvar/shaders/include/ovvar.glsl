@@ -46,7 +46,32 @@ vec4 ovvar_read(float x, float y) {
 
 // Which sign of texture-over-geometry handedness the mirrored limbs have. Fixed by how the game
 // builds its vertex data (the same on every platform); calibrated once against a known garment.
+// This is the calibration for a box's four SIDE faces, which until the shoulders arrived were the
+// only faces anything of ours was drawn on.
 const bool OVVAR_MIRROR_SENSE = true;
+
+// A box's TOP and BOTTOM faces unwrap the other way round from its four sides, so the handedness
+// test comes out with the opposite sign on them and the mirror test has to be read the other way up.
+//
+// Why: on a side face the texture's u runs around the box and its v runs DOWN it (+y in model
+// space, the model being drawn y-flipped); on the top face u runs the same way round but v runs
+// ACROSS the box, from its back edge to its front (-z) — that is what puts the top face's last row
+// against the front face's first, which is how the vanilla box unwrap lays the two out and how the
+// skins are drawn. Take u ^ v against the outward normal and the two come out opposite:
+//
+//   front face  u = +x, v = +y, n = -z:  (+x) x (+y) = +z, dot(-z) < 0
+//   top face	u = +x, v = -z, n = -y:  (+x) x (-z) = +y, dot(-y) < 0   -- same
+//   top face	u = -x, v = -z, n = -y:  (-x) x (-z) = -y, dot(-y) > 0   -- opposite
+//
+// and the playtest says which of the two the game really draws: with the sense taken from the side
+// faces, the UNMIRRORED (wearer's right) arm's top face read as mirrored, so its own cell — the one
+// the shader only draws on unmirrored fragments — was skipped on both arms. Hence false here: the
+// answer is inverted on the top rows. It had been latent in the base garment, where the two arms'
+// shoulder cloth swapping over is invisible because it is the same cloth.
+//
+// If a shoulder patch ever comes out on the OTHER shoulder than it was sewn on (each wearing the
+// other's art), this is the one line to flip back.
+const bool OVVAR_TOP_FACE_SENSE = false;
 
 // Which half of a seat patch's art the unmirrored (the wearer's right) leg wears: Spot.seatColumn's
 // RIGHT value, which a game test holds this to. Seat art is drawn as seen from behind, where the
@@ -229,8 +254,14 @@ vec2 ovvar_uv(vec2 uv) {
 	vec4 kind = ovvar_kind();
 	vec2 t = uv * OVVAR_TEX;   // texel coordinates
 	bool limb = t.y >= 16.0 * OVVAR_D && (t.x < 16.0 * OVVAR_D || (t.x >= 40.0 * OVVAR_D && t.x < 56.0 * OVVAR_D));
-	bool mirrored = limb && ovvar_handed;
 	bool sides = t.y >= OVVAR_SIDE_ROW * OVVAR_D;   // the box sides, not the top and bottom faces
+	// Is this fragment on a limb the model draws mirrored? The handedness of the texture over the
+	// geometry says so, read with the sense of the kind of face the fragment is on: a box's top and
+	// bottom faces unwrap the other way round from its sides (see OVVAR_TOP_FACE_SENSE), so the same
+	// answer means the opposite thing there. Every path below — the base garment's mirror strip, a
+	// placement's "hide it on the other limb", and the preview's cell sides — reads this one bool,
+	// so the two arms' top faces are told apart exactly once.
+	bool mirrored = limb && ((sides || OVVAR_TOP_FACE_SENSE) ? ovvar_handed : !ovvar_handed);
 	float inflate = ovvar_inflate();
 	float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
 	bool inFace = !sides || (ay >= OVVAR_SIDE_ROW * OVVAR_D && ay < 32.0 * OVVAR_D);
