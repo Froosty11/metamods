@@ -396,7 +396,14 @@ public final class WardrobePreview {
 			}
 		}
 		Tex kept = part.mirror() ? out.flipX() : out;
-		return part.cap() ? averagedInPairs(kept, y) : kept;
+		Tex averaged = part.cap() ? averagedInPairs(kept, y) : kept;
+		// A turned part is the same face seen from the opposite side, so the picture turns through
+		// 180° — and this is laid out "the way it reads across the figure", so it turns too. (Averaged
+		// first: the pairs a cap averages are the texture's rows, which the turn would have moved.)
+		// Invisible on art that is symmetrical, which is all the catalogue had when the caps arrived;
+		// Kexana's 8×8 ITK is not, and reads mirrored on the back view exactly as a shoulder really
+		// does when you walk round the wearer.
+		return part.turned() ? averaged.flipX().flipY() : averaged;
 	}
 
 	/**

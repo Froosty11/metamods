@@ -93,10 +93,9 @@ and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
-dress are 12×12 and hang over their neighbours (except on the big back cell). ITK also ships the
-same face drawn at 8×8 and at 16×16 (`itk_8x8.png`, `itk_16x16.png`, both hand-drawn rather than
-scaled), so it lands whole on a shoulder, fills the big back cell and is its own inventory icon —
-see "art at more than one size" below. Ticket to my heart is
+dress are 12×12 and hang over their neighbours (except on the big back cell). ITK also ships
+`itk_8x8.png` — Kexana's original 8×8 ITK, the art that shipped before the 12×12 — so it lands
+whole on a shoulder instead of losing its edges; see "art at more than one size" below. Ticket to my heart is
 10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
@@ -577,12 +576,18 @@ fails loudly when that runs out.
 
 ### Art at more than one size
 
-A patch may ship the same art drawn again at another size: `<id>_<w>x<h>.png` beside its own PNG,
-so ITK is `itk.png` (12×12, the size its catalogue line declares), `itk_8x8.png` and
-`itk_16x16.png`. Nothing is declared — the catalogue entry stays one line and datagen finds the
-variants by file name (even sizes up to 16×16; a seat patch's variants are 16 px wide, its own
-width). A file that begins with a patch's id and an underscore but is not a size this build can ask
-for fails datagen, so a misspelt name is not silently never drawn.
+A patch may ship its art at another size as well: `<id>_<w>x<h>.png` beside its own PNG, so ITK is
+`itk.png` (12×12, the size its catalogue line declares) and `itk_8x8.png` (Kexana's original 8×8
+ITK, which is what the patch was before the 12×12 was drawn). Nothing is declared — the catalogue
+entry stays one line and datagen finds the variants by file name (even sizes up to 16×16; a seat
+patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
+underscore but is not a size this build can ask for fails datagen, so a misspelt name is not
+silently never drawn.
+
+**A variant is a drawing, never a generated one.** Nothing in the mod scales, reduces or redraws
+art: pixel art at another size is a new piece of work and it is the artist's, so a size a patch has
+not been drawn at simply does not exist and the fall-back below takes over. Add one only with art
+somebody drew, and credit them.
 
 Which of them a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
 fits what the cell asks for, and the catalogue's own art when none of them does — which is exactly
@@ -590,15 +595,20 @@ what a patch with a single file gets everywhere. What a cell asks for is `Patche
 
 | fit | the cells | what it shows |
 | --- | --- | --- |
-| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as its 8×8 instead of losing its edges |
-| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — ITK fills the back with its 16×16 |
+| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges |
+| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — nobody has drawn a 16 px patch, so today this always falls back |
 | `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch |
 
-The item icon takes the 16×16 one if there is one (drawn 1:1 instead of a 12×12 scaled up), and
-everything that draws a patch goes through the same call: the pack's placement textures, the
-instant channel's library, the paper doll and its glyphs, and a stand's sprites. The one thing that
-does not is the **sewing game**, which is played before the cell is settled and so shows the
-catalogue's own art whatever the cell will pick.
+**The fall-back is the old behaviour, exactly.** A cell that finds nothing it can use takes the
+catalogue's art and does with it what it did before variants existed: the big back cell centres the
+12×12 in its 16×16, the item icon scales the catalogue's art to fill 16 px and centres it (no patch
+is drawn at 16, so every icon in the catalogue is this), and an ordinary cell hangs the art over its
+neighbours. So the only thing per-size art changes today is a shoulder's ITK.
+
+Everything that draws a patch goes through the same call: the pack's placement textures, the instant
+channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one
+thing that does not is the **sewing game**, which is played before the cell is settled and so shows
+the catalogue's own art whatever the cell will pick.
 
 The instant path cannot ask the question — the dye colour carries a cell and a design, not a
 choice — so the preview texture's design tables hold a row per (design, fit), the library holds
@@ -777,7 +787,8 @@ MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
 
 ## Credits
 
-Patch art: Nyckeln'26 by Kexana; ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
+Patch art: Nyckeln'26 by Kexana, and the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
+size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
 until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too); the
 Maid dress by Mackan; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is

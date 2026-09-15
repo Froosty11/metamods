@@ -2795,8 +2795,8 @@ public final class WardrobeTests {
 	public void patchArtComesInSizesAndOnePlacePicksBetweenThem(GameTestHelper helper) {
 		Patches.Patch itk = Patches.get("itk");
 		List<String> files = itk.variants().stream().map(Patches.Art::file).toList();
-		if (!files.equals(List.of("patches/itk_8x8", "patches/itk", "patches/itk_16x16"))) {
-			helper.fail("itk's art files are " + files + ", wanted the 8x8, the catalogue's 12x12 and the 16x16 (smallest first)");
+		if (!files.equals(List.of("patches/itk_8x8", "patches/itk"))) {
+			helper.fail("itk's art files are " + files + ", wanted Kexana's 8x8 and the catalogue's 12x12 (smallest first)");
 		}
 		for (Patches.Patch patch : Patches.all()) {
 			int defaults = 0;
@@ -2814,10 +2814,12 @@ public final class WardrobeTests {
 			}
 			if (defaults != 1) helper.fail(patch.id() + " has " + defaults + " default art file(s) among " + patch.variants() + ", wanted exactly one");
 		}
-		// The choice, cell by cell.
+		// The choice, cell by cell — and, where the patch ships nothing that fits, the fall back to
+		// the catalogue's own art, which is the big back cell here: ITK has no 16 px drawing, so the
+		// 12×12 is centred in the cell exactly as it was before variants existed.
 		Object[][] cases = {
 				{Spot.SHOULDER_R, 8, 8}, {Spot.SHOULDER_L, 8, 8},
-				{Spot.BACK_BIG, Patches.MAX_ART, Patches.MAX_ART},
+				{Spot.BACK_BIG, itk.width(), itk.height()},
 				{Spot.FRONT_TOP_LEFT, itk.width(), itk.height()}, {Spot.SLEEVE_OUT_TOP_R, itk.width(), itk.height()},
 		};
 		for (Object[] c : cases) {
@@ -2831,11 +2833,23 @@ public final class WardrobeTests {
 		if (Patches.artFor(itk, Spot.SHOULDER_R).oversize(Spot.SHOULDER_R)) helper.fail("itk is still clipped on a shoulder");
 		if (Patches.artFor(itk, Spot.BACK_BIG).oversize(Spot.BACK_BIG)) helper.fail("itk hangs over the big back cell");
 		if (!Patches.artFor(itk, Spot.FRONT_TOP_LEFT).oversize(Spot.FRONT_TOP_LEFT)) helper.fail("itk no longer hangs over an ordinary chest cell");
-		// The icon: the 16 px art at 1:1, which is the generated item texture itself.
-		Patches.Art icon = Patches.iconArt(itk);
-		if (icon.width() != Patches.ICON || icon.height() != Patches.ICON) helper.fail("itk's icon art is " + icon + ", wanted " + Patches.ICON + " square");
-		Tex drawn = itemTexture(metacraft.ovvar.content.ModContent.patchId(itk).getPath());
-		if (!same(drawn, patchArt(icon))) helper.fail("itk's inventory icon is not its " + icon.file() + " art, unscaled");
+		// The icon: no patch in the catalogue is drawn at 16 px, so every icon is the fall-back —
+		// the catalogue's art scaled to fill 16 px and centred, which is what it always was. The
+		// generated texture must be that, and a variant must not have crept into it.
+		for (Patches.Patch patch : Patches.all()) {
+			Patches.Art icon = Patches.iconArt(patch);
+			if (!icon.byDefault()) {
+				helper.fail(patch.id() + "'s icon draws " + icon + "; only art drawn at " + Patches.ICON
+						+ " px should displace the catalogue's own, and nobody has drawn one");
+			}
+			Tex art = patchArt(icon);
+			int scale = Math.max(1, Patches.ICON / Math.max(art.width, art.height));
+			Tex drawn = itemTexture(metacraft.ovvar.content.ModContent.patchId(patch).getPath());
+			if (drawn.width != Patches.ICON || drawn.height != Patches.ICON) helper.fail(patch.id() + "'s icon is not " + Patches.ICON + " square");
+			Tex wanted = art.scale(scale);
+			Tex got = drawn.crop((Patches.ICON - wanted.width) / 2, (Patches.ICON - wanted.height) / 2, wanted.width, wanted.height);
+			if (!same(got, wanted)) helper.fail(patch.id() + "'s inventory icon is not its " + icon.file() + " art scaled x" + scale + " and centred");
+		}
 		// A patch with the one file: nothing about it changed.
 		for (Patches.Patch patch : Patches.all()) {
 			if (patch.variants().size() > 1) continue;
