@@ -665,19 +665,22 @@ one strip up, where datagen puts the mirrored left-side art; a placement texture
 its side and hidden on the other limb; the preview slots carry the side in their cell.
 
 **The handedness is read with the sense of the kind of face the fragment is on.** A box's top and
-bottom faces unwrap the other way round from its four sides — u runs the same way round the box but
-v runs *across* it, from the back edge to the front, instead of down it, which is what puts the top
-face's last row against the front face's first — so texture-over-geometry handedness comes out with
-the opposite sign there and the same answer means the opposite thing. `OVVAR_MIRROR_SENSE` is the
-side faces' calibration and `OVVAR_TOP_FACE_SENSE` the top's; `mirrored` is computed from both,
-exactly once, and every path reads that one bool, so a top face and a side face can never disagree
-about which arm they are on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
-does not run in the game tests). Taking the side faces' sense on a top face is what made the
-wearer's right shoulder draw nothing in the first playtest of the shoulder cells: the unmirrored
-arm's top face read as mirrored, so the cell the shader only draws on unmirrored fragments was
-skipped on both arms. It had been latent in the base garment, where the two arms' shoulder cloth
-swapping over is invisible because it is the same cloth — it only shows on a chapter whose skin
-draws the two arms differently. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
+bottom faces need not unwrap the way its four sides do: v runs *across* the box there, from the back
+edge to the front, instead of down it (which is what puts the top face's last row against the front
+face's first, and is why a shoulder patch reads with the art's top towards the wearer's back). Only
+u's direction is then in question, and the handedness follows from it; the derivation is written out
+in `ovvar.glsl`. `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SAME_SENSE`
+says whether the top's is the same one — it is, which the playtest settled: taking it as inverted
+put each shoulder's art on the other shoulder. So the top face's u runs the wearer's right to left,
+the same way the front face's does, which is also what the edge they share demands.
+
+`mirrored` is computed from both senses, exactly once, and every path reads that one bool, so a top
+face and a side face can never disagree about which arm they are on
+(`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL does not run in the game
+tests). Note what the senses *cannot* explain: both arms' top faces are the very same texels, so
+`mirrored` is the only thing that can tell them apart, and under either sense exactly one of the two
+shoulder cells is selected per arm — every setting predicts both shoulders drawing, one patch each.
+A bare shoulder is not a state either constant can produce. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
 mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/` and worth linking from the website): double-clicked, it writes a

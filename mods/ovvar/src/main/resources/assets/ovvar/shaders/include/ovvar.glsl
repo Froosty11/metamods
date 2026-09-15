@@ -50,28 +50,38 @@ vec4 ovvar_read(float x, float y) {
 // only faces anything of ours was drawn on.
 const bool OVVAR_MIRROR_SENSE = true;
 
-// A box's TOP and BOTTOM faces unwrap the other way round from its four sides, so the handedness
-// test comes out with the opposite sign on them and the mirror test has to be read the other way up.
+// Does a box's TOP (and BOTTOM) face unwrap with the same texture-over-geometry handedness as its
+// four sides, so that OVVAR_MIRROR_SENSE's answer means the same thing there? Yes — worked out, and
+// then settled by the playtest.
 //
-// Why: on a side face the texture's u runs around the box and its v runs DOWN it (+y in model
-// space, the model being drawn y-flipped); on the top face u runs the same way round but v runs
-// ACROSS the box, from its back edge to its front (-z) — that is what puts the top face's last row
-// against the front face's first, which is how the vanilla box unwrap lays the two out and how the
-// skins are drawn. Take u ^ v against the outward normal and the two come out opposite:
+// The unwrap. On a side face the texture's u runs around the box and its v runs DOWN it (+y in
+// model space, the model being drawn y-flipped). On the top face v runs ACROSS the box instead,
+// from its back edge to its front (-z): that is what puts the top face's last row against the front
+// face's first row, which is how the vanilla box unwrap lays the two out, how the skins are drawn,
+// and what the game shows (a shoulder patch reads with the art's top towards the wearer's back).
+// So only u's direction is in question, and the handedness follows from it — take u ^ v against the
+// outward normal:
 //
-//   front face  u = +x, v = +y, n = -z:  (+x) x (+y) = +z, dot(-z) < 0
-//   top face	u = +x, v = -z, n = -y:  (+x) x (-z) = +y, dot(-y) < 0   -- same
-//   top face	u = -x, v = -z, n = -y:  (-x) x (-z) = -y, dot(-y) > 0   -- opposite
+//   front face  u = +x, v = +y, n = -z:  (+x) ^ (+y) = +z, dot(-z) < 0
+//   top face	u = +x, v = -z, n = -y:  (+x) ^ (-z) = +y, dot(-y) < 0   -- same as a side face
+//   top face	u = -x, v = -z, n = -y:  (-x) ^ (-z) = -y, dot(-y) > 0   -- opposite
 //
-// and the playtest says which of the two the game really draws: with the sense taken from the side
-// faces, the UNMIRRORED (wearer's right) arm's top face read as mirrored, so its own cell — the one
-// the shader only draws on unmirrored fragments — was skipped on both arms. Hence false here: the
-// answer is inverted on the top rows. It had been latent in the base garment, where the two arms'
-// shoulder cloth swapping over is invisible because it is the same cloth.
+// The playtest picked between them: taking the answer as INVERTED on the top rows put each
+// shoulder's art on the other shoulder, so it is not inverted — u = +x, the top face's u running
+// the wearer's right to left, the same way the front face's does. Which is also what the edge they
+// share demands: the box's top-front edge is one line in the texture, and the two faces must run
+// along it the same way.
 //
-// If a shoulder patch ever comes out on the OTHER shoulder than it was sewn on (each wearing the
-// other's art), this is the one line to flip back.
-const bool OVVAR_TOP_FACE_SENSE = false;
+// Why the earlier playtest (one shoulder drawing, the other bare) says nothing about this: both
+// arms' top faces are the very same texels, so `mirrored` is the only thing that can tell them
+// apart, and under EITHER sense exactly one of the two shoulder cells is selected per arm — every
+// setting predicts both shoulders drawing, one patch each. A bare shoulder is not a state this
+// constant can produce; that session's client had not been pushed a pack holding the new cells
+// ("you already have the latest pack"), so its cell table was the one from before they existed.
+//
+// If a shoulder patch ever comes out on the other shoulder than it was sewn on, this is the one
+// line to flip.
+const bool OVVAR_TOP_FACE_SAME_SENSE = true;
 
 // Which half of a seat patch's art the unmirrored (the wearer's right) leg wears: Spot.seatColumn's
 // RIGHT value, which a game test holds this to. Seat art is drawn as seen from behind, where the
@@ -257,11 +267,11 @@ vec2 ovvar_uv(vec2 uv) {
 	bool sides = t.y >= OVVAR_SIDE_ROW * OVVAR_D;   // the box sides, not the top and bottom faces
 	// Is this fragment on a limb the model draws mirrored? The handedness of the texture over the
 	// geometry says so, read with the sense of the kind of face the fragment is on: a box's top and
-	// bottom faces unwrap the other way round from its sides (see OVVAR_TOP_FACE_SENSE), so the same
-	// answer means the opposite thing there. Every path below — the base garment's mirror strip, a
+	// bottom faces need not unwrap the way its sides do (see OVVAR_TOP_FACE_SAME_SENSE), and if they
+	// did not the same answer would mean the opposite thing. Every path below — the base garment's mirror strip, a
 	// placement's "hide it on the other limb", and the preview's cell sides — reads this one bool,
 	// so the two arms' top faces are told apart exactly once.
-	bool mirrored = limb && ((sides || OVVAR_TOP_FACE_SENSE) ? ovvar_handed : !ovvar_handed);
+	bool mirrored = limb && ((sides || OVVAR_TOP_FACE_SAME_SENSE) ? ovvar_handed : !ovvar_handed);
 	float inflate = ovvar_inflate();
 	float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
 	bool inFace = !sides || (ay >= OVVAR_SIDE_ROW * OVVAR_D && ay < 32.0 * OVVAR_D);

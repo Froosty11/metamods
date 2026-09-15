@@ -1774,7 +1774,9 @@ public final class WardrobeTests {
 	 * bottom faces unwrap the other way round from its four sides — u runs the same way round the
 	 * box but v runs across it, back edge to front, instead of down it — so that handedness comes
 	 * out with the opposite sign there and the same answer means the opposite thing.
-	 * `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SENSE` the top's.
+	 * `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SAME_SENSE` says whether
+	 * the top's is the same one (it is, which the playtest settled: inverting it put each shoulder's
+	 * art on the other shoulder).
 	 *
 	 * <p>Getting it wrong is what made the wearer's right shoulder draw nothing: the unmirrored arm's
 	 * top face read as mirrored, so the cell the shader only draws on unmirrored fragments was
@@ -1787,7 +1789,7 @@ public final class WardrobeTests {
 	@GameTest
 	public void everyPathTellsTheArmsApartTheSameWay(GameTestHelper helper) {
 		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
-		for (String constant : List.of("OVVAR_MIRROR_SENSE", "OVVAR_TOP_FACE_SENSE")) {
+		for (String constant : List.of("OVVAR_MIRROR_SENSE", "OVVAR_TOP_FACE_SAME_SENSE")) {
 			if (!glsl.contains("const bool " + constant + " =")) {
 				helper.fail("ovvar.glsl no longer declares " + constant + ", so nothing says which sign a face's mirroring has");
 			}
@@ -1808,7 +1810,7 @@ public final class WardrobeTests {
 		} else {
 			String read = reads.getFirst();
 			if (!read.contains("mirrored")) helper.fail("the one read of ovvar_handed does not compute `mirrored`: " + read);
-			if (!read.contains("OVVAR_TOP_FACE_SENSE") || !read.contains("sides")) {
+			if (!read.contains("OVVAR_TOP_FACE_SAME_SENSE") || !read.contains("sides")) {
 				helper.fail("`mirrored` does not read the handedness with the sense of the kind of face the fragment is on: " + read);
 			}
 		}
