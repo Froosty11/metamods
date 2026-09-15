@@ -336,16 +336,20 @@ public final class WardrobePreview {
 	 * wearer's left leg, and that is the leg {@link Spot#seatHalf} gives it. The reference takes the
 	 * half that belongs where each leg is, rather than reading the cut back off {@code seatHalf}: a
 	 * cut that put a half on the wrong leg would otherwise agree with itself and pass.
+	 *
+	 * <p>{@code chosen} says which of the patch's PNGs this cell shows ({@link Patches#artFor}) and
+	 * {@code art} holds its pixels: a patch may be drawn at more than one size, and where the art
+	 * lands on the cell — hence the window — follows the size of the one really drawn there.
 	 */
-	public static Tex shownArt(Spot spot, Patches.Patch patch, Tex art) {
-		return shownArt(spot, patch, art, angleOf(spot));
+	public static Tex shownArt(Spot spot, Patches.Art chosen, Tex art) {
+		return shownArt(spot, chosen, art, angleOf(spot));
 	}
 
 	/**
 	 * The same for one named angle, which is what the shoulders need: their cell is drawn from two,
 	 * and the two caps are the same face turned through 180°, so they keep different rows of it.
 	 */
-	public static Tex shownArt(Spot spot, Patches.Patch patch, Tex art, @Nullable Angle angle) {
+	public static Tex shownArt(Spot spot, Patches.Art chosen, Tex art, @Nullable Angle angle) {
 		if (angle == null) return Tex.blank(art.width, art.height);
 		List<Part> drawn = new ArrayList<>();
 		for (Part part : parts(angle)) if (shows(part, spot)) drawn.add(part);
@@ -358,18 +362,18 @@ public final class WardrobePreview {
 			// across the figure. That is the whole of what the convention says, so it is what the
 			// reference says too, rather than reading the cut back off {@link Spot#seatHalf} — a cut
 			// that put a half on the wrong leg would then agree with itself and pass.
-			Tex piece = onThePart(spot, patch, drawn.get(i), art.crop(i * slice, 0, slice, art.height));
+			Tex piece = onThePart(spot, chosen, drawn.get(i), art.crop(i * slice, 0, slice, art.height));
 			out = out.blit(piece, 0, 0, piece.width, piece.height, i * slice, 0);
 		}
 		return out;
 	}
 
 	/** One part's share of a patch's art: the columns and rows of it that part's face really draws. */
-	private static Tex onThePart(Spot spot, Patches.Patch patch, Part part, Tex piece) {
+	private static Tex onThePart(Spot spot, Patches.Art chosen, Part part, Tex piece) {
 		// Datagen pre-mirrors the art of a limb the model mirrors, and the doll mirrors that limb for
 		// the same reason — so the art is windowed in the mirrored order and put back afterwards.
 		Tex baked = part.mirror() ? piece.flipX() : piece;
-		int x = spot.u * D + patch.offsetX(spot), y = spot.v * D + patch.offsetY(spot);
+		int x = spot.u * D + chosen.offsetX(spot), y = spot.v * D + chosen.offsetY(spot);
 		int strip = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
 		int texels = part.w() * D, rows = part.rows() * D, sourceRows = part.sourceRows();
 		Tex out = Tex.blank(baked.width, baked.height);

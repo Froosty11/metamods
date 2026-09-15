@@ -134,16 +134,18 @@ public final class WardrobeSheet {
 	 */
 	private static void audit() {
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = Tex.read(WardrobeSheet.class.getResourceAsStream("/art/ovvar/patches/" + patch.id() + ".png"));
-			System.out.println("== " + patch.id() + " " + chromas(art));
+			System.out.println("== " + patch.id() + " " + patch.variants());
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot)) continue;
+				// The PNG this cell shows, which need not be the catalogue's own size (Patches.artFor).
+				Patches.Art chosen = Patches.artFor(patch, spot);
+				Tex art = Tex.art(chosen.file());
 				for (Angle angle : WardrobePreview.anglesOf(spot)) {
 					WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch), angle);
 					if (glyph == null) continue;
 					// Against the art this cell can show: an oversize patch's hang-over is wrapped round the
 					// box by datagen and drawn on the face next door, so it is no part of this cell's picture.
-					java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, patch, art, angle));
+					java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, chosen, art, angle));
 					java.util.List<Integer> got = chromas(glyph.art().get());
 					// To within a level of quantisation: shading multiplies the channels and rounds, and a
 					// sleeve is shaded twice over, which can carry a ratio over a bucket boundary.

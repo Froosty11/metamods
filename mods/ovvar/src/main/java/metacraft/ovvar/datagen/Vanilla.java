@@ -52,6 +52,30 @@ final class Vanilla {
 		}
 	}
 
+	/**
+	 * The file names in a resource directory on the classpath: the mod's own {@code art/ovvar/...}
+	 * in a build directory in dev, or an entry in a jar. Only datagen looks at a directory as a
+	 * directory — everything else knows the name of the file it wants.
+	 */
+	static List<String> dir(String path) {
+		URL url = Vanilla.class.getResource("/" + path);
+		if (url == null) throw new IllegalStateException("no such resource directory on the classpath: " + path);
+		List<String> out = new ArrayList<>();
+		try {
+			if ("file".equals(url.getProtocol())) {
+				try (var files = java.nio.file.Files.list(java.nio.file.Path.of(url.toURI()))) {
+					files.forEach(f -> out.add(f.getFileName().toString()));
+				}
+			} else {
+				out.addAll(list(path.endsWith("/") ? path : path + "/", path));
+			}
+		} catch (IOException | java.net.URISyntaxException e) {
+			throw new IllegalStateException("cannot list " + path, e);
+		}
+		out.sort(null);
+		return out;
+	}
+
 	/** Names (relative to {@code prefix}) of every entry under it in the jar that holds {@code probe}. */
 	static List<String> list(String prefix, String probe) {
 		URL url = Vanilla.class.getResource("/" + probe);

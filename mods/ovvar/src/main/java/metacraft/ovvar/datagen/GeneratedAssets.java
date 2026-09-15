@@ -125,28 +125,61 @@ public final class GeneratedAssets implements DataProvider {
 		Tex icon = art("icon");
 		require(icon.width == 16 && icon.height == 16, "icon.png is not 16×16");
 
-		// Patches: art, an icon, an item.
-		Map<String, Tex> arts = new LinkedHashMap<>();
+		// Patches: every PNG a patch ships, an icon, an item. A patch may be drawn at more than one
+		// size (Patches.Art), so the art is loaded per variant and every consumer below asks
+		// Patches.artFor which one its place shows.
+		Map<Patches.Art, Tex> arts = new LinkedHashMap<>();
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = art("patches/" + patch.id());
-			require(art.width == patch.width() && art.height == patch.height(),
-					"patches/" + patch.id() + ".png is " + art.width + "×" + art.height + ", the catalogue says " + patch.width() + "×" + patch.height());
-			arts.put(patch.id(), art);
-			String name = ModContent.patchId(patch).getPath();
-			item(name, icon(art));
-			// Flat pieces for the stand displays: the art 1:1 in the sprite's centre, one model per
-			// piece any cell cuts it into (the whole art included).
-			Map<String, PatchPieces.Piece> pieces = new LinkedHashMap<>();
-			for (Spot spot : Spot.values()) {
-				if (patch.fits(spot)) for (PatchPieces.Piece piece : PatchPieces.of(spot, patch)) pieces.putIfAbsent(piece.key(), piece);
+			for (Patches.Art variant : patch.variants()) {
+				Tex art = art(variant.file());
+				require(art.width == variant.width() && art.height == variant.height(),
+						variant.file() + ".png is " + art.width + "×" + art.height + ", its name says "
+								+ variant.width() + "×" + variant.height()
+								+ (variant.byDefault() ? " (the size the catalogue declares)" : ""));
+				arts.put(variant, art);
 			}
-			for (PatchPieces.Piece piece : pieces.values()) {
+			String name = ModContent.patchId(patch).getPath();
+			item(name, icon(arts.get(Patches.iconArt(patch))));
+			// Flat pieces for the stand displays: the art 1:1 in the sprite's centre, one model per
+			// piece any cell cuts it into (the whole art included) — of the art that cell shows, so
+			// a shoulder's sprite is the variant that fits it, like everything else drawn there.
+			record Flat(Patches.Art art, PatchPieces.Piece piece) {}
+			Map<String, Flat> pieces = new LinkedHashMap<>();
+			for (Spot spot : Spot.values()) {
+				if (!patch.fits(spot)) continue;
+				Patches.Art variant = Patches.artFor(patch, spot);
+				for (PatchPieces.Piece piece : PatchPieces.of(spot, variant)) {
+					pieces.putIfAbsent(PatchItem.flatKey(variant, piece, false), new Flat(variant, piece));
+				}
+			}
+			for (Flat flat : pieces.values()) {
+				Patches.Art variant = flat.art();
+				PatchPieces.Piece piece = flat.piece();
+				Tex art = arts.get(variant);
 				int ox = (16 - art.width) / 2, oy = (16 - art.height) / 2;
 				Tex sprite = Tex.blank(16, 16).blit(art, piece.x0(), piece.y0(), piece.x1() - piece.x0(), piece.y1() - piece.y0(), ox + piece.x0(), oy + piece.y0());
-				sprite(PatchItem.flatModel(name, piece, false), sprite);
-				sprite(PatchItem.flatModel(name, piece, true), ghosted(sprite));   // the preview: washed out, "not sewn yet"
+				sprite(PatchItem.flatModel(name, variant, piece, false), sprite);
+				sprite(PatchItem.flatModel(name, variant, piece, true), ghosted(sprite));   // the preview: washed out, "not sewn yet"
 			}
 			lang.put("item." + MOD + "." + name, patch.name() + " patch");
+		}
+		// A variant needs no catalogue entry, so a misspelt size in a file name is otherwise silent —
+		// the art is simply never drawn. This is where an artist finds out: a file that begins with a
+		// patch's id and an underscore is meant to be a variant of it, so it must be one this build
+		// can ask for (Patches discovers them by probing those names). A file naming no patch at all
+		// is art nobody uses, which is a note rather than a failure.
+		for (String file : Vanilla.dir("art/" + MOD + "/patches")) {
+			if (!file.endsWith(".png")) continue;
+			String named = file.substring(0, file.length() - 4);
+			boolean known = false, variantOf = false;
+			for (Patches.Patch patch : Patches.all()) {
+				for (Patches.Art variant : patch.variants()) known |= variant.file().equals("patches/" + named);
+				variantOf |= named.startsWith(patch.id() + "_");
+			}
+			require(known || !variantOf, "art/" + MOD + "/patches/" + file + " reads as a variant of a patch but is not"
+					+ " one this build can ask for — a variant is named <id>_<w>x<h>.png, with an even w and h up to "
+					+ Patches.MAX_ART + " (and a seat patch's variants are " + 2 * Spot.PX + " px wide)");
+			if (!known) Ovvar.LOGGER.info("[{} datagen] art/{}/patches/{} is in no catalogue entry; nothing draws it", MOD, MOD, file);
 		}
 
 		// One static texture per (cell, patch): the art on its cell, drawn on one side only by the
@@ -155,7 +188,11 @@ public final class GeneratedAssets implements DataProvider {
 		for (Spot spot : Spot.values()) {
 			for (Patches.Patch patch : Patches.all()) {
 				if (!patch.fits(spot)) continue;
-				Tex art = arts.get(patch.id());
+				// The art this cell shows, which need not be the catalogue's own size: a cell the art
+				// is clipped to takes a variant that fits it whole, a cell as big as art may get takes
+				// the largest one (Patches.artFor).
+				Patches.Art variant = Patches.artFor(patch, spot);
+				Tex art = arts.get(variant);
 				String dir = "textures/entity/equipment/" + spot.piece.layer + "/";
 				if (spot == Spot.SEAT) {
 					// The art is drawn as seen from behind, so its left half sits on the wearer's LEFT leg
@@ -175,7 +212,7 @@ public final class GeneratedAssets implements DataProvider {
 				}
 				// Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
 				// a left cell's art is mirrored (the model mirrors the left limb).
-				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX(spot));
+				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + variant.offsetX(spot));
 				png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
 				placementTextures++;
 			}
@@ -191,7 +228,8 @@ public final class GeneratedAssets implements DataProvider {
 				Placement placement = spot == Spot.SEAT || !patch.fits(spot) ? null : new Placement(spot, patch);
 				if (placement == null || !Trims.fits(placement)) continue;
 				String name = Trims.patternName(placement);
-				Tex tex = placedWrapped(spot, arts.get(patch.id()), spot.u * D + patch.offsetX(spot));
+				Patches.Art variant = Patches.artFor(patch, spot);
+				Tex tex = placedWrapped(spot, arts.get(variant), spot.u * D + variant.offsetX(spot));
 				png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
 				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
 				json(data.resolve("trim_pattern/" + name + ".json"),
@@ -217,12 +255,19 @@ public final class GeneratedAssets implements DataProvider {
 		// The preview layer per half: every instant design's art in the library (a block of cells
 		// its size), the cell and design tables, marker kind 2. The shader draws what the dye
 		// colour's slots name.
-		Map<String, int[]> library = new LinkedHashMap<>();
+		// One block per art a design can be drawn as, which is one per Patches.Fit: the instant
+		// channel carries a design, not a cell's choice of its PNGs, so the fits' arts all have to be
+		// in the library and the design table says where each of them is. A patch whose fits pick the
+		// same PNG gets one block, shared.
+		Map<Patches.Art, int[]> library = new LinkedHashMap<>();
 		boolean[][] taken = new boolean[LIBRARY_COLUMNS][LIBRARY_ROWS];
 		for (Patches.Patch patch : Patches.all()) {
 			if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
-			int w = (patch.width() + Spot.PX - 1) / Spot.PX, h = (patch.height() + Spot.PX - 1) / Spot.PX;
-			library.put(patch.id(), libraryBlock(taken, w, h, patch.id()));
+			for (Patches.Fit fit : Patches.Fit.values()) {
+				Patches.Art variant = Patches.artFor(patch, fit);
+				if (library.containsKey(variant)) continue;
+				library.put(variant, libraryBlock(taken, variant.cells(), (variant.height() + Spot.PX - 1) / Spot.PX, variant.file()));
+			}
 		}
 		// The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
 		// second dye channel: the same texture with that layer's texel, in the humanoid folder.
@@ -232,16 +277,24 @@ public final class GeneratedAssets implements DataProvider {
 		previews.add(new PreviewTarget(Piece.BOTTOM, Piece.TOP.layer, EquipmentJson.FEET_PREVIEW, Piece.TOP));
 		for (PreviewTarget target : previews) {
 			List<Spot> cells = Spot.cells(target.piece);
-			require(cells.size() <= TABLE_SIZE && Looks.INSTANT_DESIGNS <= TABLE_SIZE, "the preview tables hold " + TABLE_SIZE + " cells and designs");
+			require(cells.size() <= TABLE_SIZE, "the preview tables hold " + TABLE_SIZE + " cells, not " + cells.size());
+			require(Looks.INSTANT_DESIGNS <= FIT_SLOTS, "the design table holds " + FIT_SLOTS + " designs per fit, not " + Looks.INSTANT_DESIGNS);
 			Tex tex = Tex.blank(W, H).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
 			for (Patches.Patch patch : Patches.all()) {
-				int[] at = library.get(patch.id());
-				if (at == null) continue;
-				Tex art = arts.get(patch.id());
-				tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
+				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;
 				int design = Patches.code(patch) - 1;
-				tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0] * D, at[1] * D, patch.cells()));
-				tex = tex.with(PATCH_TABLE_X + TABLE_COLUMNS + design / 16, design % 16, rgb(art.width, art.height, 0));
+				for (Patches.Fit fit : Patches.Fit.values()) {
+					Patches.Art variant = Patches.artFor(patch, fit);
+					int[] at = library.get(variant);
+					Tex art = arts.get(variant);
+					tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
+					// The design table, a row per (design, fit): where that fit's art is in the library,
+					// and its size beside it. The fit is the shader's own reading of the cell it is
+					// drawing (ovvar.glsl: OVVAR_FIT_*), so the two must key this the same way.
+					int slot = design + fit.ordinal() * FIT_SLOTS;
+					tex = tex.with(PATCH_TABLE_X + slot / 16, slot % 16, rgb(at[0] * D, at[1] * D, variant.cells()));
+					tex = tex.with(PATCH_SIZE_TABLE_X + slot / 16, slot % 16, rgb(art.width, art.height, 0));
+				}
 			}
 			for (int index = 0; index < cells.size(); index++) {
 				Spot spot = cells.get(index);
@@ -262,7 +315,7 @@ public final class GeneratedAssets implements DataProvider {
 		for (String material : concat(OvveFeet.NONE, OvveFeet.MATERIALS)) {
 			json(assets.resolve("equipment/feet/" + material + ".json"), JsonParser.parseString(EquipmentJson.feetJson(material)));
 		}
-		Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} patches in the preview library", MOD, placementTextures, library.size());
+		Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} arts in the preview library", MOD, placementTextures, library.size());
 
 		Map<Chapter, Integer> chapterColours = new LinkedHashMap<>();
 		for (Chapter chapter : Chapter.values()) {
@@ -353,8 +406,12 @@ public final class GeneratedAssets implements DataProvider {
 	 * is recoloured in every chapter's colour, the needle mirrored and turned for its four
 	 * directions, each patch's art scaled up whole, and the exit band gets its text in the vanilla
 	 * font. Each patch's outline is traced from its art's opaque texels.
+	 *
+	 * <p>The sewing game is about the patch rather than about where it is going — it is played
+	 * before the cell is committed to — so it shows the catalogue's own art ({@code Patch.art()}),
+	 * whatever the cell it lands on will pick ({@link Patches#artFor}).
 	 */
-	private void sewingFont(Map<Chapter, Integer> chapterColours, Map<String, Tex> arts) {
+	private void sewingFont(Map<Chapter, Integer> chapterColours, Map<Patches.Art, Tex> arts) {
 		Tex cloth = sewingArt("cloth", SewingFont.PITCH, SewingFont.PITCH);
 		Tex needle = sewingArt("needle", SewingFont.NEEDLE_LENGTH, SewingFont.NEEDLE_WIDTH);
 		Tex thread = sewingArt("thread", SewingFont.DOT, SewingFont.DOT);
@@ -369,7 +426,7 @@ public final class GeneratedAssets implements DataProvider {
 		}
 		JsonObject outlines = new JsonObject();
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = arts.get(patch.id());
+			Tex art = arts.get(patch.art());
 			textures.put(SewingFont.patch(patch).name(), art.scale(Seam.scale(patch)));
 			JsonArray segments = new JsonArray();
 			for (int[] s : outline(art, patch.id())) segments.add(J.nums(s[0], s[1], s[2], s[3], s[4], s[5]));
@@ -593,24 +650,42 @@ public final class GeneratedAssets implements DataProvider {
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
 	private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**
-	 * Preview texture tables, column-major 16 tall, {@value #TABLE_COLUMNS} columns each: cell
-	 * index (in the half) → (u, v, side) and, {@value #TABLE_COLUMNS} columns further right, (the
-	 * cell's own width, its height); design index → (library x, y, cells) and, {@value
-	 * #TABLE_COLUMNS} columns further right, (art width, art height) — positions in texels of
-	 * this texture.
+	 * Preview texture tables, four of them side by side from skin texel 40, column-major 16 tall,
+	 * {@value #TABLE_COLUMNS} columns each (so {@value #TABLE_SIZE} entries per table, addressed as
+	 * {@code (base + slot / 16, slot % 16)}):
+	 *
+	 * <ol>
+	 *   <li>cell index in the half → (u, v, side),</li>
+	 *   <li>the same index → (the cell's own width, its height), since a cell is not one size,</li>
+	 *   <li>design slot → (library x, y, art cells across),</li>
+	 *   <li>the same slot → (art width, art height)</li>
+	 * </ol>
+	 *
+	 * <p>all in texels of this texture. A <b>design slot</b> is {@code design + fit ·
+	 * }{@value #FIT_SLOTS}: a patch may ship art at several sizes and which of them is drawn is the
+	 * cell's to decide ({@link Patches.Fit}), so the design tables hold a row per (design, fit) and
+	 * the shader reads the one the cell it is drawing asks for. {@value #FIT_SLOTS} slots per fit is
+	 * two of the {@value #TABLE_COLUMNS} columns each, which is what makes the tables three columns
+	 * of skin texels wide.
 	 */
-	private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_COLUMNS = 2 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
+	private static final int CELL_TABLE_X = 40 * D, TABLE_COLUMNS = 3 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
 	/** Beside the cell table: the cell's own size, since {@link Spot#BACK_BIG} is not {@value Spot#PX} square. */
 	private static final int CELL_SIZE_TABLE_X = CELL_TABLE_X + TABLE_COLUMNS;
+	private static final int PATCH_TABLE_X = CELL_SIZE_TABLE_X + TABLE_COLUMNS;
+	private static final int PATCH_SIZE_TABLE_X = PATCH_TABLE_X + TABLE_COLUMNS;
+	/** Design slots per {@link Patches.Fit} in the design tables: two of their columns. */
+	private static final int FIT_SLOTS = 32;
 	/**
 	 * Preview library: the head rows (skin texels 0..64 × 0..16) as a grid of cells, minus the
-	 * tables' columns (40..48) and the cell holding the marker row's texels (60..64 × 12..16).
-	 * A design takes a block of cells its art's size.
+	 * tables' columns (40..52) and the cell holding the marker row's texels (60..64 × 12..16).
+	 * A design takes a block of cells its art's size, one per art it can be drawn as.
 	 */
 	private static final int LIBRARY_COLUMNS = 16, LIBRARY_ROWS = 4;
 
 	private static boolean libraryFree(int cx, int cy) {
-		return !(cx >= 10 && cx < 12) && !(cx == 15 && cy == 3);
+		int x0 = cx * Spot.SIZE * D, x1 = x0 + Spot.SIZE * D;   // the library cell's own texel columns
+		boolean tables = x1 > CELL_TABLE_X && x0 < PATCH_SIZE_TABLE_X + TABLE_COLUMNS;
+		return !tables && !(cx == 15 && cy == 3);
 	}
 
 	/** First-fit block of w×h cells in the library; returns its top-left in skin texels. */
@@ -671,7 +746,7 @@ public final class GeneratedAssets implements DataProvider {
 	}
 
 	private static Tex art(String name) {
-		return Tex.read(Vanilla.open("art/" + MOD + "/" + name + ".png"));
+		return Tex.art(name);
 	}
 
 	private static Tex overlay(String name, Chapter chapter) {

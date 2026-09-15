@@ -31,6 +31,19 @@ public final class Tex {
 		return new Tex(width, height, new int[width * height]);
 	}
 
+	/**
+	 * One of the mod's own art files, by the name under {@code art/ovvar} it is kept as ({@code
+	 * "patches/itk_8x8"}, no extension) — which is what {@link metacraft.ovvar.content.Patches.Art}
+	 * answers, so datagen, the paper doll and the game tests all read a patch's art through one
+	 * call and cannot disagree about which PNG a place shows.
+	 */
+	public static Tex art(String name) {
+		String path = "/art/" + metacraft.ovvar.Ovvar.MOD_ID + "/" + name + ".png";
+		InputStream in = Tex.class.getResourceAsStream(path);
+		if (in == null) throw new IllegalStateException("missing art: " + path);
+		return read(in);
+	}
+
 	public static Tex read(InputStream in) {
 		try (in) {
 			BufferedImage img = ImageIO.read(in);

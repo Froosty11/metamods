@@ -1319,11 +1319,13 @@ public final class WardrobeTests {
 	@GameTest
 	public void wardrobePreviewDrawsEveryCellsOwnPatchArt(GameTestHelper helper) {
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = patchArt(patch);
-			List<Integer> artColours = colours(art);
+			List<Integer> artColours = colours(patchArt(patch));
 			if (artColours.size() < 2) helper.fail(patch.id() + "'s art is one flat colour; this test cannot tell it from cloth");
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot)) continue;
+				// The PNG this cell shows, which need not be the catalogue's own size.
+				Patches.Art chosen = Patches.artFor(patch, spot);
+				Tex art = patchArt(chosen);
 				List<Angle> angles = WardrobePreview.anglesOf(spot);
 				if (angles.isEmpty()) helper.fail(spot + " is on no view, so " + patch.id() + " sewn there could never be seen");
 				for (Angle angle : angles) {
@@ -1336,7 +1338,7 @@ public final class WardrobeTests {
 				List<Integer> got = colours(drawn);
 				String where = patch.id() + " on " + spot.id() + " (" + angle + " view)";
 				// The art this cell can show: an oversize patch's hang-over is drawn on the face next door.
-				Tex shown = WardrobePreview.shownArt(spot, patch, art, angle);
+				Tex shown = WardrobePreview.shownArt(spot, chosen, art, angle);
 				List<Integer> shownColours = colours(shown);
 				if (shownColours.isEmpty()) {
 					helper.fail(where + ": no part of the art lands on the cell's own face");
@@ -1385,7 +1387,7 @@ public final class WardrobeTests {
 		for (Patches.Patch patch : Patches.all()) {
 			if (!patch.seat()) continue;
 			seats++;
-			Tex art = patchArt(patch);
+			Tex art = patchArt(Patches.artFor(patch, Spot.SEAT));
 			int half = art.width / 2;
 			Tex artLeft = art.crop(0, 0, half, art.height), artRight = art.crop(half, 0, half, art.height);
 			int[] tell = firstDifference(artLeft, artRight);
@@ -1438,9 +1440,10 @@ public final class WardrobeTests {
 		for (Patches.Patch patch : Patches.all()) {
 			if (!patch.seat() || patch.height() <= Spot.PX) continue;
 			tall++;
-			Tex art = patchArt(patch);
+			Patches.Art chosen = Patches.artFor(patch, Spot.SEAT);
+			Tex art = patchArt(chosen);
 			int half = art.width / 2, last = art.height - 1;
-			if (patch.offsetY(Spot.SEAT) >= 0) {
+			if (chosen.offsetY(Spot.SEAT) >= 0) {
 				helper.fail(patch.id() + " is " + patch.height() + " px tall but sits inside the seat's row; nothing hangs over");
 			}
 			for (Spot.Side side : new Spot.Side[]{Spot.Side.RIGHT, Spot.Side.LEFT}) {
@@ -1466,7 +1469,7 @@ public final class WardrobeTests {
 				}
 			}
 			// And on the paper doll.
-			Tex shown = WardrobePreview.shownArt(Spot.SEAT, patch, art);
+			Tex shown = WardrobePreview.shownArt(Spot.SEAT, chosen, art);
 			if (shown.height != art.height) helper.fail(patch.id() + ": the doll's reference art is " + shown.height + " px tall, wanted " + art.height);
 			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(Spot.SEAT, patch));
 			if (glyph == null) {
@@ -1495,8 +1498,9 @@ public final class WardrobeTests {
 	 */
 	private static Tex seatCell(Patches.Patch patch, Spot.Side side) {
 		String name = "patch/seat/" + patch.id() + (side == Spot.Side.LEFT ? "_l" : "_r");
-		int x = Spot.SEAT.u * Spot.DETAIL, y = Spot.SEAT.v * Spot.DETAIL + patch.offsetY(Spot.SEAT);
-		return generated(Piece.BOTTOM, name).crop(x, y, Spot.PX, patch.height());
+		Patches.Art art = Patches.artFor(patch, Spot.SEAT);
+		int x = Spot.SEAT.u * Spot.DETAIL, y = Spot.SEAT.v * Spot.DETAIL + art.offsetY(Spot.SEAT);
+		return generated(Piece.BOTTOM, name).crop(x, y, Spot.PX, art.height());
 	}
 
 	/** A generated equipment layer texture, off the runtime classpath (datagen has to have run). */
@@ -1531,9 +1535,15 @@ public final class WardrobeTests {
 		return null;
 	}
 
+	/** A patch's catalogue art: {@code art/ovvar/patches/<id>.png}, the size the catalogue declares. */
 	private static Tex patchArt(Patches.Patch patch) {
-		try (var in = WardrobeTests.class.getResourceAsStream("/art/ovvar/patches/" + patch.id() + ".png")) {
-			if (in == null) throw new IOException("no art for " + patch.id());
+		return patchArt(patch.art());
+	}
+
+	/** One of a patch's PNGs — which one a place shows is {@link Patches#artFor}'s to say. */
+	private static Tex patchArt(Patches.Art art) {
+		try (var in = WardrobeTests.class.getResourceAsStream(art.resource())) {
+			if (in == null) throw new IOException("no art file " + art.resource());
 			return Tex.read(in);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
@@ -1897,23 +1907,24 @@ public final class WardrobeTests {
 		// 1. Datagen keeps every colour of the art, in the placement textures and in the library.
 		int checked = 0;
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = patchArt(patch);
-			List<Integer> want = art.opaqueColours();
+			List<Integer> want = patchArt(patch).opaqueColours();
 			if (want.isEmpty()) {
 				helper.fail(patch.id() + "'s art has no opaque colour to check");
 				continue;
 			}
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot) || spot == Spot.SEAT) continue;   // the seat is cut in half per leg
+				// Against the PNG this cell shows: a patch may ship its art at several sizes.
+				List<Integer> cellWant = patchArt(Patches.artFor(patch, spot)).opaqueColours();
 				List<Integer> got = artColours(generated(spot.piece, "patch/" + spot.id() + "/" + patch.id()));
-				for (int colour : want) {
+				for (int colour : cellWant) {
 					// A colour can be clipped off a cell (a shoulder keeps the art's middle), so only
 					// the ones that survive are required — but any that does must be its own colour.
 					if (!got.contains(colour)) continue;
 					checked++;
 				}
 				for (int colour : got) {
-					if (!want.contains(colour)) {
+					if (!cellWant.contains(colour)) {
 						helper.fail(patch.id() + " on " + spot.id() + ": the texture has " + Integer.toHexString(colour)
 								+ ", which the art has not — something on the way scaled a channel");
 					}
@@ -2112,7 +2123,7 @@ public final class WardrobeTests {
 	@GameTest
 	public void aShoulderPatchIsClippedToTheArmsTopFace(GameTestHelper helper) {
 		int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
-		int clipped = 0;
+		int clipped = 0, whole = 0;
 		for (Spot spot : List.of(Spot.SHOULDER_R, Spot.SHOULDER_L)) {
 			if (!spot.top() || Spot.face(spot) != Spot.TOP_FACE) {
 				helper.fail(spot.id() + " is not on its box's top face (row " + spot.v + ", face " + Spot.face(spot) + ")");
@@ -2123,11 +2134,14 @@ public final class WardrobeTests {
 			int x0 = spot.u * D, y0 = spot.v * D, x1 = x0 + spot.px(), y1 = y0 + spot.pxHeight();
 			for (Patches.Patch patch : Patches.all()) {
 				if (!patch.fits(spot)) continue;
-				Tex art = patchArt(patch);
+				// The PNG a shoulder shows: a patch that ships a cell-sized variant lands there whole,
+				// which is what the variants are for; one that does not is clipped, as before.
+				Patches.Art chosen = Patches.artFor(patch, spot);
+				Tex art = patchArt(chosen);
 				// The model mirrors the left limb, so its texture holds the art flipped in x.
 				Tex baked = spot.side == Spot.Side.LEFT ? art.flipX() : art;
 				Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id());
-				int ox = x0 + patch.offsetX(spot), oy = y0 + patch.offsetY(spot);
+				int ox = x0 + chosen.offsetX(spot), oy = y0 + chosen.offsetY(spot);
 				// Every art pixel that falls on the face is there, as drawn (for that arm).
 				for (int ay = 0; ay < baked.height; ay++) {
 					for (int ax = 0; ax < baked.width; ax++) {
@@ -2149,7 +2163,8 @@ public final class WardrobeTests {
 						}
 					}
 				}
-				if (patch.oversize(spot)) clipped++;
+				if (chosen.oversize(spot)) clipped++;
+				else whole++;
 				// The distinctive pixel, on the arm the model mirrors: at the column the mirroring
 				// puts it in, the art's own pixel is what shows.
 				if (spot.side == Spot.Side.LEFT) {
@@ -2157,7 +2172,7 @@ public final class WardrobeTests {
 					if (tell == null) {
 						continue;   // a symmetrical patch cannot tell a missing flip from a correct one
 					}
-					int tx = x0 + patch.offsetX(spot) + art.width - 1 - tell[0], ty = oy + tell[1];
+					int tx = x0 + chosen.offsetX(spot) + art.width - 1 - tell[0], ty = oy + tell[1];
 					if (tx < x0 || tx >= x1 || ty < y0 || ty >= y1) continue;   // clipped away
 					if (drawn.get(tx, ty) != art.get(tell[0], tell[1])) {
 						helper.fail(patch.id() + " on " + spot.id() + ": art pixel (" + tell[0] + ", " + tell[1] + ") should be at texel ("
@@ -2167,6 +2182,9 @@ public final class WardrobeTests {
 			}
 		}
 		if (clipped == 0) helper.fail("no patch in the catalogue is bigger than a shoulder, so nothing here tested the clipping");
+		// And the other half of it: a patch with a cell-sized variant is drawn there whole (every
+		// pixel of that PNG is on the face, which the loop above has just checked pixel by pixel).
+		if (whole == 0) helper.fail("no patch lands on a shoulder whole, so nothing here tested the per-size art");
 		// And a design naming the new cells goes to the store and back.
 		List<Placement> shoulders = List.of(new Placement(Spot.SHOULDER_R, Patches.get("itk")), new Placement(Spot.SHOULDER_L, Patches.get("nyckeln")));
 		List<String> keys = shoulders.stream().map(Placement::key).toList();
@@ -2227,8 +2245,9 @@ public final class WardrobeTests {
 			else if (front.codepoint() == back.codepoint()) helper.fail(placement.key() + " draws the same glyph from the front and the back");
 			else if (front.height() > WardrobePreview.CAP) helper.fail(placement.key() + "'s front glyph is " + front.height() + " px tall, taller than the cap");
 			// The squash, against the art: rows the doll averaged together read the same afterwards.
-			Tex art = patchArt(patch);
-			Tex shown = WardrobePreview.shownArt(shoulder, patch, art, Angle.FRONT);
+			Patches.Art chosen = Patches.artFor(patch, shoulder);
+			Tex art = patchArt(chosen);
+			Tex shown = WardrobePreview.shownArt(shoulder, chosen, art, Angle.FRONT);
 			int squashed = 0;
 			for (int y = 0; y + 1 < art.height; y++) {
 				if (run(art, y).equals(run(art, y + 1))) continue;   // the art's own rows already agree
@@ -2360,13 +2379,16 @@ public final class WardrobeTests {
 		int D = Spot.DETAIL, faceStart = spot.u * D, faceEnd = (spot.u + spot.width) * D;
 		for (Patches.Patch patch : Patches.all()) {
 			if (!patch.fits(spot)) continue;
-			if (patch.oversize(spot)) helper.fail(patch.id() + " hangs over the big back cell, which is " + Patches.MAX_ART + " square");
-			int x = faceStart + patch.offsetX(spot), y = spot.v * D + patch.offsetY(spot);
-			if (x < faceStart || x + patch.width() > faceEnd) {
-				helper.fail(patch.id() + " on the big back cell runs from texel " + x + " to " + (x + patch.width()) + ", off the back face (" + faceStart + ".." + faceEnd + ")");
+			// The PNG the big cell shows: the largest the patch ships that fits it, so a patch with a
+			// MAX_ART variant fills the cell instead of floating in the middle of it.
+			Patches.Art chosen = Patches.artFor(patch, spot);
+			if (chosen.oversize(spot)) helper.fail(patch.id() + " hangs over the big back cell, which is " + Patches.MAX_ART + " square");
+			int x = faceStart + chosen.offsetX(spot), y = spot.v * D + chosen.offsetY(spot);
+			if (x < faceStart || x + chosen.width() > faceEnd) {
+				helper.fail(patch.id() + " on the big back cell runs from texel " + x + " to " + (x + chosen.width()) + ", off the back face (" + faceStart + ".." + faceEnd + ")");
 			}
-			Tex art = patchArt(patch);
-			Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id()).crop(x, y, patch.width(), patch.height());
+			Tex art = patchArt(chosen);
+			Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id()).crop(x, y, chosen.width(), chosen.height());
 			if (!same(drawn, art)) helper.fail(patch.id() + "'s big-back-cell texture is not its art, centred at (" + x + ", " + y + ")");
 		}
 		helper.succeed();
@@ -2701,6 +2723,182 @@ public final class WardrobeTests {
 	private static void release(MinecraftServer server) {
 		Wardrobes.use(server, idleBackend());
 		BUSY.set(false);
+	}
+
+
+	// ---- per-size art
+
+	/**
+	 * A patch may ship its art at several sizes ({@code <id>_<w>x<h>.png} beside its own PNG), and
+	 * <b>one</b> function says which of them a place shows: {@link Patches#artFor}. This is that
+	 * decision, said against the real ITK — 12×12 in the catalogue, with an 8×8 and a 16×16 variant:
+	 *
+	 * <ul>
+	 *   <li>on a shoulder the 8×8, because the art is <em>clipped</em> to a box's top face, so the
+	 *	   variant is what lands there whole instead of losing its edges;
+	 *   <li>on the big back cell the 16×16, filling a cell that is {@link Patches#MAX_ART} square
+	 *	   rather than floating in the middle of it;
+	 *   <li>on an ordinary chest cell the catalogue's own 12×12, hanging over its neighbours, which
+	 *	   is the point of an oversize patch and exactly what it did before variants existed;
+	 *   <li>in the inventory the 16×16, drawn at 1:1 instead of a 12×12 scaled up.
+	 * </ul>
+	 *
+	 * <p>And a patch that ships only the one file is not touched by any of it: every fit gives it
+	 * that file, which is why the rest of the suite still pins the old behaviour.
+	 */
+	@GameTest
+	public void patchArtComesInSizesAndOnePlacePicksBetweenThem(GameTestHelper helper) {
+		Patches.Patch itk = Patches.get("itk");
+		List<String> files = itk.variants().stream().map(Patches.Art::file).toList();
+		if (!files.equals(List.of("patches/itk_8x8", "patches/itk", "patches/itk_16x16"))) {
+			helper.fail("itk's art files are " + files + ", wanted the 8x8, the catalogue's 12x12 and the 16x16 (smallest first)");
+		}
+		for (Patches.Patch patch : Patches.all()) {
+			int defaults = 0;
+			for (Patches.Art art : patch.variants()) {
+				if (art.byDefault()) defaults++;
+				if (art.width() % 2 != 0 || art.height() % 2 != 0 || art.width() > Patches.MAX_ART || art.height() > Patches.MAX_ART) {
+					helper.fail(art.file() + " is " + art.width() + "x" + art.height() + ", which is not an even size up to " + Patches.MAX_ART);
+				}
+				if (patch.seat() && art.width() != 2 * Spot.PX) helper.fail(art.file() + " is a seat patch's art but " + art.width() + " px wide");
+				if (!has(art.resource())) helper.fail(art.resource() + " is in variants() but there is no such file");
+				Tex tex = patchArt(art);
+				if (tex.width != art.width() || tex.height != art.height()) {
+					helper.fail(art.file() + ".png is " + tex.width + "x" + tex.height + ", its name says " + art.width() + "x" + art.height());
+				}
+			}
+			if (defaults != 1) helper.fail(patch.id() + " has " + defaults + " default art file(s) among " + patch.variants() + ", wanted exactly one");
+		}
+		// The choice, cell by cell.
+		Object[][] cases = {
+				{Spot.SHOULDER_R, 8, 8}, {Spot.SHOULDER_L, 8, 8},
+				{Spot.BACK_BIG, Patches.MAX_ART, Patches.MAX_ART},
+				{Spot.FRONT_TOP_LEFT, itk.width(), itk.height()}, {Spot.SLEEVE_OUT_TOP_R, itk.width(), itk.height()},
+		};
+		for (Object[] c : cases) {
+			Spot spot = (Spot) c[0];
+			Patches.Art chosen = Patches.artFor(itk, spot);
+			if (chosen.width() != (Integer) c[1] || chosen.height() != (Integer) c[2]) {
+				helper.fail("itk on " + spot.id() + " is drawn as " + chosen + ", wanted " + c[1] + "x" + c[2]);
+			}
+		}
+		// A clipped cell must not clip the art it picked; an ordinary cell still hangs over.
+		if (Patches.artFor(itk, Spot.SHOULDER_R).oversize(Spot.SHOULDER_R)) helper.fail("itk is still clipped on a shoulder");
+		if (Patches.artFor(itk, Spot.BACK_BIG).oversize(Spot.BACK_BIG)) helper.fail("itk hangs over the big back cell");
+		if (!Patches.artFor(itk, Spot.FRONT_TOP_LEFT).oversize(Spot.FRONT_TOP_LEFT)) helper.fail("itk no longer hangs over an ordinary chest cell");
+		// The icon: the 16 px art at 1:1, which is the generated item texture itself.
+		Patches.Art icon = Patches.iconArt(itk);
+		if (icon.width() != Patches.ICON || icon.height() != Patches.ICON) helper.fail("itk's icon art is " + icon + ", wanted " + Patches.ICON + " square");
+		Tex drawn = itemTexture(metacraft.ovvar.content.ModContent.patchId(itk).getPath());
+		if (!same(drawn, patchArt(icon))) helper.fail("itk's inventory icon is not its " + icon.file() + " art, unscaled");
+		// A patch with the one file: nothing about it changed.
+		for (Patches.Patch patch : Patches.all()) {
+			if (patch.variants().size() > 1) continue;
+			for (Spot spot : Spot.values()) {
+				if (!patch.fits(spot)) continue;
+				Patches.Art chosen = Patches.artFor(patch, spot);
+				if (!chosen.byDefault() || chosen.width() != patch.width() || chosen.height() != patch.height()) {
+					helper.fail(patch.id() + " ships one art file but " + spot.id() + " draws " + chosen);
+				}
+			}
+			if (!Patches.iconArt(patch).byDefault()) helper.fail(patch.id() + " ships one art file but its icon draws another");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The three paths agree about which art a cell shows, which is the whole point of there being
+	 * one function. The pack path and the doll are checked against the art everywhere else in this
+	 * suite; this is the <b>instant</b> path, which cannot ask a question at all — the dye colour
+	 * carries a cell and a design, so the preview texture's design table holds a row per (design,
+	 * {@link Patches.Fit}) and the shader reads the row for the fit of the cell it is drawing.
+	 *
+	 * <p>Read the way the shader reads it: the table positions come out of {@code ovvar.glsl}'s own
+	 * constants, so a table that moved in datagen without moving in the shader fails here rather
+	 * than on somebody's screen. Then every row must name the art {@link Patches#artFor} picks for
+	 * that fit, and the library block it points at must be that art, pixel for pixel.
+	 */
+	@GameTest
+	public void theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs(GameTestHelper helper) {
+		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
+		double tableX = shaderConst(helper, glsl, "OVVAR_TABLE_X"), columns = shaderConst(helper, glsl, "OVVAR_TABLE_COLUMNS");
+		double slots = shaderConst(helper, glsl, "OVVAR_FIT_SLOTS");
+		for (Patches.Fit fit : Patches.Fit.values()) {
+			double declared = shaderConst(helper, glsl, "OVVAR_FIT_" + fit.name());
+			if (declared != fit.ordinal()) helper.fail("ovvar.glsl calls " + fit + " fit " + declared + ", Patches.Fit says " + fit.ordinal());
+		}
+		if (Looks.INSTANT_DESIGNS > slots) helper.fail(Looks.INSTANT_DESIGNS + " designs do not fit " + slots + " slots per fit");
+		int rows = 0;
+		for (Piece piece : Piece.values()) {
+			Tex preview = generated(piece, "patch/preview_" + piece.id);
+			for (Patches.Patch patch : Patches.all()) {
+				int design = Patches.code(patch) - 1;
+				if (design >= Looks.INSTANT_DESIGNS) continue;   // never in the dye colour, so never in the library
+				for (Patches.Fit fit : Patches.Fit.values()) {
+					int slot = design + fit.ordinal() * (int) slots;
+					int at = (int) tableX + 2 * (int) columns + slot / 16, size = (int) tableX + 3 * (int) columns + slot / 16;
+					int entry = preview.get(at, slot % 16), sizes = preview.get(size, slot % 16);
+					Patches.Art want = Patches.artFor(patch, fit);
+					Tex art = patchArt(want);
+					if (Tex.r(sizes) != want.width() || Tex.g(sizes) != want.height()) {
+						helper.fail(patch.id() + " (" + fit + ") is " + Tex.r(sizes) + "x" + Tex.g(sizes) + " in the " + piece
+								+ " design table, but " + fit + " draws " + want);
+					}
+					int x = Tex.r(entry), y = Tex.g(entry);
+					Tex block = preview.crop(x, y, art.width, art.height);
+					if (!same(block, art)) {
+						helper.fail(patch.id() + " (" + fit + "): the " + piece + " library at (" + x + ", " + y + ") is not "
+								+ want.file() + "'s art" + java.util.Arrays.toString(firstDifference(block, art)));
+					}
+					rows++;
+				}
+			}
+		}
+		if (rows == 0) helper.fail("no design row was checked at all");
+		// And the rule the shader's three-line expression states, which is Patches.Fit.of's: the art
+		// is clipped to a box's top face, a cell bigger than one cell is filled (never the seat,
+		// whose two cells wear one patch drawn to their own size), everything else hangs over.
+		for (Spot spot : Spot.values()) {
+			boolean big = !spot.top() && spot.side != Spot.Side.SEAT && (spot.px() > Spot.PX || spot.pxHeight() > Spot.PX);
+			Patches.Fit shader = spot.top() ? Patches.Fit.CLIPPED : big ? Patches.Fit.FILLED : Patches.Fit.OVER;
+			if (Patches.Fit.of(spot) != shader) helper.fail(spot.id() + " is " + Patches.Fit.of(spot) + " here and " + shader + " in the shader");
+			// The fits' own boxes: CLIPPED assumes a top cell is one cell square and FILLED that a
+			// filled one is MAX_ART square, since the instant path keys the library by fit alone.
+			if (spot.top() && (spot.px() != Spot.PX || spot.pxHeight() != Spot.PX)) {
+				helper.fail(spot.id() + " is a clipped cell " + spot.px() + "x" + spot.pxHeight() + " px; the instant path's CLIPPED fit is one cell square");
+			}
+			if (big && (spot.px() != Patches.MAX_ART || spot.pxHeight() != Patches.MAX_ART)) {
+				helper.fail(spot.id() + " is a filled cell " + spot.px() + "x" + spot.pxHeight() + " px; the instant path's FILLED fit is " + Patches.MAX_ART + " square");
+			}
+			for (Patches.Patch patch : Patches.all()) {
+				if (patch.fits(spot) && !Patches.artFor(patch, spot).equals(Patches.artFor(patch, Patches.Fit.of(spot)))) {
+					helper.fail(patch.id() + " on " + spot.id() + " is drawn as " + Patches.artFor(patch, spot)
+							+ " by the cell and as " + Patches.artFor(patch, Patches.Fit.of(spot)) + " by its fit alone");
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/** A {@code const float} of {@code ovvar.glsl}: a number, or a number times OVVAR_D. */
+	private static double shaderConst(GameTestHelper helper, String glsl, String name) {
+		var matcher = java.util.regex.Pattern.compile(name + "\\s*=\\s*([0-9.]+)(\\s*\\*\\s*OVVAR_D)?\\s*;").matcher(glsl);
+		if (!matcher.find()) {
+			helper.fail("ovvar.glsl no longer declares " + name + ", so nothing holds the shader to the tables datagen writes");
+			return -1;
+		}
+		return Double.parseDouble(matcher.group(1)) * (matcher.group(2) == null ? 1 : Spot.DETAIL);
+	}
+
+	/** A generated item texture (a patch's inventory icon), off the runtime classpath. */
+	private static Tex itemTexture(String name) {
+		String path = "/assets/" + metacraft.ovvar.Ovvar.MOD_ID + "/textures/item/" + name + ".png";
+		try (var in = WardrobeTests.class.getResourceAsStream(path)) {
+			if (in == null) throw new IOException("missing " + path + " — run ./gradlew runDatagen");
+			return Tex.read(in);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	private static void assertThat(boolean condition, String message) {

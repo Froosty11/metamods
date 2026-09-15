@@ -13,12 +13,13 @@
 //	  face, which is not on the strip: the shoulders). Fragments of the other limb read the
 //	  blank texel.
 //   2  the preview texture: every instant design's art in a library (head rows), a cell table at
-//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 2·D columns
+//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 3·D columns
 //	  further right: the cell's own width and height, since a cell is not one size — the big back
 //	  cell is two cells each way and the seat two wide; a v above the side rows means the cell is
 //	  on the box's TOP face, the shoulders) and a design
-//	  table at x 44·D (design → library x, y, cells; 2·D columns further right: art width,
-//	  height); G = cells in the half, B = designs. The garment's dye
+//	  table 3·D columns further right again (design + fit·OVVAR_FIT_SLOTS → library x, y, cells;
+//	  3·D columns further right: art width, height — a row per art the design can be drawn as,
+//	  since a patch may ship its art at several sizes); G = cells in the half, B = designs. The garment's dye
 //	  colour carries up to three placements as the rank of their set among all sets of
 //	  (cell × designs + design) states, after all smaller sets (0 = none) — packed as three
 //	  base-255 digits, each byte one more than its digit, so no byte is ever 0. Everything else
@@ -37,6 +38,22 @@ const float OVVAR_CELL = 4.0 * OVVAR_D;   // the default cell; a cell's own size
 const float OVVAR_SIDE_ROW = 20.0;
 // Spot.TOP_FACE: what a placement's kind texel carries in B when its cell is on the box's top face.
 const float OVVAR_TOP_FACE = 4.0;
+// The preview texture's four tables (GeneratedAssets: CELL_TABLE_X and the three beside it), each
+// OVVAR_TABLE_COLUMNS texel columns wide and 16 rows tall, read at (base + floor(i/16), mod(i,16)):
+// the cell table, the cells' own sizes, the design table, the arts' sizes.
+const float OVVAR_TABLE_X = 40.0 * OVVAR_D;
+const float OVVAR_TABLE_COLUMNS = 3.0 * OVVAR_D;
+// A design's row in the two design tables is design + fit * OVVAR_FIT_SLOTS: a patch may ship its
+// art at several sizes and which of them a cell shows is the cell's to decide (Patches.Fit), so the
+// tables hold a row per (design, fit) and this is the fit of the cell being drawn. The numbers are
+// Patches.Fit's own ordinals, which a game test holds these to:
+//   OVER (0)     the artist's own size, hanging over the cell if it is bigger - every ordinary cell,
+//   CLIPPED (1)  a cell the art is cut to, which is a box's top face (the shoulders),
+//   FILLED (2)   a cell as big as art may get (the big back cell), meant to be filled.
+const float OVVAR_FIT_SLOTS = 32.0;
+const float OVVAR_FIT_OVER = 0.0;
+const float OVVAR_FIT_CLIPPED = 1.0;
+const float OVVAR_FIT_FILLED = 2.0;
 const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
 const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
 
@@ -374,10 +391,8 @@ vec2 ovvar_uv(vec2 uv) {
 	for (int i = 0; i < 3; i++) {
 		if (i >= count) break;
 		float cell = floor(s[i] / designs), design = s[i] - cell * designs;
-		vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));				   // u, v, side (texels)
-		vec4 cz = ovvar_read(40.0 * OVVAR_D + 2.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));   // the cell's own width, height
-		vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));			   // library x, y, cells
-		vec4 sz = ovvar_read(44.0 * OVVAR_D + 2.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0)); // art width, height
+		vec4 ce = ovvar_read(OVVAR_TABLE_X + floor(cell / 16.0), mod(cell, 16.0));					  // u, v, side (texels)
+		vec4 cz = ovvar_read(OVVAR_TABLE_X + OVVAR_TABLE_COLUMNS + floor(cell / 16.0), mod(cell, 16.0));   // the cell's own width, height
 		float side = ce.b;
 		float column = 0.0;   // which cell of the art
 		bool flip = false;
@@ -401,6 +416,15 @@ vec2 ovvar_uv(vec2 uv) {
 		// cell on the side rows and nowhere else.
 		bool onTop = ce.g < OVVAR_SIDE_ROW * OVVAR_D;
 		if (onTop == sides) continue;
+		// Which of the design's arts this cell shows (Patches.Fit, above): the art is clipped to a top
+		// face, so a cell-sized one goes there whole; a cell bigger than a cell -- the big back one,
+		// never the seat, whose two cells wear one patch drawn to their own size -- is filled; anything
+		// else takes the artist's own size and lets it hang over.
+		float fit = onTop ? OVVAR_FIT_CLIPPED
+				: (side < 2.5 && (cw > OVVAR_CELL || ch > OVVAR_CELL) ? OVVAR_FIT_FILLED : OVVAR_FIT_OVER);
+		float slot = design + fit * OVVAR_FIT_SLOTS;
+		vec4 pe = ovvar_read(OVVAR_TABLE_X + 2.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // library x, y, cells
+		vec4 sz = ovvar_read(OVVAR_TABLE_X + 3.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // art width, height
 		float w = side > 2.5 ? cw * 0.5 : sz.r, h = sz.g;
 		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
 		float a = t.x;

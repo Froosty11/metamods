@@ -62,8 +62,9 @@ public final class PatchPieces {
 		return local < 4 ? 4 : local < 4 + n1 ? n1 : local < 8 + n1 ? 4 : n1;
 	}
 
-	public static List<Piece> of(Spot spot, Patches.Patch patch) {
-		int w = patch.width(), h = patch.height();
+	/** @param art the PNG the cell shows, which is not always the catalogue's own size ({@link Patches#artFor}) */
+	public static List<Piece> of(Spot spot, Patches.Art art) {
+		int w = art.width(), h = art.height();
 		// Flat: the whole art as one sprite on the cell's face (the seat's across both legs, on the seam).
 		if (!BEND_ROUND_CORNERS) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
 		// A cell on the box's top face (the shoulders) is never cut: the four edges of a top face have
@@ -77,7 +78,7 @@ public final class PatchPieces {
 		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
 		int n = faceTexels(spot);
 		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
-		int ax0 = columnInFace(spot) + patch.offsetX(spot), ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + patch.offsetY(spot);
+		int ax0 = columnInFace(spot) + art.offsetX(spot), ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + art.offsetY(spot);
 		// Column c's left edge and row r's top edge, in sixteenths from the face's centre.
 		int cL = 0, cR = w, rT = 0;
 		for (int c = 0; c < w; c++) {

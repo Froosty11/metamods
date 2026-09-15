@@ -169,16 +169,19 @@ public final class StandDisplays {
 			for (int i = 0; i < placements.size(); i++) {
 				Placement p = placements.get(i);
 				Patches.Patch patch = p.patch();
+				// The PNG this cell shows: a patch may ship art at several sizes, and a sprite has to be
+				// the one the cloth under it is wearing (Patches.artFor).
+				Patches.Art art = Patches.artFor(patch, p.spot());
 				boolean ghost = i == placements.size() - 1 && preview != null && p.equals(preview);
-				for (PatchPieces.Piece piece : PatchPieces.of(p.spot(), patch)) {
+				for (PatchPieces.Piece piece : PatchPieces.of(p.spot(), art)) {
 					ItemStack item = new ItemStack(ModContent.patchItem(patch));
-					item.set(ModComponents.FLAT, PatchItem.flatKey(piece, ghost));
+					item.set(ModComponents.FLAT, PatchItem.flatKey(art, piece, ghost));
 					ItemDisplayElement display = new ItemDisplayElement(item);
 					display.setItemDisplayContext(ItemDisplayContext.NONE);
 					display.setInterpolationDuration(0);
 					display.setTeleportDuration(1);
 					display.setViewRange(0.6f);
-					Element element = new Element(display, p, patch, piece, i);
+					Element element = new Element(display, p, art, piece, i);
 					// Laid on its cell before it joins the holder: the spawn packet then carries the
 					// right place. Added first, it would spawn at the stand's feet and glide to the
 					// cell over the teleport duration — every sprite, every time the aim moves.
@@ -201,7 +204,7 @@ public final class StandDisplays {
 	}
 
 	/** One sprite: a piece of a placement's art, and where in the sewing order it is (later ones lie on top). */
-	private record Element(ItemDisplayElement display, Placement placement, Patches.Patch patch, PatchPieces.Piece piece, int order) {}
+	private record Element(ItemDisplayElement display, Placement placement, Patches.Art art, PatchPieces.Piece piece, int order) {}
 
 	/**
 	 * Lay a piece on its plane. The whole art is centred on the cell, so every piece's sprite is
@@ -228,7 +231,7 @@ public final class StandDisplays {
 		}
 		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
 		float scale = (float) a;   // the sprite is 16 pixels to a block: one sprite pixel = a sixteenths at scale a
-		int w = element.patch.width(), h = element.patch.height(), n = PatchPieces.faceTexels(spot);
+		int w = element.art.width(), h = element.art.height(), n = PatchPieces.faceTexels(spot);
 		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
 		// The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
 		// Measured down the face the cell is on: the box's side rows, or — for a shoulder — its top

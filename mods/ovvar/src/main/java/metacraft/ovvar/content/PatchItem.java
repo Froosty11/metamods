@@ -32,13 +32,17 @@ public final class PatchItem extends Item implements PolymerItem {
 	 * The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display
 	 * entities ({@link ModComponents#FLAT}), plain or ghosted (the preview of a patch not sewn yet).
 	 */
-	public static String flatModel(String itemName, PatchPieces.Piece piece, boolean ghost) {
-		return itemName + "_flat_" + flatKey(piece, ghost);
+	public static String flatModel(String itemName, Patches.Art art, PatchPieces.Piece piece, boolean ghost) {
+		return itemName + "_flat_" + flatKey(art, piece, ghost);
 	}
 
-	/** What {@link ModComponents#FLAT} carries for a piece. */
-	public static String flatKey(PatchPieces.Piece piece, boolean ghost) {
-		return (ghost ? "ghost_" : "") + piece.key();
+	/**
+	 * What {@link ModComponents#FLAT} carries for a piece: which of the patch's PNGs it is cut from
+	 * ({@link Patches#artFor} — a shoulder shows a different one than a chest cell) and the piece's
+	 * own corners within it.
+	 */
+	public static String flatKey(Patches.Art art, PatchPieces.Piece piece, boolean ghost) {
+		return (ghost ? "ghost_" : "") + (art.byDefault() ? "" : art.width() + "x" + art.height() + "_") + piece.key();
 	}
 
 	/** In a player's inventory on a server that banks patches (a minigame server): into their stash, at once. */

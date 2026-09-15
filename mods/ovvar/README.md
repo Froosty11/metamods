@@ -51,7 +51,9 @@ perimeter, so there is no slack to take up), the rows the cell is measured down 
 cell — that **art bigger than the cell is clipped to the face, not bent round it.** A top face's
 four edges have no neighbouring face in the layout to continue onto (the strip is a loop round the
 box's *sides*, not over the top of it), so a 12×12 patch on a shoulder keeps its middle 8×8 and the
-rest is simply cut off, in the pack path, in the dye colour and on a stand alike. Bending it over
+rest is simply cut off, in the pack path, in the dye colour and on a stand alike — unless the patch
+ships art at a size that fits the face, which is what the per-size variants are for (ITK does; see
+"art at more than one size"). Bending it over
 the four edges, the way a side cell's overhang bends round the corners, is a later version's job.
 `Spot.face()` answers `TOP_FACE` (4) for them rather than one of the four side faces, which is what
 datagen puts in the placement texture's kind texel and what `ovvar.glsl` reads back. The left arm's
@@ -77,7 +79,10 @@ and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
-dress are 12×12 and hang over their neighbours (except on the big back cell); Ticket to my heart is
+dress are 12×12 and hang over their neighbours (except on the big back cell). ITK also ships the
+same face drawn at 8×8 and at 16×16 (`itk_8x8.png`, `itk_16x16.png`, both hand-drawn rather than
+scaled), so it lands whole on a shoulder, fills the big back cell and is its own inventory icon —
+see "art at more than one size" below. Ticket to my heart is
 10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
@@ -553,8 +558,40 @@ colour like any other (the shader bends it round the corners from its own cell's
 pack will — except on a shoulder, where it is clipped to the top face instead). Then `runDatagen`.
 The first 21
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library is the head rows of the texture (52 cells) and datagen
+through the pack; the preview library is the head rows of the texture (51 cells of 4×4 skin texels) and datagen
 fails loudly when that runs out.
+
+### Art at more than one size
+
+A patch may ship the same art drawn again at another size: `<id>_<w>x<h>.png` beside its own PNG,
+so ITK is `itk.png` (12×12, the size its catalogue line declares), `itk_8x8.png` and
+`itk_16x16.png`. Nothing is declared — the catalogue entry stays one line and datagen finds the
+variants by file name (even sizes up to 16×16; a seat patch's variants are 16 px wide, its own
+width). A file that begins with a patch's id and an underscore but is not a size this build can ask
+for fails datagen, so a misspelt name is not silently never drawn.
+
+Which of them a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
+fits what the cell asks for, and the catalogue's own art when none of them does — which is exactly
+what a patch with a single file gets everywhere. What a cell asks for is `Patches.Fit`:
+
+| fit | the cells | what it shows |
+| --- | --- | --- |
+| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as its 8×8 instead of losing its edges |
+| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — ITK fills the back with its 16×16 |
+| `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch |
+
+The item icon takes the 16×16 one if there is one (drawn 1:1 instead of a 12×12 scaled up), and
+everything that draws a patch goes through the same call: the pack's placement textures, the
+instant channel's library, the paper doll and its glyphs, and a stand's sprites. The one thing that
+does not is the **sewing game**, which is played before the cell is settled and so shows the
+catalogue's own art whatever the cell will pick.
+
+The instant path cannot ask the question — the dye colour carries a cell and a design, not a
+choice — so the preview texture's design tables hold a row per (design, fit), the library holds
+every art a design can be drawn as, and the shader reads the row for the fit of the cell it is
+drawing (`OVVAR_FIT_*`, the same three-line rule as `Fit.of`). That is what widened the tables to
+three skin texels each; `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs` reads them back through
+the shader's own constants.
 
 ## How the look works
 
