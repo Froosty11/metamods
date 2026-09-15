@@ -667,17 +667,21 @@ of the marker: R = 2·inflate).
 
 ## Asymmetric sleeves and legs
 
-**Seeing what the shader makes of a top face.** `OVVAR_DEBUG_TOP_FACES` in `ovvar.glsl` (off, and
-`theTopFaceDebugPaintShipsOff` holds it off) paints a limb box's top face instead of drawing it: the
-base garment layer red where the mirror test calls the fragment mirrored and blue where it does not,
-the preview layer magenta where no cell of the design matched it. With a patch on both shoulders and
-a design the dye colour still carries, the two arms should come out one solid red and one solid blue
-with the art over each — one magenta arm means the mirror test told the arms apart and the fragment
-then missed its cell's window; both arms the same colour means the mirror test cannot tell a top
-face's arms apart at all (and then no setting of either sense can put one cell on each arm); a
-speckled or half-and-half arm means the handedness test degenerates there. It paints from three
-opaque texels datagen puts in every texture of ours (`DEBUG_X`, the marker row's right-hand end), so
-a program of ours still only ever returns a texture coordinate.
+**Seeing what the shader makes of a top face.** Three dev switches in `ovvar.glsl`, all off and
+`theTopFaceDebugPaintShipsOff` holding them off, paint a limb box's top face instead of drawing it:
+
+| switch | layer | what it paints |
+| --- | --- | --- |
+| `OVVAR_DEBUG_TOP_FACE_SIDES` | base garment | **red** where the mirror test calls the fragment mirrored, **blue** where it does not |
+| `OVVAR_DEBUG_TOP_FACE_MISS` | preview | **magenta** where no cell of the instant design matched the fragment |
+| `OVVAR_DEBUG_TOP_FACE_HIT` | preview | **green** where a cell *did* match — instead of the art, so the colour says the shader got all the way to the library |
+
+(`OVVAR_DEBUG_TOP_FACES` turns on all three.) They are separate because a run with all three on
+cannot say which of the paintings changed the picture: `..._HIT` alone leaves the frame otherwise
+normal, so two green shoulders mean the shader is drawing both and anything still missing is later
+than this shader, while one green shoulder means the preview path really does reach a cell on one
+arm only. They paint from four opaque texels datagen puts in every texture of ours (`DEBUG_X`, the
+marker row's right-hand end), so a program of ours still only ever returns a texture coordinate.
 
 The armour model draws the left arm and leg as mirror images of the right ones from the same
 texture strips, so vanilla can't show different art per side. The same shader detects mirrored

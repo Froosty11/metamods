@@ -581,15 +581,15 @@ public final class GeneratedAssets implements DataProvider {
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
 	private static final int LAYER_X = W - 3;
 	/**
-	 * Three, four and five left of the marker: the palette {@code OVVAR_DEBUG_TOP_FACES} paints a
-	 * box's top faces from — mirrored, unmirrored, no cell matched. A dev switch in the shader needs
-	 * somewhere to get a colour, and a coordinate is all a program of ours can return; every texture
-	 * of ours carries them. They are in the layout's unused top-right corner (skin x 56–64), which no
-	 * box and no mirror strip touches, and inside the library cell the preview texture reserves for
-	 * the marker row.
+	 * Three to six left of the marker: the palette the {@code OVVAR_DEBUG_TOP_FACE_*} switches paint
+	 * a box's top faces from — mirrored, unmirrored, no cell matched, a cell matched. A dev switch in
+	 * the shader needs somewhere to get a colour, and a coordinate is all a program of ours can
+	 * return; every texture of ours carries them. They are in the layout's unused top-right corner
+	 * (skin x 56–64), which no box and no mirror strip touches, and inside the library cell the
+	 * preview texture reserves for the marker row.
 	 */
-	private static final int DEBUG_X = W - 6;
-	private static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF};
+	private static final int DEBUG_X = W - 7;
+	private static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
 	private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**

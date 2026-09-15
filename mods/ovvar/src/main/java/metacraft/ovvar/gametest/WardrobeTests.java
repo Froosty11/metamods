@@ -74,6 +74,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * configured store must never be the thing listening when that happens.
  */
 public final class WardrobeTests {
+	/**
+	 * How many texels at the right-hand end of a garment texture's marker row are datagen's own data
+	 * rather than art: the marker, the kind texel, the layer texel and the four-colour debug palette.
+	 * A test walking a whole texture for stray pixels skips them by position, never by colour.
+	 */
+	private static final int MARKER_ROW_DATA = 7;
+
 	/** Held by whichever sequence test is using the server's wardrobe store right now. */
 	private static final AtomicBoolean BUSY = new AtomicBoolean();
 
@@ -1768,6 +1775,60 @@ public final class WardrobeTests {
 	}
 
 	/**
+	 * A top-face placement is written on the cell's own rows and on no other — in particular not on
+	 * the <b>marker row</b> just above them, which is where the playtest thought it had found the
+	 * shoulders' art. It had not: that reading was a bounding box taken over the whole texture, which
+	 * unions the art with the data texels datagen writes at the right-hand end of the marker row
+	 * (hence its x reaching 127 as well as its y reaching 31). This says it per row instead, which a
+	 * bounding box cannot fudge: for a cell-sized patch the art is exactly the cell's 8 rows and 8
+	 * columns, row 31 is clear of everything but those data texels, and the cell's last row is drawn.
+	 */
+	@GameTest
+	public void aTopFacePlacementSitsOnTheCellsOwnRows(GameTestHelper helper) {
+		int D = Spot.DETAIL;
+		Patches.Patch cellSized = Patches.all().stream().filter(p -> !p.seat() && p.width() == Spot.PX && p.height() == Spot.PX)
+				.findFirst().orElse(null);
+		if (cellSized == null) {
+			helper.fail("no cell-sized patch in the catalogue, so nothing here can say where a cell's own rows are");
+			return;
+		}
+		int tops = 0;
+		for (Spot spot : Spot.values()) {
+			if (!spot.top() || !cellSized.fits(spot)) continue;
+			tops++;
+			Tex tex = generated(spot.piece, "patch/" + spot.id() + "/" + cellSized.id());
+			int first = spot.v * D, last = first + spot.pxHeight() - 1;
+			if (first != 32 || last != 39) {
+				helper.fail(spot.id() + "'s rows are " + first + ".." + last + ", and the playtest's numbers were about 32..39");
+			}
+			for (int y = 0; y < tex.height; y++) {
+				int from = -1, to = -1;
+				for (int x = 0; x < tex.width; x++) {
+					if (y == tex.height / 2 - 1 && x >= tex.width - MARKER_ROW_DATA) continue;   // marker, kind, layer, debug palette
+					if (Tex.a(tex.get(x, y)) == 0) continue;
+					if (from < 0) from = x;
+					to = x;
+				}
+				boolean onTheCell = y >= first && y <= last;
+				if (!onTheCell && from >= 0) {
+					helper.fail(cellSized.id() + " on " + spot.id() + " draws on row " + y + " (x " + from + ".." + to
+							+ "), which is not one of the cell's own " + first + ".." + last
+							+ (y == tex.height / 2 - 1 ? " — the marker row" : ""));
+				}
+				if (onTheCell && from < 0) {
+					helper.fail(cellSized.id() + " on " + spot.id() + " leaves row " + y + " of the cell empty");
+				}
+				if (onTheCell && (from < spot.u * D || to >= spot.u * D + spot.px())) {
+					helper.fail(cellSized.id() + " on " + spot.id() + " draws row " + y + " from x " + from + " to " + to
+							+ ", outside the cell's columns " + spot.u * D + ".." + (spot.u * D + spot.px() - 1));
+				}
+			}
+		}
+		if (tops != 2) helper.fail("wanted the two shoulders to check, found " + tops + " top-face cell(s) the patch fits");
+		helper.succeed();
+	}
+
+	/**
 	 * The dev switch that paints the boxes' top faces ({@code OVVAR_DEBUG_TOP_FACES}) ships OFF, and
 	 * the palette it paints from is in every texture of ours.
 	 *
@@ -1782,19 +1843,22 @@ public final class WardrobeTests {
 	@GameTest
 	public void theTopFaceDebugPaintShipsOff(GameTestHelper helper) {
 		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
-		if (!glsl.contains("const bool OVVAR_DEBUG_TOP_FACES = false;")) {
-			helper.fail("OVVAR_DEBUG_TOP_FACES is not declared false in ovvar.glsl — every shoulder in the world would be painted");
+		for (String flag : List.of("OVVAR_DEBUG_TOP_FACES", "OVVAR_DEBUG_TOP_FACE_SIDES",
+				"OVVAR_DEBUG_TOP_FACE_MISS", "OVVAR_DEBUG_TOP_FACE_HIT")) {
+			if (!glsl.contains("const bool " + flag + " = false;")) {
+				helper.fail(flag + " is not declared false in ovvar.glsl — every shoulder in the world would be painted");
+			}
 		}
-		// The palette the switch paints from: three opaque texels at the right-hand end of the marker
+		// The palette the switches paint from: four opaque texels at the right-hand end of the marker
 		// row, in every kind of texture of ours (a base garment, a placement, a preview).
-		int[] wanted = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF};
+		int[] wanted = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
 		List<Tex> textures = List.of(
 				generated(Piece.TOP, Chapter.values()[0].id + "/" + Piece.TOP.id),
 				generated(Piece.TOP, "patch/" + Spot.SHOULDER_R.id() + "/itk"),
 				generated(Piece.TOP, "patch/preview_" + Piece.TOP.id));
 		for (Tex tex : textures) {
 			for (int i = 0; i < wanted.length; i++) {
-				int got = tex.get(tex.width - 6 + i, tex.height / 2 - 1);
+				int got = tex.get(tex.width - MARKER_ROW_DATA + i, tex.height / 2 - 1);
 				if (got != wanted[i]) {
 					helper.fail("a garment texture's debug palette texel " + i + " is " + Integer.toHexString(got)
 							+ ", wanted " + Integer.toHexString(wanted[i]));
@@ -1907,7 +1971,7 @@ public final class WardrobeTests {
 		List<Integer> out = new ArrayList<>();
 		for (int y = 0; y < tex.height; y++) {
 			for (int x = 0; x < tex.width; x++) {
-				if (y == tex.height / 2 - 1 && x >= tex.width - 6) continue;   // the marker row's data texels
+				if (y == tex.height / 2 - 1 && x >= tex.width - MARKER_ROW_DATA) continue;   // the marker row's data texels
 				int p = tex.get(x, y);
 				if (Tex.a(p) == 255 && !out.contains(p)) out.add(p);
 			}
@@ -2079,7 +2143,7 @@ public final class WardrobeTests {
 				for (int ty = 0; ty < H; ty++) {
 					for (int tx = 0; tx < W; tx++) {
 						if (tx >= x0 && tx < x1 && ty >= y0 && ty < y1) continue;
-						if (ty == H / 2 - 1 && tx >= W - 6) continue;   // the marker row's data texels (marker, kind, layer, debug palette)
+						if (ty == H / 2 - 1 && tx >= W - MARKER_ROW_DATA) continue;   // the marker row's data texels (marker, kind, layer, debug palette)
 						if (Tex.a(drawn.get(tx, ty)) != 0) {
 							helper.fail(patch.id() + " on " + spot.id() + " draws at (" + tx + ", " + ty + "), off the arm's top face");
 						}
