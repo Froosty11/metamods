@@ -23,6 +23,7 @@ import metacraft.ovvar.store.WardrobeBackend;
 import metacraft.ovvar.store.Wardrobes;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.EquipmentJson;
 import metacraft.ovvar.pack.Trims;
 import metacraft.ovvar.pack.WardrobeArt;
 import metacraft.ovvar.pack.WardrobeFont;
@@ -1764,6 +1765,109 @@ public final class WardrobeTests {
 		}
 		}
 		helper.succeed();
+	}
+
+	/**
+	 * <b>A patch texel is drawn at the colour it was painted, exactly as a texel of the garment's own
+	 * cloth is.</b> Nothing on the way from the art to the screen scales it, and this pins every step
+	 * of that path that a server-side test can see:
+	 *
+	 * <ul>
+	 *   <li>datagen copies the art into the placement texture and into the preview library without
+	 *	   touching a channel — every colour the art uses is in both, byte for byte;
+	 *   <li>the only dyeable layer of an ovve is the preview layer, whose dye is patch <em>data</em>,
+	 *	   not paint — so nothing else can be tinted by anything;
+	 *   <li>the vertex shader lights a patch layer of ours with white instead of that data colour
+	 *	   ({@code mix(Color, vec4(1.0), ovvar_patch_layer())}), which is what keeps the dye off the
+	 *	   art; and
+	 *   <li>the fragment shader modulates the sampled colour exactly once, with vanilla's own
+	 *	   {@code faceVertexColor * ColorModulator} and nothing else — so a patch texel and a cloth
+	 *	   texel on the same face of the same box come out of the same arithmetic.
+	 * </ul>
+	 *
+	 * <p>What it cannot see is the screen. If a white patch pixel and a white pixel of the ovve's own
+	 * cloth <em>on the same face, in the same frame</em> ever differ, none of the above is where it
+	 * comes from and this test will not have caught it. (Comparing against another face is not that
+	 * test: vanilla's entity lighting gives a face a diffuse factor from its normal, so a front face
+	 * and a face turned any other way differ by a good tenth whatever is drawn on them.)
+	 */
+	@GameTest
+	public void patchTexelsAreDrawnAtTheColourTheyWerePainted(GameTestHelper helper) {
+		// 1. Datagen keeps every colour of the art, in the placement textures and in the library.
+		int checked = 0;
+		for (Patches.Patch patch : Patches.all()) {
+			Tex art = patchArt(patch);
+			List<Integer> want = art.opaqueColours();
+			if (want.isEmpty()) {
+				helper.fail(patch.id() + "'s art has no opaque colour to check");
+				continue;
+			}
+			for (Spot spot : Spot.values()) {
+				if (!patch.fits(spot) || spot == Spot.SEAT) continue;   // the seat is cut in half per leg
+				List<Integer> got = generated(spot.piece, "patch/" + spot.id() + "/" + patch.id()).opaqueColours();
+				for (int colour : want) {
+					// A colour can be clipped off a cell (a shoulder keeps the art's middle), so only
+					// the ones that survive are required — but any that does must be its own colour.
+					if (!got.contains(colour)) continue;
+					checked++;
+				}
+				for (int colour : got) {
+					if (!want.contains(colour) && !dataTexel(colour)) {
+						helper.fail(patch.id() + " on " + spot.id() + ": the texture has " + Integer.toHexString(colour)
+								+ ", which the art has not — something on the way scaled a channel");
+					}
+				}
+			}
+			for (Piece piece : Piece.values()) {
+				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // not in the library at all
+				List<Integer> library = generated(piece, "patch/preview_" + piece.id).opaqueColours();
+				for (int colour : want) {
+					if (!library.contains(colour)) {
+						helper.fail(patch.id() + ": the " + piece + " preview library has not got its colour "
+								+ Integer.toHexString(colour) + " — the art was altered on the way in");
+					}
+				}
+			}
+		}
+		if (checked == 0) helper.fail("no patch colour was found in any placement texture at all");
+
+		// 2. The preview layer is the only dyeable one: its colour is data, so nothing else may be tinted.
+		String json = EquipmentJson.json(Chapter.values()[0], Piece.TOP, false,
+				List.of(new Placement(Spot.FRONT_TOP_LEFT, Patches.get("maid"))));
+		int dyeable = json.split("dyeable", -1).length - 1;
+		if (dyeable != 1) helper.fail("an ovve half declares " + dyeable + " dyeable layer(s), wanted exactly one (the preview): " + json);
+		if (!json.contains(EquipmentJson.previewTexture(Piece.TOP))) helper.fail("the preview layer is not in the asset: " + json);
+
+		// 3. The shaders: a patch layer is lit white, and the sampled colour is modulated once.
+		String vsh = resource("/assets/minecraft/shaders/core/entity.vsh");
+		if (!vsh.contains("mix(Color, vec4(1.0), ovvar_patch_layer())")) {
+			helper.fail("entity.vsh no longer lights a patch layer as white, so the dye colour would tint the art");
+		}
+		String fsh = resource("/assets/minecraft/shaders/core/entity.fsh");
+		List<String> modulations = new ArrayList<>();
+		for (String line : fsh.split("\n")) {
+			String code = line.contains("//") ? line.substring(0, line.indexOf("//")) : line;
+			if (code.contains("color *=") || code.contains("color.rgb *=")) modulations.add(code.trim());
+		}
+		// Vanilla's own two, which every layer of every entity gets alike: the lit vertex colour (white
+		// on a patch layer of ours) and the lightmap. A third would be ours, and would be a patch texel
+		// scaled away from its own colour.
+		List<String> vanillas = List.of("color *= faceVertexColor * ColorModulator;", "color *= lightMapColor;");
+		if (!modulations.stream().allMatch(vanillas::contains) || modulations.size() != vanillas.size()) {
+			helper.fail("entity.fsh modulates the sampled colour with " + modulations + ", wanted vanilla's " + vanillas
+					+ " — anything else would scale a patch texel away from its own colour");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * One of the opaque data texels datagen writes beside the marker — the kind texel (R = 1 or 2,
+	 * G and B the side and the face) and the layer texel (R = 2 x the model inflation). Their
+	 * channels are all tiny, so this lets a patch off with a colour that dark too; no art in the
+	 * catalogue is within four levels of black, and the marker itself is not opaque.
+	 */
+	private static boolean dataTexel(int argb) {
+		return Tex.r(argb) <= 2 && Tex.g(argb) <= 4 && Tex.b(argb) <= 4;
 	}
 
 	/**
