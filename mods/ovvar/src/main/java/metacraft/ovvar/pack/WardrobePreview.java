@@ -553,7 +553,9 @@ public final class WardrobePreview {
 	public static Component glyphs(Chapter chapter, Angle angle, List<Placement> placements) {
 		List<Glyph> drawn = new ArrayList<>();
 		drawn.add(bareGlyph(chapter, angle));
-		for (Placement placement : placements) {
+		// In the stack's own order (Spot.layer), the same as the garment's layers: cells overlap, and
+		// the glyphs are drawn one over another in the order the title holds them.
+		for (Placement placement : Spot.stacked(placements)) {
 			Glyph glyph = patchGlyph(placement, angle);
 			if (glyph != null) drawn.add(glyph);
 		}

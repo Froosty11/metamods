@@ -88,11 +88,15 @@ public final class EquipmentJson {
 	 * "where a patch goes on the cloth"; {@link #json} turns it into the equipment definition a
 	 * client draws and {@link WardrobePreview} composites the same list into a picture server-side,
 	 * so the two can never disagree about a placement's texture or the order they stack in.
+	 *
+	 * <p>The order is {@link Spot#layer}'s — cells overlap (the big back cell under the two back-top
+	 * ones), and a client draws these layers in the order they are listed, so a patch meant to be on
+	 * top has to be later in the list whatever order the placements arrived in.
 	 */
 	public static List<String> layerTextures(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {
 		List<String> out = new ArrayList<>();
 		out.add(baseTexture(chapter, piece, nercabbad));
-		for (Placement p : placements) {
+		for (Placement p : Spot.stacked(placements)) {
 			if (p.piece() != piece) throw new IllegalArgumentException(p + " is not on the " + piece);
 			for (String t : textures(p)) out.add(Ovvar.MOD_ID + ":" + t);
 		}

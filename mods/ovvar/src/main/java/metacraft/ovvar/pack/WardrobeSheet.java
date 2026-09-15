@@ -58,7 +58,11 @@ public final class WardrobeSheet {
 				new Placement(Spot.SLEEVE_OUT_MID_R, itk),
 				new Placement(Spot.SHOULDER_R, nyckeln),
 				new Placement(Spot.SHOULDER_L, itk),
+				// The back's three cells at once, which is what overlapping patches look like: the big
+				// one under, the two top cells over it (Spot.layer).
+				new Placement(Spot.BACK_BIG, itk),
 				new Placement(Spot.BACK_TOP_LEFT, nyckeln),
+				new Placement(Spot.BACK_TOP_RIGHT, nyckeln),
 				new Placement(Spot.LEG_FRONT_TOP_R, itk),
 				new Placement(Spot.LEG_OUT_MID_L, nyckeln),
 				new Placement(Spot.SEAT, rivals));
@@ -187,7 +191,8 @@ public final class WardrobeSheet {
 	private static List<WardrobeFont.Glyph> composed(Chapter chapter, Angle angle, List<Placement> sewn) {
 		List<WardrobeFont.Glyph> out = new ArrayList<>();
 		out.add(WardrobePreview.bareGlyph(chapter, angle));
-		for (Placement placement : sewn) {
+		// In the stack's own order, as the title composes them (WardrobePreview.glyphs).
+		for (Placement placement : Spot.stacked(sewn)) {
 			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement, angle);
 			if (glyph != null) out.add(glyph);
 		}

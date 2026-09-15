@@ -2304,15 +2304,22 @@ public final class WardrobeTests {
 	 * they already know. The figure turns in place, so the back's own cells land on the chest's slots.
 	 */
 	/**
-	 * The big back cell and the two back-top cells cover each other, so a design wears either the big
-	 * one or the top two — the way the seat and the two leg-back cells already did. {@link
-	 * Spot#overlapping} works that out from the cells' own rectangles, so the test says both what it
-	 * gives for those five and that it gives nothing for any other cell, and then that sewing
-	 * behaves: the big one cannot go on over the top two, replaces them when it is applied over
-	 * them, and shuts them out once it is on.
+	 * <b>The back wears all three of its cells at once.</b> Overlapping patches are the point of an
+	 * ovve, so the big back cell and the two back-top cells that lie inside it are no longer
+	 * exclusive: sew all three and they are drawn in {@link Spot#layer} order, the big one under the
+	 * two small ones. Only the <b>seat</b> still shuts cells out, because it is not one patch on one
+	 * cell — it is one patch cut in half across two cells of two different boxes, drawn as a single
+	 * sprite on the seam between them, so "one of them on top" has no answer there.
+	 *
+	 * <p>The order is one number, {@code Spot.layer} (how many overlapping cells are bigger than
+	 * this one), and every path that draws a patch takes it from there: the pack's layer list
+	 * ({@code EquipmentJson.layerTextures}, which is what the paper doll composites as well), the
+	 * sprites on a stand, and — since the ranked set in the dye colour has no order of its own — the
+	 * cell table's own B, which the shader reads to pick the highest layer a fragment falls in.
 	 */
 	@GameTest
-	public void theBigBackCellAndTheBackTopCellsShutEachOtherOut(GameTestHelper helper) {
+	public void theBackWearsTheBigCellAndTheTwoTopCellsAtOnce(GameTestHelper helper) {
+		// What overlaps what, off the cells' own rectangles.
 		Object[][] pairs = {
 				{Spot.BACK_BIG, List.of(Spot.BACK_TOP_LEFT, Spot.BACK_TOP_RIGHT)},
 				{Spot.BACK_TOP_LEFT, List.of(Spot.BACK_BIG)},
@@ -2326,40 +2333,77 @@ public final class WardrobeTests {
 			Spot spot = (Spot) pair[0];
 			@SuppressWarnings("unchecked") List<Spot> wanted = (List<Spot>) pair[1];
 			expected.add(spot);
-			List<Spot> got = new ArrayList<>(spot.overlapping());
-			if (!got.containsAll(wanted) || got.size() != wanted.size()) {
-				helper.fail(spot.id() + " overlaps " + got + ", wanted " + wanted);
-			}
+			List<Spot> got = new ArrayList<>(spot.overlaps());
+			if (!got.containsAll(wanted) || got.size() != wanted.size()) helper.fail(spot.id() + " overlaps " + got + ", wanted " + wanted);
 		}
 		for (Spot spot : Spot.values()) {
-			if (!expected.contains(spot) && !spot.overlapping().isEmpty()) {
-				helper.fail(spot.id() + " overlaps " + spot.overlapping() + ", and should overlap nothing");
+			if (!expected.contains(spot) && !spot.overlaps().isEmpty()) {
+				helper.fail(spot.id() + " overlaps " + spot.overlaps() + ", and should overlap nothing");
+			}
+			// And of those, only the seat's pairs shut each other out.
+			List<Spot> exclusive = spot.overlapping();
+			for (Spot other : exclusive) {
+				if (other.side != Spot.Side.SEAT && spot.side != Spot.Side.SEAT) {
+					helper.fail(spot.id() + " shuts " + other.id() + " out, and nothing but the seat does that any more");
+				}
+			}
+			if (spot.side == Spot.Side.SEAT || Spot.SEAT_CELLS.contains(spot)) {
+				if (exclusive.isEmpty()) helper.fail(spot.id() + " no longer shuts the seat's other cells out");
+			} else if (!exclusive.isEmpty()) {
+				helper.fail(spot.id() + " shuts " + exclusive + " out; only the seat's cells do");
 			}
 		}
-		// And what that means at the stand: the two are never both on.
-		Patches.Patch itk = Patches.get("itk");
+		// The stack: the big one under the two that lie inside it.
+		if (Spot.BACK_BIG.layer() != 0) helper.fail("the big back cell is on layer " + Spot.BACK_BIG.layer() + ", wanted the bottom");
+		for (Spot small : List.of(Spot.BACK_TOP_LEFT, Spot.BACK_TOP_RIGHT)) {
+			if (small.layer() <= Spot.BACK_BIG.layer()) helper.fail(small.id() + " is not drawn over the big back cell");
+		}
+		// Sewing all three, in the order that used to be refused.
+		Patches.Patch itk = Patches.get("itk"), nyckeln = Patches.get("nyckeln");
 		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
-		if (!Looks.sew(ovve, new Placement(Spot.BACK_TOP_LEFT, itk))) helper.fail("could not sew on the back's top left");
-		if (!Looks.sew(ovve, new Placement(Spot.BACK_TOP_RIGHT, itk))) helper.fail("could not sew on the back's top right");
-		Placement big = new Placement(Spot.BACK_BIG, itk);
-		if (Looks.canSew(ovve, big)) helper.fail("the big back cell can be sewn while the two back-top cells are patched");
-		Looks.setSewn(ovve, SpotPlacements.apply(Looks.sewn(ovve), big));   // applied over them, as unpicking-and-sewing does
-		if (Looks.at(ovve, Spot.BACK_TOP_LEFT) != null || Looks.at(ovve, Spot.BACK_TOP_RIGHT) != null) {
-			helper.fail("the big back cell went on but the two it covers are still sewn");
+		List<Placement> three = List.of(new Placement(Spot.BACK_BIG, itk),
+				new Placement(Spot.BACK_TOP_LEFT, nyckeln), new Placement(Spot.BACK_TOP_RIGHT, nyckeln));
+		for (Placement placement : three) {
+			if (!Looks.canSew(ovve, placement)) helper.fail("cannot sew " + placement.key() + " with " + Looks.sewn(ovve).map(SpotPlacements::asPlacementList));
+			if (!Looks.sew(ovve, placement)) helper.fail("sewing " + placement.key() + " was refused");
 		}
-		if (Looks.at(ovve, Spot.BACK_BIG) == null) helper.fail("the big back cell is not sewn after applying it");
-		if (Looks.canSew(ovve, new Placement(Spot.BACK_TOP_LEFT, itk))) helper.fail("a back-top cell can be sewn under the big one");
-		// And a design can still fill everything at once — what {@code /ovvar patches all} builds —
-		// so long as it leaves out the cells already covered.
-		List<Placement> all = new ArrayList<>();
-		for (Spot every : Spot.values()) {
-			if (every == Spot.SEAT || Spot.SEAT_CELLS.contains(every)) continue;
-			if (all.stream().anyMatch(o -> every.overlapping().contains(o.spot()))) continue;
-			all.add(new Placement(every, itk));
+		for (Placement placement : three) {
+			if (Looks.at(ovve, placement.spot()) == null) helper.fail(placement.spot().id() + " came off when the others went on");
 		}
-		all.add(new Placement(Spot.SEAT, Patches.get("rivals")));
-		if (SpotPlacements.fromList(all).result().isEmpty()) {
-			helper.fail("a design filling every cell that is not covered by another was rejected: " + all);
+		// The other way round too: the big one sewn last does not take the two with it.
+		ItemStack second = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		for (Placement placement : three.reversed()) {
+			if (!Looks.sew(second, placement)) helper.fail("sewing " + placement.key() + " last-first was refused");
+		}
+		if (SpotPlacements.asPlacementList(Looks.sewn(second)).size() != 3) {
+			helper.fail("the back holds " + SpotPlacements.asPlacementList(Looks.sewn(second)) + ", wanted all three");
+		}
+		// And the seat still does shut its cells out.
+		ItemStack legs = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		if (!Looks.sew(legs, new Placement(Spot.LEG_BACK_TOP_R, itk))) helper.fail("could not sew the right leg's back cell");
+		if (Looks.canSew(legs, new Placement(Spot.SEAT, Patches.get("rivals")))) helper.fail("a seat patch can go on over a leg-back cell");
+		// The pack's layers, in the stack's order whatever order the placements arrive in.
+		for (List<Placement> order : List.of(three, three.reversed())) {
+			List<String> layers = EquipmentJson.layerTextures(Chapter.values()[0], Piece.TOP, false, order);
+			int big = layers.indexOf("ovvar:patch/back_big/" + itk.id());
+			int left = layers.indexOf("ovvar:patch/back_top_left/" + nyckeln.id());
+			int right = layers.indexOf("ovvar:patch/back_top_right/" + nyckeln.id());
+			if (big < 1 || left < 0 || right < 0) helper.fail("the three back placements are not all in " + layers);
+			else if (big > left || big > right) helper.fail("the big back cell is stacked over the cells inside it: " + layers);
+		}
+		// And the instant path's copy of the same number, read the way the shader reads it.
+		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
+		double tableX = shaderConst(helper, glsl, "OVVAR_TABLE_X"), columns = shaderConst(helper, glsl, "OVVAR_TABLE_COLUMNS");
+		for (Piece piece : Piece.values()) {
+			Tex preview = generated(piece, "patch/preview_" + piece.id);
+			List<Spot> cells = Spot.cells(piece);
+			for (int index = 0; index < cells.size(); index++) {
+				Spot spot = cells.get(index);
+				int texel = preview.get((int) tableX + (int) columns + index / 16, index % 16);
+				if (Tex.b(texel) != spot.layer()) {
+					helper.fail(spot.id() + " is on layer " + Tex.b(texel) + " in the " + piece + " cell table, and " + spot.layer() + " here");
+				}
+			}
 		}
 		helper.succeed();
 	}

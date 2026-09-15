@@ -136,7 +136,9 @@ public final class StandDisplays {
 	 */
 	private static List<Placement> shown(ArmorStand stand, ItemStack ovve, boolean topShown) {
 		List<Placement> out = new ArrayList<>();
-		for (Placement p : SpotPlacements.asPlacementList(Looks.sewn(ovve))) {
+		// In the stack's own order (Spot.layer): where two cells overlap, the sprite of the one on top
+		// is laid on last and so sits a hair further out (the lift below).
+		for (Placement p : Spot.stacked(SpotPlacements.asPlacementList(Looks.sewn(ovve)))) {
 			if (p.piece() == Piece.BOTTOM || topShown) out.add(p);
 		}
 		Placement preview = Looks.preview(ovve);

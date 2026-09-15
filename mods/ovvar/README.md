@@ -67,10 +67,24 @@ above. It is always the full two cells wide: half of it goes on each leg, and th
 narrower one to be. The
 **big back cell** (`BACK_BIG`) is the whole back face below the collar, 8×8 texels — 16×16 px,
 exactly `Patches.MAX_ART` — so it is the one cell on which the biggest patch in the catalogue lies
-whole, with nothing wrapped round onto the face next door. It covers the two `BACK_TOP` cells, so
-the three are mutually exclusive the way the seat and the two leg-back cells are (`overlapping()`,
-worked out from the cells' own rectangles): the back wears either the big one or the top two.
-Any plain patch goes on it, centred.
+whole, with nothing wrapped round onto the face next door. Any plain patch goes on it, centred.
+
+**Overlapping patches.** The big back cell covers the two `BACK_TOP` cells and all three may be
+sewn at once — a big piece on the back with smaller ones over it is how the back of a real ovve is
+built up. The stack is one number, `Spot.layer()`: how many overlapping cells are bigger than this
+one, so a patch is drawn over the cell it lies inside and the big cell is the background it was
+sewn to be. Every path reads it from there (`Spot.stacked`) — the pack's layer list
+(`EquipmentJson.layerTextures`, which the paper doll composites too), the sprites on a stand (the
+one on top is lifted a hair further off the cloth), and the instant channel, where the cell table
+carries the layer in its own B: the ranked set the dye colour holds has no order of its own, so the
+shader draws the highest layer of the cells a fragment falls in — and, since the dye colour is a
+single layer, falls back to the cell underneath where the top cell's art has painted nothing, which
+is what the pack path's separate layers do by themselves.
+
+The **seat** is the one thing that still shuts cells out (`overlapping()`, worked out from the
+cells' own rectangles): it is not one patch on one cell but one patch cut in half across two cells
+of two different boxes, drawn as a single sprite on the seam between them, so "one of them on top"
+has no answer all three paths could give. Sew the seat or the legs' back cells, not both.
 
 Cells come and go, and players' items and stored wardrobe rows name them by id, so
 `SpotPlacements.CODEC` drops a placement naming a cell or a patch this build has not got — with a

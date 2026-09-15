@@ -15,7 +15,8 @@
 //   2  the preview texture: every instant design's art in a library (head rows), a cell table at
 //	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 3·D columns
 //	  further right: the cell's own width and height, since a cell is not one size — the big back
-//	  cell is two cells each way and the seat two wide; a v above the side rows means the cell is
+//	  cell is two cells each way and the seat two wide; its B is Spot.layer, which of two
+//	  overlapping cells is drawn on top; a v above the side rows means the cell is
 //	  on the box's TOP face, the shoulders) and a design
 //	  table 3·D columns further right again (design + fit·OVVAR_FIT_SLOTS → library x, y, cells;
 //	  3·D columns further right: art width, height — a row per art the design can be drawn as,
@@ -388,6 +389,13 @@ vec2 ovvar_uv(vec2 uv) {
 	}
 	bool body;
 	float stripStart = ovvar_strip(t.x / OVVAR_D, body), stripWidth = (body ? 24.0 : 16.0) * OVVAR_D;
+	// Cells overlap -- the big back cell and the two back-top cells are meant to be worn all three
+	// at once -- and the set the dye colour carries is a ranked SET, with no order of its own. So a
+	// fragment may fall inside more than one of the design's cells, and the one drawn is the one
+	// highest in the stack: Spot.layer, the cell table's own B, which is a patch smaller than the
+	// cell it lies inside. The pack path stacks its layers in the same order, so the two agree.
+	vec2 drawn = OVVAR_BLANK;
+	float drawnLayer = -1.0;
 	for (int i = 0; i < 3; i++) {
 		if (i >= count) break;
 		float cell = floor(s[i] / designs), design = s[i] - cell * designs;
@@ -444,10 +452,20 @@ vec2 ovvar_uv(vec2 uv) {
 		}
 		if (local.x < 0.0 || local.x >= w || local.y < 0.0 || local.y >= h) continue;
 		if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
+		if (cz.b <= drawnLayer) continue;   // a cell higher in the stack has this fragment already
+		// The dye colour is ONE layer, so a fragment can show one texel however many cells it is
+		// inside: the top cell's, unless that cell's art has painted nothing there, in which case the
+		// cell under it shows through — which is what the pack path's layers do of their own accord.
+		vec2 at = pe.rg + vec2(column * w, 0.0) + local;
+		if (ovvar_read(floor(at.x), floor(at.y)).a < 0.5) continue;
+		drawnLayer = cz.b;
+		drawn = at / OVVAR_TEX;
+	}
+	if (drawnLayer >= 0.0) {
 		// Dev only: this fragment matched a cell and is about to be drawn from the library — say so
 		// in one colour, whatever the art turns out to look like.
 		if ((OVVAR_DEBUG_TOP_FACES || OVVAR_DEBUG_TOP_FACE_HIT) && limb && !sides) return OVVAR_DEBUG_CELL_HIT;
-		return (pe.rg + vec2(column * w, 0.0) + local) / OVVAR_TEX;
+		return drawn;
 	}
 	// Dev only: a limb box's top face that matched no cell of the design. A shoulder that is sewn
 	// and comes out magenta is one whose fragments got past the mirror test and then missed the

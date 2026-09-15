@@ -304,7 +304,11 @@ public final class GeneratedAssets implements DataProvider {
 				// The cell's v is also how the shader tells a top-face cell (the shoulders) from a
 				// side one: a row above Spot.FACE_ROW is the box's top face, where there is no
 				// squeeze round the box and the art is clipped to the face.
-				tex = tex.with(CELL_SIZE_TABLE_X + index / 16, index % 16, rgb(spot.px(), spot.pxHeight(), 0));
+				// B is Spot.layer: cells overlap (the big back cell under the two back-top ones) and
+				// the ranked set in the dye colour has no order of its own, so the shader draws the
+				// highest layer of the cells a fragment falls in. The pack stacks its layers in the
+				// same order (EquipmentJson.layerTextures).
+				tex = tex.with(CELL_SIZE_TABLE_X + index / 16, index % 16, rgb(spot.px(), spot.pxHeight(), spot.layer()));
 			}
 			require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
 			png(assets.resolve("textures/entity/equipment/" + target.layer + "/" + target.name + ".png"), marked(tex, target.inflateAs));

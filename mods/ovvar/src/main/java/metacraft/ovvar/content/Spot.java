@@ -37,8 +37,8 @@ public enum Spot implements StringRepresentable {
 	 * The big back cell: the whole back face below the collar, {@value #BIG}×{@value #BIG} texels
 	 * (rows 22–29, the belt row 31 and the collar row 20 clear), which takes a patch at
 	 * {@link Patches#MAX_ART} square without any of it hanging over onto another face. It covers the
-	 * two {@code BACK_TOP} cells, so {@link #overlapping} makes the three mutually exclusive: the back
-	 * wears either the big one or the top two.
+	 * two {@code BACK_TOP} cells and all three may be sewn at once — overlapping patches are the
+	 * point of an ovve — with the big one underneath and the two small ones over it ({@link #layer}).
 	 */
 	BACK_BIG(Piece.TOP, 32, 22, Side.BODY, Spot.BIG, Spot.BIG),
 	// top: sleeves, outer, front and back faces, top and middle rows per arm. The rows sit at v 21
@@ -295,12 +295,12 @@ public enum Spot implements StringRepresentable {
 	}
 
 	/**
-	 * Cells whose own rectangle this one lands on, so the two cannot both be sewn: a seat patch
-	 * covers the two leg-back cells, and {@link #BACK_BIG} covers the two back-top cells. Worked out
-	 * from the rectangles rather than listed, so a cell added or resized above says this for itself.
-	 * The seat's two legs count as the same side as each leg's own.
+	 * Cells this one's own rectangle lands on: {@link #BACK_BIG} over the two back-top cells, the
+	 * seat over the two leg-back ones. Worked out from the rectangles rather than listed, so a cell
+	 * added or resized above says it for itself. The seat's two legs count as the same side as each
+	 * leg's own.
 	 */
-	public java.util.List<Spot> overlapping() {
+	public java.util.List<Spot> overlaps() {
 		java.util.List<Spot> out = new java.util.ArrayList<>();
 		for (Spot s : values()) {
 			if (s == this || s.piece != piece || !sameSide(s.side, side)) continue;
@@ -309,6 +309,46 @@ public enum Spot implements StringRepresentable {
 			if (acrossU && acrossV) out.add(s);
 		}
 		return java.util.List.copyOf(out);
+	}
+
+	/**
+	 * Cells that cannot be sewn while this one is: <b>only the seat's</b>. Overlapping patches are
+	 * the point of an ovve — the big back cell and the two back-top cells are meant to be worn all
+	 * three at once, drawn in {@link #layer} order, the way the back of a real ovve is built up.
+	 *
+	 * <p>The seat is the exception because it is not one patch on one cell: it is one patch cut in
+	 * half across two cells of two different boxes, drawn as a single sprite on the seam between
+	 * them ({@code StandDisplays}), so "one of them on top" has no answer there that all three
+	 * paths could give. Sew the seat or the legs' back cells, not both.
+	 */
+	public java.util.List<Spot> overlapping() {
+		java.util.List<Spot> out = new java.util.ArrayList<>();
+		for (Spot s : overlaps()) if (s.side == Side.SEAT || side == Side.SEAT) out.add(s);
+		return java.util.List.copyOf(out);
+	}
+
+	/**
+	 * Where this cell's patch sits in the stack where cells overlap: the number of overlapping cells
+	 * bigger than it, so a small patch is drawn <b>over</b> the big cell it lies inside and the big
+	 * one is the background it was sewn to be. 0 for every cell that overlaps nothing.
+	 *
+	 * <p>Every path that draws a patch reads it and none of them may disagree: the pack stacks a
+	 * half's layers in this order ({@code EquipmentJson.layerTextures}, which is also what the paper
+	 * doll composites), the sprites on a stand are laid on in it, and the instant channel carries it
+	 * in the cell table's own row (the ranked set the dye colour holds has no order of its own, so
+	 * the shader takes the highest layer of the cells a fragment falls in).
+	 */
+	public int layer() {
+		int under = 0;
+		for (Spot s : overlaps()) if (s.width * s.height > width * height) under++;
+		return under;
+	}
+
+	/** Placements bottom first: {@link #layer} order, and the order they came in within a layer. */
+	public static java.util.List<Placement> stacked(java.util.List<Placement> placements) {
+		java.util.List<Placement> out = new java.util.ArrayList<>(placements);
+		out.sort(java.util.Comparator.comparingInt(p -> p.spot().layer()));
+		return out;
 	}
 
 	/** Do two cells draw on the same part of the model? (The seat is on both legs, so on either side.) */
