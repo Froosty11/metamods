@@ -347,6 +347,9 @@ public class PointSystem implements AutoCloseable {
 
 	public void setShowOwnScores(boolean showOwnScores) {
 		this.showOwnScores = showOwnScores;
+		for (var player : server.getPlayerList().getPlayers()) {
+			updatePlayerScore(player);
+		}
 	}
 
 	@FunctionalInterface
@@ -579,7 +582,6 @@ public class PointSystem implements AutoCloseable {
 			score.set(points);
 			score.display(Component.literal(team.shortName()));
 		}
-		updateAllPlayerScores();
 	}
 
 	private ScoreHolder getPlayerScoreHolder(UUID uuid) {
@@ -610,7 +612,6 @@ public class PointSystem implements AutoCloseable {
 			ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
 			score.set(points);
 		}
-		updateAllPlayerScores();
 	}
 
 
@@ -837,7 +838,7 @@ public class PointSystem implements AutoCloseable {
 										Stream.concat(
 												myEntries.stream(),
 												otherEntries.stream().sorted(
-														Comparator.comparing(PlayerScoreboard.Entry::value)
+														Comparator.comparing(PlayerScoreboard.Entry::value).reversed()
 												).limit(15 - myEntries.size())
 										).toList()
 								)

@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 
 public class PointSystemMod implements ModInitializer {
 	public static final Logger LOGGER = LogUtils.getLogger();
-	private PointSystem pointSystem;
+	private static PointSystem pointSystem;
 
 	@Override
 	public void onInitialize() {
@@ -37,7 +37,7 @@ public class PointSystemMod implements ModInitializer {
 		});
 	}
 
-	public PointSystem getPointSystem(MinecraftServer server) {
+	public static PointSystem getPointSystem(MinecraftServer server) {
 		if (pointSystem != null && pointSystem.getServer() == server) {
 			return pointSystem;
 		}
