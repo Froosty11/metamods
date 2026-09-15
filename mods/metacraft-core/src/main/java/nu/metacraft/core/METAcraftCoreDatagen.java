@@ -7,20 +7,21 @@ import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
-import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.criterion.PlayerTrigger;
-import net.minecraft.advancements.criterion.RecipeUnlockedTrigger;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
+import net.minecraft.advancements.triggers.PlayerTrigger;
+import net.minecraft.advancements.triggers.RecipeUnlockedTrigger;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import nu.metacraft.core.item.METAcraftItems;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 import java.util.Optional;
@@ -40,16 +41,19 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 		}
 
 		@Override
-		protected RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
-			return new RecipeProvider(wrapperLookup, recipeExporter) {
+		protected @NonNull RecipeProvider createRecipeProvider(
+				HolderLookup.@NonNull Provider wrapperLookup, @NonNull BootstrapContext<Recipe<?>> recipes,
+				@NonNull BootstrapContext<Advancement> advancements
+		) {
+			return new RecipeProvider(recipes, advancements) {
 				@Override
 				public void buildRecipes() {
 					var wrench = ResourceKey.create(
 							Registries.RECIPE,
 							Identifier.fromNamespaceAndPath(METAcraftCore.MODID, "wrench")
 					);
-					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
-							"has_the_recipe", RecipeUnlockedTrigger.unlocked(wrench)
+					Advancement.Builder builder = output.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(output.lookup(Registries.RECIPE).getOrThrow(wrench))
 					).rewards(AdvancementRewards.Builder.recipe(wrench)).requirements(
 							AdvancementRequirements.Strategy.OR
 					);
@@ -59,7 +63,7 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 									Optional.empty()
 							))
 					);
-					recipeExporter.accept(
+					output.accept(
 							wrench,
 							new ShapedRecipe(
 									new Recipe.CommonInfo(true),

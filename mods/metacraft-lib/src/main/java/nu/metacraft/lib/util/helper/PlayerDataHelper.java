@@ -326,7 +326,7 @@ public class PlayerDataHelper {
 		if (moveToDataPosition) {
 			world.ifPresentOrElse(w -> {
 				player.teleportTo(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYRot(), player.getXRot(), false);
-				player.hurtMarked = true;
+				player.syncVelocity = true;
 			}, () -> {
 				player.teleport(player.findRespawnPositionAndUseSpawnBlock(true, TeleportTransition.DO_NOTHING));
 			});
@@ -383,7 +383,7 @@ public class PlayerDataHelper {
 		if (!(player.getAdvancements() instanceof CustomAdvancementTracker h) || !h.getType().equals(newTracker.getType())) {
 			var prevTracker = player.getAdvancements();
 			prevTracker.save();
-			prevTracker.stopListening();
+			prevTracker.clearTriggers();
 			var playerManager = player.level().getServer().getPlayerList();
 			((ServerPlayerAccessor) player).setAdvancements(newTracker);
 			((PlayerListAccessor) playerManager).getAdvancements().put(
@@ -436,7 +436,7 @@ public class PlayerDataHelper {
 		var playerManager = player.level().getServer().getPlayerList();
 		if (player.getAdvancements() instanceof CustomAdvancementTracker) {
 			player.getAdvancements().save();
-			player.getAdvancements().stopListening();
+			player.getAdvancements().clearTriggers();
 			((PlayerListAccessor) playerManager).getAdvancements().remove(player.getUUID());
 			((ServerPlayerAccessor) player).setAdvancements(playerManager.getPlayerAdvancements(player));
 			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(null);

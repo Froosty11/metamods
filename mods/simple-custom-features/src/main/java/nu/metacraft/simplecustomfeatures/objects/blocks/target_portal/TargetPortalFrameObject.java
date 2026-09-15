@@ -5,6 +5,8 @@ import com.google.common.collect.Multimaps;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.predicates.ItemPredicate;
+import net.minecraft.core.Holder;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.simplecustomfeatures.ObjectContainer;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
@@ -18,7 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -30,8 +31,10 @@ import net.minecraft.world.level.block.Portal;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 
-public record TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredicate activator,
-                                      Optional<Portal> portalReference) implements BaseBlock {
+public record TargetPortalFrameObject(
+	Holder<BlockStateProvider> portalBlock, ItemPredicate activator,
+	Optional<Portal> portalReference
+) implements BaseBlock {
 
 	public static final MapCodec<TargetPortalFrameObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(

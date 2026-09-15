@@ -1,8 +1,7 @@
 package nu.metacraft.core;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.core.environment_attributes.METAcraftAttributeTypes;
 import nu.metacraft.core.status_effects.METAcraftEffects;
@@ -14,7 +13,6 @@ import nu.metacraft.core.entity.METAcraftEntities;
 import nu.metacraft.core.gamerules.METAcraftGameRules;
 import nu.metacraft.core.item.METAcraftItems;
 import nu.metacraft.core.item.components.METAcraftComponents;
-import nu.metacraft.core.mixin.PolymerItemUtilsAccessor;
 import nu.metacraft.core.music.MusicTimerTracker;
 import nu.metacraft.core.portal.PortalTargetRegistry;
 import nu.metacraft.core.preferences.Preference;
@@ -48,12 +46,8 @@ public class METAcraftCore implements ModInitializer {
 		CompatInit.init();
 		MusicTimerTracker.init();
 
-		//Fix for crossbows not working properly with polymer items.
-		var oldComponents = PolymerItemUtilsAccessor.getComponentsToCopy();
-		var newComponents = new DataComponentType<?>[oldComponents.length+1];
-		System.arraycopy(oldComponents, 0, newComponents, 0, oldComponents.length);
-		newComponents[oldComponents.length] = DataComponents.CHARGED_PROJECTILES;
-		PolymerItemUtilsAccessor.setComponentsToCopy(newComponents);
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String id) {

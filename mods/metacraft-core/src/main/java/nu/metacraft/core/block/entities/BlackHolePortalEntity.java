@@ -47,7 +47,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 		if (blackHole.center == null) {
 			blackHole.center = BlockPos.containing(blackHole.getBoundingBox().getCenter());
 		}
-		var centerPos = blackHole.center.getCenter();
+		var centerPos = Vec3.atCenterOf(blackHole.center);
 		double particleRadius = blackHole.getBoundingBox().getSize();
 		((ServerLevel) world).sendParticles(
 				ParticleTypes.PORTAL, centerPos.x, centerPos.y, centerPos.z,  10 * (int) Math.round(particleRadius),
@@ -67,7 +67,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 					Math.pow((blackHole.attractionRange - dist) / blackHole.attractionRange, 2)
 			);
 			entity.push(motionVector);
-			entity.hurtMarked = true;
+			entity.syncVelocity = true;
 			entity.fallDistance = 0;
 		}
 	}

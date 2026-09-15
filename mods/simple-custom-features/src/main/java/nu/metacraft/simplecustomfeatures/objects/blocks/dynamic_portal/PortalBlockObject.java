@@ -5,8 +5,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.criterion.BlockPredicate;
-import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.predicates.BlockPredicate;
+import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -165,7 +165,7 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	public Optional<ValidStructureWithOffset> getPortalStructure(ServerLevel world) {
-		return portalStructure.map(structure -> structure.getStructure(world.getStructureManager())).orElseGet(
+		return portalStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
 				() -> {
 					if (defaultPortalStructureCache == null) {
 						defaultPortalStructureCache = ValidStructureWithOffset.createDefault(
@@ -182,7 +182,7 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	public Optional<ValidStructureWithOffset> getPortalWithPlatformStructure(ServerLevel world) {
-		return portalWithPlatformStructure.map(structure -> structure.getStructure(world.getStructureManager())).orElseGet(
+		return portalWithPlatformStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
 				() -> {
 					if (portalWithPlatformStructureCache == null) {
 						portalWithPlatformStructureCache = getPortalStructure(world).map(

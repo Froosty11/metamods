@@ -1,20 +1,18 @@
 package nu.metacraft.revival.predicate;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.storage.loot.IntRange;
+import net.minecraft.world.level.storage.loot.IntRangePredicate;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.revival.extension.ServerPlayerExtension;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -22,25 +20,20 @@ import java.util.Optional;
 public record RevivalPredicate(
 		Optional<Boolean> unconscious,
 		Optional<Boolean> menuOpen,
-		Optional<IntRange> timeUntilDeath,
-		Optional<IntRange> timeUntilRevival,
+		Optional<IntRangePredicate> timeUntilDeath,
+		Optional<IntRangePredicate> timeUntilRevival,
 		Optional<EntityPredicate> reviver
 ) implements EntitySubPredicate {
 
-	public static final MapCodec<RevivalPredicate> CODEC = RecordCodecBuilder.mapCodec(
+	public static final Codec<RevivalPredicate> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					Codec.BOOL.optionalFieldOf("unconscious").forGetter(RevivalPredicate::unconscious),
 					Codec.BOOL.optionalFieldOf("menu_open").forGetter(RevivalPredicate::menuOpen),
-					IntRange.CODEC.optionalFieldOf("time_until_death").forGetter(RevivalPredicate::timeUntilDeath),
-					IntRange.CODEC.optionalFieldOf("time_until_revival").forGetter(RevivalPredicate::timeUntilRevival),
+					IntRangePredicate.CODEC.optionalFieldOf("time_until_death").forGetter(RevivalPredicate::timeUntilDeath),
+					IntRangePredicate.CODEC.optionalFieldOf("time_until_revival").forGetter(RevivalPredicate::timeUntilRevival),
 					EntityPredicate.CODEC.optionalFieldOf("reviver").forGetter(RevivalPredicate::reviver)
 			).apply(instance, RevivalPredicate::new)
 	);
-
-	@Override
-	public @NotNull MapCodec<? extends EntitySubPredicate> codec() {
-		return CODEC;
-	}
 
 	private boolean needsLootContext() {
 		return timeUntilDeath.isPresent() || timeUntilRevival.isPresent();

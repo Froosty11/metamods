@@ -194,11 +194,11 @@ public class PointSystem implements AutoCloseable {
 		executor.execute(() -> {
 			try (
 					var statement = dbConnection.prepareStatement(
-							 createUpsert(
-									 "insert into " + MINIGAMES_TABLE + " (" + MINIGAME_ID + ", excluded) values (?, true)",
-									 MINIGAME_ID,
-									 "update set excluded = true"
-							 )
+							createUpsert(
+								"insert into " + MINIGAMES_TABLE + " (" + MINIGAME_ID + ", excluded) values (?, true)",
+									MINIGAME_ID,
+									"update set excluded = true"
+							)
 					)
 			) {
 				statement.setInt(1, id);
@@ -604,7 +604,7 @@ public class PointSystem implements AutoCloseable {
 
 		for (Object2IntMap.Entry<UUID> entry : playerPoints.getData().object2IntEntrySet()) {
 			UUID playerUuid = entry.getKey();
-			 int points = entry.getIntValue();
+			int points = entry.getIntValue();
 
 			ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
 			ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);

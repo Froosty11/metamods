@@ -105,7 +105,7 @@ public class PortalRift {
 		this.shouldSave = shouldSave;
 		assert axis != Direction.Axis.Y;
 		this.axis = axis;
-		var positions = BlockPos.withinManhattan(
+		var positions = BlockPos.withinBoxByManhattanDistance(
 				pos, axis == Direction.Axis.X ? maxSize : 0,
 				maxSize, axis == Direction.Axis.Z ? maxSize : 0
 		);
@@ -132,7 +132,7 @@ public class PortalRift {
 		if (chosenAxis != null) {
 			this.axis = chosenAxis;
 		} else {
-			this.axis = world.random.nextBoolean() ? Direction.Axis.X : Direction.Axis.Z;
+			this.axis = world.getRandom().nextBoolean() ? Direction.Axis.X : Direction.Axis.Z;
 		}
 		offsets[0] = Direction.UP.getUnitVec3i();
 		offsets[1] = Direction.DOWN.getUnitVec3i();
