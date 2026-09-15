@@ -47,18 +47,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * ones appear. Rebuilds are batched: a combination the preview bits can still show waits
  * {@value #LAZY_MS} ms for company, one they can't is built within {@value #URGENT_MS} ms.
  *
- * Each build is a generation, and each player is on the generation they last loaded. A push is a
- * loading screen, so no <em>build</em> happens that nothing needs: a combination the dye colour can
- * still show waits for company and is never pushed at all — everyone sees it in the dye colour (see
- * {@link metacraft.ovvar.content.Looks#look}).
- *
- * <p>But once a design has outgrown the dye colour, <b>the pack goes to everybody online</b>
- * ({@link #claim} and {@link #built}), not only to whoever sewed it. A garment is drawn by the
- * people looking at it: the wearer's own client is the one client whose picture of it hardly
- * matters, and a viewer on an older pack draws that ovve with its newest patches missing — they
- * have no way of knowing they are looking at something stale, and nothing they can do about it but
- * {@code /ovvar reload}. So the loading screen goes to the room. One push per player per generation
- * ({@link #PUSH_GAP_MS} apart at the least), and whoever joins gets the current pack.
+ * Each build is a generation, and each player is on the generation they last loaded. A push is
+ * a loading screen, so nobody gets one they did not cause: the pack is pushed to a player only
+ * when their own sewing outgrew what the dye colour can show of it ({@link #claim}, at once when
+ * the build is done), or when they ask with {@code /ovvar reload}. Everyone else keeps the pack
+ * they have and sees what it holds plus the newest patches in the dye colour (see
+ * {@link metacraft.ovvar.content.Looks#look}); whoever joins gets the current pack.
  */
 public final class Combos {
 	private Combos() {}
@@ -159,21 +153,14 @@ public final class Combos {
 	}
 
 	/**
-	 * A player sewed a half into a combination that cannot be shown in full without the pack
-	 * (server thread): the pack goes out as soon as it holds the combination — now, if it already
-	 * does — since a sewing session is nowhere near a fight.
-	 *
-	 * <p><b>To everybody online, not just to them.</b> The half that outgrew the dye colour is drawn
-	 * short on every client but one that has the pack, and the clients that matter are the ones
-	 * <em>looking</em> at the wearer. This is the bug the playtest found: Edvin's design grew, Edvin
-	 * was sent the pack, and Rival — standing there looking at him — kept the old one and saw three
-	 * patches of the design until he thought to run {@code /ovvar reload}. Nobody can be expected to
-	 * guess that. "Everyone who could be tracking a wearer" is everyone, so: everyone.
+	 * A player sewed a half into a combination and cannot be shown all of it without the pack
+	 * (server thread): they get the pack as soon as it holds the combination — now, if it
+	 * already does — since a sewing session is nowhere near a fight.
 	 */
 	public static void claim(ServerPlayer player, Piece piece, Combo combo) {
 		KeyedCombo key = key(piece, combo);
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
-			needEveryone();   // and everyone who can see them: they are the ones who draw it
+			if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
 			return;
 		}
 		request(piece, combo, true);
@@ -225,10 +212,10 @@ public final class Combos {
 		for (int g : PUSHED.values()) online = Math.min(online, g);
 		int keep = online;
 		BUILT.keySet().removeIf(g -> g < keep && g < generation);
-		// A claim this build satisfied: the pack goes to the room, not to the claimer alone (see claim).
-		boolean claimed = CLAIMED_BY.keySet().stream().anyMatch(combos::contains);
+		for (var e : CLAIMED_BY.entrySet()) {
+			if (combos.contains(e.getKey())) NEEDS_PUSH.addAll(e.getValue());
+		}
 		CLAIMED_BY.keySet().removeIf(combos::contains);
-		if (claimed) needEveryone();
 		if (combos.containsAll(KNOWN)) {
 			NEEDS_PUSH.addAll(RELOADING);
 			RELOADING.clear();
@@ -236,21 +223,6 @@ public final class Combos {
 			deadline.accumulateAndGet(now() + URGENT_MS, Math::min);
 		}
 		Ovvar.LOGGER.info("[ovvar] pack generation {}: {} combination(s); {} player(s) to update", generation, combos.size(), NEEDS_PUSH.size());
-	}
-
-	/**
-	 * Everybody online who is behind the pack is owed it. Only called when a design has outgrown
-	 * what the dye colour can show of it, which is the one case where a player who did nothing is
-	 * nevertheless drawing somebody's ovve wrong (see the class javadoc). A player already on this
-	 * generation is not in it, and {@link #pushWhereNeeded} drops anybody who has been pushed since,
-	 * so this cannot turn into a second loading screen for the same pack.
-	 */
-	private static void needEveryone() {
-		if (server == null) return;
-		for (ServerPlayer online : server.getPlayerList().getPlayers()) {
-			UUID id = online.getUUID();
-			if (LOADED.getOrDefault(id, 0) < generation || PUSHED.getOrDefault(id, 0) < generation) NEEDS_PUSH.add(id);
-		}
 	}
 
 	private static void pushWhereNeeded(MinecraftServer s) {
@@ -304,45 +276,6 @@ public final class Combos {
 		player.containerMenu.sendAllDataToRemote();
 		player.inventoryMenu.sendAllDataToRemote();
 		Ovvar.LOGGER.debug("[ovvar] {} loaded pack generation {}; re-sent {} wearer(s)", player.getName().getString(), LOADED.get(id), sent);
-	}
-
-	// ---- what the game tests need (a game test server never builds a pack, and who a finished
-	// build goes to is exactly what had a bug)
-
-	/** The generation of the pack now built. */
-	public static int generation() {
-		return generation;
-	}
-
-	/** Who is owed the current pack: the set {@link #pushWhereNeeded} works through. */
-	public static Set<UUID> owedPush() {
-		return Set.copyOf(NEEDS_PUSH);
-	}
-
-	/**
-	 * A build landing, for the game tests: exactly what the pack's own FINISHED event calls, with the
-	 * combinations the build holds. Forgets who was owed the last one first, so a test says only what
-	 * this build did, and leaves no build due afterwards — a game test server must not go off and
-	 * build a real pack.
-	 */
-	public static void buildLandedForTest(Set<KeyedCombo> combos) {
-		NEEDS_PUSH.clear();
-		built(combos);
-		deadline.set(Long.MAX_VALUE);
-	}
-
-	/**
-	 * Nothing owed and nothing due, for the game tests: a mock player must not be sent a real pack
-	 * push on the next tick, and the test server must not start a real build.
-	 */
-	public static void forgetPackWorkForTest() {
-		NEEDS_PUSH.clear();
-		RELOADING.clear();
-		deadline.set(Long.MAX_VALUE);
-	}
-
-	public static KeyedCombo keyForTest(Piece piece, Combo combo) {
-		return key(piece, combo);
 	}
 
 	// ---- keys

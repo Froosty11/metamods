@@ -58,7 +58,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2958,61 +2957,6 @@ public final class WardrobeTests {
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
-	}
-
-	/**
-	 * <b>A pack built for one player's design goes to everybody online.</b> A garment is drawn by
-	 * the people looking at it, so the client that needs the pack least is the wearer's own: a
-	 * viewer on an older pack draws that ovve with its newest patches simply missing, with no way of
-	 * knowing and nothing to do about it but {@code /ovvar reload}.
-	 *
-	 * <p>Which is what the playtest found: Edvin's design grew past what the dye colour can show,
-	 * the build landed, "1 player(s) to update", and Rival — standing there looking at him — kept
-	 * generation 1 and saw three of the patches until he reloaded by hand. So this drives the real
-	 * path: A sews a design too big for the dye colour ({@code Looks.claimIfNeeded} → {@code
-	 * Combos.claim}), the build lands with A's combination in it, and B — who did nothing at all —
-	 * must be owed the push too.
-	 *
-	 * <p>A game test server builds no pack of its own (Polymer's build is a real one, off-thread and
-	 * minutes long), so the landing is called directly: {@code buildLandedForTest} is the very call
-	 * the pack's FINISHED event makes.
-	 */
-	@GameTest
-	public void aPackBuiltForOneDesignGoesToEveryoneOnline(GameTestHelper helper) {
-		ServerPlayer sewer = helper.makeMockServerPlayerInLevel();
-		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
-		Combos.forgetPackWorkForTest();
-		try {
-			// A design the dye colour cannot show in full: five patches on the top, where three ride
-			// in the dye and one more in the trim.
-			ItemStack ovve = new ItemStack(ModContent.ovve(CHAPTER));
-			OvveItem.setOwner(ovve, sewer.getUUID());
-			List<Spot> cells = List.of(Spot.FRONT_TOP_LEFT, Spot.FRONT_TOP_RIGHT, Spot.FRONT_LOW_LEFT,
-					Spot.FRONT_LOW_RIGHT, Spot.BACK_BIG);
-			for (Spot spot : cells) {
-				if (!Looks.sew(ovve, new Placement(spot, ITK_PATCH))) helper.fail("could not sew on " + spot.id());
-			}
-			if (Looks.look(ovve, Piece.TOP, sewer.getUUID(), false).complete()) {
-				helper.fail("five patches on the top fit in the dye colour after all, so nothing here needs a pack");
-			}
-			// The claim the sewing makes, and then the build landing with that combination in it.
-			Looks.claimIfNeeded(sewer, ovve);
-			Combos.Combo combo = Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(ovve, Piece.TOP)));
-			Combos.buildLandedForTest(Set.of(Combos.keyForTest(Piece.TOP, combo)));
-			Set<UUID> owed = Combos.owedPush();
-			if (!owed.contains(sewer.getUUID())) helper.fail("the player whose design it is was not sent the pack: " + owed);
-			if (!owed.contains(viewer.getUUID())) {
-				helper.fail("a player online while somebody else's design outgrew the dye colour is not owed the pack ("
-						+ owed + "), so they would go on drawing that ovve with its newest patches missing");
-			}
-			// Nothing to push once they are on this generation: one loading screen per generation.
-			Combos.buildLandedForTest(Set.of());
-			if (!Combos.owedPush().isEmpty()) helper.fail("a build that satisfied no claim still owes " + Combos.owedPush() + " a push");
-		} finally {
-			// A mock player must not be sent a real pack push on the next tick.
-			Combos.forgetPackWorkForTest();
-		}
-		helper.succeed();
 	}
 
 	private static void assertThat(boolean condition, String message) {
