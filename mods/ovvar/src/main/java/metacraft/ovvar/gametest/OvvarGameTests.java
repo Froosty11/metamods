@@ -4,6 +4,7 @@ import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
+import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
@@ -53,9 +54,14 @@ public final class OvvarGameTests {
 		aimEveryCell(helper, 0, REST, REST, REST, REST, spot -> true);
 	}
 
+	/**
+	 * Posed, the shoulders are left out: rotating an arm 60° about z swings the top of its box into
+	 * the torso, so there is no line of sight to the shoulder's own face to test. At rest (above)
+	 * they are aimed at like every other cell.
+	 */
 	@GameTest
 	public void aimEveryCellPosedAndTurned(GameTestHelper helper) {
-		aimEveryCell(helper, 137, ARMS_OUT_R, ARMS_OUT_L, LEGS_APART_R, LEGS_APART_L, spot -> true);
+		aimEveryCell(helper, 137, ARMS_OUT_R, ARMS_OUT_L, LEGS_APART_R, LEGS_APART_L, spot -> !spot.top());
 	}
 
 	@GameTest
@@ -73,6 +79,44 @@ public final class OvvarGameTests {
 		}
 		if (!wrong.isEmpty()) helper.fail("sneak-aim off for " + wrong.size() + " cell(s): " + wrong);
 		helper.succeed();
+	}
+
+	/**
+	 * A shoulder is a cell on the arm box's TOP face: its plane faces straight up on an unposed
+	 * stand, looking down at it from above resolves the cell (and not the sleeve's front face, which
+	 * shares the arm strip's columns), and the sprite a sewn patch gets lies flat on that plane.
+	 */
+	@GameTest(maxTicks = 120)
+	public void aShoulderLiesOnTheArmsTopFace(GameTestHelper helper) {
+		ArmorStand stand = stand(helper, 0, REST, REST, REST, REST);
+		for (Spot spot : List.of(Spot.SHOULDER_R, Spot.SHOULDER_L)) {
+			StandAim.CellPoint at = StandAim.cell(stand, spot);
+			if (at.normal().y < 0.999) helper.fail(spot.id() + "'s plane faces " + at.normal() + ", wanted straight up");
+			if (Math.abs(at.up().y) > 1e-3) helper.fail(spot.id() + "'s art runs " + at.up() + " up, which is not flat on the top face");
+			// Above every side cell of the same arm: the top face is the top of the box.
+			Spot sleeve = spot.side == Spot.Side.RIGHT ? Spot.SLEEVE_FRONT_TOP_R : Spot.SLEEVE_FRONT_TOP_L;
+			if (at.centre().y <= StandAim.cell(stand, sleeve).centre().y) {
+				helper.fail(spot.id() + " is not above " + sleeve.id() + " on the stand");
+			}
+            // Looking straight down at it from above.
+			StandAim.Hit hit = StandAim.aim(at.centre().add(0, 0.3, 0), new Vec3(0, -1, 0), stand, false, 6);
+			if (hit == null || hit.spot() != spot) helper.fail("looking down at " + spot.id() + " hit " + (hit == null ? "nothing" : hit.spot()));
+		}
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		Placement placement = new Placement(Spot.SHOULDER_R, Patches.get("itk"));
+		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(placement)).getOrThrow());
+		OvveItem.setTopUp(ovve, true);   // the top's patches only show while the top is up
+		stand.setItemSlot(EquipmentSlot.LEGS, ovve);
+		helper.runAfterDelay(5, () -> {
+			List<StandDisplays.Sprite> sprites = StandDisplays.sprites(stand);
+			if (sprites.isEmpty()) helper.fail("no sprite for a patch sewn on the shoulder");
+			for (StandDisplays.Sprite sprite : sprites) {
+				Vec3 cell = StandAim.cell(stand, sprite.placement().spot()).centre();
+				double off = sprite.pos().distanceTo(cell);
+				if (off > 0.03) helper.fail(sprite.placement().key() + " sprite is " + String.format("%.3f", off) + " blocks off its cell");
+			}
+			helper.succeed();
+		});
 	}
 
 	@GameTest

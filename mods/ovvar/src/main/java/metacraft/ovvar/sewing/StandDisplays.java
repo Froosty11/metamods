@@ -44,6 +44,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * overhang sticks out past the corner. Later-sewn patches sit a hair further out, so
  * they overlap the earlier; the patch being aimed at lies on top of all, washed out, until it is
  * sewn — the whole preview, so the pack has no trim channel to carry.
+ *
+ * A shoulder's sprite lies flat on the arm box's own top face ({@link StandAim#cell} gives that
+ * plane, whose normal is world up on an unposed stand), the whole art as it is: a top face has no
+ * neighbouring face in the layout to bend an overhang onto, so the sewn patch is clipped to the
+ * face and the sprite simply sticks out past its edges.
  */
 public final class StandDisplays {
 	private StandDisplays() {}
@@ -226,9 +231,12 @@ public final class StandDisplays {
 		int w = element.patch.width(), h = element.patch.height(), n = PatchPieces.faceTexels(spot);
 		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
 		// The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
+		// Measured down the face the cell is on: the box's side rows, or — for a shoulder — its top
+		// face, which is four rows, not twelve.
+		int rowStart = spot.top() ? Spot.TOP_ROW : Spot.FACE_ROW, rows = spot.top() ? Spot.TOP_ROWS : Spot.FACE_ROWS;
 		double cellX = (PatchPieces.columnInFace(spot) + spot.px() / 2.0 - n) * a,
-				cellY = ((spot.v - Spot.FACE_ROW) * Spot.DETAIL + spot.pxHeight() / 2.0 - Spot.FACE_ROWS * Spot.DETAIL / 2.0) * a;
-		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
+				cellY = ((spot.v - rowStart) * Spot.DETAIL + spot.pxHeight() / 2.0 - rows * Spot.DETAIL / 2.0) * a;
+		double halfFace = (n + 2 * inflate) / 2, halfTop = (rows + 2 * inflate) / 2;
 		Vec3 centre, n2, u2, r2;
 		switch (piece.where()) {
 			case RIGHT -> {

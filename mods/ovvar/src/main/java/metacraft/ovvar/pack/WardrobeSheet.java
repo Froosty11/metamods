@@ -56,6 +56,8 @@ public final class WardrobeSheet {
 				new Placement(Spot.FRONT_LOW_RIGHT, nyckeln),
 				new Placement(Spot.SLEEVE_FRONT_TOP_R, nyckeln),
 				new Placement(Spot.SLEEVE_OUT_MID_R, itk),
+				new Placement(Spot.SHOULDER_R, nyckeln),
+				new Placement(Spot.SHOULDER_L, itk),
 				new Placement(Spot.BACK_TOP_LEFT, nyckeln),
 				new Placement(Spot.LEG_FRONT_TOP_R, itk),
 				new Placement(Spot.LEG_OUT_MID_L, nyckeln),
@@ -111,10 +113,12 @@ public final class WardrobeSheet {
 		// cell at screen scale (4 skin px, so 12 px) would mean a face crop is picking up art that
 		// wrapped round a corner onto the face next to it.
 		for (Placement placement : sewn) {
-			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement);
-			if (glyph != null) {
-				System.out.println("  " + placement.key() + " (" + WardrobePreview.angleOf(placement.spot()) + "): "
-						+ glyph.width() + "x" + glyph.height() + " at (" + glyph.x() + "," + glyph.top() + ")");
+			for (Angle angle : WardrobePreview.anglesOf(placement.spot())) {
+				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement, angle);
+				if (glyph != null) {
+					System.out.println("  " + placement.key() + " (" + angle + "): "
+							+ glyph.width() + "x" + glyph.height() + " at (" + glyph.x() + "," + glyph.top() + ")");
+				}
 			}
 		}
 	}
@@ -134,18 +138,20 @@ public final class WardrobeSheet {
 			System.out.println("== " + patch.id() + " " + chromas(art));
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot)) continue;
-				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch));
-				if (glyph == null) continue;
-				// Against the art this cell can show: an oversize patch's hang-over is wrapped round the
-				// box by datagen and drawn on the face next door, so it is no part of this cell's picture.
-				java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, patch, art));
-				java.util.List<Integer> got = chromas(glyph.art().get());
-				// To within a level of quantisation: shading multiplies the channels and rounds, and a
-				// sleeve is shaded twice over, which can carry a ratio over a bucket boundary.
-				java.util.List<Integer> missing = new java.util.ArrayList<>(want.stream().filter(c -> !near(got, c)).toList());
-				java.util.List<Integer> extra = new java.util.ArrayList<>(got.stream().filter(c -> !near(want, c)).toList());
-				if (!missing.isEmpty() || !extra.isEmpty()) {
-					System.out.println("  BAD " + spot.id() + " (" + WardrobePreview.angleOf(spot) + ") missing " + missing + " extra " + extra);
+				for (Angle angle : WardrobePreview.anglesOf(spot)) {
+					WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch), angle);
+					if (glyph == null) continue;
+					// Against the art this cell can show: an oversize patch's hang-over is wrapped round the
+					// box by datagen and drawn on the face next door, so it is no part of this cell's picture.
+					java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, patch, art, angle));
+					java.util.List<Integer> got = chromas(glyph.art().get());
+					// To within a level of quantisation: shading multiplies the channels and rounds, and a
+					// sleeve is shaded twice over, which can carry a ratio over a bucket boundary.
+					java.util.List<Integer> missing = new java.util.ArrayList<>(want.stream().filter(c -> !near(got, c)).toList());
+					java.util.List<Integer> extra = new java.util.ArrayList<>(got.stream().filter(c -> !near(want, c)).toList());
+					if (!missing.isEmpty() || !extra.isEmpty()) {
+						System.out.println("  BAD " + spot.id() + " (" + angle + ") missing " + missing + " extra " + extra);
+					}
 				}
 			}
 		}
@@ -180,8 +186,7 @@ public final class WardrobeSheet {
 		List<WardrobeFont.Glyph> out = new ArrayList<>();
 		out.add(WardrobePreview.bareGlyph(chapter, angle));
 		for (Placement placement : sewn) {
-			if (WardrobePreview.angleOf(placement.spot()) != angle) continue;
-			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement);
+			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement, angle);
 			if (glyph != null) out.add(glyph);
 		}
 		return out;

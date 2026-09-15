@@ -247,6 +247,9 @@ public final class GeneratedAssets implements DataProvider {
 				tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
 				// A cell is not one size any more (Spot.BACK_BIG is two cells each way, the seat two
 				// wide), and the shader centres the art in it, so the size travels beside it.
+				// The cell's v is also how the shader tells a top-face cell (the shoulders) from a
+				// side one: a row above Spot.FACE_ROW is the box's top face, where there is no
+				// squeeze round the box and the art is clipped to the face.
 				tex = tex.with(CELL_SIZE_TABLE_X + index / 16, index % 16, rgb(spot.px(), spot.pxHeight(), 0));
 			}
 			require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
@@ -495,13 +498,32 @@ public final class GeneratedAssets implements DataProvider {
 	 * vertically), clipped to the part's side rows — a big patch hangs over its neighbours, never
 	 * off its part. The part's strip is a loop round the box, so what hangs off either end of it
 	 * comes round to the other end (past the outer face of a limb lies its back face).
+	 *
+	 * <p>A cell on the box's <b>top</b> face (the shoulders) is the other case: that face's four
+	 * edges have no neighbour in the layout to continue onto — the strip is a loop round the box's
+	 * sides, not over the top of it — so art bigger than the cell is <b>clipped</b> to the face,
+	 * both ways, and nothing of it is drawn anywhere else. (Bending it over the four edges, the way
+	 * a side cell's overhang bends round the corners, is a later version's job.)
 	 */
 	private static Tex placed(Spot spot, Tex art, int x) {
 		int y = spot.v * D + (spot.pxHeight() - art.height) / 2;   // centred in the cell, whatever size the cell is
-		int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
-		require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
 		Tex out = Tex.blank(W, H);
 		boolean any = false;
+		if (spot.top()) {
+			int x0 = spot.u * D, x1 = x0 + spot.px(), y0 = Spot.TOP_ROW * D, y1 = Spot.FACE_ROW * D;
+			for (int ax = 0; ax < art.width; ax++) {
+				int column = x + ax;
+				if (column < x0 || column >= x1) continue;
+				for (int row = Math.max(y, y0); row < Math.min(y + art.height, y1); row++) {
+					int p = art.get(ax, row - y);
+					if (p != 0) { out = out.with(column, row, p); any = true; }
+				}
+			}
+			require(any, "patch art lands entirely off the " + spot.id() + " cell's face");
+			return out;
+		}
+		int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
+		require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
 		for (int ax = 0; ax < art.width; ax++) {
 			int column = stripStart + Math.floorMod(x + ax - stripStart, stripWidth);
 			for (int row = Math.max(y, Spot.FACE_ROW * D); row < Math.min(y + art.height, (Spot.FACE_ROW + Spot.FACE_ROWS) * D); row++) {
@@ -544,7 +566,7 @@ public final class GeneratedAssets implements DataProvider {
 
 	// ---- the texel contract with ovvar.glsl
 
-	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
+	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip (or {@value Spot#TOP_FACE}, the box's top face); preview: G = cells in the half, B = instant designs. Base textures have none (0). */
 	private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
 	private static final int LAYER_X = W - 3;

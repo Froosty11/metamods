@@ -21,6 +21,13 @@ import java.util.function.Function;
  * u running back→front, right→left, front→back, left→right. Mirrored (left) limbs are handled
  * by mirroring x into right-limb terms, which is what their cells are defined in.
  *
+ * <p>The box's <b>top</b> face carries cells too (the shoulders), and it is not on that strip: it
+ * is the strip's second block of four columns on the rows above ({@link Spot#TOP_ROW}), unwrapped
+ * so that its u runs the way the front face's does (right→left; the two share the texture edge the
+ * box's top-front edge is) and its v runs from the box's back edge to its front one — which is what
+ * puts the top face's last row against the front face's first. The bottom face, beside it in the
+ * layout, carries no cells: it is the hand and the foot.
+ *
  * {@link #cell} is the forward mapping, a cell's centre and outward normal on the posed stand,
  * written from the same conventions but independently, so the game tests can check one against
  * the other.
@@ -79,7 +86,9 @@ public final class StandAim {
 		}
 		if (best == null) return null;
 		Vec3 where = eye.add(view.scale(bestT));
-		if (bestAxis == 1) return new Hit(best.name, null, where);   // top or bottom of a box
+		// The box's top face (−y, the model being drawn y-flipped) carries the shoulder cells; its
+		// bottom face is the hand or the foot and carries none.
+		if (bestAxis == 1) return new Hit(best.name, bestSign < 0 ? topCellAt(best, bestLocal) : null, where);
 		return new Hit(best.name, cellAt(best, bestLocal, bestAxis, bestSign), where);
 	}
 
@@ -97,6 +106,20 @@ public final class StandAim {
 		int col = (int) Math.max(0, Math.min(part.faceWidth / 4 - 1, Math.floor(along / 4)));
 		double v = Spot.FACE_ROW + Math.max(0, Math.min(Spot.FACE_ROWS - 0.001, local.y - part.y1));
 		return Spot.nearest(part.piece, strip + col * 4, v, part.side);
+	}
+
+	/**
+	 * The cell a local point on the box's top face belongs to: along the face it is the same
+	 * right→left run of columns the front face has (so the same mirroring into right-limb terms),
+	 * and down it the rows run from the box's back edge (v = {@link Spot#TOP_ROW}) to its front one.
+	 */
+	private static Spot topCellAt(Part part, Vector3f local) {
+		double lx = part.mirrored() ? -local.x : local.x;
+		double x1 = part.mirrored() ? -part.x2 : part.x1;
+		double along = Math.max(0, Math.min(part.faceWidth - 0.001, lx - x1));
+		int col = (int) Math.floor(along / 4);
+		double v = Spot.TOP_ROW + Math.max(0, Math.min(Spot.TOP_ROWS - 0.001, part.z2 - local.z));
+		return Spot.nearest(part.piece, part.strip + 4 + col * 4, v, part.side);
 	}
 
 	/** Ray/box slab test in a part's frame: [t, axis, sign of the face's outward normal] for the entered (or, far, exited) face. */
@@ -130,6 +153,7 @@ public final class StandAim {
 	public static CellPoint cell(ArmorStand stand, Spot spot) {
 		Part part = PARTS.stream().filter(p -> p.piece == spot.piece && p.side == (spot == Spot.SEAT ? Spot.Side.RIGHT : spot.side)).findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("no part for " + spot));
+		if (spot.top()) return topCell(stand, part, spot);
 		int u = spot.u - part.strip;
 		int face = u < 4 ? 0 : u < 4 + part.faceWidth ? 1 : u < 8 + part.faceWidth ? 2 : 3;   // −x, front, +x, back
 		double along = (u - new int[]{0, 4, 4 + part.faceWidth, 8 + part.faceWidth}[face]) + spot.width / 2.0;   // the cell's own centre along the face
@@ -149,6 +173,26 @@ public final class StandAim {
 		Vector3f n = normal.rotate(rotation);
 		Vector3f up = new Vector3f(0, -1, 0).rotate(rotation);   // texture v runs down the part; the model is drawn y-flipped
 		return new CellPoint(toWorld(stand, local), toWorldDir(stand, n), toWorldDir(stand, up));
+	}
+
+	/**
+	 * The same for a cell on the box's top face: the plane is the box's −y face (the model is drawn
+	 * y-flipped, so that is the top of it in the world) and its outward normal comes out world up on
+	 * an unposed stand. Along the face, u runs from the box's −x edge like the front face's; down it,
+	 * v runs from the back edge to the front one, so the art's own "up" — the way v decreases — points
+	 * backwards off the shoulder, and {@code up × normal} then runs the art's x the way u does.
+	 */
+	private static CellPoint topCell(ArmorStand stand, Part part, Spot spot) {
+		double x1 = part.mirrored() ? -part.x2 : part.x1;
+		double along = (spot.u - (part.strip + 4)) + spot.width / 2.0;
+		double lx = x1 + along;
+		double lz = part.z2 - ((spot.v - Spot.TOP_ROW) + spot.height / 2.0);
+		double y = part.y1 - part.inflate;
+		Vector3f normal = new Vector3f(0, -1, 0), up = new Vector3f(0, 0, 1);
+		if (part.mirrored()) lx = -lx;   // back from right-limb terms; the top face's normal has no x
+		Quaternionf rotation = part.rotation(stand);
+		Vector3f localPoint = new Vector3f((float) lx, (float) y, (float) lz).rotate(rotation).add(part.pivot);
+		return new CellPoint(toWorld(stand, localPoint), toWorldDir(stand, normal.rotate(rotation)), toWorldDir(stand, up.rotate(rotation)));
 	}
 
 	// ------------------------------------------------------------ model space

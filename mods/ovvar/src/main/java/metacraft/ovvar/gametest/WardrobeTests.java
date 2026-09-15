@@ -1254,23 +1254,31 @@ public final class WardrobeTests {
 		if (bare != Chapter.values().length * Angle.values().length) {
 			helper.fail("bare ovve glyphs: " + bare + ", wanted " + Chapter.values().length + " x " + Angle.values().length);
 		}
-		// One glyph per patch that fits a cell the doll can show, and none for a cell it cannot.
+		// One glyph per patch that fits a cell the doll can show, per angle that draws it, and none
+		// for a cell it cannot.
 		int wanted = 0, hidden = 0;
 		for (Spot spot : Spot.values()) {
-			Angle angle = WardrobePreview.angleOf(spot);
-			if (angle == null) {
+			List<Angle> angles = WardrobePreview.anglesOf(spot);
+			if (angles.isEmpty()) {
 				hidden++;
 				continue;
 			}
-			// A cell is on one face of one box, and a face is seen from one side only.
-			int sides = 0;
-			for (Angle other : Angle.values()) if (WardrobePreview.angleOf(spot) == other) sides++;
-			if (sides != 1) helper.fail(spot + " is drawn from " + sides + " sides, wanted exactly one");
+			// A cell on a box's SIDE face is on one face of one box, and a face is seen from one side
+			// only. A cell on its TOP face is seen from none of the four, so the front and the back
+			// both draw it foreshortened — two angles, and angleOf names the front one.
+			int sides = spot.top() ? 2 : 1;
+			if (angles.size() != sides) helper.fail(spot + " is drawn from " + angles + ", wanted " + sides + " angle(s)");
+			if (WardrobePreview.angleOf(spot) != angles.getFirst()) helper.fail(spot + ": angleOf says " + WardrobePreview.angleOf(spot) + ", anglesOf starts " + angles);
+			if (spot.top() && !angles.equals(List.of(Angle.FRONT, Angle.BACK))) {
+				helper.fail(spot + " is a top-face cell drawn from " + angles + ", wanted the front and the back views");
+			}
 			for (Patches.Patch patch : Patches.all()) {
 				if (!patch.fits(spot)) continue;
-				wanted++;
 				Placement placement = new Placement(spot, patch);
-				if (WardrobePreview.patchGlyph(placement) == null) helper.fail("no glyph for " + placement.key() + " on the " + angle + " view");
+				for (Angle angle : angles) {
+					wanted++;
+					if (WardrobePreview.patchGlyph(placement, angle) == null) helper.fail("no glyph for " + placement.key() + " on the " + angle + " view");
+				}
 			}
 		}
 		if (WardrobePreview.patchGlyphCount() != wanted) {
@@ -1307,9 +1315,10 @@ public final class WardrobeTests {
 			if (artColours.size() < 2) helper.fail(patch.id() + "'s art is one flat colour; this test cannot tell it from cloth");
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot)) continue;
-				Angle angle = WardrobePreview.angleOf(spot);
-				if (angle == null) helper.fail(spot + " is on no view, so " + patch.id() + " sewn there could never be seen");
-				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch));
+				List<Angle> angles = WardrobePreview.anglesOf(spot);
+				if (angles.isEmpty()) helper.fail(spot + " is on no view, so " + patch.id() + " sewn there could never be seen");
+				for (Angle angle : angles) {
+				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch), angle);
 				if (glyph == null) {
 					helper.fail("no glyph for " + patch.id() + " on " + spot.id());
 					continue;
@@ -1318,7 +1327,7 @@ public final class WardrobeTests {
 				List<Integer> got = colours(drawn);
 				String where = patch.id() + " on " + spot.id() + " (" + angle + " view)";
 				// The art this cell can show: an oversize patch's hang-over is drawn on the face next door.
-				Tex shown = WardrobePreview.shownArt(spot, patch, art);
+				Tex shown = WardrobePreview.shownArt(spot, patch, art, angle);
 				List<Integer> shownColours = colours(shown);
 				if (shownColours.isEmpty()) {
 					helper.fail(where + ": no part of the art lands on the cell's own face");
@@ -1339,6 +1348,7 @@ public final class WardrobeTests {
 				List<Integer> want = run(shown, middleRow(shown));
 				if (!readsAs(drawn, want)) {
 					helper.fail(where + ": the art reads " + hex(want) + " across, the glyph reads " + hex(run(drawn, middleRow(drawn))));
+				}
 				}
 			}
 		}
@@ -1722,8 +1732,7 @@ public final class WardrobeTests {
 	@GameTest
 	public void wardrobePreviewSlotsHoldTheCellTheyAreAbout(GameTestHelper helper) {
 		for (Spot spot : Spot.values()) {
-			Angle angle = WardrobePreview.angleOf(spot);
-			if (angle == null) continue;
+		for (Angle angle : WardrobePreview.anglesOf(spot)) {
 			int[] rect = WardrobePreview.cellRect(angle, spot);
 			if (rect == null) {
 				helper.fail(spot + ": the " + angle + " view shows it but has no rectangle for it");
@@ -1744,9 +1753,154 @@ public final class WardrobeTests {
 			if (cx < boxX || cx >= boxX + WardrobeFont.PITCH || cy < boxY || cy >= boxY + WardrobeFont.PITCH) {
 				helper.fail(spot + ": the cell's centre (" + cx + ", " + cy + ") is outside slot " + slot + "'s box at (" + boxX + ", " + boxY + ")");
 			}
+			// And no slot on a view that does not draw the cell at all. (A cell on a box's top face
+			// is drawn from two, the front and the back, so it is hoverable on both — each at the
+			// slot that view really draws it in.)
 			for (Angle other : Angle.values()) {
-				if (other == angle) continue;
+				if (WardrobePreview.anglesOf(spot).contains(other)) continue;
 				if (WardrobeGui.previewSlot(other, spot) >= 0) helper.fail(spot + " has a slot on the " + other + " view, which does not show it");
+			}
+		}
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The shoulders are the arm boxes' whole top faces, and what datagen draws there is the art
+	 * <b>clipped</b> to that face: a top face's four edges have no neighbouring face in the layout
+	 * to continue onto, so the twelve-pixel patches keep their middle eight columns and rows and
+	 * nothing of them is drawn anywhere else on the texture. The left arm's is pre-mirrored like
+	 * every other left-limb cell, checked once whole and again at a distinctive pixel — one where
+	 * the art and its mirror image disagree, which is the pixel a missing flip would move.
+	 */
+	@GameTest
+	public void aShoulderPatchIsClippedToTheArmsTopFace(GameTestHelper helper) {
+		int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
+		int clipped = 0;
+		for (Spot spot : List.of(Spot.SHOULDER_R, Spot.SHOULDER_L)) {
+			if (!spot.top() || Spot.face(spot) != Spot.TOP_FACE) {
+				helper.fail(spot.id() + " is not on its box's top face (row " + spot.v + ", face " + Spot.face(spot) + ")");
+			}
+			if (spot.u != 44 || spot.v != Spot.TOP_ROW || spot.width != 4 || spot.height != 4) {
+				helper.fail(spot.id() + " is " + spot.width + "x" + spot.height + " at (" + spot.u + ", " + spot.v + "), wanted 4x4 at (44, " + Spot.TOP_ROW + ")");
+			}
+			int x0 = spot.u * D, y0 = spot.v * D, x1 = x0 + spot.px(), y1 = y0 + spot.pxHeight();
+			for (Patches.Patch patch : Patches.all()) {
+				if (!patch.fits(spot)) continue;
+				Tex art = patchArt(patch);
+				// The model mirrors the left limb, so its texture holds the art flipped in x.
+				Tex baked = spot.side == Spot.Side.LEFT ? art.flipX() : art;
+				Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id());
+				int ox = x0 + patch.offsetX(spot), oy = y0 + patch.offsetY(spot);
+				// Every art pixel that falls on the face is there, as drawn (for that arm).
+				for (int ay = 0; ay < baked.height; ay++) {
+					for (int ax = 0; ax < baked.width; ax++) {
+						int pixel = baked.get(ax, ay), tx = ox + ax, ty = oy + ay;
+						if (Tex.a(pixel) == 0 || tx < x0 || tx >= x1 || ty < y0 || ty >= y1) continue;
+						if (drawn.get(tx, ty) != pixel) {
+							helper.fail(patch.id() + " on " + spot.id() + ": texel (" + tx + ", " + ty + ") is "
+									+ Integer.toHexString(drawn.get(tx, ty)) + ", the art has " + Integer.toHexString(pixel));
+						}
+					}
+				}
+				// And nothing outside the face: no bend over its edges, no wrap round the strip.
+				for (int ty = 0; ty < H; ty++) {
+					for (int tx = 0; tx < W; tx++) {
+						if (tx >= x0 && tx < x1 && ty >= y0 && ty < y1) continue;
+						if (ty == H / 2 - 1 && tx >= W - 3) continue;   // the marker, kind and layer texels
+						if (Tex.a(drawn.get(tx, ty)) != 0) {
+							helper.fail(patch.id() + " on " + spot.id() + " draws at (" + tx + ", " + ty + "), off the arm's top face");
+						}
+					}
+				}
+				if (patch.oversize(spot)) clipped++;
+				// The distinctive pixel, on the arm the model mirrors: at the column the mirroring
+				// puts it in, the art's own pixel is what shows.
+				if (spot.side == Spot.Side.LEFT) {
+					int[] tell = firstDifference(art, art.flipX());
+					if (tell == null) {
+						continue;   // a symmetrical patch cannot tell a missing flip from a correct one
+					}
+					int tx = x0 + patch.offsetX(spot) + art.width - 1 - tell[0], ty = oy + tell[1];
+					if (tx < x0 || tx >= x1 || ty < y0 || ty >= y1) continue;   // clipped away
+					if (drawn.get(tx, ty) != art.get(tell[0], tell[1])) {
+						helper.fail(patch.id() + " on " + spot.id() + ": art pixel (" + tell[0] + ", " + tell[1] + ") should be at texel ("
+								+ tx + ", " + ty + ") on the mirrored arm, which has " + Integer.toHexString(drawn.get(tx, ty)));
+					}
+				}
+			}
+		}
+		if (clipped == 0) helper.fail("no patch in the catalogue is bigger than a shoulder, so nothing here tested the clipping");
+		// And a design naming the new cells goes to the store and back.
+		List<Placement> shoulders = List.of(new Placement(Spot.SHOULDER_R, Patches.get("itk")), new Placement(Spot.SHOULDER_L, Patches.get("nyckeln")));
+		List<String> keys = shoulders.stream().map(Placement::key).toList();
+		Optional<SpotPlacements> round = SpotPlacements.CODEC.parse(JavaOps.INSTANCE, keys).result();
+		if (round.isEmpty() || !round.get().asPlacementList().equals(shoulders)) {
+			helper.fail("a design of " + keys + " did not round-trip: " + round.map(SpotPlacements::asPlacementList));
+		}
+		if (!Spot.SHOULDER_R.label().equals("right shoulder") || !Spot.SHOULDER_L.label().equals("left shoulder")) {
+			helper.fail("the shoulders are labelled " + Spot.SHOULDER_R.label() + " / " + Spot.SHOULDER_L.label());
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * How the paper doll shows a shoulder: a box's top face is turned away from all four sides, so
+	 * the front and the back views each draw it <b>foreshortened</b> — the face's four texel rows
+	 * averaged in pairs into two, a {@value WardrobePreview#CAP} px cap sitting on the top of the
+	 * sleeve column and nothing else on the figure moved. The cap is over the sleeve's own columns,
+	 * so the shoulder's tooltip shares the sleeve's slot; {@code angleOf} names the front view, and
+	 * the back view has its own glyph — the same face from the opposite side, a different picture.
+	 *
+	 * <p>The squash is said against the art: two rows of it that differ must come out of
+	 * {@link WardrobePreview#shownArt} the same, because the doll averaged them — which is also why
+	 * the audit ({@code wardrobePreviewDrawsEveryCellsOwnPatchArt}) compares the glyph against that
+	 * reference rather than against the raw art.
+	 */
+	@GameTest
+	public void theShouldersAreDrawnAsAForeshortenedCapOnTheSleeve(GameTestHelper helper) {
+		Object[][] cases = {{Spot.SHOULDER_R, Spot.SLEEVE_FRONT_TOP_R}, {Spot.SHOULDER_L, Spot.SLEEVE_FRONT_TOP_L}};
+		for (Object[] pair : cases) {
+			Spot shoulder = (Spot) pair[0], sleeve = (Spot) pair[1];
+			if (WardrobePreview.angleOf(shoulder) != Angle.FRONT) helper.fail(shoulder + " is on the " + WardrobePreview.angleOf(shoulder) + " view, wanted the front");
+			if (!WardrobePreview.anglesOf(shoulder).equals(List.of(Angle.FRONT, Angle.BACK))) {
+				helper.fail(shoulder + " is drawn from " + WardrobePreview.anglesOf(shoulder) + ", wanted the front and the back");
+			}
+			int[] cap = WardrobePreview.cellRect(Angle.FRONT, shoulder);
+			int[] arm = WardrobePreview.cellRect(Angle.FRONT, sleeve);
+			if (cap == null || arm == null) {
+				helper.fail(shoulder + " or " + sleeve + " has no rectangle on the front view");
+				continue;
+			}
+			if (cap[1] != 0 || cap[3] != WardrobePreview.CAP) {
+				helper.fail(shoulder + "'s cap is " + cap[3] + " px tall at y " + cap[1] + ", wanted " + WardrobePreview.CAP + " px at the top of the figure");
+			}
+			if (cap[0] != arm[0] || cap[2] != arm[2]) {
+				helper.fail(shoulder + "'s cap spans x " + cap[0] + ".." + (cap[0] + cap[2]) + ", the sleeve under it " + arm[0] + ".." + (arm[0] + arm[2]));
+			}
+			// The cap sits on the sleeve, so the tooltip is on the sleeve's own slot.
+			if (WardrobeGui.previewSlot(shoulder) != WardrobeGui.previewSlot(sleeve)) {
+				helper.fail(shoulder + "'s front slot is " + WardrobeGui.previewSlot(shoulder) + ", the sleeve's " + WardrobeGui.previewSlot(sleeve));
+			}
+			if (WardrobeGui.previewSlot(Angle.BACK, shoulder) < 0) helper.fail(shoulder + " has no slot on the back view, which draws it");
+			// A glyph per view, and the two are not the same picture (the face is turned round).
+			Patches.Patch patch = Patches.get("itk");
+			Placement placement = new Placement(shoulder, patch);
+			WardrobeFont.Glyph front = WardrobePreview.patchGlyph(placement, Angle.FRONT), back = WardrobePreview.patchGlyph(placement, Angle.BACK);
+			if (front == null || back == null) helper.fail(placement.key() + " has no glyph on the front or the back view");
+			else if (front.codepoint() == back.codepoint()) helper.fail(placement.key() + " draws the same glyph from the front and the back");
+			else if (front.height() > WardrobePreview.CAP) helper.fail(placement.key() + "'s front glyph is " + front.height() + " px tall, taller than the cap");
+			// The squash, against the art: rows the doll averaged together read the same afterwards.
+			Tex art = patchArt(patch);
+			Tex shown = WardrobePreview.shownArt(shoulder, patch, art, Angle.FRONT);
+			int squashed = 0;
+			for (int y = 0; y + 1 < art.height; y++) {
+				if (run(art, y).equals(run(art, y + 1))) continue;   // the art's own rows already agree
+				if (run(shown, y).isEmpty() || run(shown, y + 1).isEmpty()) continue;   // clipped off the face
+				if (run(shown, y).equals(run(shown, y + 1))) squashed++;
+			}
+			if (squashed == 0) {
+				helper.fail(shoulder + ": no two rows of " + patch.id() + " came out of the cap averaged together, so nothing was foreshortened");
 			}
 		}
 		helper.succeed();
@@ -1764,6 +1918,15 @@ public final class WardrobeTests {
 		int top = Spot.FACE_ROW, bottom = Spot.FACE_ROW + Spot.FACE_ROWS;
 		for (Spot spot : Spot.values()) {
 			String name = spot.name();
+			// A cell on a box's TOP face has its own four rows, above the side rows, and fills them:
+			// there is no collar or cuff up there to keep off, and the whole face is the cell.
+			if (spot.top()) {
+				if (spot.v != Spot.TOP_ROW || spot.height != Spot.TOP_ROWS) {
+					helper.fail(spot.id() + " is on the box's top face at rows " + spot.v + ".." + (spot.v + spot.height)
+							+ ", wanted " + Spot.TOP_ROW + ".." + (Spot.TOP_ROW + Spot.TOP_ROWS));
+				}
+				continue;
+			}
 			List<Integer> wanted;
 			if (spot == Spot.SEAT) wanted = List.of(Spot.LEG_BACK_TOP_R.v);
 			else if (spot == Spot.BACK_BIG) wanted = List.of(22);   // rows 22-29, clear of the collar and the belt
@@ -1889,8 +2052,16 @@ public final class WardrobeTests {
 						+ " states, and the shader's binomials are exact only up to " + Looks.INSTANT_STATES);
 			}
 		}
-		// The top is the half that grew: seven body cells (chest four, back three) and twelve sleeve ones.
-		if (Spot.cells(Piece.TOP).size() != 19) helper.fail("the top has " + Spot.cells(Piece.TOP).size() + " cells, wanted 19");
+		// The top is the half that grew: seven body cells (chest four, back three), twelve sleeve ones
+		// and the two shoulders.
+		if (Spot.cells(Piece.TOP).size() != 21) helper.fail("the top has " + Spot.cells(Piece.TOP).size() + " cells, wanted 21");
+		// And the designs are as many as that leaves room for: the two shoulders are what took the
+		// channel from 22 designs to 21, and one more of either would walk past the shader.
+		int topCells = Spot.cells(Piece.TOP).size();
+		if (topCells * (Looks.INSTANT_DESIGNS + 1) <= Looks.INSTANT_STATES) {
+			helper.fail("the channel has room for " + (Looks.INSTANT_DESIGNS + 1) + " designs but only names "
+					+ Looks.INSTANT_DESIGNS + ": " + topCells + " x " + (Looks.INSTANT_DESIGNS + 1) + " <= " + Looks.INSTANT_STATES);
+		}
 		// And the channel packs a full set of the highest-numbered cells without overflowing.
 		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
 		List<Spot> top = Spot.cells(Piece.TOP);

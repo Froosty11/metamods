@@ -9,12 +9,14 @@
 //	  limb's strips; on those fragments the shader samples one strip up, where the left-side art
 //	  lives.
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
-//	  2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
+//	  2 left limb) on one face of its strip (B: 0..3, or 4 — Spot.TOP_FACE — for the box's top
+//	  face, which is not on the strip: the shoulders). Fragments of the other limb read the
 //	  blank texel.
 //   2  the preview texture: every instant design's art in a library (head rows), a cell table at
 //	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 2·D columns
 //	  further right: the cell's own width and height, since a cell is not one size — the big back
-//	  cell is two cells each way and the seat two wide) and a design
+//	  cell is two cells each way and the seat two wide; a v above the side rows means the cell is
+//	  on the box's TOP face, the shoulders) and a design
 //	  table at x 44·D (design → library x, y, cells; 2·D columns further right: art width,
 //	  height); G = cells in the half, B = designs. The garment's dye
 //	  colour carries up to three placements as the rank of their set among all sets of
@@ -30,6 +32,11 @@
 const float OVVAR_D = 2.0;
 const vec2 OVVAR_TEX = vec2(64.0, 32.0) * OVVAR_D;
 const float OVVAR_CELL = 4.0 * OVVAR_D;   // the default cell; a cell's own size comes from the cell table
+// The first of the box SIDE rows (Spot.FACE_ROW): above it are the boxes' top and bottom faces,
+// where the shoulder cells are, and where nothing is squeezed round the box.
+const float OVVAR_SIDE_ROW = 20.0;
+// Spot.TOP_FACE: what a placement's kind texel carries in B when its cell is on the box's top face.
+const float OVVAR_TOP_FACE = 4.0;
 const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
 const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
 
@@ -223,15 +230,19 @@ vec2 ovvar_uv(vec2 uv) {
 	vec2 t = uv * OVVAR_TEX;   // texel coordinates
 	bool limb = t.y >= 16.0 * OVVAR_D && (t.x < 16.0 * OVVAR_D || (t.x >= 40.0 * OVVAR_D && t.x < 56.0 * OVVAR_D));
 	bool mirrored = limb && ovvar_handed;
-	bool sides = t.y >= 20.0 * OVVAR_D;   // the box sides, not the top and bottom faces
+	bool sides = t.y >= OVVAR_SIDE_ROW * OVVAR_D;   // the box sides, not the top and bottom faces
 	float inflate = ovvar_inflate();
 	float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
-	bool inFace = !sides || (ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
+	bool inFace = !sides || (ay >= OVVAR_SIDE_ROW * OVVAR_D && ay < 32.0 * OVVAR_D);
 
 	if (kind.r > 0.5 && kind.r < 1.5) {
 		// Placement: hide it on the limb it is not for; continuous round the box from its face
 		// (the kind texel's B), nothing in the slack.
 		if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
+		// A cell on the box's TOP face (the shoulders): datagen has drawn the art on the top rows
+		// and clipped it to that face, which is not on the strip's perimeter — so there is no
+		// squeeze to do, the texel is taken as it lies, and the side rows carry none of it.
+		if (kind.b > OVVAR_TOP_FACE - 0.5) return sides ? OVVAR_BLANK : uv;
 		if (!inFace) return OVVAR_BLANK;
 		float a = sides ? ovvar_squeezed_anchored(t.x, inflate, kind.b) : t.x;
 		if (a < 0.0) return OVVAR_BLANK;
@@ -245,7 +256,7 @@ vec2 ovvar_uv(vec2 uv) {
 		bool margin = false;
 		if (sides) {
 			ovvar_squeezed(t.x, inflate, aEdge, margin);
-			ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
+			ay = clamp(ay, OVVAR_SIDE_ROW * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
 		}
 		return vec2(aEdge, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
 	}
@@ -291,12 +302,18 @@ vec2 ovvar_uv(vec2 uv) {
 		else { if (!limb) continue; column = mirrored ? 1.0 - OVVAR_SEAT_COLUMN_RIGHT : OVVAR_SEAT_COLUMN_RIGHT; flip = mirrored; }
 		// The art, centred on its cell (a seat patch: one cell per leg), looked up on the side
 		// rows through the mapping a placement of its face gets — continuous round the box, so
-		// a big patch bends round the corners here just as it will once the pack has it.
+		// a big patch bends round the corners here just as it will once the pack has it. A cell on
+		// the box's top face is the exception: no mapping, and clipped rather than bent (below).
 		// The cell's own size: OVVAR_CELL for nearly all of them, twice that each way for the big
 		// back cell, and two cells wide for the seat — half of which is one leg's. The art's height
 		// is the art's own either way, so a seat patch taller than the seat's row hangs over it just
 		// as a big patch hangs over a plain cell.
 		float cw = cz.r, ch = cz.g;
+		// Which kind of face the cell is on, off its own row: above the side rows is the box's TOP
+		// face (the shoulders). A top cell is drawn on the top rows and nowhere else, and a side
+		// cell on the side rows and nowhere else.
+		bool onTop = ce.g < OVVAR_SIDE_ROW * OVVAR_D;
+		if (onTop == sides) continue;
 		float w = side > 2.5 ? cw * 0.5 : sz.r, h = sz.g;
 		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
 		float a = t.x;
@@ -305,7 +322,15 @@ vec2 ovvar_uv(vec2 uv) {
 			if (a < 0.0) continue;
 		}
 		vec2 local = vec2(a, ay) - origin;
-		if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
+		if (!onTop) {
+			if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
+		} else {
+			// Clipped to the top face, both ways: a top face's four edges have no neighbouring face
+			// in the layout to continue onto, so art bigger than the cell is simply cut off at them
+			// rather than bent round — the same as the pack path (GeneratedAssets.placed).
+			vec2 inCell = vec2(a, ay) - ce.rg;
+			if (inCell.x < 0.0 || inCell.x >= cw || inCell.y < 0.0 || inCell.y >= ch) continue;
+		}
 		if (local.x < 0.0 || local.x >= w || local.y < 0.0 || local.y >= h) continue;
 		if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
 		return (pe.rg + vec2(column * w, 0.0) + local) / OVVAR_TEX;

@@ -28,12 +28,18 @@ public final class Looks {
 	 * The instant channel: up to {@value #INSTANT} placements per half ride in the dye colour, as
 	 * the rank of their set among all sets of (cell, design) states — cells × {@value #INSTANT_DESIGNS}
 	 * designs, the first ones in the catalogue. Ranked combinations use the bits far better than
-	 * fixed slots: three on the top (19 cells × 22 = 418 states, C(418,3) ≈ 12.1M) fit under 255³.
+	 * fixed slots: three on the top (21 cells × 21 = 441 states, C(441,3) ≈ 14.2M) fit under 255³.
 	 * The shader's binomials are exact up to {@value #INSTANT_STATES} states; {@link #rank} checks
 	 * the range, and a game test checks every half against it, so cells or designs added later
 	 * cannot quietly walk past what the shader can unrank.
+	 *
+	 * <p><b>Cells and designs share the {@value #INSTANT_STATES}.</b> The two shoulder cells took
+	 * the top to 21, so the designs had to come down from 22 to 21 to stay inside it: the 22nd and
+	 * later entries in the catalogue can no longer ride in the dye colour and a patch sewn from one
+	 * of them waits for the pack to catch up (seconds, and the trim channel still carries one of
+	 * them on the top). The catalogue is ten long, so nothing in it is affected today.
 	 */
-	public static final int INSTANT = 3, INSTANT_DESIGNS = 22;
+	public static final int INSTANT = 3, INSTANT_DESIGNS = 21;
 	/**
 	 * The most (cell, design) states a half may have: past this the shader's float binomials
 	 * (ovvar_c3) stop being exact, C(c,3) having to stay under 2²⁴.

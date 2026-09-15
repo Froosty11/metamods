@@ -19,6 +19,12 @@ import org.jspecify.annotations.NonNull;
  *
  * Box strips (rows 20–32): body 16 right | 20 front | 28 left | 32 back; arm 40 outer | 44 front
  * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
+ *
+ * Nearly every cell is on those side rows. The exception is a cell on a box's <em>top</em> face,
+ * rows {@value #TOP_ROW}–{@value #FACE_ROW} of the strip's second block of four columns (the
+ * shoulders): {@link #top} tells the two kinds apart and {@link #face} answers {@value #TOP_FACE}
+ * for the top one. A top face has no neighbour to bend onto in the layout, so art bigger than a
+ * top cell is <b>clipped</b> to the face rather than wrapped round it.
  */
 public enum Spot implements StringRepresentable {
 	// top: chest and back, 2 columns × 2 rows each. The rows sit at v 21 and 26: the body's top
@@ -44,6 +50,14 @@ public enum Spot implements StringRepresentable {
 	SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 21, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 25, Side.LEFT),
 	SLEEVE_BACK_TOP_R(Piece.TOP, 52, 21, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 25, Side.RIGHT),
 	SLEEVE_BACK_TOP_L(Piece.TOP, 52, 21, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 25, Side.LEFT),
+	/**
+	 * The shoulders: the arm boxes' TOP faces, the whole of them — the arm strip's u 44..48, rows
+	 * {@value #TOP_ROW}–{@value #FACE_ROW}. The only cells that are not on the box sides, and the
+	 * only ones a patch cannot hang over: a top face's four edges have no neighbouring face in the
+	 * layout to continue onto, so art bigger than the cell is clipped to the face (see {@link #top}).
+	 * The left arm's top face is mirrored in u like every other left-limb face.
+	 */
+	SHOULDER_R(Piece.TOP, 44, Spot.TOP_ROW, Side.RIGHT), SHOULDER_L(Piece.TOP, 44, Spot.TOP_ROW, Side.LEFT),
 	// bottom: legs, outer, front and back faces, top and middle rows per leg. The rows sit at v 22
 	// and 26, two texels below the waist (the playtest wanted them lower still, a patch on the thigh
 	// rather than on the hip); the cuff row under a boot stays clear, 26 + 4 = 30 < 31.
@@ -82,6 +96,14 @@ public enum Spot implements StringRepresentable {
 	 * a row of cells is one edit in the enum above.
 	 */
 	public static final int FACE_ROW = 20, FACE_ROWS = 12;
+	/**
+	 * The box <em>top</em> faces' rows, above the side rows: skin rows {@value #TOP_ROW} to
+	 * {@value #FACE_ROW}, {@value #TOP_ROWS} of them, on the strip's second block of four columns
+	 * (the bottom face is on the third). The shoulders are there; {@link #top} is the test.
+	 */
+	public static final int TOP_ROW = FACE_ROW - SIZE, TOP_ROWS = SIZE;
+	/** {@link #face}'s answer for a cell on its box's top face, which is none of the four side faces. */
+	public static final int TOP_FACE = 4;
 	/** Texels per skin texel in the garment and patch textures (128×64): patch art is {@link #PX} square. */
 	public static final int DETAIL = 2;
 	public static final int PX = SIZE * DETAIL;
@@ -98,9 +120,12 @@ public enum Spot implements StringRepresentable {
 
 	/**
 	 * The face of its strip a cell is on, 0..3: a limb's outer, front, inner, back; the body's
-	 * right side, front, left side, back.
+	 * right side, front, left side, back — or {@value #TOP_FACE} for the box's top face, which is
+	 * not on the strip at all (the shoulders). Datagen puts this in a placement texture's kind
+	 * texel and ovvar.glsl reads it back, so the two share the numbering.
 	 */
 	public static int face(Spot spot) {
+		if (spot.top()) return TOP_FACE;
 		int local = spot.u - stripStart(spot), n1 = stripWidth(spot) == 24 ? 8 : 4;
 		return local < 4 ? 0 : local < 4 + n1 ? 1 : local < 8 + n1 ? 2 : 3;
 	}
@@ -183,6 +208,18 @@ public enum Spot implements StringRepresentable {
 	}
 
 	/**
+	 * Is this cell on its box's <em>top</em> face rather than on the side rows? Read off the row,
+	 * which is the whole of the difference: rows {@value #TOP_ROW}–{@value #FACE_ROW} are the top
+	 * face, {@value #FACE_ROW} and below are the sides. It decides three things everywhere the cell
+	 * is drawn — no squeeze round the box (the top face is not on the strip's perimeter), no wrap
+	 * for art that hangs over (it is clipped to the face), and the rows it is measured down from
+	 * ({@link #TOP_ROW}, not {@link #FACE_ROW}).
+	 */
+	public boolean top() {
+		return v < FACE_ROW;
+	}
+
+	/**
 	 * Which half of a seat patch's art a leg wears, as a column across the art: 0 the art's left
 	 * half, 1 its right half.
 	 *
@@ -234,12 +271,19 @@ public enum Spot implements StringRepresentable {
 	 * cells whose own columns hold {@code u} (a big cell spans two of the aim's 4-texel columns),
 	 * the nearest of them down the face. Ties go to the earlier entry, which is how a small cell
 	 * wins the rows it shares with the big one it lies inside.
+	 *
+	 * <p>{@code v} also says which kind of face was aimed at: a row above {@link #FACE_ROW} is the
+	 * box's top face and only top cells are looked at, a row on the side rows only side cells. The
+	 * shoulders share the arm's u 44..48 with the front sleeve cells, and the two faces are
+	 * different faces of the box, so nearness down the face must not carry an aim from one to the
+	 * other.
 	 */
 	public static Spot nearest(Piece piece, int u, double v, Side side) {
 		Spot best = null;
 		double bestDistance = Double.MAX_VALUE;
+		boolean top = v < FACE_ROW;
 		for (Spot s : values()) {
-			if (s.piece != piece || s.side != side || u < s.u || u >= s.u + s.width) continue;
+			if (s.piece != piece || s.side != side || s.top() != top || u < s.u || u >= s.u + s.width) continue;
 			double d = v < s.v ? s.v - v : v >= s.v + s.height ? v - (s.v + s.height) + 1 : 0;
 			if (d < bestDistance) { bestDistance = d; best = s; }
 		}
@@ -273,12 +317,13 @@ public enum Spot implements StringRepresentable {
 		return (a == Side.SEAT || b == Side.SEAT) && a != Side.BODY && b != Side.BODY;
 	}
 
-	/** "chest, top left" / "left sleeve, outer top" — for tooltips. */
+	/** "chest, top left" / "left sleeve, outer top" / "right shoulder" — for tooltips. */
 	public String label() {
 		if (this == SEAT) return "seat";
 		if (this == BACK_BIG) return "back, all of it";
 		String n = name().toLowerCase(java.util.Locale.ROOT);
 		String limb = side == Side.LEFT ? "left " : side == Side.RIGHT ? "right " : "";
+		if (n.startsWith("shoulder")) return limb + "shoulder";
 		if (n.startsWith("front_")) return "chest, " + n.substring(6).replace('_', ' ');
 		if (n.startsWith("back_")) return "back, " + n.substring(5).replace('_', ' ');
 		String rest = n.replaceAll("_[lr]$", "");

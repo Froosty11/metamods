@@ -39,7 +39,12 @@ public final class PatchPieces {
 		}
 	}
 
-	/** The visual offset of a cell's first column within its face, in art pixels from the face's left edge as seen. */
+	/**
+	 * The visual offset of a cell's first column within its face, in art pixels from the face's left
+	 * edge as seen. A cell on the box's top face is the whole of that face, and the top face is the
+	 * strip's second block of four columns — the same columns as the front face — so the same
+	 * arithmetic gives it 0.
+	 */
 	public static int columnInFace(Spot spot) {
 		int faceStart = Spot.stripStart(spot) + faceStartLocal(spot), n = faceTexels(spot);
 		int fromStart = (spot.u - faceStart) * 2;
@@ -61,6 +66,10 @@ public final class PatchPieces {
 		int w = patch.width(), h = patch.height();
 		// Flat: the whole art as one sprite on the cell's face (the seat's across both legs, on the seam).
 		if (!BEND_ROUND_CORNERS) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
+		// A cell on the box's top face (the shoulders) is never cut: the four edges of a top face have
+		// no neighbouring face in the layout to continue onto, so the sewn patch is clipped to the face
+		// (GeneratedAssets.placed) and the sprite is the whole art lying flat on it, as it is.
+		if (spot.top()) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
 		if (spot == Spot.SEAT) {
 			// Half on each leg's back face; the halves are cut at the legs' inner corner, which the art never crosses.
 			return List.of(new Piece(Where.FACE, 0, w / 2, 0, h, 0), new Piece(Where.FACE, w / 2, w, 0, h, 0));
