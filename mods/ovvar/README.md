@@ -20,17 +20,42 @@ look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
-belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it.
-Every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`), and which rows each part
+belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it, and one
+on each shoulder. Nearly every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`);
+the shoulders are on the arm boxes' *top* faces, rows 16–20 (`Spot.TOP_ROW`). Which rows each part
 uses came out of the playtest:
+
+```
+      ___________
+     /  SHOULDER \         the arm box seen from above: the whole 4×4 top face
+     \___________/         is the cell, and its front edge is the top of the sleeve
+     |           |
+     |  sleeve   |
+```
 
 | part | faces | cell rows (`v`) |
 | --- | --- | --- |
 | body, chest | front (8 wide) | 21, 26 — row 20 is the collar, row 31 the belt |
 | body, back | back (8 wide) | 21 (`BACK_TOP_LEFT`/`_RIGHT`) *or* 22 (`BACK_BIG`, the whole face) |
 | sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
+| shoulders | the arm box's **top** face | 16–20, the whole face (`SHOULDER_R`/`_L`) |
 | legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
 | seat | both legs' back faces | 22, following `LEG_BACK_TOP`; a tall seat patch hangs a texel over it each way |
+
+The **shoulders** (`SHOULDER_R`, `SHOULDER_L`) are the one pair of cells not on the boxes' side
+rows: each is the whole of an arm box's top face, the arm strip's u 44..48 on rows 16–20, and any
+plain patch goes on it, centred. `Spot.top()` is the test — read off the row — and it decides three
+things everywhere a cell is drawn: no squeeze round the box (a top face is not on the strip's
+perimeter, so there is no slack to take up), the rows the cell is measured down from
+(`Spot.TOP_ROW`, not `FACE_ROW`), and — the one thing a shoulder does differently from every other
+cell — that **art bigger than the cell is clipped to the face, not bent round it.** A top face's
+four edges have no neighbouring face in the layout to continue onto (the strip is a loop round the
+box's *sides*, not over the top of it), so a 12×12 patch on a shoulder keeps its middle 8×8 and the
+rest is simply cut off, in the pack path, in the dye colour and on a stand alike. Bending it over
+the four edges, the way a side cell's overhang bends round the corners, is a later version's job.
+`Spot.face()` answers `TOP_FACE` (4) for them rather than one of the four side faces, which is what
+datagen puts in the placement texture's kind texel and what `ovvar.glsl` reads back. The left arm's
+top face is mirrored in u like every other left-limb face.
 
 A cell is 4×4 texels except where the entry in `Spot` says otherwise (`Spot.width`/`height`), and
 there are two that do. The **seat** is two cells wide, one tall, across the back of both legs — but
@@ -74,7 +99,8 @@ names it, right-click sews it on; sneak to aim at the far face of the part you l
 patch unpick it. No cap on the number of patches. While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
-is taken off and worn. A big patch lies flat on its cell's face, the overhang sticking out past
+is taken off and worn. A shoulder's sprite lies flat on the arm box's own top face, which faces
+straight up on an unposed stand. A big patch lies flat on its cell's face, the overhang sticking out past
 the corner (`PatchPieces` can instead cut it at the corners and lay each piece on the face it
 hangs over, so it bends round the box on the stand too; that is off for now,
 `BEND_ROUND_CORNERS`, until the pieces line up with the armour on posed stands); datagen makes
@@ -238,13 +264,24 @@ trouser leg below, which is where that side's cells are.
 garment, and one small glyph per (patch, cell) draws that patch exactly where it lands on the doll —
 cropped to its own art, so the glyph is a dozen pixels square, and placed by space advances and its
 own ascent. The title stacks the bare ovve and then one glyph per sewn placement, so a design is
-composed at the moment the screen opens. A cell sits on exactly one face of one box and a face is
-seen from exactly one of the four angles, so that is **6 × 4 = 24 bare glyphs plus one per (patch,
-cell the doll can show) — fixed**, however much anybody sews: nothing
+composed at the moment the screen opens. A cell sits on exactly one face of one box, and a *side*
+face is seen from exactly one of the four angles, so that is **6 × 4 = 24 bare glyphs plus one per
+(patch, cell the doll can show, angle that draws it) — fixed**, however much anybody sews: nothing
 is regenerated and no pack is pushed when a patch goes
 on. (v2 keyed the art by patch combination instead, which grew with every design, spent a glyph
 budget and needed a pack build and a loading screen each time somebody sewed something.) `Combos` is
 therefore back to what it was before v2, doing equipment definitions and nothing else.
+
+A **shoulder** is the exception, being on a box's top face: no side of the figure looks down on it,
+so the front and the back views each draw it **foreshortened** — the face's four texel rows averaged
+in pairs into two, a 6 px cap sitting on the top of the sleeve column. Nothing else on the figure
+moves: it is already exactly the panel's height (a face for the top, a face for the trousers), so
+the cap takes the sleeve's own top rows rather than room of its own. It is the same face seen from
+two opposite sides, so the back view's cap is the front view's turned through 180°, and the shoulder
+is the one kind of cell with a glyph on two angles (`WardrobePreview.anglesOf`; `angleOf` names the
+front one, which is the single picture of the cell that callers wanting one get, and where its
+tooltip is quoted from). It is hoverable on both views, each at the slot that view really draws it
+in — which is the sleeve's own slot, the cap sitting on the sleeve's columns.
 
 The cells you cannot see from an angle simply have no glyph there. The wearer's left limbs are the
 mirror images the armour model draws — and a left cell's art is pre-mirrored in its own texture to
@@ -271,15 +308,18 @@ The preview's sixteen slots therefore carry no icon at all: **on every angle**, 
 each placement the angle on show draws — the picture shows through and all that is left of the slot
 is its "\<patch\> on \<spot\>" tooltip. Turn the figure and the tooltips turn with it: a patch sewn
 on the back is hoverable on the back view and its front slot is empty, because a cell is on one face
-of one box and a face is seen from one of the four sides.
+of one box and a side face is seen from one of the four sides (a shoulder, on a box's top face, is
+hoverable from the front and from behind).
 `./gradlew :mods:ovvar:wardrobeSheet` composites the whole screen, and all four angles side by side,
 to a PNG (`WardrobeSheet`, a dev tool) so the doll can be looked at without starting a client, and
 `-PsheetState=audit` prints every cell's glyph against the art it is meant to be showing. "The art",
 for a patch bigger than its cell, is only the part of it that lands on the cell's own face: datagen
 wraps what hangs over round the box, so those columns are drawn on the face next door and the cell's
 glyph is right not to have them. `WardrobePreview.shownArt` is that window — and, for the seat, the
-two legs' halves in the order the back view puts the legs — and both the audit and the
-`wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare against it.
+two legs' halves in the order the back view puts the legs; for a shoulder, the rows of the art
+averaged in the same pairs the cap averages, since those averages are the colours the doll really
+draws — and both the audit and the `wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare
+against it, for every angle that draws the cell.
 
 **`/ovvar look [player]`** opens the same screen read-only on somebody else's ovve: their chapters as
 tabs (the ones they have a design for — their inventory is none of our business and may not be
@@ -310,7 +350,8 @@ show the cell. The panel is exactly the 4×4 block of 18 px slot cells at rows 1
 slot is the one holding that rectangle's centre, and the tooltip cannot drift from the picture the
 way a hand-kept table could (the front view's slots are the ones the old table gave, and a game
 test pins them). `previewSlot(spot)` is the front overload, for the callers that only ever mean the
-front. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
+front. A shoulder's cap is over its sleeve's columns, so the two share a slot on the front view and
+the shoulder has one on the back view too. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
 last placement drawn to a slot wins its tooltip — a design with only one cell per slot (the common
 case) always shows correctly.
 Row 5's "finish" (col 4) is the old `StashGui`'s "Finish sewing" button, shown only while a stash
@@ -460,7 +501,11 @@ The file backend is fine for one server or a shared mount; a network of servers 
 ovve with `/ovvar give data all` or from the Ovvar creative tab. `Run Tests.command` runs the
 game tests — `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
 with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
-sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; and
+sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping (the
+shoulders are left out of the posed run: an arm rotated 60° about z swings the top of its box into
+the torso, so there is no line of sight to its top face); that a shoulder's plane faces straight up,
+that looking down at one resolves the shoulder and not the sleeve's front face beneath it, and that
+its sprite lies on that plane; and
 the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
 sewn on the last pull, nothing sewn after cutting the thread). `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
@@ -469,8 +514,10 @@ change neither the store nor the ovve, the owner's own still work, `rebind` and 
 what they say, and the MOTD names this server and its mode. It also runs the wardrobe screen: that
 nothing the background draws overlaps a slot's icon, the title's glyphs and spaces, the tab row and
 its highlight, the empty-state notices, the four angles and that every visible cell has a glyph of
-its own, that a placement is drawn by that glyph on the angle that shows it and by nothing on the
-other three, the rotation buttons, the title's length and the stats readout's place, what each mode
+its own per angle that draws it, that a placement is drawn by that glyph on the angle that shows it
+and by nothing on the angles that do not, that a shoulder patch is clipped to the arm's top face and
+drawn nowhere else on the texture (the left arm's mirrored), that its cap on the doll is the
+foreshortened top face over the sleeve's own columns, the rotation buttons, the title's length and the stats readout's place, what each mode
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
 read-only and driven by the other player's design.
 
@@ -494,7 +541,8 @@ its cell and hangs over the neighbours, later-sewn on top, all the way round the
 limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
 armour layout at twice the skin's resolution, `Spot.DETAIL`). A big patch rides in the dye
 colour like any other (the shader bends it round the corners from its own cell's face, as the
-pack will). Then `runDatagen`. The first 22
+pack will — except on a shoulder, where it is clipped to the top face instead). Then `runDatagen`.
+The first 21
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
 through the pack; the preview library is the head rows of the texture (52 cells) and datagen
 fails loudly when that runs out.
@@ -519,14 +567,22 @@ when one of them is on the chest or the back (the trim, below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
-no byte is 0; on the top 19 cells × 22 designs, C(418,3) ≈ 12M states under 255³, and a game test
+no byte is 0; on the top 21 cells × 21 designs, C(441,3) ≈ 14M states under 255³, and a game test
 holds every half under the 448 states the shader's float binomials are exact to —
-`Looks.INSTANT_STATES`). The preview texture holds the art of the first 22
+`Looks.INSTANT_STATES`). **Cells and designs share those 448.** The two shoulder cells took the top
+half to 21, so the designs came down from 22 to 21 to stay inside it; the cap test now holds the
+designs to the most that fits as well as the states to the cap, so neither number can be raised on
+its own. The cost is that the 22nd and later entries in the catalogue can no longer ride in the dye
+colour — a patch sewn from one of them waits for the pack to catch up (seconds; and the top's trim
+channel still carries one of them at once). The catalogue is ten long, so nothing in it is affected
+today. The preview texture holds the art of the first 21
 designs — any size, in a block of library cells — plus cell and design tables (a cell's row
-carries its own size beside its position, since a cell is not one size any more); the pack's entity core shader
+carries its own size beside its position, since a cell is not one size any more, and its row says
+which kind of face it is on: a v above the side rows is a box's top face, where the shader does not
+squeeze and clips the art to the cell); the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
-past the first 22 in the catalogue only go through the pack. The tooltip's "Dyed" line is
+past the first 21 in the catalogue only go through the pack. The tooltip's "Dyed" line is
 hidden.
 
 The top has a fourth instant slot: the armour trim. The client draws a trim as one more layer
