@@ -592,9 +592,16 @@ colour, so datagen bakes every (body cell, design) pair as its own pattern
 the corners the way the shader does; `trim_pattern/*.json`, one material `ovvar:patch` whose
 palette maps the patch's colours to themselves) and `OvveTop.dress` sets the newest placement
 that does not fit in the dye colour as the trim, if it is on one of the chest and back
-cells (`Trims.fits`; vanilla draws the trim, so the squeeze to square pixels is done texel by
-texel by datagen, which costs about a column in sixteen on the body's faces but two in eight on
-a sleeve — hence body only). Trims are material-tinted, so the palette is the identity and the
+cells (`Trims.fits`). **Body cells only, and it cannot be otherwise.** Vanilla draws the trim
+itself, so a trim texture carries none of our marker texels — `ovvar.glsl` never sees it. That
+means two things: the squeeze to square pixels has to be baked in texel by texel by datagen, which
+costs about a column in sixteen on the body's faces but two in eight on a sleeve; and, the binding
+one, there is no `side` for the shader to hide it on the other limb by, so a trim for a cell on one
+arm would be drawn on *both* arms, one of the two mirrored. The body is one box and has no other
+limb to leak onto. A shoulder is therefore out of the channel too, even though a box's top face
+is the one place the squeeze would cost nothing (it is not on the strip's perimeter) — a shoulder
+patch reaches a viewer through the dye colour and then through the pack's own layer
+(`patch/shoulder_r/<patch>.png`), like any cell on a limb. Trims are material-tinted, so the palette is the identity and the
 art comes out as it is; the tooltip's trim line is hidden with the dye line. Everything else is sampled
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
@@ -655,7 +662,22 @@ The armour model draws the left arm and leg as mirror images of the right ones f
 texture strips, so vanilla can't show different art per side. The same shader detects mirrored
 fragments from the handedness of the texture mapping: on a base texture it samples the limb boxes
 one strip up, where datagen puts the mirrored left-side art; a placement texture is marked with
-its side and hidden on the other limb; the preview slots carry the side in their cell. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
+its side and hidden on the other limb; the preview slots carry the side in their cell.
+
+**The handedness is read with the sense of the kind of face the fragment is on.** A box's top and
+bottom faces unwrap the other way round from its four sides — u runs the same way round the box but
+v runs *across* it, from the back edge to the front, instead of down it, which is what puts the top
+face's last row against the front face's first — so texture-over-geometry handedness comes out with
+the opposite sign there and the same answer means the opposite thing. `OVVAR_MIRROR_SENSE` is the
+side faces' calibration and `OVVAR_TOP_FACE_SENSE` the top's; `mirrored` is computed from both,
+exactly once, and every path reads that one bool, so a top face and a side face can never disagree
+about which arm they are on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
+does not run in the game tests). Taking the side faces' sense on a top face is what made the
+wearer's right shoulder draw nothing in the first playtest of the shoulder cells: the unmirrored
+arm's top face read as mirrored, so the cell the shader only draws on unmirrored fragments was
+skipped on both arms. It had been latent in the base garment, where the two arms' shoulder cloth
+swapping over is invisible because it is the same cloth — it only shows on a chapter whose skin
+draws the two arms differently. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
 mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/` and worth linking from the website): double-clicked, it writes a

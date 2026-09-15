@@ -181,9 +181,10 @@ public final class GeneratedAssets implements DataProvider {
 			}
 		}
 
-		// The trim channel: one trim pattern per (chest or back cell, patch), the top's fourth
-		// instant patch. Vanilla draws trims, so the squeeze to square pixels (ovvar.glsl) is
-		// baked in here, to the texel — tolerable on the 16-pixel-wide chest and back faces.
+		// The trim channel: one trim pattern per (body cell, patch), the top's fourth instant patch.
+		// Vanilla draws trims, so the squeeze to square pixels (ovvar.glsl) is baked in here, to the
+		// texel — tolerable on the 16-pixel-wide chest and back faces. Body cells only: a trim
+		// carries no marker texel, so our shader cannot hide one on the other limb (Trims.fits).
 		List<String> trimTextures = new ArrayList<>();
 		for (Spot spot : Spot.values()) {
 			for (Patches.Patch patch : Patches.all()) {
@@ -539,6 +540,10 @@ public final class GeneratedAssets implements DataProvider {
 	 *      * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
 	 * box the way the shader does for a placement ({@link Spot#anchored}), baked texel by texel
 	 * — each column of the part's side rows shows the art column the shader would sample there.
+	 *
+	 * <p>Only body cells are ever asked for ({@link Trims#fits}), so this is only ever the body's
+	 * side rows; a cell on a box's top face would have nothing to bake (the top face is not on the
+	 * strip's perimeter, so the shader draws it texel for texel) but cannot be a trim anyway.
 	 */
 	private static Tex placedWrapped(Spot spot, Tex art, int x) {
 		Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it

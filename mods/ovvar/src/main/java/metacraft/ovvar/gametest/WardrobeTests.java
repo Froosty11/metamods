@@ -23,6 +23,7 @@ import metacraft.ovvar.store.WardrobeBackend;
 import metacraft.ovvar.store.Wardrobes;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.Trims;
 import metacraft.ovvar.pack.WardrobeArt;
 import metacraft.ovvar.pack.WardrobeFont;
 import metacraft.ovvar.pack.WardrobePreview;
@@ -1763,6 +1764,126 @@ public final class WardrobeTests {
 		}
 		}
 		helper.succeed();
+	}
+
+	/**
+	 * <b>Which arm a fragment is on is decided once, and with the sense of the kind of face it is
+	 * on.</b> The armour model draws the wearer's left limbs as mirror images off the right limb's
+	 * strips, so both arms' top faces are the very same texels and the only thing that can tell them
+	 * apart is the handedness of the texture over the geometry (`ovvar_handed`). A box's top and
+	 * bottom faces unwrap the other way round from its four sides — u runs the same way round the
+	 * box but v runs across it, back edge to front, instead of down it — so that handedness comes
+	 * out with the opposite sign there and the same answer means the opposite thing.
+	 * `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SENSE` the top's.
+	 *
+	 * <p>Getting it wrong is what made the wearer's right shoulder draw nothing: the unmirrored arm's
+	 * top face read as mirrored, so the cell the shader only draws on unmirrored fragments was
+	 * skipped on both arms. GLSL does not run in the game tests, so what is pinned here is the
+	 * structure that bug had — the sense read in one branch and not another. `mirrored` is computed
+	 * exactly once, from both senses, and `ovvar_handed` is read nowhere else outside the function
+	 * that sets it, so the base garment's mirror strip, a placement's "hide it on the other limb"
+	 * and the preview's cell sides cannot disagree about which arm they are on.
+	 */
+	@GameTest
+	public void everyPathTellsTheArmsApartTheSameWay(GameTestHelper helper) {
+		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
+		for (String constant : List.of("OVVAR_MIRROR_SENSE", "OVVAR_TOP_FACE_SENSE")) {
+			if (!glsl.contains("const bool " + constant + " =")) {
+				helper.fail("ovvar.glsl no longer declares " + constant + ", so nothing says which sign a face's mirroring has");
+			}
+		}
+		List<String> assignments = new ArrayList<>();
+		List<String> reads = new ArrayList<>();
+		for (String line : glsl.split("\n")) {
+			String code = line.contains("//") ? line.substring(0, line.indexOf("//")) : line;
+			if (!code.contains("ovvar_handed")) continue;
+			if (code.contains("bool ovvar_handed")) continue;   // the declaration, not an assignment
+			(code.contains("ovvar_handed =") ? assignments : reads).add(code.trim());
+		}
+		if (assignments.size() != 1) helper.fail("ovvar_handed is assigned " + assignments.size() + " time(s), wanted once: " + assignments);
+		// Every read of it: exactly one, the line that turns it into `mirrored` with both senses.
+		if (reads.size() != 1) {
+			helper.fail("ovvar_handed is read " + reads.size() + " times, wanted once — every path must tell the arms apart"
+					+ " through the one `mirrored`, or a top face and a side face can disagree: " + reads);
+		} else {
+			String read = reads.getFirst();
+			if (!read.contains("mirrored")) helper.fail("the one read of ovvar_handed does not compute `mirrored`: " + read);
+			if (!read.contains("OVVAR_TOP_FACE_SENSE") || !read.contains("sides")) {
+				helper.fail("`mirrored` does not read the handedness with the sense of the kind of face the fragment is on: " + read);
+			}
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The trim channel — the top's fourth instant patch, one trim pattern per (cell, patch), drawn by
+	 * vanilla — is the body's own box and nothing else, and datagen writes a pattern and a texture
+	 * for exactly those. The shoulders are <b>not</b> in it, which the playtest asked about: the
+	 * reason is not the squeeze (a box's top face is not on the strip's perimeter, so there would be
+	 * nothing to bake and a shoulder trim would be pixel-exact) but that a trim texture carries none
+	 * of our marker texels — asserted here — so {@code ovvar.glsl} never sees it, there is no
+	 * {@code side} to hide it on the other limb by, and a trim for a cell on one arm would be drawn
+	 * on both of them, one of the two mirrored. The body is one box and has no other limb to leak
+	 * onto. Nor is the channel the pack path: a shoulder goes through the pack as an ordinary
+	 * equipment layer ({@code EquipmentJson.layerTextures}), which is checked in the clipping test.
+	 */
+	@GameTest
+	public void theTrimChannelIsTheBodysOwnBoxAndVanillaDrawsItRaw(GameTestHelper helper) {
+		int patterns = 0, limbs = 0;
+		for (Spot spot : Spot.values()) {
+			for (Patches.Patch patch : Patches.all()) {
+				if (!patch.fits(spot)) continue;
+				Placement placement = new Placement(spot, patch);
+				boolean wanted = spot.piece == Piece.TOP && spot.side == Spot.Side.BODY;
+				if (Trims.fits(placement) != wanted) {
+					helper.fail(placement.key() + ": Trims.fits says " + Trims.fits(placement) + ", wanted " + wanted
+							+ " (the channel is the top half's body cells, vanilla drawing a limb cell's trim on both limbs)");
+				}
+				String name = Trims.patternName(placement);
+				boolean hasPattern = has("/data/" + metacraft.ovvar.Ovvar.MOD_ID + "/trim_pattern/" + name + ".json");
+				boolean hasTexture = has("/assets/" + metacraft.ovvar.Ovvar.MOD_ID + "/textures/trims/entity/" + spot.piece.layer + "/" + name + ".png");
+				if (hasPattern != wanted || hasTexture != wanted) {
+					helper.fail(placement.key() + ": trim pattern " + hasPattern + ", texture " + hasTexture + ", wanted " + wanted
+							+ " — datagen and Trims.fits disagree about the channel");
+				}
+				if (spot.side != Spot.Side.BODY) limbs++;
+				if (!wanted) continue;
+				patterns++;
+				// Why it can be the body only: vanilla draws this texture itself, so it carries none
+				// of the marker texels the shader would need to hide it on one limb of a pair — while
+				// the placement texture for the very same cell does carry them.
+				Tex trim = trimTexture(spot, placement);
+				if (Tex.a(trim.get(trim.width - 1, trim.height / 2 - 1)) != 0) {
+					helper.fail(name + " carries a marker texel; a trim is drawn by vanilla and must not look like one of ours");
+				}
+				Tex layer = generated(spot.piece, "patch/" + spot.id() + "/" + patch.id());
+				if (Tex.a(layer.get(layer.width - 1, layer.height / 2 - 1)) == 0) {
+					helper.fail(placement.key() + "'s placement texture has no marker texel, so the shader would not draw it at all");
+				}
+			}
+		}
+		if (patterns == 0) helper.fail("no trim patterns at all");
+		if (limbs == 0) helper.fail("no limb cell in the catalogue to check the channel keeps out");
+		helper.succeed();
+	}
+
+	/** A generated trim texture, off the runtime classpath. */
+	private static Tex trimTexture(Spot spot, Placement placement) {
+		String path = "/assets/" + metacraft.ovvar.Ovvar.MOD_ID + "/textures/trims/entity/" + spot.piece.layer + "/" + Trims.patternName(placement) + ".png";
+		try (var in = WardrobeTests.class.getResourceAsStream(path)) {
+			if (in == null) throw new IOException("missing " + path + " — run ./gradlew runDatagen");
+			return Tex.read(in);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	private static boolean has(String path) {
+		try (var in = WardrobeTests.class.getResourceAsStream(path)) {
+			return in != null;
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	/**
