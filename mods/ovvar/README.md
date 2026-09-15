@@ -25,7 +25,14 @@ across it). The catalogue holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Da
 (`Patches.java`): ITK, IT and Data are 12×12 and hang over their neighbours (IT is the PolymITer
 set's 16×16 brought down to 12: the diamond rebuilt at that size, the bolt sampled from the
 original); Rivals is the seat patch — Data's cerise with a creeper against IT's laser violet with
-a VS — and Nyckeln'26 is Kexana's cell-sized 8×8. Sewing: put the ovve on
+a VS — and Nyckeln'26 is Kexana's cell-sized 8×8. Seat art is drawn as seen from behind, the only
+way anybody sees a seat, so it reads across the figure the way it was drawn: the art's left half
+goes on the wearer's left leg, which is the leg at the viewer's left from behind
+(`Spot.seatColumn`). The armour model draws that leg as a mirror image off the right leg's strips,
+so each of the three paths that draw a seat has to mirror its half back — the pack's `_l` texture
+is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
+paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
+Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
 names it, right-click sews it on; sneak to aim at the far face of the part you look at

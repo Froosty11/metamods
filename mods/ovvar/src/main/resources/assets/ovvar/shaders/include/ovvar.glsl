@@ -39,6 +39,12 @@ vec4 ovvar_read(float x, float y) {
 // builds its vertex data (the same on every platform); calibrated once against a known garment.
 const bool OVVAR_MIRROR_SENSE = true;
 
+// Which half of a seat patch's art the unmirrored (the wearer's right) leg wears: Spot.seatColumn's
+// RIGHT value, which a game test holds this to. Seat art is drawn as seen from behind, where the
+// wearer's right leg is on the viewer's right, so the right leg takes the art's RIGHT half (column
+// 1) and the mirrored left leg the other one.
+const float OVVAR_SEAT_COLUMN_RIGHT = 1.0;
+
 bool ovvar_marked() {
 	return all(equal(ovvar_read(OVVAR_MARKER.x, OVVAR_MARKER.y), vec4(255.0, 0.0, 255.0, 2.0)));
 }
@@ -277,7 +283,9 @@ vec2 ovvar_uv(vec2 uv) {
 		if (side < 0.5) { if (limb) continue; }
 		else if (side < 1.5) { if (!limb || mirrored) continue; }
 		else if (side < 2.5) { if (!limb || !mirrored) continue; flip = true; }
-		else { if (!limb) continue; if (mirrored) { column = 1.0; flip = true; } }   // seat: one half per leg
+		// Seat: one half per leg. The unmirrored (right) leg takes OVVAR_SEAT_COLUMN_RIGHT, the
+		// mirrored (left) leg the other half, flipped back the way the art was drawn.
+		else { if (!limb) continue; column = mirrored ? 1.0 - OVVAR_SEAT_COLUMN_RIGHT : OVVAR_SEAT_COLUMN_RIGHT; flip = mirrored; }
 		// The art, centred on its cell (a seat patch: one cell per leg), looked up on the side
 		// rows through the mapping a placement of its face gets — continuous round the box, so
 		// a big patch bends round the corners here just as it will once the pack has it.

@@ -1210,6 +1210,105 @@ public final class WardrobeTests {
 		helper.succeed();
 	}
 
+	/**
+	 * The seat's halves sit on the leg the art was drawn for — pinned to the <b>art</b>, not to
+	 * {@link Spot#seatHalf}, which is the cut itself and would agree with a swap of its own making.
+	 *
+	 * <p>Seat art is drawn as seen from behind, where the wearer's left leg is the one at the
+	 * viewer's left, so the art's left half belongs on the wearer's left leg. The model draws that
+	 * leg as a mirror image off the right leg's strips, so the {@code _l} texture must hold the
+	 * art's left half flipped in x and {@code _r} the right half as it is. Both are checked whole
+	 * and then again at one distinctive pixel — a pixel of the art where the two halves disagree,
+	 * which is exactly the pixel a swap would move to the other leg.
+	 *
+	 * <p>The instant path cannot be drawn without a client, so what is pinned here is its constant:
+	 * {@code OVVAR_SEAT_COLUMN_RIGHT} in {@code ovvar.glsl} must be {@link Spot#seatColumn}'s RIGHT
+	 * value, which is the whole of what the shader's seat branch decides.
+	 */
+	@GameTest
+	public void seatHalvesSitOnTheLegTheArtWasDrawnFor(GameTestHelper helper) {
+		int seats = 0;
+		for (Patches.Patch patch : Patches.all()) {
+			if (!patch.seat()) continue;
+			seats++;
+			Tex art = patchArt(patch);
+			int half = art.width / 2;
+			Tex artLeft = art.crop(0, 0, half, art.height), artRight = art.crop(half, 0, half, art.height);
+			int[] tell = firstDifference(artLeft, artRight);
+			if (tell == null) {
+				helper.fail(patch.id() + "'s two halves are identical, so this test could not tell a swap from a correct cut");
+				continue;
+			}
+			// What the pack really draws on each leg: the cell out of the generated placement texture.
+			Tex onRight = seatCell(patch, Spot.Side.RIGHT), onLeft = seatCell(patch, Spot.Side.LEFT);
+			if (!same(onRight, artRight)) {
+				helper.fail(patch.id() + ": the wearer's right leg (_r) is not the art's right half — the seat halves are swapped");
+			}
+			if (!same(onLeft, artLeft.flipX())) {
+				helper.fail(patch.id() + ": the wearer's left leg (_l) is not the art's left half mirrored — the seat halves are swapped");
+			}
+			// The distinctive pixel, said plainly: on the wearer's left leg, at the column the model's
+			// mirroring puts it in, the art's LEFT half is what shows.
+			int wanted = artLeft.get(tell[0], tell[1]), got = onLeft.get(half - 1 - tell[0], tell[1]);
+			if (got != wanted) {
+				helper.fail(patch.id() + ": at art pixel (" + tell[0] + ", " + tell[1] + ") the wearer's left leg shows " + Integer.toHexString(got)
+						+ ", but the art's left half has " + Integer.toHexString(wanted) + " there (and its right half " + Integer.toHexString(artRight.get(tell[0], tell[1])) + ")");
+			}
+		}
+		if (seats == 0) helper.fail("no seat patch in the catalogue to check");
+		// And the instant path's half of the same convention.
+		String glsl = resource("/assets/ovvar/shaders/include/ovvar.glsl");
+		var matcher = java.util.regex.Pattern.compile("OVVAR_SEAT_COLUMN_RIGHT\\s*=\\s*([0-9.]+)").matcher(glsl);
+		if (!matcher.find()) {
+			helper.fail("ovvar.glsl no longer declares OVVAR_SEAT_COLUMN_RIGHT, so nothing pins the instant path's seat halves");
+		} else {
+			int shader = (int) Double.parseDouble(matcher.group(1));
+			if (shader != Spot.seatColumn(Spot.Side.RIGHT)) {
+				helper.fail("ovvar.glsl draws the art's column " + shader + " on the unmirrored leg, Spot.seatColumn says " + Spot.seatColumn(Spot.Side.RIGHT));
+			}
+		}
+		helper.succeed();
+	}
+
+	/** The cell of a seat patch's generated placement texture for one leg, as the client draws it. */
+	private static Tex seatCell(Patches.Patch patch, Spot.Side side) {
+		String name = "patch/seat/" + patch.id() + (side == Spot.Side.LEFT ? "_l" : "_r");
+		Tex tex = generated(Piece.BOTTOM, name);
+		return tex.crop(Spot.SEAT.u * Spot.DETAIL, Spot.SEAT.v * Spot.DETAIL, Spot.PX, Spot.PX);
+	}
+
+	/** A generated equipment layer texture, off the runtime classpath (datagen has to have run). */
+	private static Tex generated(Piece piece, String name) {
+		String path = "/assets/" + metacraft.ovvar.Ovvar.MOD_ID + "/textures/entity/equipment/" + piece.layer + "/" + name + ".png";
+		try (var in = WardrobeTests.class.getResourceAsStream(path)) {
+			if (in == null) throw new IOException("missing " + path + " — run ./gradlew runDatagen");
+			return Tex.read(in);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	private static String resource(String path) {
+		try (var in = WardrobeTests.class.getResourceAsStream(path)) {
+			if (in == null) throw new IOException("missing " + path);
+			return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	private static boolean same(Tex a, Tex b) {
+		if (a.width != b.width || a.height != b.height) return false;
+		for (int y = 0; y < a.height; y++) for (int x = 0; x < a.width; x++) if (a.get(x, y) != b.get(x, y)) return false;
+		return true;
+	}
+
+	/** The first pixel, reading rows, where two same-sized images disagree; null if they never do. */
+	private static int @org.jspecify.annotations.Nullable [] firstDifference(Tex a, Tex b) {
+		for (int y = 0; y < a.height; y++) for (int x = 0; x < a.width; x++) if (a.get(x, y) != b.get(x, y)) return new int[]{x, y};
+		return null;
+	}
+
 	private static Tex patchArt(Patches.Patch patch) {
 		try (var in = WardrobeTests.class.getResourceAsStream("/art/ovvar/patches/" + patch.id() + ".png")) {
 			if (in == null) throw new IOException("no art for " + patch.id());

@@ -135,14 +135,42 @@ public enum Spot implements StringRepresentable {
 	}
 
 	/**
-	 * Where a seat patch's art is cut for one leg: the x its half starts at. Seat art is drawn as
-	 * seen from behind — the only way anybody sees a seat — so the art's left half is the wearer's
-	 * LEFT leg, which is the viewer's left from behind, and its right half their right leg. Datagen
-	 * cuts the two placement textures with this; the wardrobe preview reads it to know which half of
-	 * the art a leg carries.
+	 * Which half of a seat patch's art a leg wears, as a column across the art: 0 the art's left
+	 * half, 1 its right half.
+	 *
+	 * <p><b>Which half.</b> Seat art is drawn as seen from behind — the only way anybody sees a
+	 * seat. Standing behind the wearer you face the way they face, so their left leg is the one on
+	 * <em>your</em> left: the art's left half belongs on the wearer's LEFT leg and its right half on
+	 * their right.
+	 *
+	 * <p><b>Which leg is drawn mirrored.</b> The armour model draws the wearer's LEFT limbs as
+	 * mirror images off the right limb's strips, so each of the three paths has to say two things —
+	 * which half of the art a leg takes, and whether that half must be flipped in x to come out the
+	 * way it was drawn:
+	 * <ul>
+	 *   <li><b>The pack path</b> (datagen, {@code patch/seat/<id>_r.png} and {@code _l.png}, what
+	 *	   shows once {@link metacraft.ovvar.pack.Combos} has the combination): {@code _r} carries
+	 *	   the art's right half as drawn, because the right leg is not mirrored; {@code _l} carries
+	 *	   the art's left half <em>flipped in x</em>, because the model flips the left leg's texture
+	 *	   back when it draws it.
+	 *   <li><b>The instant path</b> (the dye bits and the shader's library, {@code ovvar.glsl}): the
+	 *	   shader tells a left-leg fragment by the handedness of its texture mapping
+	 *	   ({@code mirrored}). A mirrored fragment reads column {@code seatColumn(LEFT)} of the
+	 *	   library art and mirrors {@code local.x} back; an unmirrored one reads column
+	 *	   {@code seatColumn(RIGHT)} as it is. {@code OVVAR_SEAT_COLUMN_RIGHT} in the shader is this
+	 *	   method's RIGHT value, and a game test holds the two to each other.
+	 *   <li><b>The wardrobe preview</b> ({@code WardrobePreview.shownArt}): the doll lays the two
+	 *	   legs out in the order the back view puts them and gives each the slice of the art at its
+	 *	   own place across the figure — the same statement again, arrived at without reading this.
+	 * </ul>
 	 */
+	public static int seatColumn(Side side) {
+		return side == Side.LEFT ? 0 : 1;
+	}
+
+	/** Where a seat patch's art is cut for one leg: the x its half starts at, in art pixels. */
 	public static int seatHalf(Side side) {
-		return side == Side.LEFT ? 0 : PX;
+		return seatColumn(side) * PX;
 	}
 
 	/** The cells a seat patch covers, which a seat patch and a plain patch fight over. */

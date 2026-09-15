@@ -160,7 +160,7 @@ public final class GeneratedAssets implements DataProvider {
 				if (spot == Spot.SEAT) {
 					// The art is drawn as seen from behind, so its left half sits on the wearer's LEFT leg
 					// (the viewer's left when looking at the seat) and the right half on the right leg:
-					// Spot.seatHalf is that cut, which the wardrobe preview reads too.
+					// Spot.seatColumn is that convention and Spot.seatHalf the cut it makes.
 					Tex r = Tex.blank(W, H).blit(art, Spot.seatHalf(Spot.Side.RIGHT), 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
 					Tex l = Tex.blank(W, H).blit(art, Spot.seatHalf(Spot.Side.LEFT), 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D)
 							.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);   // the model mirrors the left leg
