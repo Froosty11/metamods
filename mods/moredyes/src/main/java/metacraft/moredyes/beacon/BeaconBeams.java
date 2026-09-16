@@ -1,6 +1,6 @@
 package metacraft.moredyes.beacon;
 
-import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import metacraft.moredyes.MoreDyes;
@@ -19,6 +19,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -176,9 +178,26 @@ public final class BeaconBeams {
 		return 0xFF000000 | dye.getTextureDiffuseColor();
 	}
 
-	/** What a vanilla client is normally sent for a block; the "near" look for our glass. */
-	public static BlockState clientState(BlockState state) {
-		return state.getBlock() instanceof PolymerBlock polymer ? polymer.getPolymerBlockState(state, null) : state;
+	/**
+	 * <b>Never pre-map a state into a block update packet.</b> Polymer maps every {@code BlockState}
+	 * written to a packet at encode time, per player
+	 * ({@code ByteBufCodecsEntriesMixin} on {@code Block.BLOCK_STATE_REGISTRY} →
+	 * {@code PolymerBlockUtils.getPolymerBlockState} → {@code BlockMapper}), so a resend has to carry
+	 * the <i>server</i> state exactly like vanilla's own block updates do.
+	 *
+	 * Handing it a state that is already a donor does not pass through, it maps a second time and
+	 * lands somewhere else: {@code BlockExtBlockMapper.toClientSideState} sends anything that is not
+	 * one of our {@code PolymerTexturedBlock}s through its {@code stateMap}, and
+	 * {@code BlockResourceCreator.requestBlockImpl} fills that map with an entry per donor pointing at
+	 * the look for a client <i>without</i> the pack — for a leaves donor
+	 * {@code defaultBlockState().setValue(PERSISTENT, true)}, which {@code DefaultModelData} keeps out
+	 * of the pool on purpose so no model is ever attached to it. That is why our glass by the beacon
+	 * came out a plain leaf while the same block placed anywhere else was fine.
+	 *
+	 * @return whether Polymer maps {@code state} to itself, i.e. it is safe to put in a packet as-is
+	 */
+	public static boolean isClientSafe(BlockState state) {
+		return PolymerBlockUtils.getPolymerBlockState(state, null) == state;
 	}
 
 	/**
@@ -218,6 +237,46 @@ public final class BeaconBeams {
 	 */
 	public static Identifier beamModel(Identifier model, int blocks) {
 		return model.withSuffix("_" + blocks);
+	}
+
+	/** One drawn segment: {@code blocks} tall, sitting {@code fromBeacon} blocks above the beacon. */
+	public record Slice(int color, int fromBeacon, int blocks) {}
+
+	/**
+	 * Cut the walk's sections into segments, bottom up — the beam's whole geometry, as a pure
+	 * function of the walk, so a test can assert it without a client.
+	 *
+	 * Each segment is a power of two blocks up to {@value #SEGMENT_BLOCKS}, largest first, because the
+	 * repeat count is baked into each model's texture and only those sizes have one: a 3-block section
+	 * is a 2 and a 1, each showing the pattern once per block. Like vanilla's {@code BeaconRenderer},
+	 * which draws the last section with height 2048 whatever the walk said, the last section is
+	 * stretched to {@code toSky} — rounded down to whole segments, and never past what the pool can
+	 * draw.
+	 *
+	 * @param pool  how many segments there are to spend
+	 * @param toSky blocks above the beacon's own bottom the beam should reach
+	 */
+	public static List<Slice> slice(List<BeamWalk.Section> sections, int pool, int toSky) {
+		List<Slice> slices = new ArrayList<>();
+		int offset = 0; // blocks above the beacon block's own bottom
+		for (int i = 0; i < sections.size() && slices.size() < pool; i++) {
+			BeamWalk.Section section = sections.get(i);
+			int left = (pool - slices.size()) * SEGMENT_BLOCKS;
+			int height = section.height();
+			if (i == sections.size() - 1) {
+				int reach = Math.min(Math.max(toSky - offset, 0), left);
+				// Whole segments only: a tail of 8 + 4 + 2 + 1 would spend four of them on 15 blocks.
+				height = Math.max(height, reach - reach % SEGMENT_BLOCKS);
+			}
+			height = Math.min(height, left);
+			while (height > 0 && slices.size() < pool) {
+				int blocks = Integer.highestOneBit(Math.min(height, SEGMENT_BLOCKS));
+				slices.add(new Slice(section.color(), offset, blocks));
+				offset += blocks;
+				height -= blocks;
+			}
+		}
+		return List.copyOf(slices);
 	}
 
 	/**

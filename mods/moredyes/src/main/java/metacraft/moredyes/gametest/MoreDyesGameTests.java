@@ -414,19 +414,61 @@ public final class MoreDyesGameTests {
 	}
 
 	/**
-	 * The block update a near player is sent for our glass is the very state Polymer puts in chunk
-	 * data for it — the one the generated pack has a blockstate override for. If these two ever come
-	 * apart, a near player sees a bare donor (a plain azalea leaf) where the rest of the world sees
-	 * our glass, and nothing on the server would otherwise notice.
+	 * What the holder resends has to be the <b>server</b> state, because Polymer maps every
+	 * {@code BlockState} written to a packet on its way out. Handing it a donor does not pass through:
+	 * {@code BlockExtBlockMapper} runs anything that is not one of ours through the map
+	 * {@code BlockResourceCreator} fills with each donor's no-pack look, so a pre-mapped resend lands
+	 * on a bare leaf. This pins both halves: our glass maps to a donor, and that donor does not
+	 * survive a second pass, while everything else the holder sends does.
 	 */
 	@GameTest
-	public void beaconNearResendIsThePolymerState(GameTestHelper helper) {
+	public void beaconResendMustCarryTheServerState(GameTestHelper helper) {
 		BlockState ours = block(Family.STAINED_GLASS).defaultBlockState();
-		BlockState sent = BeaconBeams.clientState(ours);
-		BlockState chunk = PolymerBlockUtils.getPolymerBlockState(ours, null);
-		helper.assertTrue(sent == chunk, "resend " + sent + " is not the chunk mapping " + chunk);
-		helper.assertTrue(!(sent.getBlock() instanceof PolymerBlock),
-				"resent state is one of ours, not a donor a vanilla client can hold: " + sent);
+		BlockState donor = PolymerBlockUtils.getPolymerBlockState(ours, null);
+		helper.assertTrue(donor != ours && !(donor.getBlock() instanceof PolymerBlock),
+				"our glass does not map to a vanilla donor: " + donor);
+		helper.assertTrue(!BeaconBeams.isClientSafe(donor),
+				"Polymer now passes an already-mapped donor through (" + donor
+						+ "); the double-mapping trap the holder avoids is gone and this can be dropped");
+		// The states the holder puts in packets itself, which have to survive Polymer untouched.
+		for (BlockState state : List.of(Blocks.BARRIER.defaultBlockState(),
+				Blocks.BEACON.defaultBlockState(), Blocks.STAINED_GLASS.pick(DyeColor.PINK).defaultBlockState())) {
+			helper.assertTrue(BeaconBeams.isClientSafe(state), "the holder sends " + state
+					+ ", which Polymer re-maps to " + PolymerBlockUtils.getPolymerBlockState(state, null));
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The beam's geometry for the column the spike is verified with: a beacon, two blocks of air, our
+	 * glass. White has to start at the beacon's own bottom and cover all three blocks before the
+	 * colour starts — the base of the beam is white in vanilla and has to be white here.
+	 */
+	@GameTest
+	public void beaconBeamLayout(GameTestHelper helper) {
+		int white = 0xFF000000 | DyeColor.WHITE.getTextureDiffuseColor();
+		int ours = first().argb();
+		List<BeaconBeams.Slice> slices = BeaconBeams.slice(
+				List.of(new BeamWalk.Section(white, 3), new BeamWalk.Section(ours, 1)), 4, 64);
+
+		helper.assertTrue(slices.size() == 4, "expected a full pool of segments: " + slices);
+		// 3 blocks of white is a 2 and a 1: only powers of two have a model, and each one shows the
+		// beam pattern once per block.
+		helper.assertTrue(slices.get(0).equals(new BeaconBeams.Slice(white, 0, 2)), "first: " + slices);
+		helper.assertTrue(slices.get(1).equals(new BeaconBeams.Slice(white, 2, 1)), "second: " + slices);
+		helper.assertTrue(slices.get(2).equals(new BeaconBeams.Slice(ours, 3, 16)), "third: " + slices);
+		helper.assertTrue(slices.get(3).equals(new BeaconBeams.Slice(ours, 19, 16)), "fourth: " + slices);
+
+		// The same read as tuples: no gaps, no overlaps, white from the beacon's bottom up to the glass.
+		int next = 0;
+		for (BeaconBeams.Slice slice : slices) {
+			helper.assertTrue(slice.fromBeacon() == next, "gap or overlap at " + slice + " in " + slices);
+			helper.assertTrue(Integer.bitCount(slice.blocks()) == 1
+					&& slice.blocks() <= BeaconBeams.SEGMENT_BLOCKS, "bad segment height: " + slice);
+			helper.assertTrue((slice.fromBeacon() < 3) == (slice.color() == white),
+					"the first three blocks are not the white section: " + slices);
+			next += slice.blocks();
+		}
 		helper.succeed();
 	}
 

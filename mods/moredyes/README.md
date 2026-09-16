@@ -204,18 +204,29 @@ Things a client would have to confirm, which no server-side test can: whether a 
 culled despite `setDisplaySize(0, 0)` and `setViewRange(4)`, and whether a second of interpolation
 per element really reads as a continuous spin at the top of a long beam.
 
-**Our glass showing as a plain leaf next to the beacon is not this code.** The state `hide()` resends
-is `PolymerBlock#getPolymerBlockState(state, null)` — the same call, and for our glass the same
-answer whatever the context, as Polymer's own chunk path makes
-(`PalettedContainerDataMixin` → `PolymerBlockUtils.getPolymerBlockState`), and the generated pack's
-`assets/minecraft/blockstates/azalea_leaves.json` overrides exactly those donor variants
-(`distance=1,persistent=false` is cerise, `persistent=true` is laserviolet). Polymer does not re-map
-a packet that already carries a vanilla state (`BlockStateMixin` only patches states whose block is
-a `PolymerBlock`), and the client cannot drift off the donor either: in 26.3 `LeavesBlock.updateShape`
-returns the state unchanged and only schedules a tick, and `ClientLevel` black-holes scheduled ticks,
-so the neighbour updates the barrier triggers cannot rewrite `distance`. `beaconNearResendIsThePolymerState`
-pins the first half of that. What is left is the pack: a client that joined with a **stale or
-declined** pack has vanilla's `azalea_leaves.json`, and every donor state in it is a plain leaf.
+**Never pre-map a state into a block update packet.** Our glass by the beacon rendered as a bare
+azalea leaf while the same block placed anywhere else was fine, because `hide()` resent the *donor*
+state instead of the server state. Polymer maps every `BlockState` written to a packet on its way
+out, per player (`ByteBufCodecsEntriesMixin` on `Block.BLOCK_STATE_REGISTRY` →
+`PolymerBlockUtils.getPolymerBlockState` → `BlockMapper`), so a donor handed back to it is mapped a
+**second** time — and the second pass is not the identity. `BlockExtBlockMapper.toClientSideState`
+sends anything that is not one of our `PolymerTexturedBlock`s through its `stateMap`, which
+`BlockResourceCreator.requestBlockImpl` fills with one entry per donor pointing at that donor's look
+for a client *without* the pack: for a leaves donor, `defaultBlockState().setValue(PERSISTENT, true)`
+— a state `DefaultModelData.generateDefault` deliberately removes from the pool, so the pack never
+gives it a model. The client stacks blockstate definitions (`BlockStateModelLoader` `putAll`s each
+pack's variants into one map), so that state keeps *vanilla's* leaf model and our glass becomes a
+leaf. The fix is to send `level.getBlockState(pos)` and let Polymer map it once, exactly as vanilla's
+own block updates do; `send()` now logs an error for any state Polymer would re-map, and
+`beaconResendMustCarryTheServerState` pins it.
+
+**A white base one block tall is the column, not the layout.** `BeamWalk` is vanilla's walk quirk for
+quirk, so the first section is as tall as the gap between the beacon and the first colour — and
+vanilla, like us, draws section 0 from the beacon block's own bottom, where the beacon hides it. A
+beam logged as `241 block(s), 16 of 16 segments` can only be a 1-block white section (1 + 15 × 16);
+3 blocks of white would log 227 (2 + 1 + 14 × 16). The layout log now prints every segment as
+`+offset h height #colour` so the column is readable straight off the server log, and
+`beaconBeamLayout` asserts the tuples for the three-block case.
 
 Known rough edges: panes in the column contribute their colour to the walk but are not swapped for
 far players (glass only); a section whose height is not a power of two spends up to four segments on

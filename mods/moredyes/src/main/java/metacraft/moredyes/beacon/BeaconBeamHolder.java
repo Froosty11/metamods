@@ -1,5 +1,7 @@
 package metacraft.moredyes.beacon;
 
+import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
@@ -272,41 +274,28 @@ public final class BeaconBeamHolder extends ElementHolder {
 	// ------------------------------------------------------------------ geometry
 
 	/**
-	 * Fill the segment pool from the sections, bottom up. Vanilla's {@code BeaconRenderer} draws the
-	 * last section with height 1024 whatever the walk said, so the beam always reaches the sky; we do
-	 * the same, but bounded — up to the world's build height plus {@value BeaconBeams#SKY_MARGIN}, and
-	 * never more than the pool can draw.
-	 *
-	 * A section is cut into segments of a power of two blocks, largest first — up to
-	 * {@value BeaconBeams#SEGMENT_BLOCKS}, which is what the sky extension is rounded to. Only those
-	 * heights have a beam model, because the repeat count is baked into each model's texture, and
-	 * cutting to them keeps every segment showing the pattern exactly once per block: a 13-block
-	 * section is 8 + 4 + 1, not one segment with its pattern squeezed 13 times over.
+	 * Fill the segment pool from {@link BeaconBeams#slice}, which owns the geometry, and blank the
+	 * segments it did not need. The sky the last section is stretched to is the world's build height
+	 * plus {@value BeaconBeams#SKY_MARGIN}, measured from the beacon's own bottom.
 	 */
 	private void layout() {
-		int used = 0;
-		int offset = 0; // blocks above the beacon block's own bottom
-		for (int i = 0; i < sections.size() && used < segments.length; i++) {
-			BeamWalk.Section section = sections.get(i);
-			int blocksLeftInPool = (segments.length - used) * BeaconBeams.SEGMENT_BLOCKS;
-			int height = section.height();
-			if (i == sections.size() - 1) {
-				int toSky = level.getMaxY() + 1 + BeaconBeams.SKY_MARGIN - (pos.getY() + offset);
-				int reach = Math.min(toSky, blocksLeftInPool);
-				// Whole segments only: a tail of 8 + 4 + 2 + 1 would spend four of them on 15 blocks.
-				height = Math.max(height, reach - reach % BeaconBeams.SEGMENT_BLOCKS);
-			}
-			height = Math.min(height, blocksLeftInPool);
-			while (height > 0 && used < segments.length) {
-				int slice = Integer.highestOneBit(Math.min(height, BeaconBeams.SEGMENT_BLOCKS));
-				segments[used++].show(section.color(), offset, slice);
-				offset += slice;
-				height -= slice;
-			}
+		int toSky = level.getMaxY() + 1 + BeaconBeams.SKY_MARGIN - pos.getY();
+		List<BeaconBeams.Slice> slices = BeaconBeams.slice(sections, segments.length, toSky);
+		for (int i = 0; i < slices.size(); i++) {
+			BeaconBeams.Slice slice = slices.get(i);
+			segments[i].show(slice.color(), slice.fromBeacon(), slice.blocks());
 		}
-		for (int i = used; i < segments.length; i++) segments[i].hide();
-		MoreDyes.LOGGER.info("[{}] beacon {} beam: {} section(s), {} block(s), {} of {} segments",
-				MoreDyes.MOD_ID, pos, sections.size(), offset, used, segments.length);
+		for (int i = slices.size(); i < segments.length; i++) segments[i].hide();
+		// The tuples, not just the totals: a beam whose first section is a block tall is a column with
+		// our glass right on the beacon, not a layout that dropped it.
+		StringBuilder shape = new StringBuilder();
+		for (BeaconBeams.Slice slice : slices) {
+			shape.append(shape.isEmpty() ? "" : " ").append('+').append(slice.fromBeacon())
+					.append('h').append(slice.blocks()).append('#')
+					.append(Integer.toHexString(slice.color() & 0xFFFFFF));
+		}
+		MoreDyes.LOGGER.info("[{}] beacon {} beam: {} section(s) {}, {} of {} segments: {}",
+				MoreDyes.MOD_ID, pos, sections.size(), sections, slices.size(), segments.length, shape);
 	}
 
 	// ------------------------------------------------------------------ near/far
@@ -337,9 +326,11 @@ public final class BeaconBeamHolder extends ElementHolder {
 		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 1);
 		packets.add(new ClientboundBlockUpdatePacket(pos, Blocks.BARRIER.defaultBlockState()));
 		for (BlockPos p : ours) {
-			packets.add(new ClientboundBlockUpdatePacket(p, BeaconBeams.clientState(level.getBlockState(p))));
+			// The server state, not its donor: Polymer maps every state written to a packet, and a
+			// donor handed back to it maps a second time into its no-pack look. See isClientSafe.
+			packets.add(new ClientboundBlockUpdatePacket(p, level.getBlockState(p)));
 			BlockPos above = p.above();
-			packets.add(new ClientboundBlockUpdatePacket(above, BeaconBeams.clientState(level.getBlockState(above))));
+			packets.add(new ClientboundBlockUpdatePacket(above, level.getBlockState(above)));
 		}
 		send(player, packets);
 	}
@@ -356,7 +347,7 @@ public final class BeaconBeamHolder extends ElementHolder {
 		for (BlockPos p : ours) {
 			BlockState state = level.getBlockState(p);
 			if (!(state.getBlock() instanceof GlassBlocks.Glass glass)) {
-				packets.add(new ClientboundBlockUpdatePacket(p, BeaconBeams.clientState(state)));
+				packets.add(new ClientboundBlockUpdatePacket(p, state)); // server state; Polymer maps it
 				continue;
 			}
 			BlockPos above = p.above();
@@ -374,6 +365,15 @@ public final class BeaconBeamHolder extends ElementHolder {
 			MoreDyes.LOGGER.error("[{}] beacon {} tried to resend blocks off the server thread",
 					MoreDyes.MOD_ID, pos);
 			return;
+		}
+		for (ClientboundBlockUpdatePacket packet : packets) {
+			BlockState state = packet.getBlockState();
+			// A state Polymer does not map to itself is one it will map again on the way out, which
+			// puts a block we never chose on the client. Ours have to be sent as server states.
+			if (state.getBlock() instanceof PolymerBlock || BeaconBeams.isClientSafe(state)) continue;
+			MoreDyes.LOGGER.error("[{}] beacon {} would resend {} at {}, which Polymer re-maps to {}",
+					MoreDyes.MOD_ID, pos, state, packet.getPos(),
+					PolymerBlockUtils.getPolymerBlockState(state, null));
 		}
 		for (ClientboundBlockUpdatePacket packet : packets) player.connection.send(packet);
 	}
