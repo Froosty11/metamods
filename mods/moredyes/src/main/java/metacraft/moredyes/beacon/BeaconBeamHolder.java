@@ -16,7 +16,9 @@ import net.minecraft.util.Brightness;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jspecify.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -60,6 +62,18 @@ public final class BeaconBeamHolder extends ElementHolder {
 	private static final float VIEW_RANGE = 4.0f; // Display renders within viewRange * 64 blocks
 	/** Beyond this the player is not tracking the column at all and is not worth a packet. */
 	private static final int TRACKING_RANGE = 512;
+	/** How far up the column to look for somewhere to put the ghost light. */
+	private static final int LIGHT_REACH = 4;
+	/**
+	 * The ghost light a near player gets in place of the beacon's own. A real beacon emits light 15;
+	 * the barrier we show instead emits nothing, and a client runs its own block-light engine on
+	 * every update it is sent ({@code Level.markAndNotifyBlock} → {@code lightEngine.checkBlock}),
+	 * so the barrier drops the whole neighbourhood into the dark. {@code minecraft:light} is the one
+	 * vanilla block that is pure light: emission 15, no collision, and no model at all unless the
+	 * player is holding a light item.
+	 */
+	private static final BlockState LIGHT = Blocks.LIGHT.defaultBlockState()
+			.setValue(LightBlock.LEVEL, 15).setValue(LightBlock.WATERLOGGED, false);
 
 	private final ServerLevel level;
 	private final BlockPos pos;
@@ -72,6 +86,8 @@ public final class BeaconBeamHolder extends ElementHolder {
 	private float spin;
 	private List<BeamWalk.Section> sections = List.of();
 	private List<BlockPos> ours = List.of();
+	/** Logged once: there was nowhere to put the ghost light, so near players get an unlit beacon. */
+	private boolean lightWarned;
 	/** Last known side of the boundary per player, so only crossings cost packets. */
 	private final Map<UUID, Boolean> side = new HashMap<>();
 	/** Players Polymer just attached, to be caught up on the next tick (filled off-thread). */
@@ -310,6 +326,11 @@ public final class BeaconBeamHolder extends ElementHolder {
 		layout();
 	}
 
+	/** Test seam: where the ghost light would go for a near player, or null if there is no room. */
+	public @Nullable BlockPos lightPosition() {
+		return lightPos();
+	}
+
 	/** Test seam: the two elements of pool segment {@code index}, opaque core first. */
 	public ItemDisplayElement[] segmentElements(int index) {
 		return new ItemDisplayElement[]{segments[index].core, segments[index].glow};
@@ -335,12 +356,35 @@ public final class BeaconBeamHolder extends ElementHolder {
 	}
 
 	/**
+	 * Where a near player's ghost light goes: the first air block above the beacon, normally the one
+	 * directly on top of it, inside the beam column. Null when the column is packed solid that far
+	 * up, in which case the beacon stays unlit for near players and says so once — a ghost light
+	 * never stands in for a block that is really there.
+	 */
+	private @Nullable BlockPos lightPos() {
+		for (int i = 1; i <= LIGHT_REACH; i++) {
+			BlockPos above = pos.above(i);
+			if (level.getBlockState(above).isAir()) return above;
+		}
+		if (!lightWarned) {
+			lightWarned = true;
+			MoreDyes.LOGGER.warn("[{}] beacon {}: no air within {} blocks above it, so near players get"
+					+ " no ghost light and the beacon does not light its surroundings for them",
+					MoreDyes.MOD_ID, pos, LIGHT_REACH);
+		}
+		return null;
+	}
+
+	/**
 	 * Near: barrier where the beacon is (the block display draws it), our glass as it always is. The
 	 * block above each of ours goes back too — {@link #restore} may have put a ghost glass there, and
 	 * only resending its real state gets rid of it.
+	 *
+	 * The ghost light comes last, after the barrier that made the client recompute the block light
+	 * away: the client applies these in order, so the light has to be the last word.
 	 */
 	private void hide(ServerPlayer player) {
-		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 1);
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 2);
 		packets.add(new ClientboundBlockUpdatePacket(pos, Blocks.BARRIER.defaultBlockState()));
 		for (BlockPos p : ours) {
 			// The server state, not its donor: Polymer maps every state written to a packet, and a
@@ -349,6 +393,8 @@ public final class BeaconBeamHolder extends ElementHolder {
 			BlockPos above = p.above();
 			packets.add(new ClientboundBlockUpdatePacket(above, level.getBlockState(above)));
 		}
+		BlockPos light = lightPos();
+		if (light != null) packets.add(new ClientboundBlockUpdatePacket(light, LIGHT));
 		send(player, packets);
 	}
 
@@ -356,11 +402,15 @@ public final class BeaconBeamHolder extends ElementHolder {
 	 * Far: the real beacon, and our glass as the vanilla stained glass whose own beam walk lands
 	 * closest to our colour. Where there is air above one of ours, that is a <i>pair</i> of ghost
 	 * blocks whose average is closer than any single dye — see {@link BeaconBeams#fallback}. The
-	 * upper one is a lie told to this player only; the server block stays air.
+	 * upper one is a lie told to this player only; the server block stays air. The ghost light goes
+	 * back to air the same way.
 	 */
 	private void restore(ServerPlayer player) {
-		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 1);
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 2);
 		packets.add(new ClientboundBlockUpdatePacket(pos, level.getBlockState(pos)));
+		// The real beacon emits light 15 again for this player, so the ghost light goes back to air.
+		BlockPos light = lightPos();
+		if (light != null) packets.add(new ClientboundBlockUpdatePacket(light, level.getBlockState(light)));
 		for (BlockPos p : ours) {
 			BlockState state = level.getBlockState(p);
 			if (!(state.getBlock() instanceof GlassBlocks.Glass glass)) {

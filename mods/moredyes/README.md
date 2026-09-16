@@ -223,9 +223,18 @@ and no packet we send about that block can change it. So the beam is replaced in
   takes half that as its half-side; at 0.2 the beam was visibly fatter than vanilla's.
   `BEAM_GLOW_RADIUS` 0.25 needs no such correction — vanilla's glow part is an axis-aligned box too.
 
-Known rough edges: the block display is `FULL_BRIGHT`, but the **barrier the client is sent emits no
-light**, so a taken-over beacon does not light its surroundings the way a real one does. The block
-itself looks right; only the light it casts is missing. Vanilla's core is a diamond (four quads
+Near players also get a **ghost `minecraft:light[level=15]`** in the first air block above the beacon,
+sent right after the barrier. A client runs its own block-light engine on every update it is sent
+(`Level.markAndNotifyBlock` -> `lightEngine.checkBlock`), so the barrier, which emits nothing, dropped
+the whole neighbourhood into the dark where a real beacon lights it 15. `minecraft:light` is the one
+vanilla block that is pure light: emission 15, no collision, and no model at all unless the player is
+holding a light item — in which case its little marker shows up inside the beam, which is the only
+artefact. It goes back to air in `restore()`, where the real beacon lights the player's world again,
+and it is never allowed to stand in for a block that is really there: with the column packed solid
+for four blocks the holder gives up and says so once (`beaconGhostLightTakesOnlyAir`). Polymer has
+nothing nicer for this — `PolymerLightUpdateHelper` patches chunk light for *Polymer* blocks and
+`PolymerBlock.forceLightUpdates` is a hook on a block we do not own, so neither reaches a per-player
+lie about a vanilla beacon. Vanilla's core is a diamond (four quads
 corner to corner) turning inside its box-shaped glow, where ours is a box turning inside a box of
 the same width — the silhouette matches, the corners are 45° out of phase. And a 1-block core
 segment carries 2.5 tiles, so the pattern meets the next segment half a tile out of step; every

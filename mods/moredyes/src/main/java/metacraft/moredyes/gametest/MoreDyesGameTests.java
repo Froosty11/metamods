@@ -47,6 +47,7 @@ import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FallingParticlesLeavesBlock;
+import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.BeaconBeamBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
@@ -461,11 +462,44 @@ public final class MoreDyesGameTests {
 				"Polymer now passes an already-mapped donor through (" + donor
 						+ "); the double-mapping trap the holder avoids is gone and this can be dropped");
 		// The states the holder puts in packets itself, which have to survive Polymer untouched.
-		for (BlockState state : List.of(Blocks.BARRIER.defaultBlockState(),
-				Blocks.BEACON.defaultBlockState(), Blocks.STAINED_GLASS.pick(DyeColor.PINK).defaultBlockState())) {
+		BlockState light = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15);
+		for (BlockState state : List.of(Blocks.BARRIER.defaultBlockState(), Blocks.BEACON.defaultBlockState(),
+				Blocks.STAINED_GLASS.pick(DyeColor.PINK).defaultBlockState(), light)) {
 			helper.assertTrue(BeaconBeams.isClientSafe(state), "the holder sends " + state
 					+ ", which Polymer re-maps to " + PolymerBlockUtils.getPolymerBlockState(state, null));
 		}
+		helper.assertTrue(light.getLightEmission() == 15,
+				"the ghost light emits " + light.getLightEmission() + ", not 15");
+		helper.assertTrue(light.getCollisionShape(helper.getLevel(), helper.absolutePos(BlockPos.ZERO)).isEmpty(),
+				"the ghost light has a collision box, so a near player would walk into nothing");
+		helper.succeed();
+	}
+
+	/**
+	 * A near player is shown a barrier where the beacon is, which emits no light, so the holder puts
+	 * a ghost {@code minecraft:light} in the first air block above it — and nowhere else. It is never
+	 * allowed to stand in for a block that is really there: with the column packed solid it gives up
+	 * and the beacon is simply unlit for near players.
+	 */
+	@GameTest
+	public void beaconGhostLightTakesOnlyAir(GameTestHelper helper) {
+		floor(helper);
+		BlockPos beacon = new BlockPos(1, 1, 1);
+		helper.setBlock(beacon, Blocks.BEACON);
+		BeaconBeamHolder holder = new BeaconBeamHolder(helper.getLevel(), helper.absolutePos(beacon));
+		helper.assertTrue(helper.absolutePos(beacon).above().equals(holder.lightPosition()),
+				"the ghost light is at " + holder.lightPosition() + ", not on top of the beacon");
+
+		// Packed solid: the light has nowhere to go and must not take a real block's place.
+		for (int i = 1; i <= 8; i++) helper.setBlock(beacon.above(i), Blocks.STONE);
+		helper.assertTrue(holder.lightPosition() == null,
+				"the ghost light took " + holder.lightPosition() + ", which is not air");
+
+		// One gap in the column, above our own glass: the light goes there, not into the glass.
+		helper.setBlock(beacon.above(2), Blocks.AIR);
+		helper.setBlock(beacon.above(1), block(Family.STAINED_GLASS));
+		helper.assertTrue(helper.absolutePos(beacon.above(2)).equals(holder.lightPosition()),
+				"the ghost light is at " + holder.lightPosition() + ", not in the one air block");
 		helper.succeed();
 	}
 
