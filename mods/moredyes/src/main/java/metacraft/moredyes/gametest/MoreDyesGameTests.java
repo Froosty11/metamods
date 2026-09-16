@@ -3,6 +3,8 @@ package metacraft.moredyes.gametest;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.banner.BannerPatterns;
+import metacraft.moredyes.beacon.BeaconBeams;
+import metacraft.moredyes.beacon.BeamWalk;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.ClientStates;
@@ -40,6 +42,7 @@ import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
+import net.minecraft.world.level.block.BeaconBeamBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.entity.BannerPattern;
@@ -345,6 +348,52 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(ours.is(ItemTags.BUNDLES), "not in #minecraft:bundles");
 		ItemStack back = craft(helper, grid(ours, new ItemStack(Items.DYE.white())));
 		helper.assertTrue(back.is(Items.DYED_BUNDLE.white()), "vanilla dye did not take our bundle back: " + back);
+		helper.succeed();
+	}
+
+	/**
+	 * Beacon beam spike: a column with one of our glass blocks walks to a white section and then one
+	 * of our colour, and the far-player fallback resolves to a real vanilla stained glass.
+	 */
+	@GameTest
+	public void beaconBeamSections(GameTestHelper helper) {
+		floor(helper);
+		BlockPos beacon = new BlockPos(3, 1, 3);
+		helper.setBlock(beacon, Blocks.BEACON);
+		helper.setBlock(new BlockPos(3, 3, 3), block(Family.STAINED_GLASS));
+
+		BeamWalk.Result result = BeamWalk.walk(helper.getLevel(), helper.absolutePos(beacon),
+				helper.absolutePos(new BlockPos(3, 6, 3)).getY());
+
+		helper.assertTrue(result.lit() && result.tinted(), "column not taken over: " + result);
+		helper.assertTrue(result.sections().size() == 2, "expected white + our colour, got " + result.sections());
+		int white = 0xFF000000 | DyeColor.WHITE.getTextureDiffuseColor();
+		helper.assertTrue(result.sections().get(0).color() == white,
+				"first section is not white: " + Integer.toHexString(result.sections().get(0).color()));
+		helper.assertTrue(result.sections().get(0).height() == 2, "white height: " + result.sections().get(0));
+		helper.assertTrue(result.sections().get(1).color() == first().argb(),
+				"second section is not " + first().id() + ": " + Integer.toHexString(result.sections().get(1).color()));
+		helper.assertTrue(result.ours().size() == 1, "our glass positions: " + result.ours());
+
+		BlockState fallback = BeaconBeams.nearestVanillaGlass(first());
+		helper.assertTrue(fallback.getBlock() instanceof BeaconBeamBlock,
+				"fallback is not a vanilla beam block: " + fallback);
+		ItemStack core = BeaconBeams.beamStack(BeaconBeams.CORE, result.sections().get(1).color());
+		helper.assertTrue(core.has(DataComponents.ITEM_MODEL) && core.has(DataComponents.DYED_COLOR),
+				"beam stack is missing its model or tint: " + core);
+		helper.succeed();
+	}
+
+	/** An untinted column is left to vanilla: the walk reports no colours of ours. */
+	@GameTest
+	public void beaconBeamVanillaColumnUntouched(GameTestHelper helper) {
+		floor(helper);
+		BlockPos beacon = new BlockPos(5, 1, 5);
+		helper.setBlock(beacon, Blocks.BEACON);
+		helper.setBlock(new BlockPos(5, 3, 5), Blocks.STAINED_GLASS.pick(DyeColor.RED));
+		BeamWalk.Result result = BeamWalk.walk(helper.getLevel(), helper.absolutePos(beacon),
+				helper.absolutePos(new BlockPos(5, 6, 5)).getY());
+		helper.assertTrue(result.lit() && !result.tinted(), "vanilla column claimed: " + result);
 		helper.succeed();
 	}
 }

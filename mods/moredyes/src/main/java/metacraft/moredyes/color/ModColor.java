@@ -127,6 +127,12 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 		return (int) Math.round(v * 255);
 	}
 
+	/** Squared CIELAB (perceptual) distance between two {@code 0xRRGGBB} colours. */
+	public static double labDistance(int rgbA, int rgbB) {
+		double[] a = lab(rgbA), b = lab(rgbB);
+		return (a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]) + (a[2] - b[2]) * (a[2] - b[2]);
+	}
+
 	/** sRGB {@code 0xRRGGBB} to CIELAB (D65). */
 	private static double[] lab(int rgb) {
 		double r = linear((rgb >> 16) & 0xFF), g = linear((rgb >> 8) & 0xFF), b = linear(rgb & 0xFF);

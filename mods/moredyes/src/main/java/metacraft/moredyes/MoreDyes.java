@@ -2,6 +2,7 @@ package metacraft.moredyes;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import metacraft.moredyes.banner.BannerPatterns;
+import metacraft.moredyes.beacon.BeaconBeams;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.recipe.ModRecipes;
@@ -29,6 +30,7 @@ public class MoreDyes implements ModInitializer {
 		SheepColors.init();
 		ModCommands.init();
 		BannerPatterns.init();
+		BeaconBeams.init();
 
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();

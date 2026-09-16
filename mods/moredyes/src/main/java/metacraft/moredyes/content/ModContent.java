@@ -119,7 +119,7 @@ public final class ModContent {
 				case SLAB -> new ShapedBlocks.Slab(blocks.get(family.materialFamily()), props, blockId);
 				case BED -> new ContainerBlocks.Bed(props, blockId);
 				case SHULKER_BOX -> new ContainerBlocks.ShulkerBox(props, blockId);
-				case GLASS -> new GlassBlocks.Glass(props, blockId);
+				case GLASS -> new GlassBlocks.Glass(color, props, blockId);
 				case PANE -> new GlassBlocks.Pane(blocks.get(family.materialFamily()), props, blockId);
 				case CANDLE_CAKE -> new ColoredBlocks.CandleCake((ColoredBlocks.Candle) blocks.get(family.materialFamily()),
 						props, id(color.id() + "_" + family.materialFamily().id));

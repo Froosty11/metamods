@@ -109,6 +109,33 @@ final class Tex {
 		return new Tex(width, height, out);
 	}
 
+	/** Every pixel's alpha scaled by {@code factor} (the beacon beam's translucent glow layer). */
+	Tex alpha(double factor) {
+		int[] out = new int[argb.length];
+		for (int i = 0; i < argb.length; i++) {
+			int p = argb[i];
+			out[i] = pack((int) Math.round(a(p) * factor), r(p), g(p), b(p));
+		}
+		return new Tex(width, height, out);
+	}
+
+	/**
+	 * A vertical animation strip of {@code frames} copies of this texture, frame {@code i} rolled up
+	 * by {@code i} rows. With a {@code .mcmeta} animation the client scrolls it on its own — the
+	 * beam animates with no packets at all.
+	 */
+	Tex scrollStrip(int frames) {
+		int[] out = new int[width * height * frames];
+		for (int f = 0; f < frames; f++) {
+			int shift = (int) Math.round((double) f * height / frames);
+			for (int y = 0; y < height; y++) {
+				int src = Math.floorMod(y + shift, height) * width;
+				System.arraycopy(argb, src, out, (f * height + y) * width, width);
+			}
+		}
+		return new Tex(width, height * frames, out);
+	}
+
 	/** {@code over} alpha-composited on top of this (same size). */
 	Tex composite(Tex over) {
 		if (over.width != width || over.height != height) throw new IllegalArgumentException("size mismatch");

@@ -372,6 +372,52 @@ public final class GeneratedAssets implements DataProvider {
 				obj("from", nums(8 + x0, 8 - y1, 8 - z1), "to", nums(8 + x1, 8 - y0, 8 - z0), "faces", facesJson(faces, "#w"))));
 	}
 
+	// ---------------------------------------------------------------- beacon beam (spike)
+
+	/**
+	 * One beam part as an item model: a square column, 16 units tall, no {@code display} block (so
+	 * {@code ItemDisplayContext.NONE} renders it as an exact 1×1×1 cell) and {@code tintindex 0} on
+	 * every side so the definition's {@code minecraft:dye} tint can colour it from the stack's
+	 * {@code dyed_color}. {@code radius} mirrors vanilla's {@code BeaconRenderer.SOLID_BEAM_RADIUS}
+	 * (0.2) and {@code BEAM_GLOW_RADIUS} (0.25).
+	 */
+	private static JsonObject beamModel(String texture, double radius) {
+		double lo = 8 - radius * 16, hi = 8 + radius * 16;
+		JsonObject faces = new JsonObject();
+		for (String face : new String[]{"north", "south", "west", "east"}) {
+			faces.add(face, obj("uv", nums(0, 0, 16, 16), "texture", "#beam", "tintindex", 0));
+		}
+		return obj("textures", obj("beam", MOD + ":block/" + texture, "particle", MOD + ":block/" + texture),
+				"elements", arr(obj("from", nums(lo, 0, lo), "to", nums(hi, 16, hi), "faces", faces)));
+	}
+
+	private static JsonObject beamItemDef(String model) {
+		return obj("model", obj("type", "minecraft:model", "model", MOD + ":item/" + model,
+				"tints", arr(obj("type", "minecraft:dye", "default", -1))));
+	}
+
+	/**
+	 * The beam's own assets, colour-independent: the sections are tinted at runtime from a
+	 * {@code dyed_color} component, so one core texture and one glow texture serve every colour.
+	 * Both are vanilla's {@code entity/beacon/beacon_beam} turned into a 16-frame vertical scroll
+	 * strip, under {@code textures/block/} so the blocks atlas (which only scans {@code block/})
+	 * picks them up; the animation runs client-side from the {@code .mcmeta}, so a moving beam
+	 * costs no packets.
+	 */
+	private void beaconBeam() {
+		Tex beam = Vanilla.texture("entity/beacon/beacon_beam");
+		png("textures/block/beacon_beam_core.png", beam.scrollStrip(16));
+		png("textures/block/beacon_beam_glow.png", beam.alpha(0.3).scrollStrip(16));
+		// frametime 2 × 16 frames = 32 ticks per loop, close to vanilla's floorMod(gameTime, 40)
+		JsonObject animation = obj("animation", obj("frametime", 2, "interpolate", false));
+		for (String name : new String[]{"beacon_beam_core", "beacon_beam_glow"}) {
+			json(assets.resolve("textures/block/" + name + ".png.mcmeta"), animation);
+			json(assets.resolve("items/" + name + ".json"), beamItemDef(name));
+		}
+		json(assets.resolve("models/item/beacon_beam_core.json"), beamModel("beacon_beam_core", 0.2));
+		json(assets.resolve("models/item/beacon_beam_glow.json"), beamModel("beacon_beam_glow", 0.25));
+	}
+
 	// ---------------------------------------------------------------- data builders
 
 	private static JsonObject lootTable(String kind, String item) {
@@ -519,6 +565,7 @@ public final class GeneratedAssets implements DataProvider {
 		Tex undercoat = Vanilla.texture("entity/sheep/sheep_wool_undercoat");
 		png("textures/block/sheep/body.png", sheepBody);
 		png("textures/block/sheep/body_hurt.png", sheepBody.hurt());
+		beaconBeam();
 		SHARED_ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name + ".json"), model));
 		SHARED_ITEM_DEFS.forEach((name, model) -> json(assets.resolve("items/" + name + ".json"), itemDef(model)));
 

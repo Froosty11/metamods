@@ -6,6 +6,7 @@ import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.color.ModColor;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,18 +35,26 @@ import java.util.Map;
  * copper bars for the panes (same {@code CrossCollisionBlock} shapes as vanilla panes).
  *
  * Deliberately not {@code BeaconBeamBlock}: that reports a {@code DyeColor}, and a white beam
- * through cerise glass would be wrong. A beacon beam passes through ours untinted, like plain glass.
+ * through cerise glass would be wrong. The beam is instead rebuilt server-side — see
+ * {@link metacraft.moredyes.beacon.BeaconBeams} — which needs each block to know its own colour.
  */
 public final class GlassBlocks {
 	private GlassBlocks() {}
 
 	public static final class Glass extends TransparentBlock implements PolymerTexturedBlock {
 		private final BlockState client;
+		private final ModColor color;
 
-		public Glass(Properties properties, Identifier id) {
+		public Glass(ModColor color, Properties properties, Identifier id) {
 			super(properties);
+			this.color = color;
 			this.client = ClientStates.request(id.toString(), BlockModelType.LEAVES,
 					PolymerBlockModel.of(ColoredBlocks.model(id)));
+		}
+
+		/** Our colour, for the beacon beam walk and its nearest-vanilla-glass fallback. */
+		public ModColor color() {
+			return color;
 		}
 
 		@Override
@@ -92,6 +101,11 @@ public final class GlassBlocks {
 					displayModels.put(state, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, modelPath));
 				}
 			}
+		}
+
+		/** Our colour, taken from the glass this pane is cut from. */
+		public ModColor color() {
+			return ((Glass) glass).color();
 		}
 
 		@Override
