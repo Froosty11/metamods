@@ -45,6 +45,20 @@ public final class BeaconBeams {
 	/** How often the column is re-walked and players re-classified. */
 	public static final int REFRESH_TICKS = 20;
 
+	/**
+	 * Beam geometry budget. The beam is drawn as a fixed pool of segments, two display entities each
+	 * (core and glow), allocated once per beacon and never added to or removed afterwards — see
+	 * {@link BeaconBeamHolder} for why that is not just an optimisation. 16 × 16 blocks reaches 256
+	 * blocks up for 1 + 2 × 16 = 33 entities per beacon.
+	 */
+	public static final int SEGMENTS = 16;
+
+	/** Blocks per segment; the beam texture repeats once per segment rather than once per beam. */
+	public static final int SEGMENT_BLOCKS = 16;
+
+	/** How far above the world's build height the beam aims, vanilla-style "into the sky". */
+	public static final int SKY_MARGIN = 64;
+
 	private static final boolean ENABLED = !"off".equalsIgnoreCase(System.getProperty("moredyes.beacon", "on"));
 	private static final double NEAR = Double.parseDouble(System.getProperty("moredyes.beacon.near", "48"));
 

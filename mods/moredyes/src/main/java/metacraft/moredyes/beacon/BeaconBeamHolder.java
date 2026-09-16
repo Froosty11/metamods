@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3f;
@@ -20,7 +21,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * One taken-over beacon column. Polymer creates one of these per beacon block (chunk load / place)
@@ -31,147 +34,225 @@ import java.util.UUID;
  * every one of our glass blocks in the column to that player alone, and starts or stops watching
  * this holder — so the display-entity beam exists only for the players it is meant for.
  *
+ * <b>The element set is fixed at construction and never changes.</b> That is a correctness
+ * requirement, not a tidiness one: {@code ElementHolder.stopWatching} builds
+ * {@code new ClientboundRemoveEntitiesPacket(this.entityIds)} straight off its own live, mutable
+ * {@code IntList} field, and that packet's canonical constructor takes the list <i>by reference</i>
+ * with no defensive copy. {@code addElement}/{@code removeElement} mutate that same field. Since the
+ * packet is encoded later on the Netty thread, any element added or removed in between makes the
+ * encoder read a list that is changing under it — a torn length prefix, and the client dies with
+ * {@code DecoderException: Failed to decode packet 'clientbound/minecraft:remove_entities'}. So the
+ * beam is a fixed pool of segments, shown by giving them an item and hidden by giving them none.
+ *
+ * Everything that sends a packet runs on the server thread, from {@link #onTick()}. Polymer may call
+ * {@link #startWatching} from its chunk-tracking path, so that method only decides whether to watch
+ * and queues the player for a refresh on the next tick.
+ *
  * Why the resends rather than {@code PolymerBlock#getPolymerBlockState}: that hook has no block
  * position (Polymer maps whole chunk palettes with it), so it cannot answer "is THIS player near
  * THIS block". It stays the default — the real beacon, our real glass colour — and the holder,
  * which does know the positions, pushes the per-player exceptions.
  */
 public final class BeaconBeamHolder extends ElementHolder {
-	/** Vanilla {@code BeaconRenderer.SOLID_BEAM_RADIUS} 0.2 and {@code BEAM_GLOW_RADIUS} 0.25. */
-	private static final float VIEW_RANGE = 4.0f; // Display: renders within viewRange * 64 blocks
+	private static final float VIEW_RANGE = 4.0f; // Display renders within viewRange * 64 blocks
+	/** Beyond this the player is not tracking the column at all and is not worth a packet. */
+	private static final int TRACKING_RANGE = 512;
 
 	private final ServerLevel level;
 	private final BlockPos pos;
 
-	private final List<ItemDisplayElement> beam = new ArrayList<>();
-	private BlockDisplayElement beacon;
+	private final BlockDisplayElement beacon;
+	private final Segment[] segments = new Segment[BeaconBeams.SEGMENTS];
 
-	/** null until the first walk; then true while the column is ours to draw. */
-	private Boolean engaged;
+	private boolean engaged;
 	private List<BeamWalk.Section> sections = List.of();
 	private List<BlockPos> ours = List.of();
 	/** Last known side of the boundary per player, so only crossings cost packets. */
 	private final Map<UUID, Boolean> side = new HashMap<>();
+	/** Players Polymer just attached, to be caught up on the next tick (filled off-thread). */
+	private final Queue<UUID> pendingRefresh = new ConcurrentLinkedQueue<>();
 	private int ticks;
 
 	public BeaconBeamHolder(ServerLevel level, BlockPos pos) {
 		this.level = level;
 		this.pos = pos.immutable();
+
+		// Everything is allocated here, while nobody is watching, and stays for the holder's life.
+		this.beacon = new BlockDisplayElement(Blocks.BEACON.defaultBlockState());
+		beacon.setTranslation(new Vector3f(-0.5f, -0.5f, -0.5f)); // holder sits at the block centre
+		beacon.setBrightness(Brightness.FULL_BRIGHT);
+		beacon.setViewRange(VIEW_RANGE);
+		beacon.setDisplaySize(0, 0);
+		addElement(beacon);
+		for (int i = 0; i < segments.length; i++) {
+			segments[i] = new Segment();
+		}
+	}
+
+	/** One slice of beam: the opaque core and the translucent glow, plus what they were last set to. */
+	private final class Segment {
+		private final ItemDisplayElement core = quad();
+		private final ItemDisplayElement glow = quad();
+		private int color = -1;
+		private int height = -1;
+		private int offset = Integer.MIN_VALUE;
+		private boolean shown;
+
+		private ItemDisplayElement quad() {
+			ItemDisplayElement element = new ItemDisplayElement();
+			element.setItemDisplayContext(ItemDisplayContext.NONE);
+			element.setBrightness(Brightness.FULL_BRIGHT);
+			element.setViewRange(VIEW_RANGE);
+			// setDisplaySize(0, 0) sets Display#noCulling: the element's own box says nothing
+			// about a 256-block beam, so let it render whenever the chunk does.
+			element.setDisplaySize(0, 0);
+			element.setInvisible(true);
+			addElement(element);
+			return element;
+		}
+
+		/**
+		 * Show this segment. Only the values that actually changed are written: a display element
+		 * marks itself dirty on every setter, and this runs once a second on every beacon.
+		 */
+		void show(int argb, int fromBeacon, int blocks) {
+			if (!shown || color != argb) {
+				core.setItem(BeaconBeams.beamStack(BeaconBeams.CORE, argb));
+				glow.setItem(BeaconBeams.beamStack(BeaconBeams.GLOW, argb));
+				color = argb;
+			}
+			if (!shown || height != blocks) {
+				Vector3f scale = new Vector3f(1, blocks, 1);
+				core.setScale(scale);
+				glow.setScale(scale);
+				height = blocks;
+			}
+			if (!shown || offset != fromBeacon) {
+				// The model is one block tall and renders centred on the element, so the segment's
+				// mid-point relative to the beacon's centre is where it has to sit.
+				Vector3f translation = new Vector3f(0, fromBeacon + blocks / 2.0f - 0.5f, 0);
+				core.setTranslation(translation);
+				glow.setTranslation(translation);
+				offset = fromBeacon;
+			}
+			shown = true;
+		}
+
+		/** Hide without removing: an item display with an empty stack draws nothing. */
+		void hide() {
+			if (!shown) return;
+			core.setItem(ItemStack.EMPTY);
+			glow.setItem(ItemStack.EMPTY);
+			shown = false;
+			color = -1;
+		}
 	}
 
 	// ------------------------------------------------------------------ watching
 
+	/**
+	 * Polymer calls this from its chunk-tracking path, which is not necessarily our tick. Decide
+	 * only; the block resend that has to accompany it is queued for {@link #onTick()}.
+	 */
 	@Override
 	public boolean startWatching(ServerGamePacketListenerImpl handler) {
 		ServerPlayer player = handler.getPlayer();
-		if (!isEngaged() || player == null || !BeaconBeams.isNear(pos, player)) return false;
+		if (!engaged || player == null || !BeaconBeams.isNear(pos, player)) return false;
 		boolean added = super.startWatching(handler);
-		if (added) {
-			// The chunk may have just arrived with the real beacon in it; hide it again.
-			send(player, pos, Blocks.BARRIER.defaultBlockState());
-			side.put(player.getUUID(), Boolean.TRUE);
-		}
+		if (added) pendingRefresh.add(player.getUUID());
 		return added;
 	}
 
 	@Override
 	public void destroy() {
-		for (UUID id : List.copyOf(side.keySet())) {
-			ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-			if (player != null && Boolean.TRUE.equals(side.get(id))) restore(player);
+		for (Map.Entry<UUID, Boolean> entry : Map.copyOf(side).entrySet()) {
+			if (!Boolean.TRUE.equals(entry.getValue())) continue;
+			ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+			if (player != null) restore(player);
 		}
 		side.clear();
 		super.destroy();
-	}
-
-	private boolean isEngaged() {
-		return Boolean.TRUE.equals(engaged);
 	}
 
 	// ------------------------------------------------------------------ tick
 
 	@Override
 	protected void onTick() {
+		catchUpNewWatchers();
 		if (ticks++ % BeaconBeams.REFRESH_TICKS != 0) return;
 		BeamWalk.Result result = BeamWalk.walk(level, pos);
 		// Only columns with one of our colours in them are worth taking over; a plain vanilla
 		// beacon keeps its own, correct, client-side beam.
-		boolean wanted = result.lit() && result.tinted();
-		if (!wanted) {
-			if (isEngaged()) disengage();
-			engaged = Boolean.FALSE;
+		if (!result.lit() || !result.tinted()) {
+			if (engaged) disengage();
 			return;
 		}
-		boolean first = !isEngaged();
-		engaged = Boolean.TRUE;
+		boolean first = !engaged;
+		engaged = true;
 		ours = result.ours();
 		if (first || !sections.equals(result.sections())) {
 			sections = result.sections();
-			rebuild();
+			layout();
 		}
 		reclassify();
 	}
 
-	/** Give every player the vanilla column back and drop the elements. */
+	private void catchUpNewWatchers() {
+		UUID id;
+		while ((id = pendingRefresh.poll()) != null) {
+			ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+			if (player == null || !engaged || !BeaconBeams.isNear(pos, player)) continue;
+			side.put(id, Boolean.TRUE);
+			hide(player);
+		}
+	}
+
+	/** Give every player the vanilla column back and blank the beam; the elements stay allocated. */
 	private void disengage() {
+		engaged = false;
 		for (Map.Entry<UUID, Boolean> entry : Map.copyOf(side).entrySet()) {
 			ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
 			if (player != null) restore(player);
 		}
 		side.clear();
 		for (ServerGamePacketListenerImpl handler : List.copyOf(getWatchingPlayers())) stopWatching(handler);
-		clearElements();
+		for (Segment segment : segments) segment.hide();
+		sections = List.of();
+		ours = List.of();
 	}
 
-	// ------------------------------------------------------------------ elements
-
-	private void clearElements() {
-		for (ItemDisplayElement element : beam) removeElement(element);
-		beam.clear();
-		if (beacon != null) {
-			removeElement(beacon);
-			beacon = null;
-		}
-	}
-
-	private void rebuild() {
-		clearElements();
-		// The block itself: near players are sent a barrier, so put the beacon back as a display.
-		beacon = new BlockDisplayElement(Blocks.BEACON.defaultBlockState());
-		beacon.setTranslation(new Vector3f(-0.5f, -0.5f, -0.5f)); // holder sits at the block centre
-		beacon.setBrightness(Brightness.FULL_BRIGHT);
-		beacon.setViewRange(VIEW_RANGE);
-		beacon.setDisplaySize(0, 0);
-		addElement(beacon);
-
-		int offset = 0;
-		for (BeamWalk.Section section : sections) {
-			beam.add(quad(BeaconBeams.CORE, section, offset));
-			beam.add(quad(BeaconBeams.GLOW, section, offset));
-			offset += section.height();
-		}
-		MoreDyes.LOGGER.info("[{}] beacon {} beam: {} section(s)", MoreDyes.MOD_ID, pos, sections.size());
-	}
+	// ------------------------------------------------------------------ geometry
 
 	/**
-	 * One beam part. The model is a 16-unit-tall box with no {@code display} block, so
-	 * {@link ItemDisplayContext#NONE} renders it as an exact 1×1×1 cell centred on the element;
-	 * scaling Y by the section height and translating to the section's mid-point puts it in place.
-	 * Culling is off ({@code setDisplaySize(0, 0)} sets Display#noCulling) because the element's own
-	 * box says nothing about a 200-block beam.
+	 * Fill the segment pool from the sections, bottom up. Vanilla's {@code BeaconRenderer} draws the
+	 * last section with height 1024 whatever the walk said, so the beam always reaches the sky; we do
+	 * the same, but bounded — up to the world's build height plus {@value BeaconBeams#SKY_MARGIN}, and
+	 * never more than the pool can draw. Each segment covers at most
+	 * {@value BeaconBeams#SEGMENT_BLOCKS} blocks, so the texture repeats up the beam instead of being
+	 * stretched once over the whole thing.
 	 */
-	private ItemDisplayElement quad(net.minecraft.resources.Identifier model, BeamWalk.Section section, int offset) {
-		ItemDisplayElement element = new ItemDisplayElement();
-		element.setItem(BeaconBeams.beamStack(model, section.color()));
-		element.setItemDisplayContext(ItemDisplayContext.NONE);
-		element.setScale(new Vector3f(1, section.height(), 1));
-		element.setTranslation(new Vector3f(0, offset + section.height() / 2.0f - 0.5f, 0));
-		element.setBrightness(Brightness.FULL_BRIGHT);
-		element.setViewRange(VIEW_RANGE);
-		element.setDisplaySize(0, 0);
-		element.setInvisible(true);
-		addElement(element);
-		return element;
+	private void layout() {
+		int used = 0;
+		int offset = 0; // blocks above the beacon block's own bottom
+		for (int i = 0; i < sections.size() && used < segments.length; i++) {
+			BeamWalk.Section section = sections.get(i);
+			int blocksLeftInPool = (segments.length - used) * BeaconBeams.SEGMENT_BLOCKS;
+			int height = section.height();
+			if (i == sections.size() - 1) {
+				int toSky = level.getMaxY() + 1 + BeaconBeams.SKY_MARGIN - (pos.getY() + offset);
+				height = Math.max(height, Math.min(toSky, blocksLeftInPool));
+			}
+			height = Math.min(height, blocksLeftInPool);
+			while (height > 0 && used < segments.length) {
+				int slice = Math.min(height, BeaconBeams.SEGMENT_BLOCKS);
+				segments[used++].show(section.color(), offset, slice);
+				offset += slice;
+				height -= slice;
+			}
+		}
+		for (int i = used; i < segments.length; i++) segments[i].hide();
+		MoreDyes.LOGGER.info("[{}] beacon {} beam: {} section(s), {} block(s), {} of {} segments",
+				MoreDyes.MOD_ID, pos, sections.size(), offset, used, segments.length);
 	}
 
 	// ------------------------------------------------------------------ near/far
@@ -179,12 +260,12 @@ public final class BeaconBeamHolder extends ElementHolder {
 	private void reclassify() {
 		side.keySet().removeIf(id -> level.getServer().getPlayerList().getPlayer(id) == null);
 		for (ServerPlayer player : level.players()) {
-			if (player.blockPosition().distSqr(pos) > 512 * 512) continue; // not tracking this column
+			if (player.blockPosition().distSqr(pos) > (double) TRACKING_RANGE * TRACKING_RANGE) continue;
 			boolean near = BeaconBeams.isNear(pos, player);
 			Boolean was = side.put(player.getUUID(), near);
 			if (was != null && was == near) continue;
 			if (near) {
-				hide(player);
+				// startWatching queues the block resend; doing it here too would only duplicate it.
 				startWatching(player);
 			} else {
 				stopWatching(player);
@@ -195,23 +276,35 @@ public final class BeaconBeamHolder extends ElementHolder {
 
 	/** Near: barrier where the beacon is (the block display draws it), our glass as it always is. */
 	private void hide(ServerPlayer player) {
-		send(player, pos, Blocks.BARRIER.defaultBlockState());
-		for (BlockPos p : ours) send(player, p, BeaconBeams.clientState(level.getBlockState(p)));
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() + 1);
+		packets.add(new ClientboundBlockUpdatePacket(pos, Blocks.BARRIER.defaultBlockState()));
+		for (BlockPos p : ours) {
+			packets.add(new ClientboundBlockUpdatePacket(p, BeaconBeams.clientState(level.getBlockState(p))));
+		}
+		send(player, packets);
 	}
 
 	/** Far: the real beacon, and our glass as the nearest vanilla stained glass so the client tints. */
 	private void restore(ServerPlayer player) {
-		send(player, pos, level.getBlockState(pos));
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() + 1);
+		packets.add(new ClientboundBlockUpdatePacket(pos, level.getBlockState(pos)));
 		for (BlockPos p : ours) {
 			BlockState state = level.getBlockState(p);
 			BlockState client = state.getBlock() instanceof GlassBlocks.Glass glass
 					? BeaconBeams.nearestVanillaGlass(glass.color())
 					: BeaconBeams.clientState(state);
-			send(player, p, client);
+			packets.add(new ClientboundBlockUpdatePacket(p, client));
 		}
+		send(player, packets);
 	}
 
-	private void send(ServerPlayer player, BlockPos at, BlockState state) {
-		player.connection.send(new ClientboundBlockUpdatePacket(at, state));
+	private void send(ServerPlayer player, List<ClientboundBlockUpdatePacket> packets) {
+		if (!level.getServer().isSameThread()) {
+			// Never write packets from a chunk worker: they would interleave with Polymer's bundles.
+			MoreDyes.LOGGER.error("[{}] beacon {} tried to resend blocks off the server thread",
+					MoreDyes.MOD_ID, pos);
+			return;
+		}
+		for (ClientboundBlockUpdatePacket packet : packets) player.connection.send(packet);
 	}
 }

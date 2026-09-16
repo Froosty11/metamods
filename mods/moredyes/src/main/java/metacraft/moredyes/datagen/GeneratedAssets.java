@@ -380,15 +380,35 @@ public final class GeneratedAssets implements DataProvider {
 	 * every side so the definition's {@code minecraft:dye} tint can colour it from the stack's
 	 * {@code dyed_color}. {@code radius} mirrors vanilla's {@code BeaconRenderer.SOLID_BEAM_RADIUS}
 	 * (0.2) and {@code BEAM_GLOW_RADIUS} (0.25).
+	 *
+	 * Item displays backface-cull, while vanilla's beam render type does not, so an outer box alone
+	 * shows only its two near walls and the translucent glow reads flat. Each wall therefore gets a
+	 * zero-thickness twin just inside it carrying the opposite face — a {@code south} quad behind the
+	 * {@code north} wall and so on — with u mirrored, because that quad is read from the other side.
+	 * Same trick as {@link #twoSidedBox}, minus the caps vanilla's beam does not have either.
+	 * {@code shade} is off: a beam is emissive, not a lit box, and shading would make the four walls
+	 * visibly different brightnesses.
 	 */
 	private static JsonObject beamModel(String texture, double radius) {
-		double lo = 8 - radius * 16, hi = 8 + radius * 16;
-		JsonObject faces = new JsonObject();
+		double lo = 8 - radius * 16, hi = 8 + radius * 16, e = 0.01;
+		JsonObject outer = new JsonObject();
 		for (String face : new String[]{"north", "south", "west", "east"}) {
-			faces.add(face, obj("uv", nums(0, 0, 16, 16), "texture", "#beam", "tintindex", 0));
+			outer.add(face, obj("uv", nums(0, 0, 16, 16), "texture", "#beam", "tintindex", 0));
 		}
+		// The inner quad is seen from behind, so its u runs the other way: [16, 0, 0, 16].
+		JsonObject inner = obj("uv", nums(16, 0, 0, 16), "texture", "#beam", "tintindex", 0);
+		List<Object> elements = new ArrayList<>();
+		elements.add(obj("from", nums(lo, 0, lo), "to", nums(hi, 16, hi), "shade", false, "faces", outer));
+		elements.add(plane(nums(lo, 0, lo + e), nums(hi, 16, lo + e), "south", inner));  // behind north
+		elements.add(plane(nums(lo, 0, hi - e), nums(hi, 16, hi - e), "north", inner));  // behind south
+		elements.add(plane(nums(lo + e, 0, lo), nums(lo + e, 16, hi), "east", inner));   // behind west
+		elements.add(plane(nums(hi - e, 0, lo), nums(hi - e, 16, hi), "west", inner));   // behind east
 		return obj("textures", obj("beam", MOD + ":block/" + texture, "particle", MOD + ":block/" + texture),
-				"elements", arr(obj("from", nums(lo, 0, lo), "to", nums(hi, 16, hi), "faces", faces)));
+				"elements", arr(elements.toArray()));
+	}
+
+	private static JsonObject plane(JsonElement from, JsonElement to, String face, JsonObject uv) {
+		return obj("from", from, "to", to, "shade", false, "faces", obj(face, uv.deepCopy()));
 	}
 
 	private static JsonObject beamItemDef(String model) {
