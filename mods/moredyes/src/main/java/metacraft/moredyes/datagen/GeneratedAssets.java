@@ -67,6 +67,26 @@ public final class GeneratedAssets implements DataProvider {
 	private static final double CORE_RADIUS = 0.2 / Math.sqrt(2);
 	/** Vanilla's BEAM_GLOW_RADIUS, which is already the half-side of an axis-aligned box. */
 	private static final double GLOW_RADIUS = 0.25;
+	/**
+	 * What the entity lighting does to a beam wall, and why {@link #beaconBeam} scales the beam
+	 * texture to white.
+	 *
+	 * Vanilla draws the beam on {@code rendertype_beacon_beam}, whose fragment shader is
+	 * {@code texture * vertexColor * ColorModulator} — no lightmap, no diffuse, flat emissive. Ours
+	 * are item quads, and {@code item.vsh} runs
+	 * {@code minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color)}:
+	 * {@code min(1, (max(0, L0·N) + max(0, L1·N)) * 0.6 + 0.4)} with the level's
+	 * {@code DIFFUSE_LIGHT_0 = normalize(0.2, 1, -0.7)} and {@code DIFFUSE_LIGHT_1 = normalize(-0.2,
+	 * 1, 0.7)} ({@code com.mojang.blaze3d.platform.Lighting}). For a beam that is
+	 * <b>0.497 on the two X-facing walls and 0.740 on the two Z-facing ones</b>, against vanilla's
+	 * 1.0, and it only touches rgb — alpha comes through untouched.
+	 *
+	 * Nothing in a model can switch that off (see {@link #beamModel}) and the tint cannot be pushed
+	 * past white, so the only headroom is the texture: vanilla's own beam sprite peaks at 224, so
+	 * scaling it to white is a free 1.138×. That leaves the beam at about 0.57 and 0.84 of vanilla's
+	 * brightness rather than 0.50 and 0.74.
+	 */
+
 
 	private final Path assets, data;
 	private final List<CompletableFuture<?>> writes = new ArrayList<>();
@@ -423,8 +443,14 @@ public final class GeneratedAssets implements DataProvider {
 	 * zero-thickness twin just inside it carrying the opposite face — a {@code south} quad behind the
 	 * {@code north} wall and so on — with u mirrored, because that quad is read from the other side.
 	 * Same trick as {@link #twoSidedBox}, minus the caps vanilla's beam does not have either.
-	 * {@code shade} is off: a beam is emissive, not a lit box, and shading would make the four walls
-	 * visibly different brightnesses.
+	 *
+	 * <b>There is no way to turn the lighting off.</b> {@code item.vsh} runs
+	 * {@code minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color)} on every item
+	 * quad, and the normal is the quad's own face: {@code VertexConsumer.putBakedQuad} writes
+	 * {@code quad.direction().getUnitVec3f()} through the pose. The element field that used to be
+	 * {@code "shade"} is {@code "shade_direction_override"} in 26.3 and only
+	 * {@code BlockModelLighter} — the block path — reads it, so neither does anything here; the model
+	 * no longer pretends otherwise. What is left is the scale-to-white in {@link #beaconBeam}.
 	 */
 	private static JsonObject beamModel(String texture, double radius, boolean translucent) {
 		double lo = 8 - radius * 16, hi = 8 + radius * 16, e = 0.01;
@@ -435,7 +461,7 @@ public final class GeneratedAssets implements DataProvider {
 		// The inner quad is seen from behind, so its u runs the other way: [16, 0, 0, 16].
 		JsonObject inner = obj("uv", nums(16, 0, 0, 16), "texture", "#beam", "tintindex", 0);
 		List<Object> elements = new ArrayList<>();
-		elements.add(obj("from", nums(lo, 0, lo), "to", nums(hi, 16, hi), "shade", false, "faces", outer));
+		elements.add(obj("from", nums(lo, 0, lo), "to", nums(hi, 16, hi), "faces", outer));
 		elements.add(plane(nums(lo, 0, lo + e), nums(hi, 16, lo + e), "south", inner));  // behind north
 		elements.add(plane(nums(lo, 0, hi - e), nums(hi, 16, hi - e), "north", inner));  // behind south
 		elements.add(plane(nums(lo + e, 0, lo), nums(lo + e, 16, hi), "east", inner));   // behind west
@@ -448,7 +474,7 @@ public final class GeneratedAssets implements DataProvider {
 	}
 
 	private static JsonObject plane(JsonElement from, JsonElement to, String face, JsonObject uv) {
-		return obj("from", from, "to", to, "shade", false, "faces", obj(face, uv.deepCopy()));
+		return obj("from", from, "to", to, "faces", obj(face, uv.deepCopy()));
 	}
 
 	private static JsonObject beamItemDef(String model) {
@@ -474,9 +500,13 @@ public final class GeneratedAssets implements DataProvider {
 	 * All ten together are about 240k texels, less than a 512 × 512 texture.
 	 */
 	private void beaconBeam() {
-		Tex beam = Vanilla.texture("entity/beacon/beacon_beam");
+		// Scaled to white first: item displays are lit, vanilla's beam is not, and this is the only
+		// headroom there is to make up some of the difference. See the note above GLOW_RADIUS.
+		Tex beam = Vanilla.texture("entity/beacon/beacon_beam").scaleToWhite();
 		// Vanilla's glow quads are drawn with ARGB.color(32, color) (BeaconRenderer), so that layer is
-		// alpha 32/255; at 0.3 ours read as a second solid beam instead of a haze around one.
+		// alpha 32/255; at 0.3 ours read as a second solid beam instead of a haze around one. The
+		// diffuse light does not touch alpha (minecraft_mix_light returns color.a untouched), so this
+		// one number needs no correction.
 		Tex core = beam.scaleRows(CORE_PIXELS);
 		Tex glow = beam.alpha(32 / 255.0).scaleRows(GLOW_PIXELS);
 		for (int blocks : BeaconBeams.segmentSizes()) {

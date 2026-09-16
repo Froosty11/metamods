@@ -109,6 +109,28 @@ final class Tex {
 		return new Tex(width, height, out);
 	}
 
+	/**
+	 * Every channel multiplied by as much as the brightest pixel allows, so nothing clips. A pure
+	 * scale keeps the pattern's contrast exactly; it just spends the headroom between the texture's
+	 * brightest pixel and white.
+	 */
+	Tex scaleToWhite() {
+		int max = 0;
+		for (int p : argb) {
+			if (a(p) == 0) continue;
+			max = Math.max(max, Math.max(r(p), Math.max(g(p), b(p))));
+		}
+		if (max == 0) return this;
+		double factor = 255.0 / max;
+		int[] out = new int[argb.length];
+		for (int i = 0; i < argb.length; i++) {
+			int p = argb[i];
+			out[i] = pack(a(p), (int) Math.round(r(p) * factor),
+					(int) Math.round(g(p) * factor), (int) Math.round(b(p) * factor));
+		}
+		return new Tex(width, height, out);
+	}
+
 	/** Every pixel's alpha scaled by {@code factor} (the beacon beam's translucent glow layer). */
 	Tex alpha(double factor) {
 		int[] out = new int[argb.length];

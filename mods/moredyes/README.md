@@ -182,6 +182,26 @@ and no packet we send about that block can change it. So the beam is replaced in
   The accumulated angle wraps at **720°, not 360°** — a quaternion halves its angle, so q(720°) is
   exactly q(0°) while q(360°) is −q(0°), the same rotation with the opposite sign, which a
   shortest-path slerp would walk backwards through.
+- **The beam is dimmer than vanilla's and there is no way to make it match.** Vanilla draws the beam
+  on `rendertype_beacon_beam`, whose fragment shader is `texture * vertexColor * ColorModulator` —
+  no lightmap, no diffuse, flat emissive. Ours are item quads, and `item.vsh` runs
+  `minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color)`, i.e.
+  `min(1, (max(0, L0·N) + max(0, L1·N)) * 0.6 + 0.4)` with the level's
+  `DIFFUSE_LIGHT_0 = normalize(0.2, 1, -0.7)` and `DIFFUSE_LIGHT_1 = normalize(-0.2, 1, 0.7)`
+  (`com.mojang.blaze3d.platform.Lighting`). For a vertical wall that is **0.497** on the two
+  X-facing sides and **0.740** on the two Z-facing ones, against vanilla's 1.0 — dimmer, and
+  unevenly so. It only touches rgb; alpha comes through untouched, so the glow's 32 needs no
+  correction. Nothing switches it off: the normal is the quad's own face
+  (`VertexConsumer.putBakedQuad` writes `quad.direction().getUnitVec3f()` through the pose), the
+  element field that used to be `"shade"` is `"shade_direction_override"` in 26.3 and only
+  `BlockModelLighter` — the block path — reads it, and a tint cannot be pushed past white. Block
+  displays *do* take that override, but they cannot be tinted to an arbitrary RGB, which is the
+  whole reason the beam is item displays; a text display's background quad has no diffuse either
+  (`text.vsh` is `Color * lightmap`) but it is one flat untextured quad, so a beam would cost four
+  entities a layer a segment instead of one. What is left is the texture: vanilla's own beam sprite
+  peaks at 224, so `runDatagen` scales it to white for a free **1.138×**, leaving the beam at about
+  0.57 and 0.84 of vanilla's brightness. The rest of the difference a player sees next to a vanilla
+  beacon is the colour itself — cerise is a darker, more saturated magenta than vanilla's pink.
 - The beam model is **two-sided**. Item displays backface-cull while vanilla's beam render type does
   not, so an outer box alone shows only its near walls and the translucent glow reads flat. Each wall
   gets a zero-thickness twin just inside it carrying the opposite face (a `south` quad behind the
