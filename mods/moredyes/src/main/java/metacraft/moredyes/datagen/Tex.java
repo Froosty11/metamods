@@ -119,27 +119,42 @@ final class Tex {
 		return new Tex(width, height, out);
 	}
 
+	/** Nearest-neighbour vertical resample; the horizontal resolution is untouched. */
+	Tex scaleRows(int rows) {
+		int[] out = new int[width * rows];
+		for (int y = 0; y < rows; y++) {
+			int src = Math.min(height - 1, y * height / rows) * width;
+			System.arraycopy(argb, src, out, y * width, width);
+		}
+		return new Tex(width, rows, out);
+	}
+
 	/**
-	 * The beacon beam's animation strip: {@code frames} frames stacked vertically, each one
-	 * {@code repeats} copies of this texture rolled up by that frame's share of a single copy. The
-	 * repeats are what make the beam show its pattern once per block — a block model cannot tile a
-	 * face's UV, so the tiling has to be in the texture — and rolling by a fraction of <i>one</i> copy
-	 * rather than of the whole frame is what makes the strip scroll rather than stand still (the
-	 * stack is periodic in one copy, so a whole-copy roll is the identity).
+	 * The beacon beam's animation sheet: {@code frames} frames <b>side by side</b>, each one this tile
+	 * stacked up to {@code frameHeight} pixels and rolled up by {@code round(f * height / frames)}
+	 * rows, so playing the frames scrolls the pattern up by one tile every {@code frames} ticks.
 	 *
-	 * With a {@code .mcmeta} animation the client plays it, so the beam moves with no packets at all.
+	 * Side by side, not stacked, because the frame is what has to stay small: a 16-block core frame is
+	 * 1280 px tall on its own, and five of those stacked would be a 6400 px sprite that drags the
+	 * whole block atlas up a power of two. The client reads either layout —
+	 * {@code SpriteContents.AnimatedTexture} takes frame {@code i} from
+	 * {@code (i % (imageWidth / frameWidth), i / ...)} — as long as the {@code .mcmeta} gives the frame
+	 * size.
+	 *
+	 * {@code frameHeight} need not be a whole number of tiles: the core's is 2.5 tiles a block, which
+	 * is vanilla's stretch.
 	 */
-	Tex beamStrip(int repeats, int frames) {
-		int frameHeight = height * repeats;
-		int[] out = new int[width * frameHeight * frames];
+	Tex beamSheet(int frameHeight, int frames) {
+		int sheetWidth = width * frames;
+		int[] out = new int[sheetWidth * frameHeight];
 		for (int f = 0; f < frames; f++) {
-			int shift = (int) Math.round((double) f * height / frames);
+			int shift = Math.round((float) f * height / frames);
 			for (int y = 0; y < frameHeight; y++) {
 				int src = Math.floorMod(y + shift, height) * width;
-				System.arraycopy(argb, src, out, (f * frameHeight + y) * width, width);
+				System.arraycopy(argb, src, out, y * sheetWidth + f * width, width);
 			}
 		}
-		return new Tex(width, frameHeight * frames, out);
+		return new Tex(sheetWidth, frameHeight, out);
 	}
 
 	/** {@code over} alpha-composited on top of this (same size). */

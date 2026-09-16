@@ -98,6 +98,11 @@ public final class BeaconBeamHolder extends ElementHolder {
 	private final class Segment {
 		private final ItemDisplayElement core = quad();
 		private final ItemDisplayElement glow = quad();
+		{
+			// Only the core turns — see spin() — so only the core needs somewhere to turn to. One
+			// refresh's worth is sent per second and slerped by the client over exactly that second.
+			core.setInterpolationDuration(BeaconBeams.REFRESH_TICKS);
+		}
 		private int color = -1;
 		private int height = -1;
 		private int offset = Integer.MIN_VALUE;
@@ -112,9 +117,6 @@ public final class BeaconBeamHolder extends ElementHolder {
 			// about a 256-block beam, so let it render whenever the chunk does.
 			element.setDisplaySize(0, 0);
 			element.setInvisible(true);
-			// One refresh's worth of spin is sent per second and slerped by the client over exactly
-			// that second, so the beam turns smoothly on one small packet per element. See spin().
-			element.setInterpolationDuration(BeaconBeams.REFRESH_TICKS);
 			addElement(element);
 			return element;
 		}
@@ -124,14 +126,10 @@ public final class BeaconBeamHolder extends ElementHolder {
 		 * marks itself dirty on every setter, and this runs once a second on every beacon.
 		 */
 		void show(int argb, int fromBeacon, int blocks) {
-			if (!shown) {
-				// A segment that has been hidden kept whatever angle it was left at. Snap it into
-				// step with the rest of the beam (no interpolation start, so it does not sweep
-				// there) before the next spin() turns them all together.
-				Quaternionf rotation = rotation();
-				core.setLeftRotation(rotation);
-				glow.setLeftRotation(rotation);
-			}
+			// A segment that has been hidden kept whatever angle it was left at. Snap it into step
+			// with the rest of the beam (no interpolation start, so it does not sweep there) before
+			// the next spin() turns them all together.
+			if (!shown) core.setLeftRotation(rotation());
 			if (!shown || color != argb || height != blocks) {
 				// The stack's model id carries the height too: each segment size has its own strip so
 				// the beam pattern repeats once per block whatever the segment covers.
@@ -160,9 +158,7 @@ public final class BeaconBeamHolder extends ElementHolder {
 		void spin(Quaternionf rotation) {
 			if (!shown) return;
 			core.setLeftRotation(rotation);
-			glow.setLeftRotation(rotation);
 			core.startInterpolation();
-			glow.startInterpolation();
 		}
 
 		/** Hide without removing: an item display with an empty stack draws nothing. */
@@ -230,7 +226,12 @@ public final class BeaconBeamHolder extends ElementHolder {
 	 * turns the beam {@value BeaconBeams#SPIN_DEGREES}° a second; a display entity's angle comes
 	 * from the server, so we send one refresh's worth at a time with
 	 * {@code interpolation_duration = }{@value BeaconBeams#REFRESH_TICKS} and let the client slerp
-	 * across it. One small metadata update per shown element per second, and the beam never stops.
+	 * across it. One small metadata update per shown segment per second, and the beam never stops.
+	 *
+	 * <b>Only the core turns.</b> {@code BeaconRenderer} pushes a pose, rotates it by
+	 * {@code animationTime * 2.25 - 45} about {@code Axis.YP}, submits the inner beam, and pops it
+	 * again <i>before</i> laying out the glow — so vanilla's outer beam is a fixed, axis-aligned box
+	 * and only the inner one spins inside it.
 	 *
 	 * The wrap is at 720°, not 360°: a quaternion halves its angle, so q(720°) is exactly q(0°)
 	 * while q(360°) is −q(0°) — the same rotation with the opposite sign, which a shortest-path

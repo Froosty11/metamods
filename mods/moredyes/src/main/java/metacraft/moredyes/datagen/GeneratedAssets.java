@@ -43,8 +43,26 @@ public final class GeneratedAssets implements DataProvider {
 	/** Item displays render block models at "fixed" scale; the templates have none, so pin 0.5 (× the display's 2). */
 	private static final JsonObject FIXED_HALF = obj("fixed", obj("scale", nums(0.5, 0.5, 0.5)));
 
-	/** Frames in a beam strip; one frame a tick, four to a tile, so the beam scrolls a block every four. */
-	private static final int BEAM_FRAMES = 4;
+	/**
+	 * Frames in a beam animation sheet, one frame a tick. Vanilla's beam scrolls its texture by
+	 * {@code 0.2} of a texture unit a tick ({@code BeaconRenderer}: both v coordinates carry
+	 * {@code frac(-animationTime * 0.2f - floor(-animationTime * 0.1f))}, and {@code animationTime} is
+	 * {@code floorMod(gameTime, 40) + partialTick}), so a tile passes every five ticks.
+	 */
+	private static final int BEAM_FRAMES = 5;
+	/**
+	 * Texture units a block of beam shows, per layer, and the pixels we give a unit. Vanilla's core
+	 * quads run {@code v} from {@code -1 + frac} to {@code height * textureScale * (0.5f / radius)},
+	 * which at {@code SOLID_BEAM_RADIUS} 0.2 is 2.5 units a block; its glow quads run to
+	 * {@code height * textureScale}, one unit a block. So the glow's pattern is 2.5× the core's and
+	 * crawls 2.5× as fast up the beam, both at the same 0.2 units a tick.
+	 *
+	 * The pixel scales are picked so every frame is a multiple of 16 px — a sprite that is not drags
+	 * the whole atlas's mipmap level down — and so a tick's scroll is a couple of pixels: 1 block of
+	 * core is {@code 2.5 × 32 = 80} px, 1 block of glow is 16 px.
+	 */
+	private static final double CORE_UNITS = 2.5, GLOW_UNITS = 1.0;
+	private static final int CORE_PIXELS = 32, GLOW_PIXELS = 16;
 	/** Half the beam core's width in blocks: vanilla's SOLID_BEAM_RADIUS is a half-diagonal, ours a half-side. */
 	private static final double CORE_RADIUS = 0.2 / Math.sqrt(2);
 	/** Vanilla's BEAM_GLOW_RADIUS, which is already the half-side of an axis-aligned box. */
@@ -441,42 +459,47 @@ public final class GeneratedAssets implements DataProvider {
 	/**
 	 * The beam's own assets, colour-independent: the sections are tinted at runtime from a
 	 * {@code dyed_color} component, so one set of textures serves every colour. All of them are
-	 * vanilla's {@code entity/beacon/beacon_beam} turned into an animated vertical scroll strip,
-	 * written under {@code textures/block/} so the blocks atlas (which only scans {@code block/})
-	 * picks them up; the animation runs client-side from the {@code .mcmeta}, so a moving beam costs
-	 * no packets.
+	 * vanilla's {@code entity/beacon/beacon_beam} turned into an animated sheet, written under
+	 * {@code textures/block/} so the blocks atlas (which only scans {@code block/}) picks them up; the
+	 * animation runs client-side from the {@code .mcmeta}, so a moving beam costs no packets.
 	 *
-	 * There is one texture and one model per segment height, {@link BeaconBeams#segmentSizes()}. A
-	 * block model cannot tile a face's UV, so a single strip stretched over a segment showed the whole
-	 * pattern once however tall the segment was — 16× too coarse on a full one, and the scroll crawled
-	 * with it. Instead a frame is the beam tile repeated once per block of that segment's height, so
-	 * the pattern keeps vanilla's density at any height. The tallest is 16 × 256 a frame and
-	 * {@value #BEAM_FRAMES} frames of it, 16 × 1024 in the atlas: narrow enough that all ten sizes
-	 * together cost less atlas area than one 128 × 128 block texture.
+	 * There is one texture and one model per layer per segment height,
+	 * {@link BeaconBeams#segmentSizes()}. A block model cannot tile a face's UV or sample outside its
+	 * sprite, so everything vanilla gets from wrapping a 16 × 16 texture has to be baked in: the
+	 * repeats per block ({@link #CORE_UNITS} against {@link #GLOW_UNITS}) and the scroll
+	 * ({@value #BEAM_FRAMES} frames, a tile every {@value #BEAM_FRAMES} ticks, {@code interpolate}
+	 * off — a crossfade blurs a pattern this fine, and vanilla's own sampling is nearest).
 	 *
-	 * Speed: frame {@code f} is the tile rolled up {@code f}/{@value #BEAM_FRAMES} of a tile and a
-	 * frame lasts a tick, so the pattern travels one block every {@value #BEAM_FRAMES} ticks.
-	 * Vanilla's {@code v} offset moves 0.2 of a tile a tick, one block every five, and
-	 * {@code interpolate} smooths our four steps into the same continuous crawl.
+	 * The largest sheet is the 16-block core: a 1280 px frame, five of them side by side, 80 × 1280.
+	 * All ten together are about 240k texels, less than a 512 × 512 texture.
 	 */
 	private void beaconBeam() {
 		Tex beam = Vanilla.texture("entity/beacon/beacon_beam");
 		// Vanilla's glow quads are drawn with ARGB.color(32, color) (BeaconRenderer), so that layer is
 		// alpha 32/255; at 0.3 ours read as a second solid beam instead of a haze around one.
-		Tex glow = beam.alpha(32 / 255.0);
+		Tex core = beam.scaleRows(CORE_PIXELS);
+		Tex glow = beam.alpha(32 / 255.0).scaleRows(GLOW_PIXELS);
 		for (int blocks : BeaconBeams.segmentSizes()) {
-			beamPart(beam, "beacon_beam_core_" + blocks, blocks, CORE_RADIUS, false);
-			beamPart(glow, "beacon_beam_glow_" + blocks, blocks, GLOW_RADIUS, true);
+			beamPart(core, "beacon_beam_core_" + blocks, CORE_UNITS * blocks, CORE_RADIUS, false);
+			beamPart(glow, "beacon_beam_glow_" + blocks, GLOW_UNITS * blocks, GLOW_RADIUS, true);
 		}
 	}
 
-	/** One beam part at one segment height: strip, animation metadata, model, item definition. */
-	private void beamPart(Tex tile, String name, int blocks, double radius, boolean translucent) {
-		png("textures/block/" + name + ".png", tile.beamStrip(blocks, BEAM_FRAMES));
-		// A non-square frame has to say so, or the client cuts the strip into 16 × 16 frames.
-		JsonObject animation = obj("animation", obj("frametime", 1, "interpolate", true,
-				"width", tile.width, "height", tile.height * blocks));
-		json(assets.resolve("textures/block/" + name + ".png.mcmeta"), animation);
+	/**
+	 * One beam part at one segment height: animation sheet, metadata, model, item definition.
+	 *
+	 * @param units texture units the segment shows over its whole height
+	 */
+	private void beamPart(Tex tile, String name, double units, double radius, boolean translucent) {
+		int frameHeight = (int) Math.round(units * tile.height);
+		if (frameHeight % 16 != 0) {
+			throw new IllegalStateException("[" + MOD + "] beam frame " + name + " is " + frameHeight
+					+ " px tall, which is not a multiple of 16; the atlas would drop a mipmap level for it");
+		}
+		png("textures/block/" + name + ".png", tile.beamSheet(frameHeight, BEAM_FRAMES));
+		// The frame size has to be spelled out: the sheet is frames wide, and nothing about it is square.
+		json(assets.resolve("textures/block/" + name + ".png.mcmeta"), obj("animation",
+				obj("frametime", 1, "interpolate", false, "width", tile.width, "height", frameHeight)));
 		json(assets.resolve("items/" + name + ".json"), beamItemDef(name));
 		json(assets.resolve("models/item/" + name + ".json"), beamModel(name, radius, translucent));
 	}
