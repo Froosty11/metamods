@@ -240,8 +240,21 @@ the same width — the silhouette matches, the corners are 45° out of phase. An
 segment carries 2.5 tiles, so the pattern meets the next segment half a tile out of step; every
 other segment height is a whole number of tiles.
 
+**The near look is re-asserted every sweep.** A near player's beacon is a lie told in block update
+packets, and vanilla resends that position for reasons of its own: right-clicking the beacon at all
+makes `ServerGamePacketListenerImpl.handleUseItemOn` confirm the *clicked* position back to that
+player (`new ClientboundBlockUpdatePacket(level, blockPos)`, and again for the block placed against
+it), and a chunk resend does the same wholesale. The real beacon coming back brings its block entity
+with it, and a vanilla client's own `BeaconBlockEntity.tick` walks the column and draws a second beam
+beside ours — which is exactly what stacking glass onto a beacon looked like. So every 20-tick sweep
+re-sends the barrier and the ghost light to every player already classified near: two small packets a
+second per near player per tinted beacon, and a double beam that heals itself within a second. The
+column's glass is left out of that, because nothing vanilla resends it on its own.
+
 Knobs: `-Dmoredyes.beacon=off` disables the whole thing; `-Dmoredyes.beacon.near=<blocks>` moves the
-boundary (make it small, e.g. 8, to see both sides without walking far).
+boundary (make it small, e.g. 8, to see both sides without walking far);
+`-Dmoredyes.beacon.debug=true` logs every per-player decision the holder makes, in the order it made
+them.
 
 ### Verifying it in game
 

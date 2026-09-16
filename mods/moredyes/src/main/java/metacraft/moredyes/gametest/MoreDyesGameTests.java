@@ -553,7 +553,11 @@ public final class MoreDyesGameTests {
 		BeaconBeamHolder holder = new BeaconBeamHolder(helper.getLevel(), helper.absolutePos(new BlockPos(1, 1, 1)));
 
 		// White for three blocks, then ours to the sky: 0h2 and 2h1 of white, then 3h16 of ours.
+		// This is also the first-show path - every segment starts hidden, and both layers of each
+		// have to come out of it with an item, a scale and a translation, not just the core.
 		holder.layoutFor(List.of(new BeamWalk.Section(white, 3), new BeamWalk.Section(ours, 1)));
+		assertSegment(helper, holder, 0, white, 2, 0);
+		assertSegment(helper, holder, 1, white, 1, 2);
 		assertSegment(helper, holder, 2, ours, 16, 3);
 
 		// Now a second colour four blocks up: the same segment becomes 3h4, and the mix follows it.

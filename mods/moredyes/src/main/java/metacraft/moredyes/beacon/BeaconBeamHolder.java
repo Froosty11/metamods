@@ -24,9 +24,11 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -199,12 +201,31 @@ public final class BeaconBeamHolder extends ElementHolder {
 		ServerPlayer player = handler.getPlayer();
 		if (!engaged || player == null || !BeaconBeams.isNear(pos, player)) return false;
 		boolean added = super.startWatching(handler);
-		if (added) pendingRefresh.add(player.getUUID());
+		// Queue the block resend whatever super said. It returns false for a player who is already
+		// watching, and that player still needs the barrier - they are watching precisely because
+		// they were near when the beam engaged.
+		pendingRefresh.add(player.getUUID());
+		debug(player, "startWatching, super added " + added);
 		return added;
 	}
 
 	@Override
+	public boolean stopWatching(ServerGamePacketListenerImpl handler) {
+		boolean removed = super.stopWatching(handler);
+		debug(handler.getPlayer(), "stopWatching, super removed " + removed);
+		return removed;
+	}
+
+	/** One line per per-player decision, behind {@code -Dmoredyes.beacon.debug=true}. */
+	private void debug(@Nullable ServerPlayer player, String what) {
+		if (!BeaconBeams.debug()) return;
+		MoreDyes.LOGGER.info("[{}] beacon {} [{}] {}", MoreDyes.MOD_ID, pos,
+				player == null ? "?" : player.getGameProfile().name(), what);
+	}
+
+	@Override
 	public void destroy() {
+		debug(null, "destroy, " + side.size() + " player(s) classified");
 		for (Map.Entry<UUID, Boolean> entry : Map.copyOf(side).entrySet()) {
 			if (!Boolean.TRUE.equals(entry.getValue())) continue;
 			ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
@@ -266,17 +287,23 @@ public final class BeaconBeamHolder extends ElementHolder {
 	}
 
 	private void catchUpNewWatchers() {
+		if (pendingRefresh.isEmpty()) return;
+		Set<UUID> ids = new HashSet<>();
 		UUID id;
-		while ((id = pendingRefresh.poll()) != null) {
-			ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+		// Drained through a set: both startWatching and reclassify queue, and one hide is enough.
+		while ((id = pendingRefresh.poll()) != null) ids.add(id);
+		for (UUID uuid : ids) {
+			ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
 			if (player == null || !engaged || !BeaconBeams.isNear(pos, player)) continue;
-			side.put(id, Boolean.TRUE);
+			side.put(uuid, Boolean.TRUE);
+			debug(player, "catch-up");
 			hide(player);
 		}
 	}
 
 	/** Give every player the vanilla column back and blank the beam; the elements stay allocated. */
 	private void disengage() {
+		debug(null, "disengage, " + side.size() + " player(s) classified");
 		engaged = false;
 		for (Map.Entry<UUID, Boolean> entry : Map.copyOf(side).entrySet()) {
 			ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
@@ -344,15 +371,39 @@ public final class BeaconBeamHolder extends ElementHolder {
 			if (player.blockPosition().distSqr(pos) > (double) TRACKING_RANGE * TRACKING_RANGE) continue;
 			boolean near = BeaconBeams.isNear(pos, player);
 			Boolean was = side.put(player.getUUID(), near);
-			if (was != null && was == near) continue;
+			if (was != null && was == near) {
+				if (near) reassert(player);
+				continue;
+			}
 			if (near) {
-				// startWatching queues the block resend; doing it here too would only duplicate it.
+				// startWatching queues the block resend, whether or not it adds a new watcher.
 				startWatching(player);
 			} else {
 				stopWatching(player);
 				restore(player);
 			}
 		}
+	}
+
+	/**
+	 * Put the beacon's near look back, every sweep, for a player who was already near.
+	 *
+	 * The near state is a lie told in block update packets, and vanilla resends those positions for
+	 * reasons of its own: right-clicking the beacon at all makes
+	 * {@code ServerGamePacketListenerImpl.handleUseItemOn} confirm the <i>clicked</i> position to the
+	 * placing player ({@code new ClientboundBlockUpdatePacket(level, blockPos)}, and again for the
+	 * block placed against it), and a chunk resend does the same wholesale. The real beacon coming
+	 * back brings its block entity with it, and a vanilla client's own {@code BeaconBlockEntity.tick}
+	 * walks the column and draws a second beam beside ours. Two small packets a second per near
+	 * player per tinted beacon buys a fix that cannot be missed; the glass is left out because
+	 * nothing vanilla resends it on its own.
+	 */
+	private void reassert(ServerPlayer player) {
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(2);
+		packets.add(new ClientboundBlockUpdatePacket(pos, Blocks.BARRIER.defaultBlockState()));
+		BlockPos light = lightPos();
+		if (light != null) packets.add(new ClientboundBlockUpdatePacket(light, LIGHT));
+		send(player, packets);
 	}
 
 	/**
@@ -395,6 +446,7 @@ public final class BeaconBeamHolder extends ElementHolder {
 		}
 		BlockPos light = lightPos();
 		if (light != null) packets.add(new ClientboundBlockUpdatePacket(light, LIGHT));
+		debug(player, "hide: barrier at " + pos + ", light at " + light + ", " + ours.size() + " of ours");
 		send(player, packets);
 	}
 
@@ -423,6 +475,7 @@ public final class BeaconBeamHolder extends ElementHolder {
 			packets.add(new ClientboundBlockUpdatePacket(p, fallback.lower()));
 			if (fallback.upper() != null) packets.add(new ClientboundBlockUpdatePacket(above, fallback.upper()));
 		}
+		debug(player, "restore: real beacon at " + pos + ", " + ours.size() + " of ours");
 		send(player, packets);
 	}
 

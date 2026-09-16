@@ -73,6 +73,7 @@ public final class BeaconBeams {
 	public static final float SPIN_DEGREES = 2.25f * REFRESH_TICKS;
 
 	private static final boolean ENABLED = !"off".equalsIgnoreCase(System.getProperty("moredyes.beacon", "on"));
+	private static final boolean DEBUG = Boolean.getBoolean("moredyes.beacon.debug");
 	private static final double NEAR = Double.parseDouble(System.getProperty("moredyes.beacon.near", "128"));
 
 	private static final Map<ModColor, Fallback> SINGLE = new ConcurrentHashMap<>();
@@ -82,6 +83,16 @@ public final class BeaconBeams {
 
 	public static boolean enabled() {
 		return ENABLED;
+	}
+
+	/**
+	 * {@code -Dmoredyes.beacon.debug=true}: log every per-player decision the holder makes. The
+	 * near/far state is a lie told in block update packets, and anything vanilla that resends one of
+	 * those positions undoes it silently, so when a beacon misbehaves the only way to see it is the
+	 * order the holder sent things in.
+	 */
+	public static boolean debug() {
+		return DEBUG;
 	}
 
 	public static double near() {
