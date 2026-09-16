@@ -274,26 +274,42 @@ public final class BeaconBeamHolder extends ElementHolder {
 		}
 	}
 
-	/** Near: barrier where the beacon is (the block display draws it), our glass as it always is. */
+	/**
+	 * Near: barrier where the beacon is (the block display draws it), our glass as it always is. The
+	 * block above each of ours goes back too — {@link #restore} may have put a ghost glass there, and
+	 * only resending its real state gets rid of it.
+	 */
 	private void hide(ServerPlayer player) {
-		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() + 1);
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 1);
 		packets.add(new ClientboundBlockUpdatePacket(pos, Blocks.BARRIER.defaultBlockState()));
 		for (BlockPos p : ours) {
 			packets.add(new ClientboundBlockUpdatePacket(p, BeaconBeams.clientState(level.getBlockState(p))));
+			BlockPos above = p.above();
+			packets.add(new ClientboundBlockUpdatePacket(above, BeaconBeams.clientState(level.getBlockState(above))));
 		}
 		send(player, packets);
 	}
 
-	/** Far: the real beacon, and our glass as the nearest vanilla stained glass so the client tints. */
+	/**
+	 * Far: the real beacon, and our glass as the vanilla stained glass whose own beam walk lands
+	 * closest to our colour. Where there is air above one of ours, that is a <i>pair</i> of ghost
+	 * blocks whose average is closer than any single dye — see {@link BeaconBeams#fallback}. The
+	 * upper one is a lie told to this player only; the server block stays air.
+	 */
 	private void restore(ServerPlayer player) {
-		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() + 1);
+		List<ClientboundBlockUpdatePacket> packets = new ArrayList<>(ours.size() * 2 + 1);
 		packets.add(new ClientboundBlockUpdatePacket(pos, level.getBlockState(pos)));
 		for (BlockPos p : ours) {
 			BlockState state = level.getBlockState(p);
-			BlockState client = state.getBlock() instanceof GlassBlocks.Glass glass
-					? BeaconBeams.nearestVanillaGlass(glass.color())
-					: BeaconBeams.clientState(state);
-			packets.add(new ClientboundBlockUpdatePacket(p, client));
+			if (!(state.getBlock() instanceof GlassBlocks.Glass glass)) {
+				packets.add(new ClientboundBlockUpdatePacket(p, BeaconBeams.clientState(state)));
+				continue;
+			}
+			BlockPos above = p.above();
+			boolean roomAbove = level.getBlockState(above).isAir();
+			BeaconBeams.Fallback fallback = BeaconBeams.fallback(glass.color(), roomAbove);
+			packets.add(new ClientboundBlockUpdatePacket(p, fallback.lower()));
+			if (fallback.upper() != null) packets.add(new ClientboundBlockUpdatePacket(above, fallback.upper()));
 		}
 		send(player, packets);
 	}

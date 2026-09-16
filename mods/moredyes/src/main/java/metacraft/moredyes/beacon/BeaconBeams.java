@@ -9,10 +9,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,8 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * plus display entities: a block display of the vanilla beacon so the block still looks right, and
  * two item displays per beam section (opaque core, translucent glow) tinted through a
  * {@code minecraft:dye} tint with a {@code dyed_color} component. Far players keep the vanilla
- * beacon and get our glass swapped for the nearest vanilla stained glass, so their own client tints
- * the beam approximately. {@link BeaconBeamHolder} owns both per player.
+ * beacon and get our glass swapped for ghost vanilla stained glass — a pair whose average lands on
+ * our colour where there is room above, see {@link #fallback} — so their own client tints the beam
+ * approximately. {@link BeaconBeamHolder} owns both per player.
  *
  * Only columns that actually contain one of our colours are taken over; a plain vanilla beacon is
  * left completely alone. {@code -Dmoredyes.beacon=off} disables the feature,
@@ -60,9 +62,10 @@ public final class BeaconBeams {
 	public static final int SKY_MARGIN = 64;
 
 	private static final boolean ENABLED = !"off".equalsIgnoreCase(System.getProperty("moredyes.beacon", "on"));
-	private static final double NEAR = Double.parseDouble(System.getProperty("moredyes.beacon.near", "48"));
+	private static final double NEAR = Double.parseDouble(System.getProperty("moredyes.beacon.near", "128"));
 
-	private static final Map<ModColor, BlockState> NEAREST = new ConcurrentHashMap<>();
+	private static final Map<ModColor, Fallback> SINGLE = new ConcurrentHashMap<>();
+	private static final Map<ModColor, Fallback> PAIR = new ConcurrentHashMap<>();
 
 	private BeaconBeams() {}
 
@@ -103,25 +106,65 @@ public final class BeaconBeams {
 	}
 
 	/**
-	 * The vanilla stained glass whose dye colour is closest to ours in CIELAB — what a far player's
-	 * own client should use to tint the beam. Same rule as {@code ModColor.nearestMapColor}: plain
-	 * RGB distance picks badly for saturated colours.
+	 * The ghost vanilla glass a far player is shown in place of one of ours: {@code lower} at our
+	 * block's own position, and {@code upper} one above it when that block is air.
 	 */
-	public static BlockState nearestVanillaGlass(ModColor color) {
-		return NEAREST.computeIfAbsent(color, c -> {
-			DyeColor best = DyeColor.WHITE;
-			double bestDist = Double.MAX_VALUE;
-			for (DyeColor dye : DyeColor.values()) {
-				double d = ModColor.labDistance(c.rgb(), dye.getTextureDiffuseColor() & 0xFFFFFF);
+	public record Fallback(BlockState lower, @Nullable BlockState upper) {}
+
+	/**
+	 * The vanilla stained glass a far player's own client should tint the beam with. One glass can
+	 * only ever reproduce one of the 16 dye colours, which for a saturated colour like cerise is a
+	 * visible jump from the display beam — so when there is air above we spend a second ghost block
+	 * and search every ordered pair too.
+	 *
+	 * That works because of the merge rule {@link BeamWalk} mirrors: the beacon is section 0, so the
+	 * first glass is taken <i>raw</i> (the {@code size() <= 1} quirk) and a second, differing glass
+	 * above it makes {@code ARGB.average} of the two. Averaging two dyes reaches colours no single
+	 * dye does, so the beam above the pair lands much closer to ours. Distance is CIELAB, the same
+	 * rule as {@code ModColor.nearestMapColor}: plain RGB distance picks badly for saturated colours.
+	 *
+	 * @param roomAbove whether the block above ours is air, so a second ghost block is free to place
+	 */
+	public static Fallback fallback(ModColor color, boolean roomAbove) {
+		return (roomAbove ? PAIR : SINGLE).computeIfAbsent(color, c -> search(c, roomAbove));
+	}
+
+	private static Fallback search(ModColor color, boolean roomAbove) {
+		DyeColor bestLower = DyeColor.WHITE;
+		DyeColor bestUpper = null;
+		double bestDist = Double.MAX_VALUE;
+		for (DyeColor lower : DyeColor.values()) {
+			double single = ModColor.labDistance(color.rgb(), opaque(lower) & 0xFFFFFF);
+			if (single < bestDist) {
+				bestDist = single;
+				bestLower = lower;
+				bestUpper = null;
+			}
+			if (!roomAbove) continue;
+			for (DyeColor upper : DyeColor.values()) {
+				// Same colour twice just extends the lower section, which the single case covers.
+				if (upper == lower) continue;
+				int merged = ARGB.average(opaque(lower), opaque(upper));
+				double d = ModColor.labDistance(color.rgb(), merged & 0xFFFFFF);
 				if (d < bestDist) {
 					bestDist = d;
-					best = dye;
+					bestLower = lower;
+					bestUpper = upper;
 				}
 			}
-			MoreDyes.LOGGER.info("[{}] beacon fallback: {} -> vanilla {} stained glass",
-					MoreDyes.MOD_ID, c.id(), best.getName());
-			return Blocks.STAINED_GLASS.pick(best).defaultBlockState();
-		});
+		}
+		MoreDyes.LOGGER.info("[{}] beacon fallback: {} -> vanilla {}{} stained glass",
+				MoreDyes.MOD_ID, color.id(), bestLower.getName(),
+				bestUpper == null ? "" : " + " + bestUpper.getName());
+		return new Fallback(glass(bestLower), bestUpper == null ? null : glass(bestUpper));
+	}
+
+	private static BlockState glass(DyeColor dye) {
+		return Blocks.STAINED_GLASS.pick(dye).defaultBlockState();
+	}
+
+	private static int opaque(DyeColor dye) {
+		return 0xFF000000 | dye.getTextureDiffuseColor();
 	}
 
 	/** What a vanilla client is normally sent for a block; the "near" look for our glass. */
@@ -134,9 +177,18 @@ public final class BeaconBeams {
 	 * vanilla stacks through untouched) plus the section colour in {@code dyed_color}, which the
 	 * definition's {@code minecraft:dye} tint multiplies into the beam texture. Block displays
 	 * cannot be tinted to an arbitrary RGB, which is why the beam is item displays.
+	 *
+	 * <b>The carrier item decides the render layer, so it is load-bearing.</b> A client picks an
+	 * item's layer from the item itself ({@code ItemBlockRenderTypes}), not from the model we
+	 * override it with: for a {@code BlockItem} that is the carrier block's chunk render type. With
+	 * a stairs carrier the whole beam rendered on the cutout layer, which alpha-tests instead of
+	 * blending, so the alpha-77 glow texture came out fully opaque. So the glow rides a translucent
+	 * block's item and the core, which is opaque anyway, rides a solid one — the same split vanilla's
+	 * {@code BeaconRenderer} makes between its inner and outer beam.
 	 */
 	public static ItemStack beamStack(Identifier model, int argb) {
-		ItemStack stack = new ItemStack(Items.OAK_STAIRS);
+		Item carrier = (GLOW.equals(model) ? Blocks.STAINED_GLASS.pick(DyeColor.WHITE) : Blocks.STONE).asItem();
+		ItemStack stack = new ItemStack(carrier);
 		stack.set(DataComponents.ITEM_MODEL, model);
 		stack.set(DataComponents.DYED_COLOR, new DyedItemColor(argb & 0xFFFFFF));
 		return stack;

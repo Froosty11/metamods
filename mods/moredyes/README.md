@@ -99,7 +99,7 @@ A vanilla client computes the beam colour entirely client-side, from the `Beacon
 see in the column. Our stained glass is sent as a leaves donor, so the beam goes through it white,
 and no packet we send about that block can change it. So the beam is replaced instead:
 
-- **Near players** (default 48 blocks, horizontal) are sent a **barrier** where the beacon is and get
+- **Near players** (default 128 blocks, horizontal) are sent a **barrier** where the beacon is and get
   an `ElementHolder` at the beacon: a `BlockDisplayElement` putting the beacon's own look back, plus
   a fixed pool of 16 beam **segments** of 2 `ItemDisplayElement`s each — an opaque core (vanilla's
   `SOLID_BEAM_RADIUS` 0.2) and a translucent glow (`BEAM_GLOW_RADIUS` 0.25). **33 entities per
@@ -111,7 +111,7 @@ and no packet we send about that block can change it. So the beam is replaced in
   instead of one sprite being stretched over the whole thing. Like vanilla's `BeaconRenderer` (which
   draws the last section with height 1024 whatever the walk said) the **last section is extended to
   the sky** — to the world's build height plus 64, or as far as the 16 × 16 = 256-block pool reaches,
-  whichever is shorter. 256 blocks is far past the 48-block near radius, so it reads as "to the sky"
+  whichever is shorter. 256 blocks is past the near radius, so it reads as "to the sky"
   while keeping the entity count flat.
 - **The element pool is allocated once and never changes.** Segments are shown by giving them an item
   and hidden by giving them `ItemStack.EMPTY`; nothing is ever added or removed. That is load-bearing
@@ -119,9 +119,16 @@ and no packet we send about that block can change it. So the beam is replaced in
   `ClientboundRemoveEntitiesPacket` directly off its own live `IntList` field, and that packet keeps
   the list by reference, so an element added or removed before Netty encodes it corrupts the packet
   and kicks the client.
-- **Far players** keep the real beacon and get our glass in that column swapped for the **nearest
-  vanilla stained glass** (CIELAB, same rule as the map colour), so their own client tints the beam
-  approximately. Crossing the boundary resends the beacon and our glass to that player alone.
+- **Far players** keep the real beacon and get our glass in that column swapped for **ghost vanilla
+  stained glass**, so their own client tints the beam approximately. One dye can only ever be one of
+  16 colours, which next to the display beam is a visible jump, so where the block above ours is air
+  we spend a **second ghost block** and search all 16 × 16 ordered pairs: the beacon is already
+  section 0, so vanilla takes the lower glass raw and `ARGB.average`s the upper one into it, and the
+  average reaches colours no single dye does. In CIELAB (same rule as the map colour) that is **60%
+  closer for cerise** (`magenta` + `red` -> `#BB3E71`, against `pink` `#F38BAA` alone) and **63% for
+  laserviolet** (`white` + `purple`). With no room above it falls back to the single nearest dye.
+  Crossing the boundary resends the beacon and our glass to that player alone — including the block
+  above each of ours, which is the only way to clear a ghost once the player comes back in range.
 - The sections are vanilla's own walk (`BeaconBlockEntity.tick`), re-implemented in `BeamWalk` with
   our glass added as a colour source — same `ARGB.average` merge rule, same stop condition.
 - **Only columns that contain one of our colours are taken over.** A plain vanilla beacon is left
@@ -134,6 +141,18 @@ and no packet we send about that block can change it. So the beam is replaced in
   gets a zero-thickness twin just inside it carrying the opposite face (a `south` quad behind the
   `north` wall, and so on) with u mirrored — the same trick `twoSidedBox` uses for shulker boxes.
   `shade` is off on every element: a beam is emissive, not a lit box.
+- **The carrier item decides the render layer**, so it is load-bearing. A client picks an item's
+  layer from the item itself (`ItemBlockRenderTypes`), not from the `item_model` we override it
+  with; for a `BlockItem` that is the carrier block's chunk render type. On a stairs carrier the
+  whole beam rendered **cutout**, which alpha-tests instead of blending, so the alpha-77 glow came
+  out fully opaque and the beam read as a flat solid bar. The glow now rides
+  `white_stained_glass`'s item (translucent) and the core rides `stone`'s (solid, and the core
+  texture is opaque anyway) — the same split vanilla's `BeaconRenderer` makes between its inner and
+  outer beam.
+
+Known rough edges: the block display is `FULL_BRIGHT`, but the **barrier the client is sent emits no
+light**, so a taken-over beacon does not light its surroundings the way a real one does. The block
+itself looks right; only the light it casts is missing.
 
 Knobs: `-Dmoredyes.beacon=off` disables the whole thing; `-Dmoredyes.beacon.near=<blocks>` moves the
 boundary (make it small, e.g. 8, to see both sides without walking far).

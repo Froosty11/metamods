@@ -35,6 +35,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -375,13 +376,32 @@ public final class MoreDyesGameTests {
 				"second section is not " + first().id() + ": " + Integer.toHexString(result.sections().get(1).color()));
 		helper.assertTrue(result.ours().size() == 1, "our glass positions: " + result.ours());
 
-		BlockState fallback = BeaconBeams.nearestVanillaGlass(first());
-		helper.assertTrue(fallback.getBlock() instanceof BeaconBeamBlock,
-				"fallback is not a vanilla beam block: " + fallback);
+		BeaconBeams.Fallback single = BeaconBeams.fallback(first(), false);
+		helper.assertTrue(single.lower().getBlock() instanceof BeaconBeamBlock,
+				"fallback is not a vanilla beam block: " + single.lower());
+		helper.assertTrue(single.upper() == null, "no room above, but got a second block: " + single.upper());
+		// With air above, the pair's average has to be at least as close as the best single dye.
+		BeaconBeams.Fallback pair = BeaconBeams.fallback(first(), true);
+		helper.assertTrue(pair.lower().getBlock() instanceof BeaconBeamBlock,
+				"pair fallback is not a vanilla beam block: " + pair.lower());
+		double singleDist = ModColor.labDistance(first().rgb(), beamColor(single) & 0xFFFFFF);
+		double pairDist = ModColor.labDistance(first().rgb(), beamColor(pair) & 0xFFFFFF);
+		helper.assertTrue(pairDist <= singleDist,
+				"pair fallback is worse than the single: " + pairDist + " > " + singleDist);
 		ItemStack core = BeaconBeams.beamStack(BeaconBeams.CORE, result.sections().get(1).color());
 		helper.assertTrue(core.has(DataComponents.ITEM_MODEL) && core.has(DataComponents.DYED_COLOR),
 				"beam stack is missing its model or tint: " + core);
 		helper.succeed();
+	}
+
+	/**
+	 * The colour a far player's client ends up drawing the beam above the ghost glass: the lower
+	 * block raw (the beacon is already section 0, so vanilla's {@code size() <= 1} quirk takes it
+	 * raw) averaged with the upper one when there is a second block.
+	 */
+	private static int beamColor(BeaconBeams.Fallback fallback) {
+		int lower = BeamWalk.colorOf(fallback.lower());
+		return fallback.upper() == null ? lower : ARGB.average(lower, BeamWalk.colorOf(fallback.upper()));
 	}
 
 	/** An untinted column is left to vanilla: the walk reports no colours of ours. */
