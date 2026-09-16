@@ -2712,7 +2712,11 @@ public final class WardrobeTests {
 		try {
 			ItemStack ovve = new ItemStack(ModContent.ovve(CHAPTER));
 			OvveItem.setOwner(ovve, player.getUUID());
-			var bundle = new net.minecraft.world.item.component.BundleContents.Mutable();
+			// Through the ovve's own contents, not a bare `new BundleContents.Mutable()`: the bundle
+			// mod's size factor rides along with the component, and a directly constructed Mutable
+			// carries none at all (its weight maths then divides by a null factor).
+			var bundle = ovve.getOrDefault(net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS,
+					net.minecraft.world.item.component.BundleContents.EMPTY).asMutable();
 			bundle.tryInsert(new ItemStack(net.minecraft.world.item.Items.DIAMOND, 64));
 			ovve.set(net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS, bundle.toImmutable());
 
