@@ -3,12 +3,9 @@ package nu.metacraft.rivals.paint;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
-import net.minecraft.world.level.block.TripWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.RedstoneSide;
 import nu.metacraft.rivals.PaintColor;
 import nu.metacraft.rivals.Rivals;
 import org.jspecify.annotations.Nullable;
@@ -17,7 +14,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,47 +22,67 @@ import java.util.Set;
 /**
  * The client-state table (spec §2). A vanilla client can only be shown vanilla blockstates, and a
  * painted cell now needs to say which of its four in-plane neighbours are painted, so paint borrows
- * every state of four donor blocks that render whatever the pack says, have no collision, emit no
- * light and have no client-side behaviour: the two multiface blocks (63 usable states each: not
- * waterlogged, at least one face), tripwire (128) and redstone wire at power 0 (81; its
- * {@code animateTick} only spawns dust when powered). Glow lichen is deliberately not a donor:
- * {@code GlowLichenBlock.emission} gives light 7 to every state with a face.
+ * every state of three donor blocks that render whatever the pack says, have no collision, emit no
+ * light and have no client-side behaviour: the two multiface blocks (64 non-waterlogged states each)
+ * and redstone wire (1296). Glow lichen is deliberately not a donor: {@code GlowLichenBlock.emission}
+ * gives light 7 to every state with a face.
  *
- * <p><b>Which donor state stands for which paint state is chosen by shape, not by counting.</b> The
- * pack can repaint a borrowed state but it cannot change the state's outline, and the client draws
- * the targeted-block highlight from the <em>client</em> state's shape. Handing paint out by
- * contiguous slices put floor cells on sculk-vein states whose face flags drew slabs on random faces
- * and wall cells on a tripwire square lying at the floor, so the outline box floated nowhere near the
- * ink. The allocator below spends the budget (306 of 335 usable states) on matching outlines instead:
+ * <p><b>Tripwire is deliberately not a donor either, and that is the whole point of this table's
+ * shape.</b> Polymer's own block pool ({@code eu.pb4.polymer.blocks.api.BlockModelType.TRIPWIRE} and
+ * {@code TRIPWIRE_FLAT}) hands out tripwire states, so any mod calling
+ * {@code PolymerBlockResourceUtils.requestBlock} is writing {@code minecraft/blockstates/tripwire.json}
+ * too. On the minigame server, where moredyes' carpets sit in that pool next to Rivals, the two
+ * overrides collided and every floor cell drew nothing at all. Sculk vein, resin clump and redstone
+ * wire are in no {@code BlockModelType} pool, which is why wall paint survived; the coexistence rule
+ * is pinned by a game test that derives Polymer's pooled blocks and asserts none of {@link #DONORS} is
+ * among them. A new donor has to clear the same test.
+ *
+ * <p><b>Which donor state stands for which paint state is chosen by what is quiet, not by shape.</b>
+ * Rivals is played in adventure mode, so the one thing a borrowed state's outline is good for — the
+ * targeted-block highlight — never appears, and a donor's shape no longer costs anything. What still
+ * costs something is noise: {@code RedstoneWireBlock.animateTick} spawns dust off every wire state
+ * whose {@code power} is not 0, and no resource pack can stop it. There are only 209 quiet states in
+ * all (64 + 64 multiface, 81 unpowered wire) against 306 paint states, so the budget is spent on the
+ * cells a player actually stands on and walks past:
  *
  * <ol>
- * <li><b>Splat cells are exact.</b> A multiface donor's shape is the union of 1-px slabs on its set
- *     faces, so a splat mask maps to the state whose six face flags <em>are</em> that mask: DATA on
- *     sculk vein, IT on resin clump. 57 masks per colour, outline exactly the painted faces.</li>
- * <li><b>Floor cells are flat.</b> Attach {@link Direction#DOWN} takes {@code FLAT}: tripwire
- *     {@code attached=true}, a full-square 2.5-px-thin slab lying on the floor.</li>
- * <li><b>Wall cells are striped.</b> Attach N/E/S/W prefers a redstone-wire state whose side on that
- *     direction is {@code up}, which adds a full-height 1-px strip climbing that face of the cell —
- *     the nearest thing any donor has to a wall decal. Each strip state is spent once, fewest other
- *     {@code up} sides first and on whichever of its own {@code up} directions is shortest, which
- *     spreads the 65 of them 17/16/16/16 over N/E/S/W: at least eight per colour per direction. The
- *     other eight-odd per colour fall back to the leftover FLAT states and then to HALF.</li>
- * <li><b>Ceiling cells are halves.</b> Attach {@link Direction#UP} takes {@code HALF}: tripwire
- *     {@code attached=false}, a half box. No donor draws a ceiling slab with 16 spare states, and
- *     ceilings are the rarest cell there is.</li>
+ * <li><b>Wall cells take the colour's own multiface donor.</b> Attach N/E/S/W is 4 × 16 = 64 states
+ *     per colour, which is exactly how many non-waterlogged states a multiface block has: sculk vein
+ *     is DATA's, resin clump is IT's, and neither pool has a state to spare. The all-faces-false state
+ *     is usable here because the pack replaces the whole blockstate file, so what the client draws is
+ *     our quad, not vanilla's union of face slabs (that state's <em>shape</em> is empty, which in
+ *     adventure mode nobody can see).</li>
+ * <li><b>Floor and ceiling cells take unpowered redstone wire.</b> Attach {@link Direction#DOWN} and
+ *     {@link Direction#UP}, 2 × 16 per colour = 64 states out of the 81 wire states at
+ *     {@code power=0}.</li>
+ * <li><b>Splat masks take whatever wire is left.</b> A splat is the fallback for a cell painted on two
+ *     or more faces — the join lines of the arena, far rarer than plain floor and wall — so it is the
+ *     one cell kind that can afford powered wire: 17 of the 114 land on the last unpowered states and
+ *     the rest on {@code power=1} and up, where the client sprinkles a little dust.</li>
  * </ol>
  *
- * <p>The allocation runs once, in a fixed order, and throws rather than reusing a state or running a
- * pool dry. {@link #entry()} is the reverse map.
+ * <p>The allocation runs once, in a fixed order, and throws at class load rather than reusing a state,
+ * running a pool dry, or quietly putting a floor cell on a powered wire state. {@link #entry()} is the
+ * reverse map.
  */
 public final class PaintStates {
-	public static final List<Block> DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP, Blocks.TRIPWIRE, Blocks.REDSTONE_WIRE);
+	/** The donor blocks, all three of them outside every Polymer block pool. */
+	public static final List<Block> DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP, Blocks.REDSTONE_WIRE);
 	public static final int CONNECTED_PER_COLOR = 6 * 16;
-	public static final int SPLAT_PER_COLOR = 63 - 6;
+	/** Face masks with at least two faces set: every splat a cell can be, per colour. */
+	public static final int SPLAT_PER_COLOR = (1 << 6) - 1 - 6;
 	private static final int PER_COLOR = CONNECTED_PER_COLOR + SPLAT_PER_COLOR;
 	private static final Direction[] DIRECTIONS = Direction.values();
-	/** The multiface donor each colour's splat masks come from, in colour order. */
-	private static final List<Block> EXACT_DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP);
+	/** Connection-bit patterns per (colour, attach face). */
+	private static final int BITS = 16;
+	/** The multiface donor each colour's wall cells come from, in colour order. */
+	private static final List<Block> WALL_DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP);
+	/** Wall cells per colour: four attach directions of bit patterns. */
+	private static final int WALL_PER_COLOR = 4 * BITS;
+	/** What the wire pool has to cover per colour: floors, ceilings and every splat mask. */
+	private static final int WIRE_PER_COLOR = 2 * BITS + SPLAT_PER_COLOR;
+	/** The attach faces that are not walls, in the order they are handed wire states. */
+	private static final List<Direction> FLAT_FACES = List.of(Direction.DOWN, Direction.UP);
 
 	/** The table, indexed {@code colour * PER_COLOR + local} exactly as {@link #entry} decodes it. */
 	private static final List<BlockState> TABLE = table();
@@ -76,142 +92,87 @@ public final class PaintStates {
 
 	// ---------------------------------------------------------------- the pools
 
-	/** Every usable state of {@code donor}, in registry order: never waterlogged, never lit, never powered wire. */
-	private static List<BlockState> usable(Block donor) {
+	/**
+	 * Every usable state of a multiface donor, in registry order: never waterlogged, so never drawn
+	 * with water in the cell. The all-faces-false state is in: the pack gives it our own model, and its
+	 * empty outline shape is invisible in adventure mode.
+	 */
+	private static List<BlockState> multiface(Block donor) {
 		List<BlockState> out = new ArrayList<>();
 		for (BlockState state : donor.getStateDefinition().getPossibleStates()) {
 			if (state.hasProperty(BlockStateProperties.WATERLOGGED) && state.getValue(BlockStateProperties.WATERLOGGED)) continue;
-			if (donor instanceof MultifaceBlock && faceMask(state) == 0) continue;
-			if (donor == Blocks.REDSTONE_WIRE && state.getValue(RedstoneWireBlock.POWER) != 0) continue;
 			out.add(state);
 		}
 		return out;
 	}
 
-	/** A multiface donor state's six face booleans, packed the same way paint packs its own. */
-	private static int faceMask(BlockState state) {
-		int mask = 0;
-		for (Direction d : DIRECTIONS) {
-			if (state.getValue(MultifaceBlock.getFaceProperty(d))) mask |= 1 << d.ordinal();
-		}
-		return mask;
-	}
-
-	/** How many of a redstone-wire state's four sides climb the wall. */
-	private static int ups(BlockState wire) {
-		int ups = 0;
-		for (Direction d : Direction.Plane.HORIZONTAL) {
-			if (wire.getValue(RedstoneWireBlock.PROPERTY_BY_DIRECTION.get(d)) == RedstoneSide.UP) ups++;
-		}
-		return ups;
-	}
-
 	/**
-	 * Redstone-wire strip states per wall direction. A state is spent on one direction only, so the 65
-	 * of them have to be spread: they are handed out fewest-{@code up}-sides first (every extra
-	 * {@code up} is a strip climbing a face the paint is not on), and each one goes to whichever of its
-	 * own {@code up} directions is currently shortest, ties in N/E/S/W order. Taking each state's first
-	 * {@code up} side instead would give NORTH 27 and WEST 8; balancing gives every direction its
-	 * sixteen, which is exactly eight per colour.
+	 * Every redstone-wire state, the quiet ones first: {@code animateTick} spawns dust off every state
+	 * with {@code power != 0}, so the 81 unpowered states are handed out before any powered one. The
+	 * sort is stable, so within a power level the order is the registry's own and the table is the same
+	 * on every start.
 	 */
-	private static Map<Direction, Deque<BlockState>> strips() {
-		Map<Direction, List<BlockState>> sorted = new EnumMap<>(Direction.class);
-		for (Direction d : Direction.Plane.HORIZONTAL) sorted.put(d, new ArrayList<>());
-		List<BlockState> wires = new ArrayList<>();
-		for (BlockState wire : usable(Blocks.REDSTONE_WIRE)) {
-			if (ups(wire) > 0) wires.add(wire);
-		}
-		wires.sort(Comparator.comparingInt(PaintStates::ups));
-		for (BlockState wire : wires) {
-			Direction shortest = null;
-			for (Direction d : Direction.Plane.HORIZONTAL) {
-				if (wire.getValue(RedstoneWireBlock.PROPERTY_BY_DIRECTION.get(d)) != RedstoneSide.UP) continue;
-				if (shortest == null || sorted.get(d).size() < sorted.get(shortest).size()) shortest = d;
-			}
-			sorted.get(shortest).add(wire);
-		}
-		Map<Direction, Deque<BlockState>> pools = new EnumMap<>(Direction.class);
-		sorted.forEach((d, states) -> pools.put(d, new ArrayDeque<>(states)));
-		return pools;
-	}
-
-	/** Flat-on-the-floor states: tripwire {@code attached=true} first, then the redstone wires with no {@code up}. */
-	private static Deque<BlockState> flats() {
-		Deque<BlockState> out = new ArrayDeque<>();
-		for (BlockState state : usable(Blocks.TRIPWIRE)) {
-			if (state.getValue(TripWireBlock.ATTACHED)) out.add(state);
-		}
-		for (BlockState wire : usable(Blocks.REDSTONE_WIRE)) {
-			if (ups(wire) == 0) out.add(wire);
-		}
-		return out;
-	}
-
-	/** Half-box states: tripwire {@code attached=false}. */
-	private static Deque<BlockState> halves() {
-		Deque<BlockState> out = new ArrayDeque<>();
-		for (BlockState state : usable(Blocks.TRIPWIRE)) {
-			if (!state.getValue(TripWireBlock.ATTACHED)) out.add(state);
-		}
-		return out;
+	private static Deque<BlockState> wires() {
+		List<BlockState> out = new ArrayList<>(Blocks.REDSTONE_WIRE.getStateDefinition().getPossibleStates());
+		out.sort(Comparator.comparingInt((BlockState state) -> state.getValue(RedstoneWireBlock.POWER)));
+		return new ArrayDeque<>(out);
 	}
 
 	// ---------------------------------------------------------------- the allocator
 
 	private static List<BlockState> table() {
-		int colors = PaintColor.values().length;
-		if (colors > EXACT_DONORS.size()) {
-			throw new IllegalStateException("[" + Rivals.MOD_ID + "] " + colors + " colours but "
-					+ EXACT_DONORS.size() + " multiface donors to give each one its own exact splats");
-		}
-		BlockState[] table = new BlockState[colors * PER_COLOR];
-		// 1. Splats: the multiface state whose face flags are the mask, so the outline is the ink.
-		for (PaintColor color : PaintColor.values()) {
-			Map<Integer, BlockState> byMask = new HashMap<>();
-			for (BlockState state : usable(EXACT_DONORS.get(color.ordinal()))) byMask.put(faceMask(state), state);
-			int index = 0;
-			for (int mask = 1; mask < 64; mask++) {
-				if (Integer.bitCount(mask) < 2) continue;
-				BlockState exact = byMask.get(mask);
-				if (exact == null) throw new IllegalStateException("[" + Rivals.MOD_ID + "] no exact donor state for mask " + mask);
-				table[color.ordinal() * PER_COLOR + CONNECTED_PER_COLOR + index++] = exact;
+		PaintColor[] colors = PaintColor.values();
+		require(colors.length <= WALL_DONORS.size(), colors.length + " colours but " + WALL_DONORS.size()
+				+ " multiface donors to give each one its own wall cells");
+		BlockState[] table = new BlockState[colors.length * PER_COLOR];
+		// 1. Wall cells: the colour's own multiface donor, one state per (direction, bits).
+		for (PaintColor color : colors) {
+			Block donor = WALL_DONORS.get(color.ordinal());
+			Deque<BlockState> pool = new ArrayDeque<>(multiface(donor));
+			require(pool.size() >= WALL_PER_COLOR, donor + " has " + pool.size() + " usable states but "
+					+ color + "'s wall cells need " + WALL_PER_COLOR);
+			for (Direction wall : Direction.Plane.HORIZONTAL) {
+				for (int bits = 0; bits < BITS; bits++) table[index(color, wall, bits)] = pool.remove();
 			}
 		}
-		Deque<BlockState> flat = flats();
-		Deque<BlockState> half = halves();
-		Map<Direction, Deque<BlockState>> strips = strips();
-		// 2. Floors are flat, 3. walls are striped (falling back to flat then half), 4. ceilings are halves.
-		// Walls run before ceilings so their fallback eats the flat leftovers first and the halves last.
-		fill(table, Direction.DOWN, flat);
-		for (Direction wall : Direction.Plane.HORIZONTAL) fill(table, wall, strips.get(wall), flat, half);
-		fill(table, Direction.UP, half);
+		// 2. Floors and ceilings, then 3. the splat masks, from the wire pool. The colours are
+		// interleaved rather than filled one after the other, so when the quiet states run out part way
+		// through the splats they run out for both teams at the same mask instead of for one only.
+		Deque<BlockState> wire = wires();
+		require(wire.size() >= colors.length * WIRE_PER_COLOR, "redstone wire has " + wire.size()
+				+ " states but paint needs " + colors.length * WIRE_PER_COLOR);
+		for (Direction face : FLAT_FACES) {
+			for (int bits = 0; bits < BITS; bits++) {
+				for (PaintColor color : colors) table[index(color, face, bits)] = wire.remove();
+			}
+		}
+		for (int mask = 0; mask < SPLAT_PER_COLOR; mask++) {
+			for (PaintColor color : colors) table[color.ordinal() * PER_COLOR + CONNECTED_PER_COLOR + mask] = wire.remove();
+		}
+		// The cells a player stands on and walks past may not be powered wire: vanilla's animateTick
+		// sprinkles dust off every powered state, whatever the pack says the state looks like.
+		for (PaintColor color : colors) {
+			for (Direction face : FLAT_FACES) {
+				for (int bits = 0; bits < BITS; bits++) {
+					BlockState state = table[index(color, face, bits)];
+					require(state.getValue(RedstoneWireBlock.POWER) == 0,
+							"the quiet wire states ran out: " + color + " " + face + " " + bits + " is " + state);
+				}
+			}
+		}
 		List<BlockState> out = List.of(table);
-		if (out.size() != Set.copyOf(out).size()) throw new IllegalStateException("[" + Rivals.MOD_ID + "] a donor state was handed out twice");
+		require(out.size() == Set.copyOf(out).size(), "a donor state was handed out twice");
 		return out;
 	}
 
-	/**
-	 * Every colour's sixteen bit patterns for one attach face, from the first pool with anything left.
-	 * The colours are interleaved rather than filled one after the other: a pool that runs short part
-	 * way through — the strip states do, on every wall direction — then shorts both teams by the same
-	 * amount instead of giving one team every strip and the other none.
-	 */
-	@SafeVarargs
-	private static void fill(BlockState[] table, Direction face, Deque<BlockState>... pools) {
-		for (int bits = 0; bits < 16; bits++) {
-			for (PaintColor color : PaintColor.values()) {
-				table[color.ordinal() * PER_COLOR + face.ordinal() * 16 + bits] = take(color, face, pools);
-			}
-		}
+	/** Where {@code (colour, face, bits)} lives in the table. */
+	private static int index(PaintColor color, Direction face, int bits) {
+		return color.ordinal() * PER_COLOR + face.ordinal() * BITS + bits;
 	}
 
-	@SafeVarargs
-	private static BlockState take(PaintColor color, Direction face, Deque<BlockState>... pools) {
-		for (Deque<BlockState> pool : pools) {
-			BlockState state = pool.poll();
-			if (state != null) return state;
-		}
-		throw new IllegalStateException("[" + Rivals.MOD_ID + "] out of donor states for " + color + " " + face);
+	/** Fail at class load, with the mod's own prefix: a donor that ran out is a bug in the table, not a runtime condition. */
+	private static void require(boolean condition, String what) {
+		if (!condition) throw new IllegalStateException("[" + Rivals.MOD_ID + "] " + what);
 	}
 
 	private static Map<BlockState, Entry> entries() {
@@ -238,7 +199,7 @@ public final class PaintStates {
 	// ---------------------------------------------------------------- the lookups
 
 	public static BlockState connected(PaintColor color, Direction face, int bits) {
-		return TABLE.get(color.ordinal() * PER_COLOR + face.ordinal() * 16 + (bits & 15));
+		return TABLE.get(index(color, face, bits & 15));
 	}
 
 	/** {@code faceMask} bit i = Direction i painted. One face is a connected state with no bits. */
@@ -254,6 +215,20 @@ public final class PaintStates {
 			index++;
 		}
 		return TABLE.get(color.ordinal() * PER_COLOR + CONNECTED_PER_COLOR + index);
+	}
+
+	/**
+	 * The state every paint particle of this colour carries: a wall cell, which is always one of the
+	 * multiface donors (sculk vein for DATA, resin clump for IT), with all four bits set so the sprite
+	 * is that colour's all-connected tile.
+	 *
+	 * <p>It has to be a multiface state. The client takes a block crumb's sprite from the state's model
+	 * {@code particle} texture, which the pack points at the paint tile, but it also runs the state
+	 * through vanilla's {@code BlockColors} — and a redstone-wire-backed state would come out tinted
+	 * dark red whatever the texture said.
+	 */
+	public static BlockState particles(PaintColor color) {
+		return connected(color, Direction.NORTH, BITS - 1);
 	}
 
 	/** Every client state in use, for tests and the pack. */

@@ -3,6 +3,7 @@ package nu.metacraft.rivals.gametest;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.JsonOps;
+import eu.pb4.polymer.blocks.impl.DefaultModelData;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
@@ -66,11 +67,11 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.component.UseEffects;
-import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.MultifaceBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -5238,11 +5239,9 @@ public final class RivalsGameTests {
 			if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 				helper.assertFalse(state.getValue(BlockStateProperties.WATERLOGGED), "never waterlogged: " + state);
 			}
-			if (state.getBlock() instanceof MultifaceBlock) {
-				boolean anyFace = false;
-				for (Direction d : Direction.values()) anyFace |= state.getValue(MultifaceBlock.getFaceProperty(d));
-				helper.assertTrue(anyFace, "a multiface donor state with no face renders nothing: " + state);
-			}
+			// The all-faces-false multiface state is deliberately in use: the pack replaces the donor's
+			// whole blockstate file, so what the client draws is our quad and not vanilla's union of face
+			// slabs. Only the state's outline shape is empty, and adventure mode never draws one.
 		}
 		// The same request always gives the same state, and popcount-1 splat masks fold into connected.
 		helper.assertValueEqual(PaintStates.connected(PaintColor.DATA, Direction.UP, 5), PaintStates.connected(PaintColor.DATA, Direction.UP, 5), "deterministic");
@@ -5265,60 +5264,105 @@ public final class RivalsGameTests {
 	}
 
 	/**
-	 * The outline follows the ink. The client draws the targeted-block highlight from the client
-	 * state's own shape, which no resource pack can change, so the allocator picks donor states whose
-	 * shape matches the paint: splat masks exactly, floors flat on the floor, walls striped up the
-	 * wall they are painted on.
+	 * Every cell kind comes from the donor that kind is for, and there are enough states to go round.
+	 * The outline does not come into it — Rivals is adventure mode, so the targeted-block highlight a
+	 * borrowed state's shape would draw never appears — but noise does: a redstone wire state with any
+	 * power sprinkles dust from {@code animateTick} that no resource pack can stop. So the floor, the
+	 * walls and the ceiling all land on states that are quiet, and only the splat masks — the fallback
+	 * for a cell painted on two or more faces, which is the join lines of an arena rather than its
+	 * surfaces — are allowed to spill onto powered wire.
 	 */
 	@GameTest
-	public void paintStatesOutlineTheInk(GameTestHelper helper) {
-		// Splats: a multiface donor's shape is the union of 1-px slabs on its set faces, so the face
-		// flags have to be the mask itself, bit for bit.
+	public void paintStatesComeFromTheirOwnDonor(GameTestHelper helper) {
+		int colors = PaintColor.values().length;
+		helper.assertValueEqual(colors, 2, "two colours, one multiface donor each");
+		// Wall cells: the colour's own multiface donor, and the whole of its pool — four attach
+		// directions of sixteen bit patterns is exactly the 64 non-waterlogged states one has.
+		Set<BlockState> walls = new HashSet<>();
+		for (PaintColor color : PaintColor.values()) {
+			Block donor = color == PaintColor.DATA ? Blocks.SCULK_VEIN : Blocks.RESIN_CLUMP;
+			int usable = 0;
+			for (BlockState state : donor.getStateDefinition().getPossibleStates()) {
+				if (!state.hasProperty(BlockStateProperties.WATERLOGGED) || !state.getValue(BlockStateProperties.WATERLOGGED)) usable++;
+			}
+			helper.assertTrue(usable >= 4 * PaintArt.BITS, donor + " has " + usable + " usable states for " + (4 * PaintArt.BITS) + " wall cells");
+			for (Direction wall : Direction.Plane.HORIZONTAL) {
+				for (int bits = 0; bits < PaintArt.BITS; bits++) {
+					BlockState state = PaintStates.connected(color, wall, bits);
+					helper.assertValueEqual(state.getBlock(), donor, color + " " + wall + " " + bits + " is that colour's own multiface donor");
+					helper.assertTrue(walls.add(state), "each wall cell has a state of its own: " + state);
+				}
+			}
+		}
+		helper.assertValueEqual(walls.size(), colors * 4 * PaintArt.BITS, "wall states in use");
+		// Floors and ceilings: redstone wire at power 0, the only wire states whose animateTick returns.
+		for (PaintColor color : PaintColor.values()) {
+			for (Direction face : List.of(Direction.DOWN, Direction.UP)) {
+				for (int bits = 0; bits < PaintArt.BITS; bits++) {
+					BlockState state = PaintStates.connected(color, face, bits);
+					helper.assertValueEqual(state.getBlock(), Blocks.REDSTONE_WIRE, color + " " + face + " " + bits + " is a redstone wire state");
+					helper.assertValueEqual(state.getValue(RedstoneWireBlock.POWER), 0, "and unpowered, so it makes no dust: " + state);
+				}
+			}
+		}
+		// Splat masks: the rest of the wire.
 		for (PaintColor color : PaintColor.values()) {
 			for (int mask = 1; mask < 64; mask++) {
 				if (Integer.bitCount(mask) < 2) continue;
-				BlockState client = PaintStates.splat(color, mask);
-				helper.assertTrue(client.getBlock() instanceof MultifaceBlock, "splat " + color + " " + mask + " is a multiface donor, not " + client);
-				for (Direction d : Direction.values()) {
-					boolean painted = (mask & 1 << d.ordinal()) != 0;
-					helper.assertValueEqual(client.getValue(MultifaceBlock.getFaceProperty(d)), painted,
-							"splat " + color + " mask " + mask + ": the donor's " + d + " flag is the mask's " + d + " bit");
-				}
+				helper.assertValueEqual(PaintStates.splat(color, mask).getBlock(), Blocks.REDSTONE_WIRE,
+						color + " splat " + mask + " is a redstone wire state");
 			}
 		}
-		// Floors: a thin full-square slab lying on the floor of the cell.
+		// Enough wire for both colours' floors, ceilings and splats, with tripwire's 128 states gone.
+		int wireNeeded = colors * (2 * PaintArt.BITS + PaintStates.SPLAT_PER_COLOR);
+		helper.assertTrue(Blocks.REDSTONE_WIRE.getStateDefinition().getPossibleStates().size() >= wireNeeded,
+				"redstone wire covers " + wireNeeded + " floor, ceiling and splat states");
+		// The particle state is a wall cell, so it is multiface and vanilla's BlockColors leaves it alone.
 		for (PaintColor color : PaintColor.values()) {
-			for (int bits = 0; bits < 16; bits++) {
-				AABB box = outline(PaintStates.connected(color, Direction.DOWN, bits));
-				helper.assertTrue(box.maxY <= 3.0 / 16.0, "floor " + color + " " + bits + " lies on the floor, maxY=" + box.maxY);
-				helper.assertTrue(box.minX <= 0.0 && box.maxX >= 1.0 && box.minZ <= 0.0 && box.maxZ >= 1.0,
-						"floor " + color + " " + bits + " covers the whole square, " + box);
-			}
-		}
-		// Walls: at least half of each colour's sixteen per direction are the tall strip states that
-		// actually climb the painted face. The rest are the flat/half fallbacks the budget forces.
-		for (Direction wall : Direction.Plane.HORIZONTAL) {
-			for (PaintColor color : PaintColor.values()) {
-				int strips = 0;
-				for (int bits = 0; bits < 16; bits++) {
-					AABB box = outline(PaintStates.connected(color, wall, bits));
-					boolean touches = switch (wall) {
-						case NORTH -> box.minZ <= 0.0;
-						case SOUTH -> box.maxZ >= 1.0;
-						case WEST -> box.minX <= 0.0;
-						default -> box.maxX >= 1.0;
-					};
-					if (touches && box.maxY - box.minY >= 15.0 / 16.0) strips++;
-				}
-				helper.assertTrue(strips >= 8, wall + " paint for " + color + ": " + strips + " of 16 states climb that face, wanted 8");
-			}
+			BlockState particles = PaintStates.particles(color);
+			helper.assertTrue(particles.getBlock() instanceof MultifaceBlock, color + " particle state is multiface, not " + particles);
+			helper.assertValueEqual(PaintStates.entry(particles).color(), color, "and it is that colour's own");
 		}
 		helper.succeed();
 	}
 
-	/** The box the client would draw round a targeted cell holding this client state. */
-	private static AABB outline(BlockState client) {
-		return client.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).bounds();
+	/**
+	 * The coexistence rule, pinned. polymer-blocks' {@code BlockModelType} pools hand vanilla states
+	 * out to any mod that asks — moredyes' carpets sit in {@code TRIPWIRE_FLAT} — and whoever asked
+	 * then writes that block's whole {@code minecraft/blockstates/*.json} into the served pack. Two
+	 * packs cannot own one file: on the minigame server, which ships moredyes and Rivals together,
+	 * tripwire was double-booked and every floor cell drew nothing while the wall paint carried on.
+	 * So no Rivals donor may be a block Polymer pools.
+	 *
+	 * <p>Polymer's side of that is derived rather than pinned: {@code DefaultModelData.USABLE_STATES}
+	 * is the table {@code BlockModelType} is served from, so the blocks come straight out of it. The
+	 * tripwire assertion is the canary — if Polymer ever moves that table the derived set comes out
+	 * empty, and this test says so instead of passing on nothing. For the record, the blocks in it as
+	 * of polymer-blocks 0.18.0+26.3-rc-1 are tripwire; a long list of full blocks (stone, the plank
+	 * sets, wool, note block, target, dispenser, dropper, beehive, creaking heart and so on); leaves,
+	 * saplings, the mangrove propagule, cave/twisting/weeping vines, kelp, sugar cane and cactus;
+	 * farmland; slabs, stairs, trapdoors, doors, shelves, fence gates, beds, scaffolding, copper
+	 * chains, copper lanterns and copper bars; fire and campfires; sculk sensors; the weighted
+	 * pressure plates; the lightning rod; and player heads.
+	 */
+	@GameTest
+	public void donorsAreOutsidePolymersBlockPools(GameTestHelper helper) {
+		Set<Block> pooled = new HashSet<>();
+		for (List<BlockState> states : DefaultModelData.USABLE_STATES.values()) {
+			for (BlockState state : states) pooled.add(state.getBlock());
+		}
+		DefaultModelData.SPECIAL_REMAPS.forEach((from, to) -> {
+			pooled.add(from.getBlock());
+			pooled.add(to.getBlock());
+		});
+		helper.assertTrue(pooled.contains(Blocks.TRIPWIRE), "polymer-blocks still pools tripwire; read " + pooled.size() + " blocks");
+		helper.assertTrue(pooled.size() >= 20, "polymer's pools cover " + pooled.size() + " blocks, expected dozens");
+		helper.assertFalse(PaintStates.DONORS.contains(Blocks.TRIPWIRE), "tripwire is not a donor any more");
+		for (Block donor : PaintStates.DONORS) {
+			helper.assertFalse(pooled.contains(donor),
+					BuiltInRegistries.BLOCK.getKey(donor) + " is in a Polymer block pool, so both packs would write its blockstate file");
+		}
+		helper.succeed();
 	}
 
 	/**
@@ -5463,6 +5507,8 @@ public final class RivalsGameTests {
 				helper.assertTrue(json.contains("\"" + PaintArt.variantKey(state) + "\""), "variant for " + state);
 			}
 		}
+		// And nothing for tripwire: that file belongs to whoever asked Polymer's pool for it.
+		helper.assertFalse(files.containsKey("assets/minecraft/blockstates/tripwire.json"), "the pack leaves tripwire.json alone");
 		helper.succeed();
 	}
 

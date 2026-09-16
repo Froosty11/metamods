@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
  * the paint marker in alpha; uniform sprites survive mipmapping exactly, which is what makes reading
  * bits back out of a texel safe. Six one-quad models (one per attach direction), and a variants
  * blockstate for each donor block mapping every client state in use to its model and texture; donor
- * states we do not use point at the empty model so a stray vanilla sculk vein shows nothing.
+ * states we do not use — the waterlogged multiface ones, and the redstone wire the splats did not
+ * reach — point at the empty model, so they draw nothing at all.
  *
  * <p>Each quad's {@code uv} is flipped per face so the sprite's u and v axes line up with the paint's
  * own in-plane axes: the gloss shader takes its in-face coordinate from the sprite (a block display has no
@@ -242,9 +243,9 @@ public final class PaintArt {
 	 * and a model without one is a "missing texture references" line in the client's log on every join.
 	 *
 	 * <p>The particle texture is borrowed from the first colour's all-connected paint, so the one place
-	 * it shows is the one place an unused donor state can make particles: breaking a stray sculk vein,
-	 * resin clump, tripwire or redstone dust a player placed in an arena puffs that colour's paint
-	 * crumbs. A harmless tell, and a cheaper one than shipping a texture nothing else uses.
+	 * it shows is the one place an unused donor state can make particles: breaking a stray waterlogged
+	 * sculk vein or a redstone dust a player placed in an arena puffs that colour's paint crumbs. A
+	 * harmless tell, and a cheaper one than shipping a texture nothing else uses.
 	 */
 	static JsonObject emptyModel() {
 		JsonObject textures = new JsonObject();

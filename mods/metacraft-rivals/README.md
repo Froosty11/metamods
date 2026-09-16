@@ -16,7 +16,7 @@ own numbers on a hundred-unit tank, an ink LED nobody can see, and screen ink dr
 an artist can paint over.
 
 **Standalone.** This module is not bundled into the `dist` jar (root `build.gradle`, `standaloneMods`):
-its pack retextures sculk vein, resin clump, tripwire and redstone wire as paint, which only a
+its pack retextures sculk vein, resin clump and redstone wire as paint, which only a
 dedicated Rivals server wants.
 
 ## How it works
@@ -38,27 +38,59 @@ dedicated Rivals server wants.
   border is a smooth curve at any resolution (see the shader bullet below). A cell painted on more
   than one face (a corner: floor plus wall in the same air cell) falls back to `PaintBlock`, the
   plain multiface splat that carries no bits.
-- Both block kinds are sent to vanilla clients as blockstates borrowed from four donors that render
-  whatever the pack says and, once picked clean of the states that would misbehave (waterlogged,
-  unlit, powered), have no collision, emit no light and have no client-side behaviour:
+- Both block kinds are sent to vanilla clients as blockstates borrowed from **three donors** that
+  render whatever the pack says, have no collision, emit no light and have no client-side behaviour:
 
-  | donor | usable states | note |
+  | donor | usable states | who gets them |
   |---|---|---|
-  | sculk vein | 63 | six face booleans; waterlogged and the all-false state excluded |
-  | resin clump | 63 | same |
-  | tripwire | 128 | attached × disarmed × powered × n/e/s/w; thin outline shape only |
-  | redstone wire, power 0 | 81 | only power 0 is silent and carries no dust tint |
+  | sculk vein | 64 | DATA's wall cells (six face booleans, waterlogged excluded) |
+  | resin clump | 64 | IT's wall cells (same) |
+  | redstone wire | 1296 | both colours' floor and ceiling cells (power 0), then the corner masks |
 
-  335 usable states in all; 306 are in use (153 per colour: 96 connected face×bits combinations, then
-  57 corner masks). Which donor state stands for which paint state is chosen by *shape*, because the
-  client draws the targeted-block outline from the borrowed state and no resource pack can change it:
-  corner cells take the multiface state whose face flags are exactly their mask, floor cells take
-  tripwire's flat full-square slab, wall cells take a redstone-wire state with a full-height strip up
-  the face the paint is on (eight of each colour's sixteen per direction — that is every strip state
-  there is), and the rare ceiling cells take tripwire's half box. Glow lichen was considered and dropped — it lights every
-  state that has a face, which would make paint glow. The v1 caveat still applies, now for four
-  blocks instead of one: real sculk veins, resin clumps, tripwire and redstone dust a player places
-  in an arena render as paint too.
+  1424 usable states in all; 306 are in use (153 per colour: 96 connected face×bits combinations,
+  then 57 corner masks).
+
+  **Why these three, and why not tripwire.** A donor has to be a block *nobody else* hands out,
+  because the pack override is a whole file: `assets/minecraft/blockstates/<donor>.json`, every state
+  of the block mapped to a paint model. Polymer's own block pool —
+  `eu.pb4.polymer.blocks.api.BlockModelType`, the thing `PolymerBlockResourceUtils.requestBlock`
+  serves — hands out vanilla states to any mod that asks, and writes that block's blockstate file
+  itself. Tripwire is in that pool (`TRIPWIRE`, `TRIPWIRE_FLAT`), and moredyes' carpets sit in it: on
+  the minigame server, which ships moredyes, Rivals and ovvar in one dist, the two overrides
+  double-booked tripwire and **every floor cell drew nothing at all** while wall paint carried on
+  drawing. So tripwire is gone as a donor, and floors moved to redstone wire. Sculk vein, resin clump
+  and redstone wire are in no `BlockModelType` pool, which is why the walls survived the bug; that is
+  pinned by a game test (`donorsAreOutsidePolymersBlockPools`) which reads Polymer's own pool table
+  and asserts no donor is in it.
+
+  **The rule for adding a donor.** It must (1) be absent from every Polymer `BlockModelType` pool —
+  the test above will say so — (2) have no collision and emit no light in every state it lends,
+  (3) have no client-side behaviour that a resource pack cannot silence, and (4) bring enough states
+  that the cell kind it serves is covered outright, since `PaintStates` throws at class load rather
+  than reuse a state or run a pool dry.
+
+  **Which donor state stands for which paint state** is chosen by what is *quiet*, not by shape.
+  Rivals is played in adventure mode, so the one thing a borrowed state's outline was ever good for —
+  the targeted-block highlight, which no resource pack can change — never appears, and a donor's
+  shape costs nothing. Noise still costs something: `RedstoneWireBlock.animateTick` sprinkles dust off
+  every wire state whose `power` is not 0, and no pack can stop it. There are only 209 quiet states
+  (64 + 64 multiface, 81 unpowered wire) against 306 paint states, so they go to the cells a player
+  stands on and walks past:
+
+  - **wall cells** take the colour's own multiface donor — 4 directions × 16 bit patterns is exactly
+    the 64 non-waterlogged states one has, with none to spare. The all-faces-false state is usable
+    because the pack replaces the whole blockstate file, so the client draws our quad rather than
+    vanilla's union of face slabs; only that state's outline is empty, and nobody in adventure mode
+    draws one;
+  - **floor and ceiling cells** take redstone wire at `power=0` — 64 of those 81 states;
+  - **corner masks** (the `PaintBlock` splat, for a cell painted on two or more faces: the join lines
+    of an arena rather than its surfaces) take the wire that is left, 17 of them unpowered and the
+    rest at `power=1` and up, where the client sprinkles a little dust around them. That is the one
+    place the budget shows.
+
+  Glow lichen was considered and dropped — it lights every state that has a face, which would make
+  paint glow. The v1 caveat still applies, now for three blocks instead of one: real sculk veins,
+  resin clumps and redstone dust a player places in an arena render as paint too.
 - The roller sprays where its head touches: three crumbs at the contact point on every tick that paints,
   with a dust pillar every fourth for the ink pushed ahead of the drum. The point is the head's own — one
   `roll_reach` ahead of the feet along the flat look, on whatever floor the strip's own downward ray finds
@@ -477,9 +509,9 @@ dedicated Rivals server wants.
   per donor block maps every one of its states to either a wrapper model (a connected cell's face
   quad with its (colour, bits) texture) or a mask model (a corner cell's quad-per-face, all on the
   all-connected texture); states paint doesn't use point at an empty model. The override replaces the
-  donor's whole vanilla blockstate file, so those unused states render *nothing at all* — a sculk
-  vein, resin clump, tripwire or redstone dust a player places in an arena is invisible under the
-  pack, and so is powered redstone dust, wiring and all.
+  donor's whole vanilla blockstate file, so those unused states render *nothing at all* — a
+  waterlogged sculk vein or resin clump, and any redstone dust on a state the corner masks did not
+  reach, is invisible under the pack, wiring and all.
   The display quads need no art of their own: they show a paint state, so they resolve to the same
   wrapper model and the same bit-carrying texture a painted cell does.
 - The pack also overrides `assets/minecraft/shaders/core/terrain.vsh`/`terrain.fsh` — the pair that

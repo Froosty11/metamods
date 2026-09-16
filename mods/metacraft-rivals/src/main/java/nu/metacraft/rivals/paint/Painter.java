@@ -161,7 +161,7 @@ public final class Painter {
 	 * and never looked like ink; a block crumb is a chunky lump that arcs and falls, which is what a
 	 * thrown liquid does.
 	 *
-	 * <p>The state is the down-plus-up splat mask, which is always a multiface donor (sculk vein for
+	 * <p>The state is {@link PaintStates#particles}, which is always a multiface donor (sculk vein for
 	 * DATA, resin clump for IT). That matters: the client resolves the crumb's sprite from the state's
 	 * model {@code particle} texture, which the pack points at that colour's {@code paint_<id>_15}
 	 * tile, so the crumbs come out in the team colour. A redstone-wire-backed state would have gone
@@ -169,8 +169,7 @@ public final class Painter {
 	 * texture said.
 	 */
 	public static BlockParticleOption crumbs(PaintColor color) {
-		return CRUMBS.computeIfAbsent(color, c -> new BlockParticleOption(ParticleTypes.BLOCK,
-				PaintStates.splat(c, 1 << Direction.DOWN.ordinal() | 1 << Direction.UP.ordinal())));
+		return CRUMBS.computeIfAbsent(color, c -> new BlockParticleOption(ParticleTypes.BLOCK, PaintStates.particles(c)));
 	}
 
 	/** One pillar option per colour, for the same reason {@link #CRUMBS} is cached. */
@@ -183,8 +182,7 @@ public final class Painter {
 	 * out in the team colour rather than through a vanilla block-colour provider.
 	 */
 	public static BlockParticleOption pillar(PaintColor color) {
-		return PILLARS.computeIfAbsent(color, c -> new BlockParticleOption(ParticleTypes.DUST_PILLAR,
-				PaintStates.splat(c, 1 << Direction.DOWN.ordinal() | 1 << Direction.UP.ordinal())));
+		return PILLARS.computeIfAbsent(color, c -> new BlockParticleOption(ParticleTypes.DUST_PILLAR, PaintStates.particles(c)));
 	}
 
 	/**

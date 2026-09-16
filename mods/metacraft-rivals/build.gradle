@@ -16,4 +16,8 @@ dependencies {
 	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	// Only the donor-versus-pool game test needs this: it reads polymer-blocks' own table of the vanilla
+	// states its BlockModelType pools hand out, to prove no Rivals donor is in one. Nothing in the mod's
+	// runtime path touches it, so it is not a fabric.mod.json dependency.
+	implementation("eu.pb4:polymer-blocks:${project.polymer_version}")
 }
