@@ -299,8 +299,10 @@ dedicated Rivals server wants.
   instead, offset right and down out of the crosshair. The charger's trail starts its dust 1.5
   blocks along the shot for the same reason; the paint under the line still starts at the eyes.
 - **The lobby.** Between matches — in LOBBY and after the whistle in ENDED — `Lobby` is what a player
-  gets: every paint weapon off them, exactly **one** weapon selector (one however many rounds end, since a
-  compass per match is a hotbar of compasses), adventure mode, a clean screen and no roll. Ops keep their
+  gets: the **whole Rivals kit off them** (`Match.disarm`: every paint weapon, and the weapon selector with
+  it), adventure mode, a clean screen and no roll. Nothing in the lobby hands any of it out — `Match.arm`
+  is the only thing that ever gives a selector, and `WeaponSelector.home` moves a stray one back without
+  conjuring a new one, so a stopped match cannot leave a compass nobody can drop in somebody's inventory. Ops keep their
   own mode: the permission asked is the module's own `metacraft.rivals`, the same one the admin commands
   use, so a permissions plugin can grant it without granting op, and an operator in the lobby is usually
   building it. Adventure for everyone else because a lobby is not a place to mine the arena from, and a
@@ -329,7 +331,11 @@ dedicated Rivals server wants.
   exactly as the roller's speed bonus is, so they are exact, they do not appear in the client's effect
   list, and they come off by id. Playing adds a timer bossbar, `⏱ m:ss`, beside the score bars.
 
-  At zero (or on `stop`) everybody freezes again, the paint is counted, and the winner is titled in their
+  At zero (or on `stop`) the round is taken back: every player's kit goes (the weapon in its slot, the
+  selector in its own, and the weapon lock with them, since the lock is only ever "a paint weapon in slot
+  0") and every Rivals boss bar — the timer and the score bars — comes off every screen, so a player is
+  left with the inventory they walked in with. `/rivals kit` and `/rivals gun` still hand out items outside
+  a match, for testing an arena. Everybody freezes again, the paint is counted, and the winner is titled in their
   own colour — "DATA wins!", "IT wins!" or "Draw", with both percentages under it and in chat — while ten
   team-coloured rockets go up over three seconds at the winner's spawn. Ten seconds later it is the lobby
   again. Every transition clears `InkOnScreen` and stops any `Roll` for everybody: ink on the glass is
@@ -710,7 +716,9 @@ dedicated Rivals server wants.
   every second that never brings you below one health.
 - Score: bossbars show each colour's share of painted faces across all levels — paint blocks and
   surviving display quads alike — counted once a second from the cells the painter has touched (in
-  memory; a restart forgets them). `/rivals score` counts only the level it is run in, and names
+  memory; a restart forgets them). They are on screen **only while a match is running**: the whistle takes
+  them off everybody and the lobby never puts one back, because last round's "DATA 100 %" hanging over a
+  lobby reads as this round's score. The counting keeps happening either way — it is also the prune. `/rivals score` counts only the level it is run in, and names
   that level in its reply — and **with arena bounds set it sweeps the arena itself** for paint blocks
   instead of trusting the tracking, so a score taken after a restart is honest about paint that was
   already standing. Without bounds there is nothing to sweep but the whole level, so the reply says

@@ -95,6 +95,7 @@ import nu.metacraft.rivals.Rivals;
 import nu.metacraft.rivals.SquidDisplay;
 import nu.metacraft.rivals.SquidState;
 import nu.metacraft.rivals.RivalsCommands;
+import nu.metacraft.rivals.ScoreBars;
 import nu.metacraft.rivals.gun.PaintBall;
 import nu.metacraft.rivals.gun.PaintWeapon;
 import nu.metacraft.rivals.gun.Weapon;
@@ -724,7 +725,7 @@ public final class RivalsGameTests {
 	public void theHotbarIsLockedToTheWeaponsSlot(GameTestHelper helper) {
 		ServerPlayer player = connected(mockServerPlayer(helper, GameType.SURVIVAL));
 		Inventory inventory = player.getInventory();
-		WeaponSelector.home(player);
+		WeaponSelector.give(player);
 		inventory.setItem(3, new ItemStack(Items.BREAD));
 		// Nothing picked yet: every slot is free to visit.
 		helper.assertTrue(!WeaponLock.locked(player), "no weapon, no lock");
@@ -815,7 +816,7 @@ public final class RivalsGameTests {
 		ServerPlayer player = connected(mockServerPlayer(helper, GameType.SURVIVAL));
 		Inventory inventory = player.getInventory();
 		inventory.setItem(WeaponPicks.GIVEN_SLOT, new ItemStack(PaintWeapon.of(Weapon.ROLLER)));
-		WeaponSelector.home(player);
+		WeaponSelector.give(player);
 		int selectorSlot = -1;
 		for (Slot slot : player.containerMenu.slots) {
 			if (slot.container == inventory && slot.getContainerSlot() == WeaponSelector.SLOT) selectorSlot = slot.index;
@@ -841,24 +842,46 @@ public final class RivalsGameTests {
 	}
 
 	/**
-	 * Arming for a match keeps the selector: swapping weapons is only ever through it, in a match as much
-	 * as in a lobby, and the lobby hands it out into the first free slot — which after a sweep is the
-	 * weapon's own, so arming used to write straight over it.
+	 * Arming is what hands the selector out, and it is the only thing that does: a lobby player carries no
+	 * kit at all, and one arm-up gives them the weapon in its slot and the selector in its own — which is
+	 * the first free slot after a sweep, so arming used to write straight over it. Arming twice is still one
+	 * selector, and {@link WeaponSelector#home} moves a stray one back without ever conjuring a second.
 	 */
 	@GameTest
-	public void armingForAMatchKeepsTheSelector(GameTestHelper helper) {
+	public void armingForAMatchGivesTheSelector(GameTestHelper helper) {
 		ServerPlayer player = connected(mockServerPlayer(helper, GameType.SURVIVAL));
-		Lobby.receive(player); // adventure, no gun, one selector — in its own slot, the grid's top right
-		helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)),
-				"the lobby's selector lands in its own slot");
+		Lobby.receive(player); // adventure, no gun, no selector: a lobby player carries nothing of ours
+		helper.assertTrue(!WeaponSelector.carried(player), "the lobby leaves a player no selector");
 		ItemStack gun = Match.arm(player);
 		helper.assertTrue(gun.getItem() instanceof PaintWeapon, "arming hands over a weapon");
 		helper.assertTrue(player.getInventory().getItem(WeaponPicks.GIVEN_SLOT).getItem() instanceof PaintWeapon,
 				"which is in its own slot");
 		helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)),
-				"and the selector is still in its own slot");
+				"and the selector with it, in its own slot at the grid's top right");
 		helper.assertValueEqual(player.getInventory().getSelectedSlot(), WeaponPicks.GIVEN_SLOT, "with the gun in hand");
+		// Armed again — a respawn, a mid-match join — and it is still one selector, not a second.
+		Match.arm(player);
+		helper.assertValueEqual(selectors(player), 1, "arming twice is still one selector");
+		// A stray one is moved home; a player with none is left with none, which is what keeps the lobby
+		// from resurrecting the kit the whistle took back.
+		player.getInventory().setItem(WeaponSelector.SLOT, ItemStack.EMPTY);
+		player.getInventory().setItem(30, WeaponSelector.stack());
+		helper.assertTrue(WeaponSelector.home(player), "a stray selector is a thing to put right");
+		helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)), "it is home again");
+		helper.assertTrue(player.getInventory().getItem(30).isEmpty(), "and gone from where it was");
+		helper.assertValueEqual(WeaponSelector.take(player), 1, "and taking it back takes exactly one");
+		helper.assertTrue(!WeaponSelector.home(player), "home() hands nothing out to a player with none");
+		helper.assertTrue(!WeaponSelector.carried(player), "so they still have none");
 		helper.succeed();
+	}
+
+	/** How many weapon selectors a player is carrying, over the whole inventory. */
+	private static int selectors(Player player) {
+		int n = 0;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			if (WeaponSelector.is(player.getInventory().getItem(slot))) n++;
+		}
+		return n;
 	}
 
 	/** How many paint weapons a player is carrying, over the whole inventory. */
@@ -1329,9 +1352,14 @@ public final class RivalsGameTests {
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "time is up");
 			helper.assertTrue(Match.isFrozen(one), "everybody is frozen for the result");
 			helper.assertTrue(!Match.finalCounts().isEmpty(), "and the paint was counted");
+			// A match that runs out of clock takes the kit back exactly as a stopped one does.
+			helper.assertValueEqual(paintWeapons(one) + selectors(one), 0, "one is carrying nothing of ours");
+			helper.assertValueEqual(paintWeapons(two) + selectors(two), 0, "and neither is two");
+			helper.assertTrue(!WeaponLock.locked(one) && !WeaponLock.locked(two), "with no lock on either");
 			Match.tick(level.getServer(), playing + 60L * 20L + Match.ENDED_TICKS);
 			helper.assertValueEqual(Match.state(), Match.State.LOBBY, "and ten seconds later it is the lobby again");
 			helper.assertTrue(!Match.isFrozen(one) && !Match.isFrozen(two), "with nobody frozen");
+			helper.assertValueEqual(selectors(one) + selectors(two), 0, "and nobody handed a selector on the way");
 		} finally {
 			Match.clearAll();
 			arena.forget();
@@ -1388,7 +1416,13 @@ public final class RivalsGameTests {
 		helper.succeed();
 	}
 
-	/** {@code /rivals match stop} blows the whistle early: straight from PLAYING to ENDED. */
+	/**
+	 * {@code /rivals match stop} blows the whistle early: straight from PLAYING to ENDED — and it takes the
+	 * round with it. Johan stopped a match and was left holding the weapon selector, so the whistle now
+	 * takes the whole kit back (the weapon in its slot, the selector in its own, the lock with them) and
+	 * takes every Rivals boss bar off every screen; the ticks that follow, in ENDED and then in the lobby,
+	 * must not put any of it back.
+	 */
 	@GameTest
 	public void matchStopEndsItEarly(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
@@ -1410,11 +1444,51 @@ public final class RivalsGameTests {
 			// A second start while one is running is refused rather than restarting it.
 			helper.assertFalse(Match.start(level.getServer(), level, () -> players, 5, false, t).started(),
 					"one match at a time");
+			// Mid-round: the kit is in their hands, and the bars — the timer and a score bar over the paint
+			// they have put down — are on their screen.
+			helper.assertTrue(WeaponLock.locked(player), "the weapon is in its slot and locked to it");
+			helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)),
+					"with the selector in its own");
+			// A score bar exists only over paint, so one cell of it, by hand: not through the Painter, whose
+			// blob spends the level's shared random and would have every other test in the batch rolling
+			// different numbers.
+			BlockPos cell = new BlockPos(2, 2, 2);
+			helper.setBlock(new BlockPos(2, 1, 2), Blocks.STONE);
+			helper.setBlock(cell, PaintBlocks.splat(PaintColor.DATA).defaultBlockState()
+					.setValue(MultifaceBlock.getFaceProperty(Direction.DOWN), true));
+			PaintTally.of(level).track(helper.absolutePos(cell));
+			ScoreBars.refresh(level.getServer(), players);
+			helper.assertTrue(ScoreBars.shows(player), "the score bar over the paint they put down is on them");
+			helper.assertTrue(Match.showsAnyBar(player), "and so is the timer");
+
 			helper.assertTrue(Match.stop(t + 400), "stopped early");
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "which is the same ending");
 			helper.assertTrue(Match.isFrozen(player), "and the same freeze");
+			// The whistle: no kit, no lock, no bars.
+			helper.assertValueEqual(paintWeapons(player), 0, "the weapon went back with the whistle");
+			helper.assertValueEqual(selectors(player), 0, "and so did the selector");
+			helper.assertTrue(!WeaponLock.locked(player), "so nothing is locked to a slot");
+			helper.assertTrue(!ScoreBars.shows(player), "the score bar came off with it");
+			helper.assertTrue(!Match.showsAnyBar(player), "and no Rivals boss bar is left on the screen");
+			// The ten seconds of ENDED, then the lobby, then a while in it: nothing hands any of it back.
+			Match.tick(level.getServer(), t + 500);
+			ScoreBars.refresh(level.getServer(), players);
+			helper.assertValueEqual(selectors(player), 0, "ENDED gives no selector back");
+			helper.assertTrue(!Match.showsAnyBar(player), "nor a boss bar");
+			Match.tick(level.getServer(), t + 400 + Match.ENDED_TICKS);
+			helper.assertValueEqual(Match.state(), Match.State.LOBBY, "and then it is the lobby");
+			for (int tick = 1; tick <= 3; tick++) {
+				Match.tick(level.getServer(), t + 400 + Match.ENDED_TICKS + tick);
+				ScoreBars.refresh(level.getServer(), players);
+			}
+			helper.assertValueEqual(selectors(player), 0, "which does not give the selector back either");
+			helper.assertValueEqual(paintWeapons(player), 0, "nor a weapon");
+			helper.assertTrue(!Match.showsAnyBar(player), "nor a boss bar, however long it ticks");
+			helper.assertTrue(!Match.isFrozen(player), "and nobody is frozen in a lobby");
 		} finally {
 			Match.clearAll();
+			// The paint this test put down to make a score bar exist, off the level's shared tally again.
+			Arena.of(level).box().ifPresent(box -> PaintTally.of(level).reset(level, box));
 			arena.forget();
 			board.removePlayerFromTeam(player.getScoreboardName());
 		}
@@ -1448,42 +1522,33 @@ public final class RivalsGameTests {
 	}
 
 	/**
-	 * The lobby takes every paint weapon off a player and hands them exactly one selector — one, however
-	 * many times the round ends, because a player handed a compass per match finishes the evening with a
-	 * hotbar of them. Everything else in the inventory is left where it is.
+	 * The lobby takes the whole Rivals kit back: every paint weapon and the weapon selector with them, so a
+	 * player between matches is carrying nothing this mod ever handed them — which is the bug Johan found,
+	 * a compass left in his inventory by a match he had stopped. Everything else in the inventory is left
+	 * where it is, and nothing in the lobby hands any of it out again.
 	 */
 	@GameTest
-	public void theLobbySweepsGunsAndHandsOutOneSelector(GameTestHelper helper) {
+	public void theLobbyTakesTheKitBack(GameTestHelper helper) {
 		ServerPlayer player = connected(mockServerPlayer(helper, GameType.SURVIVAL));
 		PaintWeapon.giveKit(player);
 		player.getInventory().setItem(25, new ItemStack(Items.BREAD, 3));
-		player.getInventory().setItem(WeaponSelector.SLOT, new ItemStack(Items.APPLE, 2));
+		player.getInventory().setItem(WeaponSelector.SLOT, WeaponSelector.stack());
 		helper.assertValueEqual(paintWeapons(player), 4, "four guns to start with");
-		helper.assertTrue(!WeaponSelector.carried(player), "and no selector");
+		helper.assertTrue(WeaponSelector.carried(player), "and a selector");
 		int taken = Lobby.receive(player);
-		helper.assertValueEqual(taken, 4, "the lobby took all four");
-		helper.assertValueEqual(paintWeapons(player), 0, "and left none behind");
-		helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)),
-				"with a selector in exchange, in its own slot at the grid's top right");
+		helper.assertValueEqual(taken, 5, "the lobby took all four guns and the selector");
+		helper.assertValueEqual(paintWeapons(player), 0, "and left no gun behind");
+		helper.assertTrue(!WeaponSelector.carried(player), "nor a selector anywhere in the inventory");
+		helper.assertTrue(!WeaponLock.locked(player), "so nothing is locked to a slot any more");
 		helper.assertValueEqual(player.getInventory().getItem(25).getCount(), 3, "the bread is untouched");
-		// Whatever was in the selector's slot is moved rather than eaten.
-		helper.assertTrue(player.getInventory().findSlotMatchingItem(new ItemStack(Items.APPLE)) >= 0,
-				"and the apples were moved aside, not destroyed");
-		// A selector that has wandered is put back rather than doubled.
-		player.getInventory().setItem(WeaponSelector.SLOT, ItemStack.EMPTY);
+		// Twice through the lobby is still nothing: the lobby has nothing to hand out.
+		Lobby.receive(player);
+		helper.assertValueEqual(Lobby.receive(player), 0, "a second pass finds nothing left to take");
+		helper.assertValueEqual(selectors(player), 0, "still no selector");
+		// A selector that has wandered out of its slot is taken back too, wherever it is.
 		player.getInventory().setItem(30, WeaponSelector.stack());
-		helper.assertTrue(Lobby.give(player), "a stray selector is a thing to put right");
-		helper.assertTrue(WeaponSelector.is(player.getInventory().getItem(WeaponSelector.SLOT)), "it is home again");
-		helper.assertTrue(player.getInventory().getItem(30).isEmpty(), "and gone from where it was");
-		// Twice through the lobby is still one selector.
-		Lobby.receive(player);
-		Lobby.receive(player);
-		int selectors = 0;
-		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-			if (WeaponSelector.is(player.getInventory().getItem(slot))) selectors++;
-		}
-		helper.assertValueEqual(selectors, 1, "still exactly one selector");
-		helper.assertTrue(!Lobby.give(player), "and give() says it handed out nothing");
+		helper.assertValueEqual(Lobby.receive(player), 1, "a stray selector goes with the rest");
+		helper.assertTrue(player.getInventory().getItem(30).isEmpty(), "out of the slot it had wandered to");
 		// A player frozen by the end of a match is thawed by the lobby: nobody stands still between rounds.
 		Match.freeze(player);
 		helper.assertTrue(Match.isFrozen(player), "frozen for the result");

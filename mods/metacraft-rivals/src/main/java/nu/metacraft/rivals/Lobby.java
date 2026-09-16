@@ -15,17 +15,21 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.storage.LevelData;
 import nu.metacraft.rivals.gun.InkOnScreen;
 import nu.metacraft.rivals.gun.Roll;
-import nu.metacraft.rivals.gun.WeaponPicks;
-import nu.metacraft.rivals.gun.WeaponSelector;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * What being between matches means for a player: adventure mode, no gun, and a weapon selector in hand.
+ * What being between matches means for a player: adventure mode and no Rivals kit at all — no gun, no
+ * weapon selector, nothing this mod handed them.
  *
  * <p>Adventure because the lobby is not a place to mine the arena from, and because a paint weapon in a
- * lobby is a paint weapon used on the arena before the round starts. Ops keep whatever mode they are in —
+ * lobby is a paint weapon used on the arena before the round starts. Nothing in the kit, because a kit is
+ * a match's: a player whose match was stopped is left with the inventory they walked in with rather than a
+ * compass they cannot drop. The kit comes back at the next {@code /rivals match start} ({@link Match#arm}),
+ * and the pick itself is remembered whatever they are carrying, so it comes back as the weapon they chose.
+ *
+ * <p>Ops keep whatever mode they are in —
  * an operator in the lobby is usually building it — and the permission asked is the module's own
  * {@code metacraft.rivals}, the same one the admin commands use, so a server with a permissions plugin can
  * hand it out without handing out op.
@@ -66,12 +70,12 @@ public final class Lobby {
 	}
 
 	/**
-	 * The lobby treatment: no paint weapon, one selector, adventure mode unless they are an admin, a clean
-	 * screen and no roll. Returns how many paint weapons were taken off them, which is what the tests read.
+	 * The lobby treatment: the Rivals kit off them ({@link Match#disarm} — every paint weapon and the
+	 * selector with them), adventure mode unless they are an admin, a clean screen and no roll. Returns how
+	 * many stacks were taken off them, which is what the tests read.
 	 */
 	public static int receive(ServerPlayer player) {
-		int taken = WeaponPicks.sweep(player);
-		give(player);
+		int taken = Match.disarm(player);
 		if (!isAdmin(player)) player.setGameMode(GameType.ADVENTURE);
 		InkOnScreen.clear(player);
 		Roll.stop(player);
@@ -79,21 +83,11 @@ public final class Lobby {
 		return taken;
 	}
 
-	/** Everybody at once: what the match calls on its way back to the lobby. */
+	/** Everybody at once: what the match calls on its way back to the lobby, and after the whistle. */
 	public static int receiveAll(List<ServerPlayer> players) {
 		int taken = 0;
 		for (ServerPlayer player : players) taken += receive(player);
 		return taken;
-	}
-
-	/**
-	 * One selector, and only one, in the one place it belongs: {@link WeaponSelector#SLOT}, the top-right
-	 * slot of the inventory grid. {@link WeaponSelector#home} is find-or-create, so a player who is handed
-	 * one every time a round ends does not finish the evening with a bag full of compasses, and one whose
-	 * selector has wandered has it put back rather than doubled. Returns whether anything moved.
-	 */
-	public static boolean give(ServerPlayer player) {
-		return WeaponSelector.home(player);
 	}
 
 	/** Their own side's spawn if their scoreboard team is one of the two, the world spawn otherwise. */

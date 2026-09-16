@@ -84,27 +84,66 @@ public final class WeaponSelector extends Item implements PolymerItem {
 	}
 
 	/**
-	 * Put this player's selector where it belongs, and make sure they have one: nothing to do if it is
-	 * already in {@link #SLOT}, otherwise the one they are carrying is moved there — from wherever a sweep,
-	 * an arm-up or an inventory shuffle left it — and a player carrying none is handed one. Whatever was in
-	 * the slot is moved aside by {@link WeaponPicks#intoSlot}. Returns whether anything moved, which is what
-	 * the lobby reports.
+	 * Put this player's selector back where it belongs: nothing to do if it is already in {@link #SLOT} or
+	 * if they are carrying none, otherwise the one they have is moved there — from wherever a sweep, an
+	 * arm-up or an inventory shuffle left it. Whatever was in the slot is moved aside by
+	 * {@link WeaponPicks#intoSlot}. Returns whether anything moved.
 	 *
-	 * <p>Find-or-create rather than add-if-missing, so there is never a second selector to lose track of.
+	 * <p>Move, never create. This used to be find-or-create, which made it the thing that resurrected the
+	 * selector the whistle had just taken back: the lobby called it every time a round ended and every time
+	 * anybody joined. Handing one out is {@link #give}, which only {@link nu.metacraft.rivals.Match#arm}
+	 * calls — so a selector exists exactly while its owner is in a match.
 	 */
 	public static boolean home(ServerPlayer player) {
 		Inventory inventory = player.getInventory();
 		if (is(inventory.getItem(SLOT))) return false;
-		ItemStack selector = ItemStack.EMPTY;
+		ItemStack selector = strayOf(player);
+		if (selector.isEmpty()) return false;
+		WeaponPicks.intoSlot(player, SLOT, selector);
+		return true;
+	}
+
+	/**
+	 * The same, and a selector for whoever has none: the arm-up's form, and the only way one is ever handed
+	 * out. Find-or-create rather than add-if-missing, so there is never a second selector to lose track of.
+	 * Returns whether anything moved.
+	 */
+	public static boolean give(ServerPlayer player) {
+		Inventory inventory = player.getInventory();
+		if (is(inventory.getItem(SLOT))) return false;
+		ItemStack stray = strayOf(player);
+		WeaponPicks.intoSlot(player, SLOT, stray.isEmpty() ? stack() : stray);
+		return true;
+	}
+
+	/**
+	 * Every selector off this player, wherever it is sitting, and how many went. What the whistle and the
+	 * lobby take back: between matches nobody carries one, so there is nothing left to click and nothing to
+	 * take home in a bag of compasses.
+	 */
+	public static int take(Player player) {
+		Inventory inventory = player.getInventory();
+		int taken = 0;
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			if (is(inventory.getItem(slot))) {
-				selector = inventory.getItem(slot);
 				inventory.setItem(slot, ItemStack.EMPTY);
-				break;
+				taken++;
 			}
 		}
-		WeaponPicks.intoSlot(player, SLOT, selector.isEmpty() ? stack() : selector);
-		return true;
+		return taken;
+	}
+
+	/** The selector this player is carrying somewhere other than its slot, taken out of it; empty if none. */
+	private static ItemStack strayOf(ServerPlayer player) {
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			if (is(inventory.getItem(slot))) {
+				ItemStack selector = inventory.getItem(slot);
+				inventory.setItem(slot, ItemStack.EMPTY);
+				return selector;
+			}
+		}
+		return ItemStack.EMPTY;
 	}
 
 	/** Does this player already carry one? What keeps the lobby from handing out a second. */

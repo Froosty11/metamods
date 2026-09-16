@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -125,6 +126,9 @@ public final class Match {
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(server -> tick(server, server.getTickCount()));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clearAll());
+		// A player who drops out mid-match takes no boss bars with them: they are server-side per-player
+		// state, and the ones this mod owns are ours to take off.
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> dropBars(handler.getPlayer()));
 		// A death during PLAYING puts the player back on their own team's spawn rather than at the world
 		// one, frozen and invulnerable for three seconds with a title that says so. Fabric's AFTER_RESPAWN
 		// hands over the new entity, which is the one that has to be moved: overriding the respawn position
@@ -305,9 +309,12 @@ public final class Match {
 
 	/**
 	 * The weapon this player picked, and nothing else in the way of it — but the weapon selector survives.
-	 * It is the only way to a different weapon, in a match as much as in the lobby, and it keeps its own
-	 * corner of the inventory ({@link WeaponSelector#SLOT}): anybody whose selector has wandered has it put
-	 * back there, and anybody who has lost theirs is given one.
+	 * It is the only way to a different weapon and it keeps its own corner of the inventory
+	 * ({@link WeaponSelector#SLOT}): anybody whose selector has wandered has it put back there, and anybody
+	 * who has lost theirs is given one.
+	 *
+	 * <p>This is the only place a selector is ever handed out ({@link WeaponSelector#give}), which is what
+	 * makes {@link #disarm} stick: between matches nobody carries one, and nothing in the lobby puts it back.
 	 */
 	public static ItemStack arm(ServerPlayer player) {
 		WeaponPicks.sweep(player);
@@ -315,9 +322,23 @@ public final class Match {
 		Weapon weapon = server == null ? WeaponChoice.DEFAULT : WeaponChoice.of(server).orDefault(player);
 		ItemStack gun = PaintWeapon.withTankColor(new ItemStack(PaintWeapon.of(weapon)), player.getTeam());
 		WeaponPicks.intoItsSlot(player, gun);
-		WeaponSelector.home(player);
+		WeaponSelector.give(player);
 		WeaponLock.pin(player);
 		return gun;
+	}
+
+	/**
+	 * The other half of {@link #arm}: the whole Rivals kit back off a player and nothing of theirs touched
+	 * — every paint weapon wherever it is sitting, and the selector out of {@link WeaponSelector#SLOT} —
+	 * which releases the weapon lock with it, since {@link WeaponLock} asks only whether there is a paint
+	 * weapon in {@link WeaponPicks#GIVEN_SLOT}. Returns how many stacks were taken.
+	 *
+	 * <p>What the whistle does to everybody, and what the lobby does to anyone who turns up carrying a kit
+	 * from a round that is over. A match is the only reason to hold any of it: a player who was in one is
+	 * left with the inventory they walked in with.
+	 */
+	public static int disarm(ServerPlayer player) {
+		return WeaponPicks.sweep(player) + WeaponSelector.take(player);
 	}
 
 	/** Move a player onto their team's spawn, if this level has one. */
@@ -338,10 +359,7 @@ public final class Match {
 
 	/** Everything forgotten: a server stop, and the tests. */
 	public static void clearAll() {
-		if (timer != null) {
-			timer.removeAllPlayers();
-			timer = null;
-		}
+		clearBars();
 		for (ServerPlayer player : roster.get()) thaw(player);
 		state = State.LOBBY;
 		arena = null;
@@ -427,14 +445,12 @@ public final class Match {
 	 * result nobody can argue with or learn from.
 	 */
 	private static void end(long now) {
-		if (timer != null) {
-			timer.removeAllPlayers();
-			timer = null;
-		}
+		clearBars();
 		finalCounts = arena == null ? Map.of() : PaintTally.of(arena).count(arena);
 		winner = decide(finalCounts);
 		for (ServerPlayer player : roster.get()) {
 			freeze(player);
+			disarm(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
 			Component headline = winner == null
@@ -508,6 +524,7 @@ public final class Match {
 		state = State.LOBBY;
 		stateEnds = now;
 		stateBegan = now;
+		clearBars();
 		List<ServerPlayer> players = roster.get();
 		for (ServerPlayer player : players) {
 			thaw(player);
@@ -556,6 +573,36 @@ public final class Match {
 			}
 			return true;
 		});
+	}
+
+	// ---- the boss bars
+
+	/**
+	 * Every Rivals boss bar off every screen: the timer, and the score bars beside it
+	 * ({@link ScoreBars#clear}). The whistle's job as much as the freeze is — a match that is over must not
+	 * leave "DATA 100 %" hanging over the lobby — and the server stop's.
+	 */
+	private static void clearBars() {
+		if (timer != null) {
+			timer.removeAllPlayers();
+			timer = null;
+		}
+		ScoreBars.clear();
+	}
+
+	/**
+	 * Every Rivals boss bar off one screen: what a disconnect mid-match gets, because a bar is per-player
+	 * state on the server and a player who logs back in should not be told about a bar nobody removed them
+	 * from.
+	 */
+	public static void dropBars(ServerPlayer player) {
+		if (timer != null) timer.removePlayer(player);
+		ScoreBars.drop(player);
+	}
+
+	/** Is any Rivals boss bar on this player's screen? What the tests read. */
+	public static boolean showsAnyBar(ServerPlayer player) {
+		return (timer != null && timer.getPlayers().contains(player)) || ScoreBars.shows(player);
 	}
 
 	// ---- the freeze, and the little things
