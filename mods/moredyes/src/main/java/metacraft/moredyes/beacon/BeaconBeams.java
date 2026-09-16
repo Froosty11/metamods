@@ -61,6 +61,15 @@ public final class BeaconBeams {
 	/** How far above the world's build height the beam aims, vanilla-style "into the sky". */
 	public static final int SKY_MARGIN = 64;
 
+	/**
+	 * Degrees the beam turns about Y per {@value #REFRESH_TICKS}-tick refresh. Vanilla's
+	 * {@code BeaconRenderer.submitBeaconBeam} rotates the whole beam by
+	 * {@code animationTime * 2.25f - 45.0f} degrees about {@code Axis.YP}, and {@code animationTime}
+	 * is {@code floorMod(gameTime, 40) + partialTick}, so it is 2.25° a tick — 45° a second. We can
+	 * only send packets, so we send that second's worth once and let the client interpolate it.
+	 */
+	public static final float SPIN_DEGREES = 2.25f * REFRESH_TICKS;
+
 	private static final boolean ENABLED = !"off".equalsIgnoreCase(System.getProperty("moredyes.beacon", "on"));
 	private static final double NEAR = Double.parseDouble(System.getProperty("moredyes.beacon.near", "128"));
 
@@ -178,19 +187,47 @@ public final class BeaconBeams {
 	 * definition's {@code minecraft:dye} tint multiplies into the beam texture. Block displays
 	 * cannot be tinted to an arbitrary RGB, which is why the beam is item displays.
 	 *
-	 * <b>The carrier item decides the render layer, so it is load-bearing.</b> A client picks an
-	 * item's layer from the item itself ({@code ItemBlockRenderTypes}), not from the model we
-	 * override it with: for a {@code BlockItem} that is the carrier block's chunk render type. With
-	 * a stairs carrier the whole beam rendered on the cutout layer, which alpha-tests instead of
-	 * blending, so the alpha-77 glow texture came out fully opaque. So the glow rides a translucent
-	 * block's item and the core, which is opaque anyway, rides a solid one — the same split vanilla's
-	 * {@code BeaconRenderer} makes between its inner and outer beam.
+	 * The glow rides a translucent block's item and the core a solid one — the same split vanilla's
+	 * {@code BeaconRenderer} makes between its inner and outer beam. In 26.3 that choice is belt and
+	 * braces rather than the thing that decides the render layer: a quad's layer is baked per quad
+	 * from its own sprite ({@code FaceBakery.computeMaterialTransparency} →
+	 * {@code BakedQuad.MaterialInfo.of}, which picks {@code Sheets.translucentBlockItemSheet} when
+	 * the sprite region has translucent texels or the material sets {@code force_translucent}), not
+	 * from the carrier item. {@code GeneratedAssets} pins the glow's material translucent so the
+	 * layer never depends on how the alpha analysis reads our strip.
+	 *
+	 * @param model  {@link #CORE} or {@link #GLOW}; the stack gets that model's {@code blocks}-tall
+	 *               variant, so the beam pattern repeats once per block at any segment height
+	 * @param blocks the segment's height in blocks, one of the powers of two up to
+	 *               {@value #SEGMENT_BLOCKS}
 	 */
-	public static ItemStack beamStack(Identifier model, int argb) {
+	public static ItemStack beamStack(Identifier model, int blocks, int argb) {
 		Item carrier = (GLOW.equals(model) ? Blocks.STAINED_GLASS.pick(DyeColor.WHITE) : Blocks.STONE).asItem();
 		ItemStack stack = new ItemStack(carrier);
-		stack.set(DataComponents.ITEM_MODEL, model);
+		stack.set(DataComponents.ITEM_MODEL, beamModel(model, blocks));
 		stack.set(DataComponents.DYED_COLOR, new DyedItemColor(argb & 0xFFFFFF));
 		return stack;
+	}
+
+	/**
+	 * The item-definition id of a {@code blocks}-tall beam part, e.g.
+	 * {@code moredyes:beacon_beam_glow_16}. A block model cannot tile a face's UV, so the repeat
+	 * count has to be baked into the texture: one model and one animation strip per segment height,
+	 * each carrying {@code blocks} copies of the 16 × 16 beam tile. {@code GeneratedAssets} writes
+	 * exactly the sizes {@link #segmentSizes()} lists.
+	 */
+	public static Identifier beamModel(Identifier model, int blocks) {
+		return model.withSuffix("_" + blocks);
+	}
+
+	/**
+	 * The segment heights the beam is built from: powers of two up to {@value #SEGMENT_BLOCKS}, so
+	 * any section height is a handful of segments that each show the pattern once per block.
+	 */
+	public static int[] segmentSizes() {
+		int count = Integer.numberOfTrailingZeros(SEGMENT_BLOCKS) + 1;
+		int[] sizes = new int[count];
+		for (int i = 0; i < count; i++) sizes[i] = 1 << i;
+		return sizes;
 	}
 }

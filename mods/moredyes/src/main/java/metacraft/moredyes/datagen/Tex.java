@@ -120,20 +120,26 @@ final class Tex {
 	}
 
 	/**
-	 * A vertical animation strip of {@code frames} copies of this texture, frame {@code i} rolled up
-	 * by {@code i} rows. With a {@code .mcmeta} animation the client scrolls it on its own — the
-	 * beam animates with no packets at all.
+	 * The beacon beam's animation strip: {@code frames} frames stacked vertically, each one
+	 * {@code repeats} copies of this texture rolled up by that frame's share of a single copy. The
+	 * repeats are what make the beam show its pattern once per block — a block model cannot tile a
+	 * face's UV, so the tiling has to be in the texture — and rolling by a fraction of <i>one</i> copy
+	 * rather than of the whole frame is what makes the strip scroll rather than stand still (the
+	 * stack is periodic in one copy, so a whole-copy roll is the identity).
+	 *
+	 * With a {@code .mcmeta} animation the client plays it, so the beam moves with no packets at all.
 	 */
-	Tex scrollStrip(int frames) {
-		int[] out = new int[width * height * frames];
+	Tex beamStrip(int repeats, int frames) {
+		int frameHeight = height * repeats;
+		int[] out = new int[width * frameHeight * frames];
 		for (int f = 0; f < frames; f++) {
 			int shift = (int) Math.round((double) f * height / frames);
-			for (int y = 0; y < height; y++) {
+			for (int y = 0; y < frameHeight; y++) {
 				int src = Math.floorMod(y + shift, height) * width;
-				System.arraycopy(argb, src, out, (f * height + y) * width, width);
+				System.arraycopy(argb, src, out, (f * frameHeight + y) * width, width);
 			}
 		}
-		return new Tex(width, height * frames, out);
+		return new Tex(width, frameHeight * frames, out);
 	}
 
 	/** {@code over} alpha-composited on top of this (same size). */

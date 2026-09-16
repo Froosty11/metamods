@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -65,6 +66,8 @@ public final class BeaconBeamHolder extends ElementHolder {
 	private final Segment[] segments = new Segment[BeaconBeams.SEGMENTS];
 
 	private boolean engaged;
+	/** Degrees of Y rotation last sent to the beam; see {@link #spin()}. */
+	private float spin;
 	private List<BeamWalk.Section> sections = List.of();
 	private List<BlockPos> ours = List.of();
 	/** Last known side of the boundary per player, so only crossings cost packets. */
@@ -107,6 +110,9 @@ public final class BeaconBeamHolder extends ElementHolder {
 			// about a 256-block beam, so let it render whenever the chunk does.
 			element.setDisplaySize(0, 0);
 			element.setInvisible(true);
+			// One refresh's worth of spin is sent per second and slerped by the client over exactly
+			// that second, so the beam turns smoothly on one small packet per element. See spin().
+			element.setInterpolationDuration(BeaconBeams.REFRESH_TICKS);
 			addElement(element);
 			return element;
 		}
@@ -116,9 +122,19 @@ public final class BeaconBeamHolder extends ElementHolder {
 		 * marks itself dirty on every setter, and this runs once a second on every beacon.
 		 */
 		void show(int argb, int fromBeacon, int blocks) {
-			if (!shown || color != argb) {
-				core.setItem(BeaconBeams.beamStack(BeaconBeams.CORE, argb));
-				glow.setItem(BeaconBeams.beamStack(BeaconBeams.GLOW, argb));
+			if (!shown) {
+				// A segment that has been hidden kept whatever angle it was left at. Snap it into
+				// step with the rest of the beam (no interpolation start, so it does not sweep
+				// there) before the next spin() turns them all together.
+				Quaternionf rotation = rotation();
+				core.setLeftRotation(rotation);
+				glow.setLeftRotation(rotation);
+			}
+			if (!shown || color != argb || height != blocks) {
+				// The stack's model id carries the height too: each segment size has its own strip so
+				// the beam pattern repeats once per block whatever the segment covers.
+				core.setItem(BeaconBeams.beamStack(BeaconBeams.CORE, blocks, argb));
+				glow.setItem(BeaconBeams.beamStack(BeaconBeams.GLOW, blocks, argb));
 				color = argb;
 			}
 			if (!shown || height != blocks) {
@@ -136,6 +152,15 @@ public final class BeaconBeamHolder extends ElementHolder {
 				offset = fromBeacon;
 			}
 			shown = true;
+		}
+
+		/** One second's worth of turn, slerped by the client over the second it takes to arrive. */
+		void spin(Quaternionf rotation) {
+			if (!shown) return;
+			core.setLeftRotation(rotation);
+			glow.setLeftRotation(rotation);
+			core.startInterpolation();
+			glow.startInterpolation();
 		}
 
 		/** Hide without removing: an item display with an empty stack draws nothing. */
@@ -194,7 +219,30 @@ public final class BeaconBeamHolder extends ElementHolder {
 			sections = result.sections();
 			layout();
 		}
+		spin();
 		reclassify();
+	}
+
+	/**
+	 * Turn the beam like vanilla does. A vanilla client derives the angle from the game time and
+	 * turns the beam {@value BeaconBeams#SPIN_DEGREES}° a second; a display entity's angle comes
+	 * from the server, so we send one refresh's worth at a time with
+	 * {@code interpolation_duration = }{@value BeaconBeams#REFRESH_TICKS} and let the client slerp
+	 * across it. One small metadata update per shown element per second, and the beam never stops.
+	 *
+	 * The wrap is at 720°, not 360°: a quaternion halves its angle, so q(720°) is exactly q(0°)
+	 * while q(360°) is −q(0°) — the same rotation with the opposite sign, which a shortest-path
+	 * slerp would walk backwards through.
+	 */
+	private void spin() {
+		spin += BeaconBeams.SPIN_DEGREES;
+		if (spin >= 720.0f) spin -= 720.0f;
+		Quaternionf rotation = rotation();
+		for (Segment segment : segments) segment.spin(rotation);
+	}
+
+	private Quaternionf rotation() {
+		return new Quaternionf().rotateY((float) Math.toRadians(spin));
 	}
 
 	private void catchUpNewWatchers() {
@@ -227,9 +275,13 @@ public final class BeaconBeamHolder extends ElementHolder {
 	 * Fill the segment pool from the sections, bottom up. Vanilla's {@code BeaconRenderer} draws the
 	 * last section with height 1024 whatever the walk said, so the beam always reaches the sky; we do
 	 * the same, but bounded — up to the world's build height plus {@value BeaconBeams#SKY_MARGIN}, and
-	 * never more than the pool can draw. Each segment covers at most
-	 * {@value BeaconBeams#SEGMENT_BLOCKS} blocks, so the texture repeats up the beam instead of being
-	 * stretched once over the whole thing.
+	 * never more than the pool can draw.
+	 *
+	 * A section is cut into segments of a power of two blocks, largest first — up to
+	 * {@value BeaconBeams#SEGMENT_BLOCKS}, which is what the sky extension is rounded to. Only those
+	 * heights have a beam model, because the repeat count is baked into each model's texture, and
+	 * cutting to them keeps every segment showing the pattern exactly once per block: a 13-block
+	 * section is 8 + 4 + 1, not one segment with its pattern squeezed 13 times over.
 	 */
 	private void layout() {
 		int used = 0;
@@ -240,11 +292,13 @@ public final class BeaconBeamHolder extends ElementHolder {
 			int height = section.height();
 			if (i == sections.size() - 1) {
 				int toSky = level.getMaxY() + 1 + BeaconBeams.SKY_MARGIN - (pos.getY() + offset);
-				height = Math.max(height, Math.min(toSky, blocksLeftInPool));
+				int reach = Math.min(toSky, blocksLeftInPool);
+				// Whole segments only: a tail of 8 + 4 + 2 + 1 would spend four of them on 15 blocks.
+				height = Math.max(height, reach - reach % BeaconBeams.SEGMENT_BLOCKS);
 			}
 			height = Math.min(height, blocksLeftInPool);
 			while (height > 0 && used < segments.length) {
-				int slice = Math.min(height, BeaconBeams.SEGMENT_BLOCKS);
+				int slice = Integer.highestOneBit(Math.min(height, BeaconBeams.SEGMENT_BLOCKS));
 				segments[used++].show(section.color(), offset, slice);
 				offset += slice;
 				height -= slice;

@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.beacon.BeaconBeams;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
@@ -41,6 +42,13 @@ public final class GeneratedAssets implements DataProvider {
 	private static final String MOD = MoreDyes.MOD_ID;
 	/** Item displays render block models at "fixed" scale; the templates have none, so pin 0.5 (× the display's 2). */
 	private static final JsonObject FIXED_HALF = obj("fixed", obj("scale", nums(0.5, 0.5, 0.5)));
+
+	/** Frames in a beam strip; one frame a tick, four to a tile, so the beam scrolls a block every four. */
+	private static final int BEAM_FRAMES = 4;
+	/** Half the beam core's width in blocks: vanilla's SOLID_BEAM_RADIUS is a half-diagonal, ours a half-side. */
+	private static final double CORE_RADIUS = 0.2 / Math.sqrt(2);
+	/** Vanilla's BEAM_GLOW_RADIUS, which is already the half-side of an axis-aligned box. */
+	private static final double GLOW_RADIUS = 0.25;
 
 	private final Path assets, data;
 	private final List<CompletableFuture<?>> writes = new ArrayList<>();
@@ -378,8 +386,19 @@ public final class GeneratedAssets implements DataProvider {
 	 * One beam part as an item model: a square column, 16 units tall, no {@code display} block (so
 	 * {@code ItemDisplayContext.NONE} renders it as an exact 1×1×1 cell) and {@code tintindex 0} on
 	 * every side so the definition's {@code minecraft:dye} tint can colour it from the stack's
-	 * {@code dyed_color}. {@code radius} mirrors vanilla's {@code BeaconRenderer.SOLID_BEAM_RADIUS}
-	 * (0.2) and {@code BEAM_GLOW_RADIUS} (0.25).
+	 * {@code dyed_color}.
+	 *
+	 * {@code radius} is half the column's width in blocks. The glow's 0.25 is vanilla's
+	 * {@code BEAM_GLOW_RADIUS} as-is: {@code BeaconRenderer} draws that part as an axis-aligned
+	 * 0.5-wide box. Its inner part is <i>not</i> a 0.4-wide box — the quads run corner to corner,
+	 * {@code (0, r), (r, 0), (0, -r), (-r, 0)} — so {@code SOLID_BEAM_RADIUS} 0.2 is the
+	 * half-diagonal of a square only {@code 0.2 × √2 ≈ 0.283} wide. Ours is a box, so the core's
+	 * radius is that halved; a 0.2 box made the beam noticeably fatter than vanilla's.
+	 *
+	 * {@code translucent} pins the material's render layer instead of leaving it to the client's
+	 * alpha analysis: a quad's layer is baked per quad from its sprite
+	 * ({@code FaceBakery.computeMaterialTransparency} → {@code BakedQuad.MaterialInfo.of}), and
+	 * {@code force_translucent} is the same switch vanilla's own {@code block/glass} model uses.
 	 *
 	 * Item displays backface-cull, while vanilla's beam render type does not, so an outer box alone
 	 * shows only its two near walls and the translucent glow reads flat. Each wall therefore gets a
@@ -389,7 +408,7 @@ public final class GeneratedAssets implements DataProvider {
 	 * {@code shade} is off: a beam is emissive, not a lit box, and shading would make the four walls
 	 * visibly different brightnesses.
 	 */
-	private static JsonObject beamModel(String texture, double radius) {
+	private static JsonObject beamModel(String texture, double radius, boolean translucent) {
 		double lo = 8 - radius * 16, hi = 8 + radius * 16, e = 0.01;
 		JsonObject outer = new JsonObject();
 		for (String face : new String[]{"north", "south", "west", "east"}) {
@@ -403,7 +422,10 @@ public final class GeneratedAssets implements DataProvider {
 		elements.add(plane(nums(lo, 0, hi - e), nums(hi, 16, hi - e), "north", inner));  // behind south
 		elements.add(plane(nums(lo + e, 0, lo), nums(lo + e, 16, hi), "east", inner));   // behind west
 		elements.add(plane(nums(hi - e, 0, lo), nums(hi - e, 16, hi), "west", inner));   // behind east
-		return obj("textures", obj("beam", MOD + ":block/" + texture, "particle", MOD + ":block/" + texture),
+		Object material = translucent
+				? obj("sprite", MOD + ":block/" + texture, "force_translucent", true)
+				: MOD + ":block/" + texture;
+		return obj("textures", obj("beam", material, "particle", MOD + ":block/" + texture),
 				"elements", arr(elements.toArray()));
 	}
 
@@ -418,24 +440,45 @@ public final class GeneratedAssets implements DataProvider {
 
 	/**
 	 * The beam's own assets, colour-independent: the sections are tinted at runtime from a
-	 * {@code dyed_color} component, so one core texture and one glow texture serve every colour.
-	 * Both are vanilla's {@code entity/beacon/beacon_beam} turned into a 16-frame vertical scroll
-	 * strip, under {@code textures/block/} so the blocks atlas (which only scans {@code block/})
-	 * picks them up; the animation runs client-side from the {@code .mcmeta}, so a moving beam
-	 * costs no packets.
+	 * {@code dyed_color} component, so one set of textures serves every colour. All of them are
+	 * vanilla's {@code entity/beacon/beacon_beam} turned into an animated vertical scroll strip,
+	 * written under {@code textures/block/} so the blocks atlas (which only scans {@code block/})
+	 * picks them up; the animation runs client-side from the {@code .mcmeta}, so a moving beam costs
+	 * no packets.
+	 *
+	 * There is one texture and one model per segment height, {@link BeaconBeams#segmentSizes()}. A
+	 * block model cannot tile a face's UV, so a single strip stretched over a segment showed the whole
+	 * pattern once however tall the segment was — 16× too coarse on a full one, and the scroll crawled
+	 * with it. Instead a frame is the beam tile repeated once per block of that segment's height, so
+	 * the pattern keeps vanilla's density at any height. The tallest is 16 × 256 a frame and
+	 * {@value #BEAM_FRAMES} frames of it, 16 × 1024 in the atlas: narrow enough that all ten sizes
+	 * together cost less atlas area than one 128 × 128 block texture.
+	 *
+	 * Speed: frame {@code f} is the tile rolled up {@code f}/{@value #BEAM_FRAMES} of a tile and a
+	 * frame lasts a tick, so the pattern travels one block every {@value #BEAM_FRAMES} ticks.
+	 * Vanilla's {@code v} offset moves 0.2 of a tile a tick, one block every five, and
+	 * {@code interpolate} smooths our four steps into the same continuous crawl.
 	 */
 	private void beaconBeam() {
 		Tex beam = Vanilla.texture("entity/beacon/beacon_beam");
-		png("textures/block/beacon_beam_core.png", beam.scrollStrip(16));
-		png("textures/block/beacon_beam_glow.png", beam.alpha(0.3).scrollStrip(16));
-		// frametime 2 × 16 frames = 32 ticks per loop, close to vanilla's floorMod(gameTime, 40)
-		JsonObject animation = obj("animation", obj("frametime", 2, "interpolate", false));
-		for (String name : new String[]{"beacon_beam_core", "beacon_beam_glow"}) {
-			json(assets.resolve("textures/block/" + name + ".png.mcmeta"), animation);
-			json(assets.resolve("items/" + name + ".json"), beamItemDef(name));
+		// Vanilla's glow quads are drawn with ARGB.color(32, color) (BeaconRenderer), so that layer is
+		// alpha 32/255; at 0.3 ours read as a second solid beam instead of a haze around one.
+		Tex glow = beam.alpha(32 / 255.0);
+		for (int blocks : BeaconBeams.segmentSizes()) {
+			beamPart(beam, "beacon_beam_core_" + blocks, blocks, CORE_RADIUS, false);
+			beamPart(glow, "beacon_beam_glow_" + blocks, blocks, GLOW_RADIUS, true);
 		}
-		json(assets.resolve("models/item/beacon_beam_core.json"), beamModel("beacon_beam_core", 0.2));
-		json(assets.resolve("models/item/beacon_beam_glow.json"), beamModel("beacon_beam_glow", 0.25));
+	}
+
+	/** One beam part at one segment height: strip, animation metadata, model, item definition. */
+	private void beamPart(Tex tile, String name, int blocks, double radius, boolean translucent) {
+		png("textures/block/" + name + ".png", tile.beamStrip(blocks, BEAM_FRAMES));
+		// A non-square frame has to say so, or the client cuts the strip into 16 × 16 frames.
+		JsonObject animation = obj("animation", obj("frametime", 1, "interpolate", true,
+				"width", tile.width, "height", tile.height * blocks));
+		json(assets.resolve("textures/block/" + name + ".png.mcmeta"), animation);
+		json(assets.resolve("items/" + name + ".json"), beamItemDef(name));
+		json(assets.resolve("models/item/" + name + ".json"), beamModel(name, radius, translucent));
 	}
 
 	// ---------------------------------------------------------------- data builders

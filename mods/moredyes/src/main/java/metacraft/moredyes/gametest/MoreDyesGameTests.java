@@ -388,9 +388,17 @@ public final class MoreDyesGameTests {
 		double pairDist = ModColor.labDistance(first().rgb(), beamColor(pair) & 0xFFFFFF);
 		helper.assertTrue(pairDist <= singleDist,
 				"pair fallback is worse than the single: " + pairDist + " > " + singleDist);
-		ItemStack core = BeaconBeams.beamStack(BeaconBeams.CORE, result.sections().get(1).color());
+		ItemStack core = BeaconBeams.beamStack(BeaconBeams.CORE, 8, result.sections().get(1).color());
 		helper.assertTrue(core.has(DataComponents.ITEM_MODEL) && core.has(DataComponents.DYED_COLOR),
 				"beam stack is missing its model or tint: " + core);
+		// The height picks the model: each segment size has its own strip so the pattern repeats once
+		// per block, and a stack asking for a size datagen does not write would be an invisible beam.
+		helper.assertTrue(BeaconBeams.beamModel(BeaconBeams.CORE, 8).equals(core.get(DataComponents.ITEM_MODEL)),
+				"beam stack is not on the 8-block model: " + core.get(DataComponents.ITEM_MODEL));
+		for (int blocks : BeaconBeams.segmentSizes()) {
+			helper.assertTrue(Integer.bitCount(blocks) == 1 && blocks <= BeaconBeams.SEGMENT_BLOCKS,
+					"segment size is not a power of two within a segment: " + blocks);
+		}
 		helper.succeed();
 	}
 
