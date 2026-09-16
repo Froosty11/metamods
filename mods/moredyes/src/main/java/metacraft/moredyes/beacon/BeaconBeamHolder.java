@@ -122,35 +122,37 @@ public final class BeaconBeamHolder extends ElementHolder {
 		}
 
 		/**
-		 * Show this segment. Only the values that actually changed are written: a display element
-		 * marks itself dirty on every setter, and this runs once a second on every beacon.
+		 * Show this segment, if it is not already showing exactly this.
+		 *
+		 * <b>All three values move together or not at all.</b> Every one of them feeds more than one
+		 * setter — the height picks the model as well as the scale, and the translation is the segment's
+		 * mid-point, so it is a function of the offset <i>and</i> the height. Updating them piecemeal is
+		 * what left a segment cut from 16 blocks to 4 at the same offset still centred where its taller
+		 * self had been, six blocks up inside the next segment, with a gap where it should have been.
 		 */
 		void show(int argb, int fromBeacon, int blocks) {
 			// A segment that has been hidden kept whatever angle it was left at. Snap it into step
 			// with the rest of the beam (no interpolation start, so it does not sweep there) before
 			// the next spin() turns them all together.
 			if (!shown) core.setLeftRotation(rotation());
-			if (!shown || color != argb || height != blocks) {
-				// The stack's model id carries the height too: each segment size has its own strip so
-				// the beam pattern repeats once per block whatever the segment covers.
-				core.setItem(BeaconBeams.beamStack(BeaconBeams.CORE, blocks, argb));
-				glow.setItem(BeaconBeams.beamStack(BeaconBeams.GLOW, blocks, argb));
-				color = argb;
-			}
-			if (!shown || height != blocks) {
-				Vector3f scale = new Vector3f(1, blocks, 1);
-				core.setScale(scale);
-				glow.setScale(scale);
-				height = blocks;
-			}
-			if (!shown || offset != fromBeacon) {
-				// The model is one block tall and renders centred on the element, so the segment's
-				// mid-point relative to the beacon's centre is where it has to sit.
-				Vector3f translation = new Vector3f(0, fromBeacon + blocks / 2.0f - 0.5f, 0);
-				core.setTranslation(translation);
-				glow.setTranslation(translation);
-				offset = fromBeacon;
-			}
+			if (shown && color == argb && height == blocks && offset == fromBeacon) return;
+
+			// The stack's model id carries the height: each segment size has its own sheet, so the beam
+			// pattern keeps vanilla's density whatever the segment covers.
+			core.setItem(BeaconBeams.beamStack(BeaconBeams.CORE, blocks, argb));
+			glow.setItem(BeaconBeams.beamStack(BeaconBeams.GLOW, blocks, argb));
+			Vector3f scale = new Vector3f(1, blocks, 1);
+			core.setScale(scale);
+			glow.setScale(scale);
+			// The model is one block tall and renders centred on the element, so the segment's
+			// mid-point relative to the beacon's centre is where it has to sit.
+			Vector3f translation = new Vector3f(0, fromBeacon + blocks / 2.0f - 0.5f, 0);
+			core.setTranslation(translation);
+			glow.setTranslation(translation);
+
+			color = argb;
+			height = blocks;
+			offset = fromBeacon;
 			shown = true;
 		}
 
@@ -167,7 +169,6 @@ public final class BeaconBeamHolder extends ElementHolder {
 			core.setItem(ItemStack.EMPTY);
 			glow.setItem(ItemStack.EMPTY);
 			shown = false;
-			color = -1;
 		}
 	}
 
@@ -297,6 +298,21 @@ public final class BeaconBeamHolder extends ElementHolder {
 		}
 		MoreDyes.LOGGER.info("[{}] beacon {} beam: {} section(s) {}, {} of {} segments: {}",
 				MoreDyes.MOD_ID, pos, sections.size(), sections, slices.size(), segments.length, shape);
+	}
+
+	/**
+	 * Test seam: one layout pass over these sections, the half of {@link #onTick()} that decides
+	 * geometry. The pool is reused in place, so what a test is really exercising is a segment being
+	 * reassigned from one shape to another.
+	 */
+	public void layoutFor(List<BeamWalk.Section> sections) {
+		this.sections = sections;
+		layout();
+	}
+
+	/** Test seam: the two elements of pool segment {@code index}, opaque core first. */
+	public ItemDisplayElement[] segmentElements(int index) {
+		return new ItemDisplayElement[]{segments[index].core, segments[index].glow};
 	}
 
 	// ------------------------------------------------------------------ near/far

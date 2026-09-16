@@ -119,7 +119,12 @@ and no packet we send about that block can change it. So the beam is replaced in
   — see the comment on `BeaconBeamHolder`. `ElementHolder.stopWatching` builds its
   `ClientboundRemoveEntitiesPacket` directly off its own live `IntList` field, and that packet keeps
   the list by reference, so an element added or removed before Netty encodes it corrupts the packet
-  and kicks the client.
+  and kicks the client. The flip side is that a segment is constantly **reassigned** from one shape
+  to another, and a reassignment has to re-send all of it: the height picks the model as well as the
+  scale, and the translation is the segment's mid-point, so it depends on the height too. Caching
+  that one on the offset alone left a segment cut from 16 blocks to 4 centred where its taller self
+  had been, six blocks up inside the next segment, and the beam had a hole where it should have been
+  (`beaconSegmentReassigned`).
 - **Far players** keep the real beacon and get our glass in that column swapped for **ghost vanilla
   stained glass**, so their own client tints the beam approximately. One dye can only ever be one of
   16 colours, which next to the display beam is a visible jump, so where the block above ours is air

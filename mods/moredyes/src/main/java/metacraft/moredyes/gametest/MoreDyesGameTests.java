@@ -4,7 +4,9 @@ import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.banner.BannerPatterns;
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import metacraft.moredyes.beacon.BeaconBeams;
+import metacraft.moredyes.beacon.BeaconBeamHolder;
 import metacraft.moredyes.beacon.BeamWalk;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
@@ -470,6 +472,56 @@ public final class MoreDyesGameTests {
 			next += slice.blocks();
 		}
 		helper.succeed();
+	}
+
+	/**
+	 * A pool segment reassigned from one shape to another has to be re-sent whole. Putting a second
+	 * colour four blocks above the first turns segment 2 from "our colour, 16 blocks, from 3" into
+	 * "our colour, 4 blocks, from 3": same element, same colour, same offset, different height — and
+	 * the height picks the model and the scale, while the translation is the segment's mid-point and
+	 * so depends on the height too. Caching that one on the offset alone left the shortened segment
+	 * centred where its 16-block self had been, six blocks up inside the next segment, and the beam
+	 * had a hole in it.
+	 */
+	@GameTest
+	public void beaconSegmentReassigned(GameTestHelper helper) {
+		int white = 0xFF000000 | DyeColor.WHITE.getTextureDiffuseColor();
+		int ours = first().argb();
+		int mixed = ARGB.average(ours, white);
+		BeaconBeamHolder holder = new BeaconBeamHolder(helper.getLevel(), helper.absolutePos(new BlockPos(1, 1, 1)));
+
+		// White for three blocks, then ours to the sky: 0h2 and 2h1 of white, then 3h16 of ours.
+		holder.layoutFor(List.of(new BeamWalk.Section(white, 3), new BeamWalk.Section(ours, 1)));
+		assertSegment(helper, holder, 2, ours, 16, 3);
+
+		// Now a second colour four blocks up: the same segment becomes 3h4, and the mix follows it.
+		holder.layoutFor(List.of(new BeamWalk.Section(white, 3), new BeamWalk.Section(ours, 4),
+				new BeamWalk.Section(mixed, 2)));
+		assertSegment(helper, holder, 2, ours, 4, 3);
+		assertSegment(helper, holder, 3, mixed, 16, 7);
+		// And back again, to catch a cache that only ever grows.
+		holder.layoutFor(List.of(new BeamWalk.Section(white, 3), new BeamWalk.Section(ours, 1)));
+		assertSegment(helper, holder, 2, ours, 16, 3);
+		helper.succeed();
+	}
+
+	/** Both elements of a segment carry the colour, the model for that height, the scale and the mid-point. */
+	private static void assertSegment(GameTestHelper helper, BeaconBeamHolder holder, int index,
+			int argb, int blocks, int fromBeacon) {
+		Identifier[] layers = {BeaconBeams.CORE, BeaconBeams.GLOW};
+		ItemDisplayElement[] elements = holder.segmentElements(index);
+		for (int i = 0; i < elements.length; i++) {
+			String what = "segment " + index + " " + (i == 0 ? "core" : "glow");
+			ItemStack stack = elements[i].getItem();
+			helper.assertTrue(ItemStack.matches(stack, BeaconBeams.beamStack(layers[i], blocks, argb)),
+					what + " holds " + stack + ", not the " + blocks + "-block stack for "
+							+ Integer.toHexString(argb));
+			helper.assertTrue(elements[i].getScale().y() == blocks,
+					what + " is scaled " + elements[i].getScale().y() + ", not " + blocks);
+			float expected = fromBeacon + blocks / 2.0f - 0.5f;
+			helper.assertTrue(elements[i].getTranslation().y() == expected,
+					what + " sits at " + elements[i].getTranslation().y() + ", not " + expected);
+		}
 	}
 
 	/** An untinted column is left to vanilla: the walk reports no colours of ours. */
