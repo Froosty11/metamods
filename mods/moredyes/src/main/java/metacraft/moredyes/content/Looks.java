@@ -4,6 +4,9 @@ import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
 import metacraft.moredyes.MoreDyes;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -40,7 +43,30 @@ public final class Looks {
 	}
 
 	public static void plan(int colours) {
+		// Glass takes spruce leaves donors only (see ClientStates#requestFrom), so its budget is not
+		// the LEAVES pool but the states of the one block in it a client can wear quietly.
+		donorOnly(Family.STAINED_GLASS, Blocks.SPRUCE_LEAVES, BlockModelType.LEAVES, colours);
 		decide(Family.STAINED_GLASS_PANE, barsPools(), 1, colours);
+	}
+
+	/**
+	 * A family that has only a donor look, drawing one state per colour from one donor block.
+	 * {@code GlassBlocks.Glass} has no display path — panes needed one first, glass will get the same
+	 * treatment when the colour count asks for it — so there is nothing here to fall back to, and a
+	 * pool that cannot seat every colour is a startup failure like any other.
+	 */
+	private static void donorOnly(Family family, Block donor, BlockModelType pool, int colours) {
+		int usable = Math.min(ClientStates.donorStatesOf(donor, pool),
+				PolymerBlockResourceUtils.getBlocksLeft(pool) - 1);
+		PLAN.put(family, Look.DONOR);
+		MoreDyes.LOGGER.info("[{}] {} look: DONOR ({} colour(s); {} in pool {} has room for {})",
+				MoreDyes.MOD_ID, family.id, colours, BuiltInRegistries.BLOCK.getKey(donor), pool, usable);
+		if (colours > usable) {
+			throw new IllegalStateException("[" + MoreDyes.MOD_ID + "] " + family.id + " needs " + colours
+					+ " donor states from " + BuiltInRegistries.BLOCK.getKey(donor) + " in pool " + pool
+					+ ", which has room for " + usable + ". Give the family a display look before adding"
+					+ " more colours; the server cannot start with this content half-registered.");
+		}
 	}
 
 	/**

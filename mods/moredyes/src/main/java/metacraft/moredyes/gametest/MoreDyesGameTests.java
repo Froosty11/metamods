@@ -1,6 +1,7 @@
 package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.blocks.api.BlockModelType;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.banner.BannerPatterns;
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
@@ -45,6 +46,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FallingParticlesLeavesBlock;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.BeaconBeamBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
@@ -413,6 +415,32 @@ public final class MoreDyesGameTests {
 	private static int beamColor(BeaconBeams.Fallback fallback) {
 		int lower = BeamWalk.colorOf(fallback.lower());
 		return fallback.upper() == null ? lower : ARGB.average(lower, BeamWalk.colorOf(fallback.upper()));
+	}
+
+	/**
+	 * Our stained glass wears a <b>spruce</b> leaves donor. Every other leaves block Polymer offers in
+	 * that pool spawns falling leaf particles on the client
+	 * ({@code FallingParticlesLeavesBlock.animateTick}), and a client runs that on the state it is
+	 * sent whatever model the state is wearing — so glass shed leaves. Spruce is the one plain
+	 * {@code LeavesBlock} in the pool; this asserts both halves, since the second is a fact about
+	 * vanilla that a version bump could take away.
+	 */
+	@GameTest
+	public void glassDonorIsSpruceLeaves(GameTestHelper helper) {
+		helper.assertTrue(!(Blocks.SPRUCE_LEAVES instanceof FallingParticlesLeavesBlock),
+				"spruce leaves now spawn falling particles; the glass donor has to move to another block");
+		helper.assertTrue(Blocks.AZALEA_LEAVES instanceof FallingParticlesLeavesBlock,
+				"azalea leaves no longer spawn particles, so the donor no longer has to dodge them");
+		for (ModColor color : ModColors.all()) {
+			BlockState client = ClientStates.clientStateOf(ModContent.block(color, Family.STAINED_GLASS), null);
+			helper.assertTrue(client.is(Blocks.SPRUCE_LEAVES),
+					color.id() + " glass wears " + client + ", not a spruce leaves donor");
+		}
+		// 7 distances x 2 persistent, less the state Polymer keeps back for a client with no pack.
+		helper.assertTrue(ClientStates.donorStatesOf(Blocks.SPRUCE_LEAVES, BlockModelType.LEAVES) == 13,
+				"spruce leaves offer " + ClientStates.donorStatesOf(Blocks.SPRUCE_LEAVES, BlockModelType.LEAVES)
+						+ " donor states, not 13; the glass colour budget in Looks is derived from this");
+		helper.succeed();
 	}
 
 	/**

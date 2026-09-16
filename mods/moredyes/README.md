@@ -13,7 +13,7 @@ terracotta, glazed terracotta (visible note-block donors); carpet (flat tripwire
 collision); candles (invisible lantern donor + item display, server-sent flame particles) and
 candle cakes (vanilla cake on the client + candle display); wool and concrete stairs and slabs
 (invisible shaped donor + one item display per block); beds (spare bed-state donors); shulker
-boxes (invisible donor + base/lid displays); stained glass and panes (leaves / copper-bars
+boxes (invisible donor + base/lid displays); stained glass and panes (spruce-leaves / copper-bars
 donors — since 26.x the client picks the render layer per sprite, so they are truly
 translucent); bundles; sheep (colour attachment, vanilla sheep sent invisible, whole-sheep
 display-entity rig animated server-side); banner patterns (every registered pattern, vanilla or
@@ -47,6 +47,16 @@ that cannot serve even the chosen look still stops the server.
 - Dyes have no recipe yet (a flower is planned); use the creative tab or `/give`.
 
 ## Ground rules (short version)
+
+- **Spruce leaves, not just any leaves.** Polymer's `LEAVES` pool is built from azalea, flowering
+  azalea, birch, spruce and pale oak, and since 26.3 every one of those except spruce spawns falling
+  leaf particles client-side (`FallingParticlesLeavesBlock.animateTick`, chance 0.01). A client runs
+  `animateTick` on the state it was sent whatever model that state is wearing, so our glass shed
+  leaves. `ClientStates.requestFrom` asks the pool until a spruce state comes up — Polymer's
+  `BlockResourceCreator.requestBlock` takes a predicate for exactly this, but the facade owning the
+  one live creator keeps it package-private — and logs how many states it burned getting there. That
+  caps stained glass at the **13** donor states spruce has (7 distances × 2 persistent, less the one
+  Polymer keeps back), which `Looks` checks against the colour count at startup.
 
 - **Never extend `DyeColor`.** Colours are a mod-owned registry (`ModColor`); our dyes are not
   vanilla `DyeItem`s. Anything DyeColor-keyed that cannot show a new colour on a vanilla

@@ -14,6 +14,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.TransparentBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -31,8 +32,11 @@ import java.util.Map;
  * our translucent glass textures render on the translucent chunk layer whatever donor carries them:
  * real alpha, sorted with the rest of the chunk, no entities.
  *
- * Donors: leaves for the block (non-occluding, so neighbours keep their faces; full collision) and
- * copper bars for the panes (same {@code CrossCollisionBlock} shapes as vanilla panes).
+ * Donors: <b>spruce</b> leaves for the block (non-occluding, so neighbours keep their faces; full
+ * collision) and copper bars for the panes (same {@code CrossCollisionBlock} shapes as vanilla
+ * panes). Spruce specifically because since 26.3 every other leaves block Polymer offers spawns
+ * falling leaf particles on the client, which our glass would then shed — see
+ * {@link ClientStates#requestFrom}.
  *
  * Deliberately not {@code BeaconBeamBlock}: that reports a {@code DyeColor}, and a white beam
  * through cerise glass would be wrong. The beam is instead rebuilt server-side — see
@@ -48,7 +52,9 @@ public final class GlassBlocks {
 		public Glass(ModColor color, Properties properties, Identifier id) {
 			super(properties);
 			this.color = color;
-			this.client = ClientStates.request(id.toString(), BlockModelType.LEAVES,
+			// Spruce leaves only: every other leaves block in the pool sheds particles client-side,
+			// and a vanilla client runs that on the state it is sent, model or no model.
+			this.client = ClientStates.requestFrom(id.toString(), BlockModelType.LEAVES, Blocks.SPRUCE_LEAVES,
 					PolymerBlockModel.of(ColoredBlocks.model(id)));
 		}
 
