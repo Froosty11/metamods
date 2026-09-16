@@ -1,42 +1,59 @@
 # gradle
+
 .gradle/
 build/
 out/
 classes/
 logs/
+
 # eclipse
+
 *.launch
+
 # idea
+
 .idea/
 *.iml
 *.ipr
 *.iws
+
 # vscode
+
 .settings/
 .vscode/
 bin/
 .classpath
 .project
+
 # macos
+
 *.DS_Store
+
 # fabric
+
 run/
-run2/
-run-v6/
 generated/
+
 # fabric j-unit
+
 mods/**/config/
 !**/src/**/config/
 crash-reports/
 .fabric/
 
-# claude code worktrees
-.claude/worktrees/
 
 # java
+
 hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
-/_to_delete
+
+# ovvar / rivals dev runs
+run2/
+run-v6/
 run-vanilla/
+/_to_delete
+
+# claude code worktrees
+.claude/worktrees/

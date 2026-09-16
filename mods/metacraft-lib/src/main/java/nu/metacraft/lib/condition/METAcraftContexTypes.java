@@ -1,11 +1,11 @@
 package nu.metacraft.lib.condition;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import nu.metacraft.lib.METAcraftLib;
 
 import java.util.Optional;
 import java.util.function.Consumer;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -64,9 +64,7 @@ public class METAcraftContexTypes {
 	private static ContextKeySet register(String id, Consumer<ContextKeySet.Builder> type) {
 		ContextKeySet.Builder builder = new ContextKeySet.Builder();
 		type.accept(builder);
-		ContextKeySet lootContextType = builder.build();
-		// 26.3: context key sets live in a real registry (duplicates throw there).
-		return Registry.register(BuiltInRegistries.CONTEXT_KEY_SET, METAcraftLib.getID(id), lootContextType);
+		return Registry.register(BuiltInRegistries.CONTEXT_KEY_SET, METAcraftLib.getID(id), builder.build());
 	}
 
 }

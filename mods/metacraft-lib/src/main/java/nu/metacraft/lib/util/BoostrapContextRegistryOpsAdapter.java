@@ -2,6 +2,7 @@ package nu.metacraft.lib.util;
 
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.core.HolderGetter;
+import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.RegistryOps;
@@ -23,6 +24,13 @@ public class BoostrapContextRegistryOpsAdapter implements RegistryOps.RegistryIn
 
 	public BoostrapContextRegistryOpsAdapter(BootstrapContext<?> ctx) {
 		this.ctx = ctx;
+	}
+
+	private static final HolderOwner<?> DUMMY_OWNER = new HolderOwner<>() {};
+
+	@SuppressWarnings("unchecked")
+	private static <T> HolderOwner<T> getDummyOwner() {
+		return (HolderOwner<T>) DUMMY_OWNER;
 	}
 
 	private Optional<HolderGetter<Object>> createLookup(ResourceKey<? extends Registry<?>> registryKey) {

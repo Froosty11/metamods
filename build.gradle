@@ -9,12 +9,6 @@ def nonModSubProjects = [
         "mods"
 ]
 
-// Mods that build here but are never bundled into the dist jar: they run on a server of their own.
-// dist's CheckMods keeps the same list.
-def standaloneMods = [
-        "metacraft-rivals"
-]
-
 idea.project.settings {
 	runConfigurations {
 		"RunServer"(org.jetbrains.gradle.ext.Application) {
@@ -38,7 +32,7 @@ subprojects {
     ext.initDist = { ->
         dependencies {
             rootProject.subprojects.each {
-                if (nonModSubProjects.contains(it.name) || standaloneMods.contains(it.name)) {
+                if (nonModSubProjects.contains(it.name)) {
                     return
                 }
                 if (it.name == "dist") {
@@ -177,6 +171,8 @@ subprojects {
 			name = 'ParchmentMC'
 			url = 'https://maven.parchmentmc.org'
 		}
+
+		maven { url = "https://maven.bawnorton.com/releases" } // MixinSquared
 
         //Leukocyte
         exclusiveContent {

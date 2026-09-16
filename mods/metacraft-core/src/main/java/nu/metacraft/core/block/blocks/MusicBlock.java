@@ -1,6 +1,5 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -90,7 +89,6 @@ public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 		}
 		return state;
 	}
-
 
 	@Nullable
 	@Override

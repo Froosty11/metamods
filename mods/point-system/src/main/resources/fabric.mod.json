@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "point-system",
+  "version": "${version}",
+
+  "name": "point-system",
+  "description": "",
+  "authors": [],
+  "contact": {},
+
+  "license": "MIT",
+  "icon": "assets/point-system/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.pointsystem.PointSystemMod"
+    ]
+  },
+  "mixins": [
+	  "point_system_mixins.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

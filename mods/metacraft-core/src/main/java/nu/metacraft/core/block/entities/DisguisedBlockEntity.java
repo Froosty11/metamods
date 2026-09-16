@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import nu.metacraft.core.block.blocks.BlockWithDisguise;
 import nu.metacraft.core.mixin.ChunkHolderAccessor;
 import nu.metacraft.core.mixin.ServerChunkCacheAccessor;
 
@@ -25,32 +26,18 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 	}
 
 	@Override
-	public BlockState getBlockState() {
+	public BlockState getDisplayedBlockState() {
 		return state;
 	}
 
 	public void setBlockState(BlockState state) {
+		if (state.getBlock() instanceof BlockWithDisguise) {
+			state = Blocks.BARRIER.defaultBlockState();
+		}
 		if (this.state != state) {
 			this.state = state;
 			setChanged();
-			if (level instanceof ServerLevel sw) {
-				var cPos = ChunkPos.containing(worldPosition);
-				var holder = ((ServerChunkCacheAccessor) sw.getChunkSource()).callGetVisibleChunkIfPresent(
-						cPos.pack()
-				);
-				var players = ((ChunkHolderAccessor) holder).getPlayerProvider().getPlayers(
-						cPos, false
-				);
-				for (var player : players) {
-					updateClient(player);
-				}
-			}
 		}
-	}
-
-	@Override
-	public void updateClient(ServerPlayer player) {
-		player.connection.send(new ClientboundBlockUpdatePacket(worldPosition, state));
 	}
 
 	@Override

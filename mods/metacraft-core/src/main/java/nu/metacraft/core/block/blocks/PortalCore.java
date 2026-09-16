@@ -1,6 +1,5 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -26,7 +25,6 @@ public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 	public PortalCore(Properties settings) {
 		super(settings);
 	}
-
 
 	@Nullable
 	@Override
