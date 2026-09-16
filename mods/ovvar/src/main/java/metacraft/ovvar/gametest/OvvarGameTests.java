@@ -101,7 +101,7 @@ public final class OvvarGameTests {
 			if (at.centre().y <= StandAim.cell(stand, sleeve).centre().y) {
 				helper.fail(spot.id() + " is not above " + sleeve.id() + " on the stand");
 			}
-            // Looking straight down at it from above.
+			// Looking straight down at it from above.
 			StandAim.Hit hit = StandAim.aim(at.centre().add(0, 0.3, 0), new Vec3(0, -1, 0), stand, false, 6);
 			if (hit == null || hit.spot() != spot) helper.fail("looking down at " + spot.id() + " hit " + (hit == null ? "nothing" : hit.spot()));
 		}
