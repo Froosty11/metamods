@@ -69,7 +69,9 @@ import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.component.UseEffects;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.MossyCarpetBlock;
 import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.StairBlock;
@@ -156,6 +158,9 @@ import nu.metacraft.rivals.paint.PaintStates;
  * positions passed to the helper are relative to it.
  */
 public final class RivalsGameTests {
+	/** The donors the splat masks are dealt from, in the order {@code PaintStates} spends them. */
+	private static final List<Block> SPLAT_DONORS = List.of(Blocks.PALE_MOSS_CARPET, Blocks.STONE_BUTTON, Blocks.REDSTONE_WIRE);
+
 	@GameTest
 	public void modLoads(GameTestHelper helper) {
 		helper.succeed();
@@ -5235,6 +5240,16 @@ public final class RivalsGameTests {
 		for (BlockState state : all) {
 			helper.assertTrue(PaintStates.DONORS.contains(state.getBlock()), "a donor block: " + state);
 			helper.assertTrue(state.getBlock() != Blocks.GLOW_LICHEN, "glow lichen is not a donor: " + state);
+			// No paint cell may sit on a state a vanilla client does anything with: no water, no light,
+			// no collision, no animateTick that emits. PaintStates.inert is the rule; this is it held to
+			// from the outside, on every state the table actually hands out.
+			helper.assertTrue(PaintStates.inert(state), "inert on a vanilla client: " + state);
+			helper.assertTrue(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty(),
+					"no collision, so a client never stands a notch above the paint: " + state);
+			helper.assertTrue(state.getFluidState().isEmpty(), "no fluid, so the client draws no water in the cell: " + state);
+			if (state.getBlock() == Blocks.REDSTONE_WIRE) {
+				helper.assertValueEqual(state.getValue(RedstoneWireBlock.POWER), 0, "wire is only ever borrowed unpowered: " + state);
+			}
 			helper.assertValueEqual(state.getLightEmission(), 0, "unlit: " + state);
 			if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 				helper.assertFalse(state.getValue(BlockStateProperties.WATERLOGGED), "never waterlogged: " + state);
@@ -5305,18 +5320,41 @@ public final class RivalsGameTests {
 				}
 			}
 		}
-		// Splat masks: the rest of the wire.
+		// Splat masks: the pale moss carpet, then the stone button, then the wire the surfaces left.
+		Set<BlockState> splats = new HashSet<>();
 		for (PaintColor color : PaintColor.values()) {
 			for (int mask = 1; mask < 64; mask++) {
 				if (Integer.bitCount(mask) < 2) continue;
-				helper.assertValueEqual(PaintStates.splat(color, mask).getBlock(), Blocks.REDSTONE_WIRE,
-						color + " splat " + mask + " is a redstone wire state");
+				BlockState state = PaintStates.splat(color, mask);
+				helper.assertTrue(SPLAT_DONORS.contains(state.getBlock()),
+						color + " splat " + mask + " comes from a splat donor, not " + state);
+				splats.add(state);
 			}
 		}
-		// Enough wire for both colours' floors, ceilings and splats, with tripwire's 128 states gone.
-		int wireNeeded = colors * (2 * PaintArt.BITS + PaintStates.SPLAT_PER_COLOR);
-		helper.assertTrue(Blocks.REDSTONE_WIRE.getStateDefinition().getPossibleStates().size() >= wireNeeded,
-				"redstone wire covers " + wireNeeded + " floor, ceiling and splat states");
+		helper.assertValueEqual(splats.size(), colors * PaintStates.SPLAT_PER_COLOR, "splat states in use");
+		// The carpet and the button are spent outright — they are the only reason the splats fit at all,
+		// so if either stops lending what it lends now the table is short and says so at start-up.
+		for (Block donor : List.of(Blocks.PALE_MOSS_CARPET, Blocks.STONE_BUTTON)) {
+			int inert = 0;
+			int used = 0;
+			for (BlockState state : donor.getStateDefinition().getPossibleStates()) {
+				if (!PaintStates.inert(state)) continue;
+				inert++;
+				if (splats.contains(state)) used++;
+			}
+			helper.assertValueEqual(used, inert, donor + " lends every one of its " + inert + " inert states to the splats");
+		}
+		// Pale moss carpet only lends the base=false half: MossyCarpetBlock.getCollisionShape gives the
+		// base=true states a real box, and a client standing a notch above the paint fights the server.
+		int collides = 0;
+		for (BlockState state : Blocks.PALE_MOSS_CARPET.getStateDefinition().getPossibleStates()) {
+			if (!state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) collides++;
+		}
+		helper.assertTrue(collides > 0, "pale moss carpet still has colliding states, so the base filter still earns its keep");
+		for (BlockState state : splats) {
+			helper.assertTrue(state.getBlock() != Blocks.PALE_MOSS_CARPET || !state.getValue(MossyCarpetBlock.BASE),
+					"no splat sits on a carpet base: " + state);
+		}
 		// The particle state is a wall cell, so it is multiface and vanilla's BlockColors leaves it alone.
 		for (PaintColor color : PaintColor.values()) {
 			BlockState particles = PaintStates.particles(color);
@@ -5358,6 +5396,10 @@ public final class RivalsGameTests {
 		helper.assertTrue(pooled.contains(Blocks.TRIPWIRE), "polymer-blocks still pools tripwire; read " + pooled.size() + " blocks");
 		helper.assertTrue(pooled.size() >= 20, "polymer's pools cover " + pooled.size() + " blocks, expected dozens");
 		helper.assertFalse(PaintStates.DONORS.contains(Blocks.TRIPWIRE), "tripwire is not a donor any more");
+		// The two donors the splats moved onto, called out by name: they are the newest, so they are the
+		// ones most likely to collide with a pool Polymer grows later.
+		helper.assertFalse(pooled.contains(Blocks.PALE_MOSS_CARPET), "pale moss carpet is outside Polymer's pools");
+		helper.assertFalse(pooled.contains(Blocks.STONE_BUTTON), "stone button is outside Polymer's pools");
 		for (Block donor : PaintStates.DONORS) {
 			helper.assertFalse(pooled.contains(donor),
 					BuiltInRegistries.BLOCK.getKey(donor) + " is in a Polymer block pool, so both packs would write its blockstate file");
@@ -5509,6 +5551,9 @@ public final class RivalsGameTests {
 		}
 		// And nothing for tripwire: that file belongs to whoever asked Polymer's pool for it.
 		helper.assertFalse(files.containsKey("assets/minecraft/blockstates/tripwire.json"), "the pack leaves tripwire.json alone");
+		for (String path : List.of("assets/minecraft/blockstates/pale_moss_carpet.json", "assets/minecraft/blockstates/stone_button.json")) {
+			helper.assertTrue(files.containsKey(path), "the splat donors get their own override: " + path);
+		}
 		helper.succeed();
 	}
 

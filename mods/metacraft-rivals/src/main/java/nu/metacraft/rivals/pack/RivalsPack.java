@@ -15,8 +15,8 @@ import java.util.Map;
 /**
  * The resource pack: the mod's own assets (gun model, palette, lang) plus the generated paint art —
  * bit-carrying textures, the six face quads and a variants blockstate override per donor block.
- * Required, because without it players see sculk veins, resin clumps and redstone dust where the
- * paint is. Also ships two core shader overrides, each vanilla's own plus the same paint gloss
+ * Required, because without it players see sculk veins, resin clumps, redstone dust, pale moss
+ * carpet and stone buttons where the paint is. Also ships two core shader overrides, each vanilla's own plus the same paint gloss
  * keyed on the marker alpha: terrain.vsh/terrain.fsh, which is what draws chunk geometry in 26.3 (not
  * block.*), and item.vsh/item.fsh, which is what draws the block displays
  * {@link nu.metacraft.rivals.paint.PaintDisplays} hangs on stairs, slabs, fences and panes. And the ink
