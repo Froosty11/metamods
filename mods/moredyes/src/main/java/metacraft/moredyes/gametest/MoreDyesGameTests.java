@@ -3,6 +3,7 @@ package metacraft.moredyes.gametest;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.banner.BannerPatterns;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import metacraft.moredyes.beacon.BeaconBeams;
 import metacraft.moredyes.beacon.BeamWalk;
 import metacraft.moredyes.color.ModColor;
@@ -410,6 +411,23 @@ public final class MoreDyesGameTests {
 	private static int beamColor(BeaconBeams.Fallback fallback) {
 		int lower = BeamWalk.colorOf(fallback.lower());
 		return fallback.upper() == null ? lower : ARGB.average(lower, BeamWalk.colorOf(fallback.upper()));
+	}
+
+	/**
+	 * The block update a near player is sent for our glass is the very state Polymer puts in chunk
+	 * data for it — the one the generated pack has a blockstate override for. If these two ever come
+	 * apart, a near player sees a bare donor (a plain azalea leaf) where the rest of the world sees
+	 * our glass, and nothing on the server would otherwise notice.
+	 */
+	@GameTest
+	public void beaconNearResendIsThePolymerState(GameTestHelper helper) {
+		BlockState ours = block(Family.STAINED_GLASS).defaultBlockState();
+		BlockState sent = BeaconBeams.clientState(ours);
+		BlockState chunk = PolymerBlockUtils.getPolymerBlockState(ours, null);
+		helper.assertTrue(sent == chunk, "resend " + sent + " is not the chunk mapping " + chunk);
+		helper.assertTrue(!(sent.getBlock() instanceof PolymerBlock),
+				"resent state is one of ours, not a donor a vanilla client can hold: " + sent);
+		helper.succeed();
 	}
 
 	/** An untinted column is left to vanilla: the walk reports no colours of ours. */

@@ -204,6 +204,19 @@ Things a client would have to confirm, which no server-side test can: whether a 
 culled despite `setDisplaySize(0, 0)` and `setViewRange(4)`, and whether a second of interpolation
 per element really reads as a continuous spin at the top of a long beam.
 
+**Our glass showing as a plain leaf next to the beacon is not this code.** The state `hide()` resends
+is `PolymerBlock#getPolymerBlockState(state, null)` — the same call, and for our glass the same
+answer whatever the context, as Polymer's own chunk path makes
+(`PalettedContainerDataMixin` → `PolymerBlockUtils.getPolymerBlockState`), and the generated pack's
+`assets/minecraft/blockstates/azalea_leaves.json` overrides exactly those donor variants
+(`distance=1,persistent=false` is cerise, `persistent=true` is laserviolet). Polymer does not re-map
+a packet that already carries a vanilla state (`BlockStateMixin` only patches states whose block is
+a `PolymerBlock`), and the client cannot drift off the donor either: in 26.3 `LeavesBlock.updateShape`
+returns the state unchanged and only schedules a tick, and `ClientLevel` black-holes scheduled ticks,
+so the neighbour updates the barrier triggers cannot rewrite `distance`. `beaconNearResendIsThePolymerState`
+pins the first half of that. What is left is the pack: a client that joined with a **stale or
+declined** pack has vanilla's `azalea_leaves.json`, and every donor state in it is a plain leaf.
+
 Known rough edges: panes in the column contribute their colour to the walk but are not swapped for
 far players (glass only); a section whose height is not a power of two spends up to four segments on
 it (8 + 4 + 2 + 1), so a busy column runs out of pool sooner than 256 blocks;
