@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -258,16 +259,22 @@ public final class GeneratedAssets implements DataProvider {
 		// One block per art a design can be drawn as, which is one per Patches.Fit: the instant
 		// channel carries a design, not a cell's choice of its PNGs, so the fits' arts all have to be
 		// in the library and the design table says where each of them is. A patch whose fits pick the
-		// same PNG gets one block, shared.
+		// same PNG gets one block, shared. Allocated biggest-block-first: first-fit in catalogue order
+		// leaves the small arts' gaps scattered between the big ones, so a late 2×2 can find no hole
+		// even though the cells for it exist.
 		Map<Patches.Art, int[]> library = new LinkedHashMap<>();
 		boolean[][] taken = new boolean[LIBRARY_COLUMNS][LIBRARY_ROWS];
+		List<Patches.Art> catalogue = new ArrayList<>();
 		for (Patches.Patch patch : Patches.all()) {
 			if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
 			for (Patches.Fit fit : Patches.Fit.values()) {
 				Patches.Art variant = Patches.artFor(patch, fit);
-				if (library.containsKey(variant)) continue;
-				library.put(variant, libraryBlock(taken, variant.cells(), (variant.height() + Spot.PX - 1) / Spot.PX, variant.file()));
+				if (!catalogue.contains(variant)) catalogue.add(variant);
 			}
+		}
+		catalogue.sort(Comparator.<Patches.Art>comparingInt(v -> v.cells() * ((v.height() + Spot.PX - 1) / Spot.PX)).reversed());
+		for (Patches.Art variant : catalogue) {
+			library.put(variant, libraryBlock(taken, variant.cells(), (variant.height() + Spot.PX - 1) / Spot.PX, variant.file()));
 		}
 		// The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
 		// second dye channel: the same texture with that layer's texel, in the humanoid folder.
@@ -692,7 +699,8 @@ public final class GeneratedAssets implements DataProvider {
 		return !tables && !(cx == 15 && cy == 3);
 	}
 
-	/** First-fit block of w×h cells in the library; returns its top-left in skin texels. */
+	/** First-fit block of w×h cells in the library; returns its top-left in skin texels. Callers should
+	 * allocate biggest blocks first so a big art's fit isn't fragmented away by smaller ones before it. */
 	private static int[] libraryBlock(boolean[][] taken, int w, int h, String id) {
 		for (int cy = 0; cy + h <= LIBRARY_ROWS; cy++) {
 			for (int cx = 0; cx + w <= LIBRARY_COLUMNS; cx++) {
