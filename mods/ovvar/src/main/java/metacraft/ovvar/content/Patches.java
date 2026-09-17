@@ -3,6 +3,7 @@ package metacraft.ovvar.content;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,13 @@ import java.util.stream.Collectors;
  * {@link #artFor} which of them a place shows, so the item icon, the pack's placement textures, the
  * instant channel's library, the paper doll, the preview glyphs and a stand's sprites can never
  * pick different ones. {@link Fit} is the whole of the decision.
+ *
+ * <p><b>The sizes nobody drew.</b> A patch drawn at {@link #MAX_ART} px also gets the smaller sizes
+ * it does not ship, scaled down from it ({@link #GENERATED_SIZES}); a hand-drawn file of that size
+ * always wins, and a seat patch never gets any (its width is the two cells'). Nothing is written to
+ * the source tree — a generated {@link Art} carries the art it comes from and whoever wants its
+ * pixels scales them ({@code Tex.art(Art)}), so the artist's job is to draw the 16×16 and then draw
+ * again only the sizes the scaler gets wrong.
  */
 public final class Patches {
 	private Patches() {}
@@ -51,22 +59,62 @@ public final class Patches {
 	public static final int ICON = 16;
 
 	/**
+	 * The biggest art an ordinary cell hangs over ({@link Fit#OVER}): a cell and a half, so the art
+	 * laps a quarter of a cell onto each neighbour, which is what an oversize patch is for. Art any
+	 * bigger than this was drawn for the cell that is {@link #MAX_ART} square, not to hang off an
+	 * ordinary one, so a patch whose own size is over this shows a smaller art there instead.
+	 */
+	public static final int OVER_MAX = Spot.PX * 3 / 2;
+
+	/**
+	 * The sizes generated from a {@link #MAX_ART} px art when the patch ships no drawing of its own
+	 * at them: the two a {@link Fit} can ask for below {@link #MAX_ART} — {@link #OVER_MAX} square
+	 * for an ordinary cell and {@link Spot#PX} square for a cell the art is clipped to.
+	 */
+	public static final List<Integer> GENERATED_SIZES = List.of(OVER_MAX, Spot.PX);
+
+	/**
 	 * One PNG of a patch's art: the default ({@code art/ovvar/patches/<id>.png}, the size the
 	 * catalogue entry declares) or one of the per-size variants beside it
 	 * ({@code art/ovvar/patches/<id>_<w>x<h>.png}). Everything that used to be measured off the
 	 * patch — where the art's top-left lands on a cell, whether it hangs over — is measured off
 	 * this, because which of a patch's PNGs is being drawn is decided per place ({@link #artFor}).
 	 *
+	 * <p>Or a size nobody drew: {@code source} is then the art it is scaled down from, and there is
+	 * no PNG anywhere for it. It is named like a variant all the same, because that name is what
+	 * datagen calls the textures and models it writes for it.
+	 *
 	 * @param byDefault is this the catalogue's own {@code <id>.png}?
+	 * @param source    the art this one is scaled down from; null when it is a PNG of its own
 	 */
-	public record Art(String id, int width, int height, boolean byDefault) {
+	public record Art(String id, int width, int height, boolean byDefault, @Nullable Art source) {
+		/** A PNG on the classpath: the catalogue's own art, or a variant drawn beside it. */
+		Art(String id, int width, int height, boolean byDefault) {
+			this(id, width, height, byDefault, null);
+		}
+
+		/** A size nobody drew: {@code source}'s pixels, scaled down when somebody asks for them. */
+		static Art scaledFrom(Art source, int width, int height) {
+			return new Art(source.id(), width, height, false, source);
+		}
+
+		/** Is this one of the patch's PNGs, or a size scaled down from one of them? */
+		public boolean generated() {
+			return source != null;
+		}
+
 		/** The name to load it by, {@code patches/<id>} or {@code patches/<id>_<w>x<h>}, without the extension. */
 		public String file() {
 			return byDefault ? "patches/" + id : "patches/" + id + "_" + width + "x" + height;
 		}
 
-		/** The classpath resource, which is what a variant is discovered by. */
+		/**
+		 * The classpath resource, which is what a variant is discovered by. A generated art has none
+		 * — asking for it is a caller that means {@code Tex.art(art)} (the pixels, however they are
+		 * come by) rather than a file, so say so instead of naming a path that is not there.
+		 */
 		public String resource() {
+			if (generated()) throw new IllegalStateException(file() + " is scaled down from " + source.file() + "; there is no such file");
 			return "/art/" + metacraft.ovvar.Ovvar.MOD_ID + "/" + file() + ".png";
 		}
 
@@ -100,7 +148,7 @@ public final class Patches {
 
 		@Override
 		public String toString() {
-			return file() + " (" + width + "x" + height + ")";
+			return file() + " (" + width + "x" + height + (generated() ? ", scaled from " + source.file() : "") + ")";
 		}
 	}
 
@@ -112,7 +160,11 @@ public final class Patches {
 	 * <ul>
 	 *   <li>{@link #OVER}: the artist's own size, hanging over the cell if it is bigger. Every
 	 *	   ordinary cell — a patch lapping onto its neighbours is the point of them — and the seat,
-	 *	   whose art is drawn to the seat's own size rules already.
+	 *	   whose art is drawn to the seat's own size rules already. A patch whose own size is over
+	 *	   {@link #OVER_MAX} is the exception: art drawn to fill the big back cell would swallow an
+	 *	   ordinary cell's neighbours whole, so there it shows the largest art that fits
+	 *	   {@link #OVER_MAX} instead (a seat patch, again, is drawn to the seat's rules and is left
+	 *	   alone).
 	 *   <li>{@link #CLIPPED}: a cell the art is cut to, which is a box's <em>top</em> face (the
 	 *	   shoulders): its four edges have no neighbouring face in the layout to continue onto. The
 	 *	   art must fit the cell, so a patch with a cell-sized variant lands there whole instead of
@@ -192,8 +244,9 @@ public final class Patches {
 		}
 
 		/**
-		 * Every PNG this patch ships, the default among them, largest last. Found by file name at
-		 * class load; {@link #artFor} is what picks between them.
+		 * Every art this patch has, the default among them, largest last: the PNGs it ships, found
+		 * by file name at class load, plus the sizes generated from a 16 px one. {@link #artFor} is
+		 * what picks between them.
 		 */
 		public List<Art> variants() {
 			return Patches.variants(this);
@@ -276,10 +329,34 @@ public final class Patches {
 					found.add(art);
 				}
 			}
+			found.addAll(generate(patch, found));
 			found.sort(java.util.Comparator.comparingInt(a -> a.width() * a.height()));
 			out.put(patch.id(), List.copyOf(found));
 		}
 		return Map.copyOf(out);
+	}
+
+	/**
+	 * The {@link #GENERATED_SIZES} a patch with a {@link #MAX_ART} px art does not ship a drawing of,
+	 * scaled down from that art. Nothing is written anywhere: the {@link Art} carries its source and
+	 * the scaling happens wherever the pixels are wanted, which is datagen and the tests.
+	 *
+	 * <p>Never for a seat patch, whose art is the two cells' full width at every size it has, so a
+	 * smaller one would have nowhere to sit; and never over a size somebody drew, since a drawing is
+	 * always better than a scaling — that is the point of the whole arrangement.
+	 */
+	private static List<Art> generate(Patch patch, List<Art> drawn) {
+		if (patch.seat()) return List.of();
+		Art source = null;
+		for (Art art : drawn) if (art.width() == MAX_ART && art.height() == MAX_ART) source = art;
+		if (source == null) return List.of();
+		List<Art> out = new java.util.ArrayList<>();
+		for (int size : GENERATED_SIZES) {
+			boolean already = false;
+			for (Art art : drawn) already |= art.width() == size && art.height() == size;
+			if (!already) out.add(Art.scaledFrom(source, size, size));
+		}
+		return out;
 	}
 
 	/**
@@ -299,21 +376,24 @@ public final class Patches {
 		}
 	}
 
-	/** Every PNG a patch ships, the default among them, smallest first. */
+	/** Every art a patch has — the PNGs it ships and the sizes generated from them — smallest first. */
 	public static List<Art> variants(Patch patch) {
 		return VARIANTS.get(patch.id());
 	}
 
 	/**
-	 * Which of a patch's PNGs a cell shows: the largest that fits what the cell asks for
+	 * Which of a patch's arts a cell shows: the largest that fits what the cell asks for
 	 * ({@link Fit}), and the default when none of them does — which is exactly today's behaviour
-	 * for a patch that ships only the one file, and for one whose variants are all too big for a
+	 * for a patch that has only the one art, and for one whose variants are all too big for a
 	 * face the art is clipped to.
 	 *
 	 * <p>So a 12×12 patch with an 8×8 and a 16×16 variant lands on a shoulder as the 8×8 (whole,
 	 * not clipped), on the big back cell as the 16×16 (filling it), on an ordinary chest cell as
 	 * the 12×12 it was drawn as (hanging over its neighbours, by design) and in the inventory as
-	 * the 16×16 (unscaled). Every path asks this, so none of them can draw a different one.
+	 * the 16×16 (unscaled). A patch drawn 16×16 in the catalogue instead — nothing smaller drawn,
+	 * so the 12×12 and the 8×8 are both generated — lands on an ordinary chest cell as the 12×12
+	 * rather than blanketing the cells round it. Every path asks this, so none of them can draw a
+	 * different one.
 	 */
 	public static Art artFor(Patch patch, Spot spot) {
 		return artFor(patch, Fit.of(spot));
@@ -322,19 +402,21 @@ public final class Patches {
 	/** The same by fit alone, which is how the instant channel's library is keyed. */
 	public static Art artFor(Patch patch, Fit fit) {
 		return switch (fit) {
-			// The artist's own size: nothing bigger fits it, and anything smaller is a worse fit.
-			case OVER -> patch.art();
+			// The artist's own size, which for a seat patch is the seat's own rules and for anything
+			// that laps no further than OVER_MAX over its cell is as drawn; art bigger than that was
+			// drawn to fill the big back cell, so an ordinary cell takes the largest one that laps.
+			case OVER -> patch.seat() || patch.art().fitsIn(OVER_MAX, OVER_MAX) ? patch.art() : largestIn(patch, OVER_MAX, OVER_MAX);
 			case CLIPPED -> largestIn(patch, Spot.PX, Spot.PX);
 			case FILLED -> largestIn(patch, MAX_ART, MAX_ART);
 		};
 	}
 
-	/** A patch's inventory icon: the art that fills the {@value #ICON} px sprite without scaling, if it ships one. */
+	/** A patch's inventory icon: the art that fills the {@value #ICON} px sprite without scaling, if it has one. */
 	public static Art iconArt(Patch patch) {
 		return largestIn(patch, ICON, ICON);
 	}
 
-	/** The largest of a patch's PNGs that sits in a {@code w}×{@code h} box whole; the default if none does. */
+	/** The largest of a patch's arts that sits in a {@code w}×{@code h} box whole; the default if none does. */
 	private static Art largestIn(Patch patch, int w, int h) {
 		Art best = null;
 		for (Art art : variants(patch)) {

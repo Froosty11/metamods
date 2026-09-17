@@ -1356,9 +1356,9 @@ public final class WardrobeTests {
 				// mirrors that limb, and the doll mirrors the limb for the same reason, which puts the
 				// art back the way it was drawn. A patch reads correctly on both sleeves, and that is
 				// the whole point of datagen pre-mirroring it.
-				List<Integer> want = run(shown, middleRow(shown));
+				List<Integer> want = run(shown, middleRow(shown), BAND);
 				if (!readsAs(drawn, want)) {
-					helper.fail(where + ": the art reads " + hex(want) + " across, the glyph reads " + hex(run(drawn, middleRow(drawn))));
+					helper.fail(where + ": the art reads " + hex(want) + " across, the glyph reads " + hex(run(drawn, middleRow(drawn), BAND)));
 				}
 				}
 			}
@@ -1540,14 +1540,12 @@ public final class WardrobeTests {
 		return patchArt(patch.art());
 	}
 
-	/** One of a patch's PNGs — which one a place shows is {@link Patches#artFor}'s to say. */
+	/**
+	 * One of a patch's arts — which one a place shows is {@link Patches#artFor}'s to say, and where
+	 * its pixels come from (a PNG, or a 16 px one scaled down) is {@link Tex#art(Patches.Art)}'s.
+	 */
 	private static Tex patchArt(Patches.Art art) {
-		try (var in = WardrobeTests.class.getResourceAsStream(art.resource())) {
-			if (in == null) throw new IOException("no art file " + art.resource());
-			return Tex.read(in);
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
+		return Tex.art(art);
 	}
 
 	/**
@@ -1558,11 +1556,27 @@ public final class WardrobeTests {
 	 * patch's orange is four levels of green apart.
 	 */
 	private static boolean near(List<Integer> colours, int colour) {
+		return near(colours, colour, LEVEL);
+	}
+
+	/** Levels of quantisation the shaded glyph may have moved a colour by; {@link #near}'s tolerance. */
+	private static final int LEVEL = 1;
+
+	/**
+	 * And the tolerance a row's <em>bands</em> are read at ({@link #run}), which has to be twice
+	 * that: two art colours a level apart are one band already, and the shading can carry either of
+	 * them another level — towards the other, and then a boundary the art still holds is one the
+	 * doll cannot be asked to hold. IT's 8×8 on a shoulder is exactly that, three neighbouring
+	 * violets of which the middle one rounds onto its neighbour's bucket on the doll.
+	 */
+	private static final int BAND = 2 * LEVEL;
+
+	private static boolean near(List<Integer> colours, int colour, int levels) {
 		for (int other : colours) {
 			int dr = Math.abs((other >> 8 & 0xF) - (colour >> 8 & 0xF));
 			int dg = Math.abs((other >> 4 & 0xF) - (colour >> 4 & 0xF));
 			int db = Math.abs((other & 0xF) - (colour & 0xF));
-			if (dr <= 1 && dg <= 1 && db <= 1) return true;
+			if (dr <= levels && dg <= levels && db <= levels) return true;
 		}
 		return false;
 	}
@@ -1609,11 +1623,16 @@ public final class WardrobeTests {
 	 * read as one entry longer than the same row on the doll.
 	 */
 	private static List<Integer> run(Tex tex, int y) {
+		return run(tex, y, LEVEL);
+	}
+
+	/** The same, collapsing at a tolerance of the caller's choosing ({@link #LEVEL} or {@link #BAND}). */
+	private static List<Integer> run(Tex tex, int y, int levels) {
 		List<Integer> out = new ArrayList<>();
 		for (int x = 0; x < tex.width; x++) {
 			if (Tex.a(tex.get(x, y)) == 0) continue;
 			int chroma = chroma(tex.get(x, y));
-			if (out.isEmpty() || !near(List.of(out.get(out.size() - 1)), chroma)) out.add(chroma);
+			if (out.isEmpty() || !near(List.of(out.get(out.size() - 1)), chroma, levels)) out.add(chroma);
 		}
 		return out;
 	}
@@ -1625,7 +1644,7 @@ public final class WardrobeTests {
 	 */
 	private static boolean readsAs(Tex drawn, List<Integer> want) {
 		for (int y = 0; y < drawn.height; y++) {
-			List<Integer> got = run(drawn, y);
+			List<Integer> got = run(drawn, y, BAND);
 			if (got.isEmpty()) continue;
 			for (int from = 0; from <= 1; from++) {
 				for (int to = want.size(); to >= want.size() - 1; to--) {
@@ -2791,19 +2810,20 @@ public final class WardrobeTests {
 	 *   <li>in the inventory the 16×16, drawn at 1:1 instead of a 12×12 scaled up.
 	 * </ul>
 	 *
-	 * <p>And a patch that ships only the one file is not touched by any of it: every fit gives it
-	 * that file, which is why the rest of the suite still pins the old behaviour.
+	 * <p>And a patch that has only the one art is not touched by any of it: every fit gives it that
+	 * file, which is why the rest of the suite still pins the old behaviour.
 	 */
 	@GameTest
 	public void patchArtComesInSizesAndOnePlacePicksBetweenThem(GameTestHelper helper) {
 		Patches.Patch itk = Patches.get("itk"), it = Patches.get("it");
 		List<String> files = itk.variants().stream().map(Patches.Art::file).toList();
-		if (!files.equals(List.of("patches/itk_8x8", "patches/itk"))) {
-			helper.fail("itk's art files are " + files + ", wanted Kexana's 8x8 and the catalogue's 12x12 (smallest first)");
+		if (!files.equals(List.of("patches/itk_8x8", "patches/itk", "patches/itk_16x16"))) {
+			helper.fail("itk's art files are " + files + ", wanted Kexana's 8x8, the catalogue's 12x12 and the 16x16 (smallest first)");
 		}
+		// IT is drawn at 12 and at 16 and nobody has drawn it at 8, so the 8×8 is scaled down here.
 		List<String> itFiles = it.variants().stream().map(Patches.Art::file).toList();
-		if (!itFiles.equals(List.of("patches/it", "patches/it_16x16"))) {
-			helper.fail("it's art files are " + itFiles + ", wanted the catalogue's 12x12 and PolymITer's 16x16 (smallest first)");
+		if (!itFiles.equals(List.of("patches/it_8x8", "patches/it", "patches/it_16x16"))) {
+			helper.fail("it's art files are " + itFiles + ", wanted a generated 8x8, the catalogue's 12x12 and PolymITer's 16x16 (smallest first)");
 		}
 		for (Patches.Patch patch : Patches.all()) {
 			int defaults = 0;
@@ -2813,24 +2833,25 @@ public final class WardrobeTests {
 					helper.fail(art.file() + " is " + art.width() + "x" + art.height() + ", which is not an even size up to " + Patches.MAX_ART);
 				}
 				if (patch.seat() && art.width() != 2 * Spot.PX) helper.fail(art.file() + " is a seat patch's art but " + art.width() + " px wide");
-				if (!has(art.resource())) helper.fail(art.resource() + " is in variants() but there is no such file");
+				// A generated art ships no file at all — its pixels are its source's, scaled — so it is
+				// the source that has to be on the classpath.
+				String file = art.generated() ? art.source().resource() : art.resource();
+				if (!has(file)) helper.fail(file + " is behind " + art + " in variants() but there is no such file");
 				Tex tex = patchArt(art);
 				if (tex.width != art.width() || tex.height != art.height()) {
-					helper.fail(art.file() + ".png is " + tex.width + "x" + tex.height + ", its name says " + art.width() + "x" + art.height());
+					helper.fail(art + " is " + tex.width + "x" + tex.height + " of pixels, its name says " + art.width() + "x" + art.height());
 				}
 			}
 			if (defaults != 1) helper.fail(patch.id() + " has " + defaults + " default art file(s) among " + patch.variants() + ", wanted exactly one");
 		}
-		// The choice, cell by cell, for the two patches that ship a second size — and, where a patch
-		// ships nothing that fits, the fall back to the catalogue's own art: ITK on the big back cell
-		// (no 16 px drawing, so the 12×12 is centred in it exactly as before variants existed) and IT
-		// on a shoulder (no 8×8, so the 12×12 is clipped to the face, as before).
+		// The choice, cell by cell, for the two patches that have more than one size — and, where a
+		// patch has nothing that fits, the fall back to the catalogue's own art.
 		Object[][] cases = {
 				{itk, Spot.SHOULDER_R, 8, 8}, {itk, Spot.SHOULDER_L, 8, 8},
-				{itk, Spot.BACK_BIG, itk.width(), itk.height()},
+				{itk, Spot.BACK_BIG, Patches.MAX_ART, Patches.MAX_ART},
 				{itk, Spot.FRONT_TOP_LEFT, itk.width(), itk.height()}, {itk, Spot.SLEEVE_OUT_TOP_R, itk.width(), itk.height()},
 				{it, Spot.BACK_BIG, Patches.MAX_ART, Patches.MAX_ART},
-				{it, Spot.SHOULDER_R, it.width(), it.height()}, {it, Spot.FRONT_TOP_LEFT, it.width(), it.height()},
+				{it, Spot.SHOULDER_R, 8, 8}, {it, Spot.FRONT_TOP_LEFT, it.width(), it.height()},
 		};
 		for (Object[] c : cases) {
 			Patches.Patch patch = (Patches.Patch) c[0];
@@ -2842,15 +2863,15 @@ public final class WardrobeTests {
 		}
 		// A cell that found art it can use must not cut it; one that did not still cuts, or hangs over.
 		if (Patches.artFor(itk, Spot.SHOULDER_R).oversize(Spot.SHOULDER_R)) helper.fail("itk is still clipped on a shoulder");
-		if (!Patches.artFor(it, Spot.SHOULDER_R).oversize(Spot.SHOULDER_R)) helper.fail("it has no cell-sized art, so a shoulder must still clip it");
+		if (Patches.artFor(it, Spot.SHOULDER_R).oversize(Spot.SHOULDER_R)) helper.fail("it has a cell-sized art now, so a shoulder must not clip it");
 		if (Patches.artFor(it, Spot.BACK_BIG).oversize(Spot.BACK_BIG)) helper.fail("it hangs over the big back cell, which its 16x16 fills exactly");
-		if (Patches.artFor(itk, Spot.BACK_BIG).oversize(Spot.BACK_BIG)) helper.fail("itk hangs over the big back cell");
+		if (Patches.artFor(itk, Spot.BACK_BIG).oversize(Spot.BACK_BIG)) helper.fail("itk hangs over the big back cell, which its 16x16 fills exactly");
 		if (!Patches.artFor(itk, Spot.FRONT_TOP_LEFT).oversize(Spot.FRONT_TOP_LEFT)) helper.fail("itk no longer hangs over an ordinary chest cell");
-		// The icon: the art drawn at 16 px if the patch has one (IT does, PolymITer's), else the
-		// fall-back it always was — the catalogue's art scaled to fill 16 px and centred. Either way
-		// it is the generated texture itself, so one piece of arithmetic says both.
+		// The icon: the art at 16 px if the patch has one, else the fall-back it always was — the
+		// catalogue's art scaled to fill 16 px and centred. Either way it is the generated texture
+		// itself, so one piece of arithmetic says both.
 		if (!Patches.iconArt(it).file().equals("patches/it_16x16")) helper.fail("it's icon draws " + Patches.iconArt(it) + ", not its 16 px art");
-		if (!Patches.iconArt(itk).byDefault()) helper.fail("itk's icon draws " + Patches.iconArt(itk) + ", and nobody has drawn ITK at 16 px");
+		if (!Patches.iconArt(itk).file().equals("patches/itk_16x16")) helper.fail("itk's icon draws " + Patches.iconArt(itk) + ", not its 16 px art");
 		for (Patches.Patch patch : Patches.all()) {
 			Patches.Art icon = Patches.iconArt(patch);
 			Tex art = patchArt(icon);
@@ -2861,19 +2882,176 @@ public final class WardrobeTests {
 			Tex got = drawn.crop((Patches.ICON - wanted.width) / 2, (Patches.ICON - wanted.height) / 2, wanted.width, wanted.height);
 			if (!same(got, wanted)) helper.fail(patch.id() + "'s inventory icon is not its " + icon.file() + " art scaled x" + scale + " and centred");
 		}
-		// A patch with the one file: nothing about it changed.
+		// A patch with the one art: nothing about it changed.
 		for (Patches.Patch patch : Patches.all()) {
 			if (patch.variants().size() > 1) continue;
 			for (Spot spot : Spot.values()) {
 				if (!patch.fits(spot)) continue;
 				Patches.Art chosen = Patches.artFor(patch, spot);
 				if (!chosen.byDefault() || chosen.width() != patch.width() || chosen.height() != patch.height()) {
-					helper.fail(patch.id() + " ships one art file but " + spot.id() + " draws " + chosen);
+					helper.fail(patch.id() + " has one art but " + spot.id() + " draws " + chosen);
 				}
 			}
-			if (!Patches.iconArt(patch).byDefault()) helper.fail(patch.id() + " ships one art file but its icon draws another");
+			if (!Patches.iconArt(patch).byDefault()) helper.fail(patch.id() + " has one art but its icon draws another");
 		}
 		helper.succeed();
+	}
+
+	/**
+	 * The sizes nobody drew. A patch with a {@link Patches#MAX_ART} px art also has the smaller ones
+	 * it ships no drawing of ({@link Patches#GENERATED_SIZES}), scaled down from it — so the artist's
+	 * job is to draw the 16×16 and then draw again only the sizes the scaler gets wrong, and a
+	 * drawing of a size always beats the scaling of it.
+	 *
+	 * <p>Nothing is written to the source tree: a generated art carries the art it comes from, has no
+	 * classpath resource of its own, and is named like a variant all the same, because datagen names
+	 * the textures and models it writes for an art by that name. Today this is IT alone — drawn at 12
+	 * and at 16, so its 8×8 is scaled — while ITK, drawn at all three, generates nothing.
+	 */
+	@GameTest
+	public void theSmallSizesNobodyDrewAreScaledDownFromTheSixteenPixelArt(GameTestHelper helper) {
+		Patches.Patch it = Patches.get("it"), itk = Patches.get("itk");
+		Patches.Art small = Patches.artFor(it, Patches.Fit.CLIPPED);
+		if (!small.generated() || small.width() != Spot.PX || small.height() != Spot.PX) {
+			helper.fail("a shoulder draws IT as " + small + ", wanted an 8x8 scaled down from its 16x16");
+		}
+		if (!small.file().equals("patches/it_8x8")) helper.fail("the generated art is called " + small.file() + ", not patches/it_8x8");
+		if (small.byDefault()) helper.fail(small + " says it is the catalogue's own art");
+		if (!small.source().file().equals("patches/it_16x16")) helper.fail(small + " is scaled from " + small.source() + ", not from IT's 16x16");
+		if (!Patches.artFor(it, Spot.SHOULDER_R).equals(small)) helper.fail("the cell and the fit disagree about IT's shoulder art");
+		// No file, and saying so out loud rather than naming a path nothing will ever be at.
+		if (has("/art/" + metacraft.ovvar.Ovvar.MOD_ID + "/" + small.file() + ".png")) {
+			helper.fail("somebody has drawn IT at 8x8, so that drawing should be what a shoulder shows");
+		}
+		try {
+			small.resource();
+			helper.fail(small + " answered a classpath resource, but nothing is written for a generated art");
+		} catch (IllegalStateException expected) {
+			// what it is for
+		}
+		// The pixels every path gets: the source scaled, and nothing about the source touched.
+		if (!same(patchArt(small), patchArt(small.source()).downscaled(Spot.PX, Spot.PX))) {
+			helper.fail("IT's generated 8x8 is not its 16x16 downscaled" + java.util.Arrays.toString(
+					firstDifference(patchArt(small), patchArt(small.source()).downscaled(Spot.PX, Spot.PX))));
+		}
+		// A drawing wins: ITK is drawn at 8, 12 and 16, so it generates nothing at all.
+		for (Patches.Art art : itk.variants()) {
+			if (art.generated()) helper.fail("ITK is drawn at " + art.width() + "x" + art.height() + " but " + art + " was scaled anyway");
+		}
+		for (Patches.Patch patch : Patches.all()) {
+			List<Patches.Art> made = patch.variants().stream().filter(Patches.Art::generated).toList();
+			// A seat patch is the two cells' full width at every size it has, so a smaller one would
+			// have nowhere to sit; a patch with nothing drawn at 16 px has nothing to scale down.
+			boolean sixteen = patch.variants().stream().anyMatch(a -> a.width() == Patches.MAX_ART && a.height() == Patches.MAX_ART);
+			if (patch.seat() && !made.isEmpty()) helper.fail(patch.id() + " is a seat patch and got " + made);
+			if (!sixteen && !made.isEmpty()) helper.fail(patch.id() + " has no 16 px art but got " + made);
+			for (Patches.Art art : made) {
+				if (art.width() != art.height() || !Patches.GENERATED_SIZES.contains(art.width())) {
+					helper.fail(art + " is not one of the sizes that are generated, " + Patches.GENERATED_SIZES);
+				}
+				if (art.source().width() != Patches.MAX_ART) helper.fail(art + " is scaled from " + art.source() + ", not from a 16 px art");
+				long atSize = patch.variants().stream().filter(a -> a.width() == art.width() && a.height() == art.height()).count();
+				if (atSize != 1) helper.fail(patch.id() + " has " + atSize + " arts at " + art.width() + "x" + art.height() + ", one of them scaled");
+			}
+			// Every size a Fit can ask for is there once a patch is drawn at 16 px, which is the whole
+			// point: no cell has to fall back to art that does not fit it any more.
+			if (sixteen && !patch.seat()) {
+				for (int size : Patches.GENERATED_SIZES) {
+					Patches.Art at = Patches.artFor(patch, size == Spot.PX ? Patches.Fit.CLIPPED : Patches.Fit.OVER);
+					if (at.width() > size || at.height() > size) helper.fail(patch.id() + " is drawn at 16 px but a " + size + " px place still shows " + at);
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The scaling itself ({@link Tex#downscaled}): an area-weighted majority vote, so the result uses
+	 * no colour the source did not — which the trim channel needs (its key palette is built from
+	 * every opaque colour of every patch art, and a blended edge would be a colour with no slot) and
+	 * pixel art wants anyway. The rules that are easy to get wrong, on images small enough to read:
+	 *
+	 * <ul>
+	 *   <li>an even split goes to the colour that is <b>rarer</b> in the whole source, not to the one
+	 *	   that comes first — the background always has the votes, so an outline, an eye or a letter
+	 *	   stroke only survives if a tie falls its way;
+	 *   <li>every invisible pixel votes as the same nothing, whatever colour it was written in, and a
+	 *	   block that votes for nothing comes out fully clear;
+	 *   <li>and the whole thing against the real ITK, whose 12 and 8 px results are pinned here texel
+	 *	   for texel: this is the art the algorithm was chosen on, so a change to it that nobody meant
+	 *	   shows up as this test rather than as a patch that looks slightly wrong on a shoulder.
+	 * </ul>
+	 */
+	@GameTest
+	public void theDownscaleIsAnAreaVoteThatKeepsTheRareColours(GameTestHelper helper) {
+		int p = 0xFF9B59B6, q = 0xFF2ECC71, clearRed = 0x00FF0000;
+		Map<Character, Integer> two = Map.of('p', p, 'q', q);
+		// Each half is a 2x2 block of two p and two q. p is the rarer colour of the two (twice against
+		// six) and q is the one that comes first, so a vote by scan order would answer "qq" instead.
+		Tex tie = pixels(two, "qpqq", "pqqq").downscaled(2, 1);
+		if (tie.get(0, 0) != p || tie.get(1, 0) != q) helper.fail("an even split went to the commoner colour, so thin art will dissolve");
+		Map<Character, Integer> clear = Map.of('.', 0, 'x', clearRed, 'p', p);
+		// Left block: three invisible pixels against one opaque, in two different clear colours, which
+		// must vote as the one nothing. Right block: two against two, and the opaque one is rarer.
+		Tex alpha = pixels(clear, "...p", "xpp.").downscaled(2, 1);
+		if (alpha.get(0, 0) != 0) helper.fail("three clear pixels against one lost the vote, or came out as a colour: " + Integer.toHexString(alpha.get(0, 0)));
+		if (alpha.get(1, 0) != p) helper.fail("an even split with transparency went to the transparency, which is the commoner of the two");
+		// The real art: at both generated sizes, and never a colour that was not already there.
+		Map<Character, Integer> itk = Map.of('.', 0, 'a', 0xFF00FF00, 'b', 0xFF000000, 'c', 0xFFADFF5C, 'd', 0xFF004100, 'e', 0xFF00CD00);
+		Tex source = patchArt(Patches.get("itk").variants().stream().filter(a -> a.width() == Patches.MAX_ART).findFirst().orElseThrow());
+		Tex twelve = pixels(itk,
+				"....aaaa....",
+				"..abbbbbba..",
+				".abbbccbbba.",
+				".bbccccccbb.",
+				"abcaaaaaacba",
+				"abcadaadacba",
+				"accaaaaaacca",
+				"abcaaddaacba",
+				".bccaddaabb.",
+				".abeaaaaeba.",
+				"..abbbbbba..",
+				"....aaaa....");
+		Tex eight = pixels(itk,
+				"..abba..",
+				".bbccbb.",
+				"abccccba",
+				"bcaddacb",
+				"bcaaaacb",
+				"accddaba",
+				".bbbbbb.",
+				"..abba..");
+		for (Tex want : List.of(twelve, eight)) {
+			Tex got = source.downscaled(want.width, want.height);
+			if (!same(got, want)) {
+				helper.fail("ITK scaled to " + want.width + "x" + want.height + " is not what the algorithm was chosen for"
+						+ java.util.Arrays.toString(firstDifference(got, want)));
+			}
+		}
+		for (Patches.Patch patch : Patches.all()) {
+			for (Patches.Art art : patch.variants()) {
+				if (art.width() != Patches.MAX_ART || art.height() != Patches.MAX_ART) continue;
+				List<Integer> had = new ArrayList<>(List.of(0));
+				Tex full = patchArt(art);
+				for (int i : full.pixels()) if (!had.contains(i)) had.add(i);
+				for (int size : Patches.GENERATED_SIZES) {
+					for (int shrunk : full.downscaled(size, size).pixels()) {
+						if (!had.contains(shrunk)) helper.fail(art + " scaled to " + size + " px invented the colour " + Integer.toHexString(shrunk));
+					}
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/** A tiny image written out a character per pixel, the characters keyed by {@code palette}. */
+	private static Tex pixels(Map<Character, Integer> palette, String... rows) {
+		int w = rows[0].length();
+		int[] argb = new int[w * rows.length];
+		for (int y = 0; y < rows.length; y++) {
+			for (int x = 0; x < w; x++) argb[y * w + x] = palette.get(rows[y].charAt(x));
+		}
+		return Tex.of(w, rows.length, argb);
 	}
 
 	/**

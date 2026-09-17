@@ -126,13 +126,14 @@ public final class GeneratedAssets implements DataProvider {
 		Tex icon = art("icon");
 		require(icon.width == 16 && icon.height == 16, "icon.png is not 16×16");
 
-		// Patches: every PNG a patch ships, an icon, an item. A patch may be drawn at more than one
-		// size (Patches.Art), so the art is loaded per variant and every consumer below asks
+		// Patches: every art a patch has, an icon, an item. A patch may be drawn at more than one size
+		// and have smaller ones scaled down from its 16 px art (Patches.Art), so the art is loaded per
+		// variant — Tex.art knows which of the two a variant is — and every consumer below asks
 		// Patches.artFor which one its place shows.
 		Map<Patches.Art, Tex> arts = new LinkedHashMap<>();
 		for (Patches.Patch patch : Patches.all()) {
 			for (Patches.Art variant : patch.variants()) {
-				Tex art = art(variant.file());
+				Tex art = Tex.art(variant);
 				require(art.width == variant.width() && art.height == variant.height(),
 						variant.file() + ".png is " + art.width + "×" + art.height + ", its name says "
 								+ variant.width() + "×" + variant.height()
@@ -174,7 +175,9 @@ public final class GeneratedAssets implements DataProvider {
 			String named = file.substring(0, file.length() - 4);
 			boolean known = false, variantOf = false;
 			for (Patches.Patch patch : Patches.all()) {
-				for (Patches.Art variant : patch.variants()) known |= variant.file().equals("patches/" + named);
+				// Against the arts that are files: a generated one borrows a variant's name but ships
+				// nothing, so a file of that name is a drawing and stops the generating instead.
+				for (Patches.Art variant : patch.variants()) known |= !variant.generated() && variant.file().equals("patches/" + named);
 				variantOf |= named.startsWith(patch.id() + "_");
 			}
 			require(known || !variantOf, "art/" + MOD + "/patches/" + file + " reads as a variant of a patch but is not"

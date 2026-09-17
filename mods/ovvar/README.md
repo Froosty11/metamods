@@ -52,8 +52,8 @@ cell — that **art bigger than the cell is clipped to the face, not bent round 
 four edges have no neighbouring face in the layout to continue onto (the strip is a loop round the
 box's *sides*, not over the top of it), so a 12×12 patch on a shoulder keeps its middle 8×8 and the
 rest is simply cut off, in the pack path, in the dye colour and on a stand alike — unless the patch
-ships art at a size that fits the face, which is what the per-size variants are for (ITK does; see
-"art at more than one size"). Bending it over
+has art at a size that fits the face, which is what the per-size variants are for (ITK's 8×8 is
+drawn, IT's is scaled down from its 16×16; see "art at more than one size"). Bending it over
 the four edges, the way a side cell's overhang bends round the corners, is a later version's job.
 `Spot.face()` answers `TOP_FACE` (4) for them rather than one of the four side faces, which is what
 datagen puts in the placement texture's kind texel and what `ovvar.glsl` reads back. The left arm's
@@ -94,10 +94,11 @@ and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
 dress are 12×12 and hang over their neighbours (except on the big back cell). Two of them are also
-drawn at a second size: ITK ships `itk_8x8.png` (Kexana's original 8×8 ITK, the art that shipped
-before the 12×12), so it lands whole on a shoulder instead of losing its edges, and IT ships
-`it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big back cell and is its own inventory
-icon at 1:1 — see "art at more than one size" below. Ticket to my heart is
+drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8 ITK, the art that
+shipped before the 12×12), so it lands whole on a shoulder instead of losing its edges, and
+`itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big back
+cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
+drawn — see "art at more than one size" below. Ticket to my heart is
 10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
@@ -579,35 +580,50 @@ fails loudly when that runs out.
 ### Art at more than one size
 
 A patch may ship its art at another size as well: `<id>_<w>x<h>.png` beside its own PNG, so ITK is
-`itk.png` (12×12, the size its catalogue line declares) and `itk_8x8.png` (Kexana's original 8×8
-ITK, which is what the patch was before the 12×12 was drawn), and IT is `it.png` (Cactooz's 12×12)
-and `it_16x16.png` (PolymITer's own 16×16 sprite). Nothing is declared — the catalogue
-entry stays one line and datagen finds the variants by file name (even sizes up to 16×16; a seat
-patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
+`itk.png` (12×12, the size its catalogue line declares), `itk_8x8.png` (Kexana's original 8×8 ITK,
+which is what the patch was before the 12×12 was drawn) and `itk_16x16.png`, and IT is `it.png`
+(Cactooz's 12×12) and `it_16x16.png` (PolymITer's own 16×16 sprite). Nothing is declared — the
+catalogue entry stays one line and datagen finds the variants by file name (even sizes up to 16×16;
+a seat patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
 underscore but is not a size this build can ask for fails datagen, so a misspelt name is not
 silently never drawn.
 
-**A variant is a drawing, never a generated one.** Nothing in the mod scales, reduces or redraws
-art: pixel art at another size is a new piece of work and it is the artist's, so a size a patch has
-not been drawn at simply does not exist and the fall-back below takes over. Add one only with art
-somebody drew, and credit them.
+**The smaller sizes of a 16×16 are scaled down when nobody has drawn them.** A patch that has art
+at 16×16 — as its catalogue size or as a variant — also gets the sizes a cell can ask for below
+that, 12×12 and 8×8, scaled down from it; a drawing of that size always wins, and a seat patch
+never gets any (its width is the two cells', so a narrower one has nowhere to sit). So the artist's
+workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.** IT's 8×8 is
+the one generated art in today's catalogue — ITK is drawn at all three sizes, so it generates
+nothing.
 
-Which of them a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
+Nothing is written to the source tree: the generated `Patches.Art` carries the art it is scaled
+from, is named like a variant (`patches/it_8x8`, which is what datagen calls the textures and models
+it writes for it) and has no classpath resource of its own — ask `Tex.art(art)` for the pixels and
+it either reads the PNG or scales the source. The scaling is `Tex.downscaled`: an area-weighted
+majority vote, so each output pixel takes whichever colour covers most of the source rectangle it
+stands for and the result uses **no colour the source did not** — which the trim channel needs (its
+key palette is built from every opaque colour of every patch art) and pixel art wants anyway. An
+even split goes to the colour that is rarer in the whole art, which is what keeps an outline, an eye
+or a letter stroke alive: the background always has the votes. It was picked by trying the
+candidates against the sizes the artists had already drawn both of, and its 12 and 8 px ITK are
+pinned texel for texel in the game tests.
+
+Which art a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
 fits what the cell asks for, and the catalogue's own art when none of them does — which is exactly
-what a patch with a single file gets everywhere. What a cell asks for is `Patches.Fit`:
+what a patch with a single art gets everywhere. What a cell asks for is `Patches.Fit`:
 
 | fit | the cells | what it shows |
 | --- | --- | --- |
-| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges |
-| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch ships — IT fills the back with PolymITer's 16×16; ITK, drawn at no such size, falls back |
-| `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch |
+| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges, IT as the 8×8 scaled from its 16×16 |
+| `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch has — IT and ITK both fill the back at 16×16 |
+| `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch — unless that art is over 12×12 (`Patches.OVER_MAX`, a cell and a half), which was drawn to fill the big back cell and would blanket an ordinary cell's neighbours, and then it is the largest art that fits 12×12 instead |
 
 **The fall-back is the old behaviour, exactly.** A cell that finds nothing it can use takes the
-catalogue's art and does with it what it did before variants existed: the big back cell centres the
-12×12 in its 16×16, the item icon scales the catalogue's art to fill 16 px and centres it, and an
-ordinary cell hangs the art over its neighbours. So per-size art changes exactly two things in
-today's catalogue — a shoulder's ITK, and IT on the big back cell and in the inventory — and every
-other patch on every other cell is drawn as it always was.
+catalogue's art and does with it what it did before variants existed: the item icon scales the
+catalogue's art to fill 16 px and centres it, and an ordinary cell hangs the art over its
+neighbours. Every non-seat patch in today's catalogue is 12×12 or smaller by its catalogue line, so
+the `OVER` rule above never fires for any of them, and every patch but ITK and IT is drawn on every
+cell exactly as it always was.
 
 Everything that draws a patch goes through the same call: the pack's placement textures, the instant
 channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one

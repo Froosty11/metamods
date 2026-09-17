@@ -143,7 +143,7 @@ public final class WardrobeSheet {
 				if (!patch.fits(spot)) continue;
 				// The PNG this cell shows, which need not be the catalogue's own size (Patches.artFor).
 				Patches.Art chosen = Patches.artFor(patch, spot);
-				Tex art = Tex.art(chosen.file());
+				Tex art = Tex.art(chosen);
 				for (Angle angle : WardrobePreview.anglesOf(spot)) {
 					WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch), angle);
 					if (glyph == null) continue;

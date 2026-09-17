@@ -1,5 +1,7 @@
 package metacraft.ovvar.datagen;
 
+import metacraft.ovvar.content.Patches;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +44,18 @@ public final class Tex {
 		InputStream in = Tex.class.getResourceAsStream(path);
 		if (in == null) throw new IllegalStateException("missing art: " + path);
 		return read(in);
+	}
+
+	/**
+	 * A patch's art, of whichever of its sizes {@link metacraft.ovvar.content.Patches#artFor} named:
+	 * the PNG on the classpath, or — for a size nobody drew — the art it is scaled down from, run
+	 * through {@link #downscaled}. No generated size is written to the source tree, so this is the
+	 * one place the pixels come from and datagen, the paper doll and the game tests cannot disagree
+	 * about them any more than they can about which size is shown.
+	 */
+	public static Tex art(Patches.Art art) {
+		Patches.Art source = art.source();
+		return source == null ? art(art.file()) : art(source).downscaled(art.width(), art.height());
 	}
 
 	public static Tex read(InputStream in) {
@@ -200,6 +214,74 @@ public final class Tex {
 		for (int y = 0; y < h; y++) {
 			int sy = y * height / h;
 			for (int x = 0; x < w; x++) out[y * w + x] = argb[sy * width + x * width / w];
+		}
+		return new Tex(w, h, out);
+	}
+
+	/** Below this alpha a pixel votes as nothing at all, and a pixel that wins as nothing comes out fully clear. */
+	private static final int VOTING_ALPHA = 128;
+
+	/**
+	 * This shrunk to {@code w}×{@code h} by an area-weighted majority vote: each output pixel stands
+	 * for a rectangle of the source, and takes whichever colour covers most of it. Chosen by trying
+	 * the candidates against the pairs the artists had already drawn both sizes of (the ITK patch at
+	 * 16, 12 and 8 px), and this is what came closest to the hand-drawn smaller one.
+	 *
+	 * <p>A vote rather than an average because the result must use no colour the source did not: the
+	 * trim channel permutes a key palette built from every opaque colour of every patch art
+	 * (GeneratedAssets), so a blended edge pixel would be a colour the palette has no slot for, and
+	 * it is pixel art besides — a 12×12 patch has a dozen colours on purpose. Ties go to the colour
+	 * that is <em>rarer</em> in the whole source, which is what keeps an outline, an eye or a letter
+	 * stroke alive: the background always has the votes, so an even split has to fall the other way
+	 * or every thin thing in the art dissolves. A remaining tie goes to whichever colour appears
+	 * first reading rows, so the answer never depends on iteration order.
+	 *
+	 * <p>Integer arithmetic throughout: the overlap of output pixel {@code i} (spanning
+	 * {@code [i*W, (i+1)*W)}) with source pixel {@code j} (spanning {@code [j*W', (j+1)*W')}) in
+	 * units of 1/(W·W'), so exact ties are exactly ties. At a factor of one half this is a plain 2×2
+	 * block majority.
+	 */
+	public Tex downscaled(int w, int h) {
+		if (w <= 0 || h <= 0 || w > width || h > height) {
+			throw new IllegalArgumentException("cannot scale " + width + "x" + height + " down to " + w + "x" + h);
+		}
+		// Keyed once: an invisible pixel votes as the same "nothing" whatever colour it is written in
+		// (art is exported with all sorts under a zero alpha), an opaque one as its exact ARGB, which
+		// is never 0 — so key 0 is transparency alone. Frequency and first sighting break the ties.
+		int[] key = new int[argb.length];
+		Map<Integer, Integer> frequency = new HashMap<>(), firstSeen = new HashMap<>();
+		for (int i = 0; i < argb.length; i++) {
+			key[i] = a(argb[i]) < VOTING_ALPHA ? 0 : argb[i];
+			frequency.merge(key[i], 1, Integer::sum);
+			firstSeen.putIfAbsent(key[i], i);
+		}
+		int[] out = new int[w * h];
+		Map<Integer, Long> votes = new HashMap<>();
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				votes.clear();
+				for (int sy = 0; sy < height; sy++) {
+					long oy = Math.min((long) (y + 1) * height, (long) (sy + 1) * h) - Math.max((long) y * height, (long) sy * h);
+					if (oy <= 0) continue;
+					for (int sx = 0; sx < width; sx++) {
+						long ox = Math.min((long) (x + 1) * width, (long) (sx + 1) * w) - Math.max((long) x * width, (long) sx * w);
+						if (ox > 0) votes.merge(key[sy * width + sx], ox * oy, Long::sum);
+					}
+				}
+				int won = 0;
+				long winning = -1;
+				for (Map.Entry<Integer, Long> vote : votes.entrySet()) {
+					int colour = vote.getKey();
+					long count = vote.getValue();
+					boolean better = count > winning || (count == winning && (frequency.get(colour) < frequency.get(won)
+							|| (frequency.get(colour).equals(frequency.get(won)) && firstSeen.get(colour) < firstSeen.get(won))));
+					if (winning < 0 || better) {
+						won = colour;
+						winning = count;
+					}
+				}
+				out[y * w + x] = won;   // key 0 is transparency, which is the clear pixel it came from
+			}
 		}
 		return new Tex(w, h, out);
 	}
