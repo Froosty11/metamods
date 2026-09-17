@@ -23,6 +23,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.MultiActionDialog;
@@ -293,6 +294,91 @@ public final class OvvarGameTests {
 		if (SewingGame.nextPull(player) != null) helper.fail("seam still open after cutting");
 		if (!Looks.sewn(stand.getItemBySlot(EquipmentSlot.LEGS)).isEmpty()) helper.fail("something was sewn");
 		if (player.getMainHandItem().getCount() != 3) helper.fail("a patch was used up");
+		helper.succeed();
+	}
+
+	/**
+	 * {@link OvveItem#patchLines} is what keeps a dozen patches from turning the tooltip into a
+	 * wall of text: a repeat becomes "name ×N" rather than a line of its own, wrapping never cuts a
+	 * name in half however tight the width, and what still does not fit shrinks the last line to
+	 * make room for "… +N more" — N counting patches left out, not names, and the line with the
+	 * suffix on it never runs past the width either. The patches here are throwaway ones built
+	 * straight from the record, not the catalogue: their names are picked so the wrapping math
+	 * comes out to an exact, hand-checked answer.
+	 */
+	@GameTest
+	public void patchLinesGroupsWrapsAndCapsOverflow(GameTestHelper helper) {
+		List<String> wrong = new ArrayList<>();
+
+		// A repeat of the same patch collapses into one "name ×N" token, not a line per placement.
+		Patches.Patch p = new Patches.Patch("p", "Patch");
+		List<Placement> pair = List.of(new Placement(Spot.FRONT_TOP_LEFT, p), new Placement(Spot.FRONT_TOP_RIGHT, p));
+		List<String> counted = OvveItem.patchLines(pair, 40, 3);
+		if (!counted.equals(List.of("Patch ×2"))) wrong.add("duplicate count: " + counted);
+
+		// However tight the width, a name is never split — the first token on a line always goes on
+		// whole, even past the width, rather than being cut.
+		Patches.Patch long_ = new Patches.Patch("long", "Supercalifragilisticexpialidocious");
+		List<String> tooTight = OvveItem.patchLines(List.of(new Placement(Spot.FRONT_TOP_LEFT, long_)), 10, 1);
+		if (!tooTight.equals(List.of("Supercalifragilisticexpialidocious"))) wrong.add("no-split at a tight width: " + tooTight);
+
+		// Four names, counts 2/3/1/1 (7 patches total, 4 names): at width 16 the first two names
+		// (5 + 5 chars) plus the "… +N more" suffix fill the one allowed line exactly, and N is 5 —
+		// the patches in the two names left out (BB ×3 and the two singles), not 2, which is what it
+		// would be if the suffix counted names instead.
+		Patches.Patch aa = new Patches.Patch("aa", "AA"), bb = new Patches.Patch("bb", "BB");
+		Patches.Patch cc = new Patches.Patch("cc", "CC"), dd = new Patches.Patch("dd", "DD");
+		List<Placement> seven = List.of(
+				new Placement(Spot.FRONT_TOP_LEFT, aa), new Placement(Spot.FRONT_TOP_RIGHT, aa),
+				new Placement(Spot.FRONT_LOW_LEFT, bb), new Placement(Spot.FRONT_LOW_RIGHT, bb), new Placement(Spot.BACK_TOP_LEFT, bb),
+				new Placement(Spot.BACK_TOP_RIGHT, cc),
+				new Placement(Spot.SLEEVE_OUT_TOP_R, dd));
+		List<String> overflow = OvveItem.patchLines(seven, 16, 1);
+		if (!overflow.equals(List.of("AA ×2, … +5 more"))) wrong.add("overflow line: " + overflow);
+		if (overflow.get(0).length() > 16) wrong.add("overflow line runs past its width: '" + overflow.get(0) + "'");
+
+		// The same seven placements with no room for even one name alongside the suffix: a bare
+		// "… +N more" line, N counting every one of the 7 patches (3 names), still inside its width.
+		List<String> bare = OvveItem.patchLines(seven, 10, 1);
+		if (!bare.equals(List.of("… +7 more"))) wrong.add("bare overflow: " + bare);
+
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	/**
+	 * However many patches an ovve carries, its tooltip stays no taller than an item with five
+	 * enchantments: the status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches,
+	 * and one hint line. This sews every catalogue patch on (several times over, where a cell
+	 * exists to put a repeat on — the seat has only the one cell, so its patch gets it once) and
+	 * reads the tooltip {@code OvveItem} itself would send a client.
+	 */
+	@GameTest
+	public void aFullyPatchedOvvesTooltipIsStillFiveLinesOrLess(GameTestHelper helper) {
+		List<Patches.Patch> catalogue = Patches.all();
+		List<Placement> placements = new ArrayList<>();
+		int next = 0;
+		for (Spot spot : Spot.values()) {
+			// The seat and the two cells it overlaps (the backs of the legs) can only hold one
+			// patch between them; the seat itself takes that below.
+			if (spot == Spot.SEAT || Spot.SEAT.overlapping().contains(spot)) continue;
+			Patches.Patch patch;
+			do {
+				patch = catalogue.get(next++ % catalogue.size());
+			} while (patch.seat());
+			placements.add(new Placement(spot, patch));
+		}
+		catalogue.stream().filter(Patches.Patch::seat).findFirst()
+				.ifPresent(seatPatch -> placements.add(new Placement(Spot.SEAT, seatPatch)));
+
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		Looks.setSewn(ovve, SpotPlacements.fromList(placements).getOrThrow());
+		List<Component> tooltip = new ArrayList<>();
+		((OvveItem) ovve.getItem()).modifyClientTooltip(tooltip, ovve, null);
+		int max = 1 + OvveItem.PATCH_LIST_LINES + 1;   // status + patch list + hint, no "no patches" line
+		if (tooltip.size() > max) {
+			helper.fail("a fully-patched ovve's tooltip is " + tooltip.size() + " lines, wanted at most " + max + ": " + tooltip);
+		}
 		helper.succeed();
 	}
 

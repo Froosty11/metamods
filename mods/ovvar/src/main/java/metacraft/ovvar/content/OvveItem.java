@@ -30,6 +30,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.Level;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -202,24 +204,104 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 		if (refusal != null) Ownership.refuse(player, refusal);
 	}
 
+	/** The tooltip's patch list wraps at about this many columns — enough for a name and a count. */
+	public static final int PATCH_LIST_WIDTH = 40;
+	/**
+	 * The most lines the patch list may take. With the status line above it and the hint line
+	 * below, that keeps the whole tooltip to 5 lines under the name — no taller than an item with
+	 * five enchantments, however many patches are sewn on.
+	 */
+	public static final int PATCH_LIST_LINES = 3;
+
 	@Override
 	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
 		boolean up = topUp(stack);
-		tooltip.add(Component.literal(up ? "Zipped up" : "Zipped down").withStyle(ChatFormatting.GRAY));
-		if (chapter.rollable) {
-			tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
+		List<Placement> sewn = SpotPlacements.asPlacementList(Looks.sewn(stack));
+		tooltip.add(Component.literal("Zipped " + (up ? "up" : "down") + " · " + countLabel(sewn.size())).withStyle(ChatFormatting.GRAY));
+		for (String line : patchLines(sewn, PATCH_LIST_WIDTH, PATCH_LIST_LINES)) {
+			tooltip.add(Component.literal(line).withStyle(ChatFormatting.GRAY));
 		}
-		tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
-		var sewn = Looks.sewn(stack);
+		StringBuilder hint = new StringBuilder();
+		if (chapter.rollable) hint.append("Sneak + use: zip ").append(up ? "down" : "up").append(" · ");
+		hint.append("Use: empty pockets");
+		tooltip.add(Component.literal(hint.toString()).withStyle(ChatFormatting.DARK_GRAY));
 		if (sewn.isEmpty()) {
-			tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
-		} else {
-			tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
-			for (Placement p : SpotPlacements.asPlacementList(sewn)) {
-				tooltip.add(Component.literal("  " + p.patch().name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
-			}
+			// Kept as its own short line rather than folded into the hint above: with no patches the
+			// list above is empty, so the tooltip is still only 3 lines tall.
+			tooltip.add(Component.literal("Sew patches on at an armour stand").withStyle(ChatFormatting.DARK_GRAY));
 		}
-		tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));
+	}
+
+	private static String countLabel(int count) {
+		if (count == 0) return "no patches yet";
+		return count + (count == 1 ? " patch" : " patches");
+	}
+
+	/**
+	 * The tooltip's patch list, at most {@code maxLines} long whatever is sewn on: patches grouped
+	 * by name in sewn order (a repeat becomes "name ×N" rather than a line of its own — spot labels
+	 * are dropped too, since the wardrobe screen and the stand already show where things are), then
+	 * greedy-wrapped at {@code width} columns without ever splitting a name across lines. What still
+	 * does not fit shrinks the last line to make room for "… +N more", N counting patches, not
+	 * names, left out. Pure and player-free, so a game test can hammer it without a stand.
+	 */
+	public static List<String> patchLines(List<Placement> sewn, int width, int maxLines) {
+		if (sewn.isEmpty() || maxLines <= 0) return List.of();
+		LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+		for (Placement p : sewn) counts.merge(p.patch().name(), 1, Integer::sum);
+		List<String> tokens = new ArrayList<>();
+		List<Integer> tokenCounts = new ArrayList<>();
+		for (var entry : counts.entrySet()) {
+			tokens.add(entry.getValue() > 1 ? entry.getKey() + " ×" + entry.getValue() : entry.getKey());
+			tokenCounts.add(entry.getValue());
+		}
+
+		List<Integer> starts = new ArrayList<>();
+		List<String> full = new ArrayList<>();
+		int[] end = new int[1];
+		for (int i = 0; i < tokens.size(); i = end[0]) {
+			starts.add(i);
+			full.add(greedyLine(tokens, i, width, end));
+		}
+		if (full.size() <= maxLines) return full;
+
+		List<String> lines = new ArrayList<>(full.subList(0, maxLines - 1));
+		int j = starts.get(maxLines - 1);
+		StringBuilder last = new StringBuilder();
+		while (j < tokens.size()) {
+			String candidate = last.isEmpty() ? tokens.get(j) : last + ", " + tokens.get(j);
+			int remaining = sum(tokenCounts, j + 1, tokens.size());
+			String withSuffix = remaining > 0 ? candidate + ", … +" + remaining + " more" : candidate;
+			if (withSuffix.length() > width) break;
+			last = new StringBuilder(candidate);
+			j++;
+		}
+		if (j < tokens.size()) {
+			String suffix = "… +" + sum(tokenCounts, j, tokens.size()) + " more";
+			last = new StringBuilder(last.isEmpty() ? suffix : last + ", " + suffix);
+		}
+		if (!last.isEmpty()) lines.add(last.toString());
+		return lines;
+	}
+
+	/** One greedy-wrapped line from {@code start}, never splitting a token; {@code endOut[0]} is where the next line picks up. */
+	private static String greedyLine(List<String> tokens, int start, int width, int[] endOut) {
+		StringBuilder sb = new StringBuilder();
+		int i = start;
+		while (i < tokens.size()) {
+			String candidate = sb.isEmpty() ? tokens.get(i) : sb + ", " + tokens.get(i);
+			if (!sb.isEmpty() && candidate.length() > width) break;
+			sb = new StringBuilder(candidate);
+			i++;
+		}
+		endOut[0] = i;
+		return sb.toString();
+	}
+
+	private static int sum(List<Integer> counts, int from, int to) {
+		int total = 0;
+		for (int i = from; i < to; i++) total += counts.get(i);
+		return total;
 	}
 
 	@Override
