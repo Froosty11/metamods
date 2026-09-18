@@ -192,3 +192,35 @@ test('anchored matches all 512 manifest samples exactly', () => {
   }
   assert.ok(worst < 1e-9, 'anchored is off by ' + worst);
 });
+
+function context() {
+  const m = OVVAR.loadManifest(io, CHECKOUT);
+  return OVVAR.compose.ctx(io, m);
+}
+
+test('every committed placement texture is placed() + artFor()', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const ignore = m.markerTexels;
+  const bad = [];
+  let checked = 0;
+  for (const cell of m.cells) {
+    for (const patch of m.patches) {
+      if (patch.seat !== (cell.id === 'seat')) continue;
+      const dir = 'entity/equipment/' + cell.layerFolder + '/';
+      const targets = cell.id === 'seat'
+        ? [['right', dir + 'patch/seat/' + patch.id + '_r.png'],
+           ['left', dir + 'patch/seat/' + patch.id + '_l.png']]
+        : [[cell.side, dir + 'patch/' + cell.id + '/' + patch.id + '.png']];
+      for (const [side, file] of targets) {
+        const want = ctx.generated(file);
+        const got = OVVAR.compose.placementTexture(ctx, cell, patch, side);
+        const d = OVVAR.tex.diff(want, got, ignore);
+        if (d.length) bad.push(file + ': ' + d.join('; '));
+        checked++;
+      }
+    }
+  }
+  assert.strictEqual(checked, 268, 'expected 268 placement textures, walked ' + checked);
+  assert.deepStrictEqual(bad, []);
+});

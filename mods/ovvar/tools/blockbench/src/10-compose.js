@@ -152,3 +152,131 @@ OVVAR.compose.anchored = function (skinX, inflate, anchor) {
   var w = t + dt;
   return w - Math.floor(w / total) * total;
 };
+
+/**
+ * Everything compose() needs from the world: the manifest, and two ways of getting a PNG out of
+ * the checkout -- a patch art by its catalogue file name, and any texture the generator already
+ * wrote. Both memoised, because compose() runs on every brush stroke.
+ */
+OVVAR.compose.ctx = function (io, m) {
+  var arts = {}, gen = {};
+  var GENROOT = 'mods/ovvar/src/main/generated/assets/ovvar/textures/';
+  var ctx = {
+    m: m,
+    io: io,
+    warnings: [],
+    art: function (file) {
+      if (!arts[file]) {
+        var entry = m.artByFile[file];
+        if (!entry) throw new Error('no art named ' + file + ' in the manifest');
+        var path = OVVAR.artPath(m, m.checkout, entry);
+        if (!io.exists(path)) {
+          ctx.warnings.push('missing art file: ' + path);
+          arts[file] = OVVAR.compose.placeholder(entry.w, entry.h);
+        } else {
+          arts[file] = io.decode(io.read(path));
+        }
+      }
+      return arts[file];
+    },
+    generated: function (rel) {
+      if (!gen[rel]) gen[rel] = io.decode(io.read([m.checkout, GENROOT + rel].join('/')));
+      return gen[rel];
+    },
+    base: function (chapterId, piece, nercabbad) {
+      var chapter = m.chapterById[chapterId];
+      if (!chapter) throw new Error('no chapter ' + chapterId + ' in the manifest');
+      var key = nercabbad ? 'bottomNercabbad' : piece;
+      var rel = chapter.layers[key];
+      if (!rel) throw new Error(chapter.name + ' has no ' + key + ' layer (it does not roll down)');
+      return ctx.generated('entity/equipment/' + rel);
+    },
+    forget: function () { arts = {}; gen = {}; ctx.warnings = []; }
+  };
+  return ctx;
+};
+
+/** A missing art file: solid magenta, so it is obvious on the model and in the catalogue list. */
+OVVAR.compose.placeholder = function (w, h) {
+  var out = OVVAR.tex.blank(w, h);
+  for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) OVVAR.tex.set(out, x, y, 0xFFFF00FF);
+  return out;
+};
+
+/** Patches.artFor(patch, spot): the fit is the cell's, and the manifest has already worked it out. */
+OVVAR.compose.artFor = function (m, patch, cell) {
+  var file = patch.fits[cell.fit];
+  var art = m.artByFile[file];
+  if (!art) throw new Error('no art named ' + file + ' in the manifest');
+  return art;
+};
+
+/** Patches.Art.offsetX: the art centred in the cell, which is not always one cell wide. */
+OVVAR.compose.offsetX = function (m, cell, art) {
+  return Math.trunc((cell.w * m.detail - art.w) / 2);
+};
+
+/** Spot.seatHalf: where a seat patch's art is cut for one leg, in art pixels. */
+OVVAR.compose.seatHalf = function (m, side) {
+  return (side === 'left' ? 0 : 1) * m.px;
+};
+
+/**
+ * GeneratedAssets.placed: the art on a garment texture at texel column x (its top-left; the
+ * cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
+ * strip -- past the outer face of a limb lies its back face. A cell on a box's top face (the
+ * shoulders) is clipped to the face both ways instead, since the top face has no neighbour in
+ * the layout to continue onto.
+ *
+ * Returns null instead of throwing when the art lands entirely off the cell -- datagen's
+ * `require` is a build failure there, but a plugin has a panel to warn in and a model to keep
+ * drawing.
+ */
+OVVAR.compose.placed = function (m, cell, art, x) {
+  var D = m.detail, W = m.texture[0], H = m.texture[1];
+  var y = cell.v * D + Math.trunc((cell.h * D - art.h) / 2);
+  var out = OVVAR.tex.blank(W, H);
+  var any = false, ax, row, p;
+  if (cell.top) {
+    var x0 = cell.u * D, x1 = x0 + cell.w * D, y0 = m.topRow * D, y1 = m.faceRow * D;
+    for (ax = 0; ax < art.w; ax++) {
+      var column = x + ax;
+      if (column < x0 || column >= x1) continue;
+      for (row = Math.max(y, y0); row < Math.min(y + art.h, y1); row++) {
+        p = OVVAR.tex.get(art, ax, row - y);
+        if (p !== 0) { OVVAR.tex.set(out, column, row, p); any = true; }
+      }
+    }
+    return any ? out : null;
+  }
+  var stripStart = cell.stripStart * D, stripWidth = cell.stripWidth * D;
+  if (art.w > stripWidth) throw new Error('patch art is wider than the ' + cell.id + " cell's part");
+  for (ax = 0; ax < art.w; ax++) {
+    var col = stripStart + (((x + ax - stripStart) % stripWidth) + stripWidth) % stripWidth;
+    for (row = Math.max(y, m.faceRow * D); row < Math.min(y + art.h, (m.faceRow + m.faceRows) * D); row++) {
+      p = OVVAR.tex.get(art, ax, row - y);
+      if (p !== 0) { OVVAR.tex.set(out, col, row, p); any = true; }
+    }
+  }
+  return any ? out : null;
+};
+
+/**
+ * One committed placement texture, minus the marker texels: the art this cell shows, mirrored
+ * for a left limb (the model mirrors it back), cut in half for the seat. `side` is 'body',
+ * 'right' or 'left' -- for the seat it is the leg being drawn, for anything else the cell's own.
+ */
+OVVAR.compose.placementTexture = function (ctx, cell, patch, side) {
+  var m = ctx.m;
+  var entry = OVVAR.compose.artFor(m, patch, cell);
+  var art = ctx.art(entry.file);
+  if (cell.side === 'seat') {
+    // The art is drawn as seen from behind, so its left half belongs on the wearer's LEFT leg;
+    // that half is then flipped in x, because the model flips the left leg's texture back.
+    var half = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.px, art.h);
+    if (side === 'left') half = OVVAR.tex.flipX(half);
+    return OVVAR.compose.placed(m, cell, half, cell.u * m.detail);
+  }
+  var drawn = cell.side === 'left' ? OVVAR.tex.flipX(art) : art;
+  return OVVAR.compose.placed(m, cell, drawn, cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry));
+};
