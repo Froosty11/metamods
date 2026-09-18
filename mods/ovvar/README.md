@@ -637,6 +637,19 @@ drawing (`OVVAR_FIT_*`, the same three-line rule as `Fit.of`). That is what wide
 three skin texels each; `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs` reads them back through
 the shader's own constants.
 
+## Blockbench plugin
+
+`tools/blockbench/ovvar.js` is a Blockbench 5 desktop plugin: draw a patch, sew it onto an ovve,
+and see it on a player model exactly as the game draws it, without starting the game — then
+export the art back into this checkout. It has no copy of `Spot`, `Patches` or `Chapter`; datagen
+writes those out as `src/main/generated/ovvar/blockbench/manifest.json`, `BlockbenchManifestTests`
+holds that file to the enums field for field (`Spot.anchored` included), and the plugin's own
+Node tests hold its composition to the very placement, trim and garment textures the pack ships.
+So a cell moved in `Spot.java` is a failing test, not a plugin that quietly draws last week's
+model.
+
+Install, permissions, the workflow and how to run its tests: `tools/blockbench/README.md`.
+
 ## How the look works
 
 The client draws an equipment asset as a stack of 64×32 layer textures over the armour model:
