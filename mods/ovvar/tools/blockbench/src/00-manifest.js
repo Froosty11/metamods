@@ -199,6 +199,14 @@ OVVAR.makeIo = function (req, scope) {
     var bytes = io.encode(image);
     return 'data:image/png;base64,' + Buf.from(bytes.buffer, bytes.byteOffset, bytes.length).toString('base64');
   };
+  // The other way round. A texture carries its own PNG as a data URL, which is the only copy of it
+  // that is there the instant a project is parsed -- and it is byte-exact, where a canvas is not.
+  io.fromDataUrl = function (url) {
+    var comma = url.indexOf(',');
+    if (comma < 0 || url.slice(0, comma).indexOf(';base64') < 0) throw new Error('not a base64 data URL');
+    var b = Buf.from(url.slice(comma + 1), 'base64');
+    return new Uint8Array(b.buffer, b.byteOffset, b.length);
+  };
   return io;
 };
 

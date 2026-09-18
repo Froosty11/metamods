@@ -457,6 +457,39 @@ test('a placement naming an unknown cell warns instead of throwing', () => {
   assert.ok(OVVAR.tex.diff(bare.A, out.top.A, []).length > 0, 'the one good placement was lost');
 });
 
+test('a patch with nothing painted on it says so, rather than blaming the cell', () => {
+  const ctx = context();
+  const m = ctx.m;
+  // A patch invented in Blockbench and not yet drawn on: the plugin puts a blank image in front of
+  // the catalogue, and every cell it could go on would otherwise report "lands entirely off".
+  const blank = {file: 'patches/blank_probe.png', w: 12, h: 12, default: true, generated: false};
+  const patch = {id: 'blank_probe', name: 'Blank probe', seat: false, w: 12, h: 12,
+    arts: [blank], fits: {over: blank.file, clipped: blank.file, filled: blank.file}};
+  m.patches.push(patch);
+  m.patchById[patch.id] = patch;
+  m.artByFile[blank.file] = blank;
+  const empty = OVVAR.tex.blank(12, 12);
+  const read = ctx.art;
+  ctx.art = (file) => (file === blank.file ? empty : read(file));
+
+  const design = {chapter: 'data', nercabbad: false, placements: [{cell: 'front_top_left', patch: 'blank_probe'}]};
+  const bare = OVVAR.compose.compose(ctx, {chapter: 'data', nercabbad: false, placements: []});
+  ctx.warnings.length = 0;
+  const out = OVVAR.compose.compose(ctx, design);
+  assert.deepStrictEqual(ctx.warnings, ['Blank probe is blank; paint it'],
+    'a blank art warns once, by name, and does not mention the cell');
+  assert.deepStrictEqual(OVVAR.tex.diff(bare.top.A, out.top.A, []), [], 'a blank patch drew something');
+
+  // Paint one texel and the warning goes; the cell is innocent, so nothing says "lands off".
+  const painted = OVVAR.tex.blank(12, 12);
+  OVVAR.tex.set(painted, 6, 6, 0xFF00FF00);
+  ctx.art = (file) => (file === blank.file ? painted : read(file));
+  ctx.warnings.length = 0;
+  const drawn = OVVAR.compose.compose(ctx, design);
+  assert.deepStrictEqual(ctx.warnings, []);
+  assert.ok(OVVAR.tex.diff(bare.top.A, drawn.top.A, []).length > 0, 'the painted texel never landed');
+});
+
 test('a BODY placement reaches both textures and a limb one only its own', () => {
   const ctx = context();
   const t = OVVAR.tex;

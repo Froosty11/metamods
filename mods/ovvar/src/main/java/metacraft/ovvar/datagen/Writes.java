@@ -26,20 +26,10 @@ import java.util.concurrent.CompletableFuture;
  */
 final class Writes {
 	private final CachedOutput out;
-	private final Path root;
 	private final List<CompletableFuture<?>> pending = new ArrayList<>();
 
-	Writes(CachedOutput out, Path root) {
+	Writes(CachedOutput out) {
 		this.out = out;
-		this.root = root;
-	}
-
-	/**
-	 * The pack's output folder, {@code src/main/generated}: what a path outside {@code assets/} and
-	 * {@code data/} — the manifest, the outlines — is resolved against.
-	 */
-	Path root() {
-		return root;
 	}
 
 	/** A JSON document, written stably — keys sorted, so the same tree is always the same bytes. */

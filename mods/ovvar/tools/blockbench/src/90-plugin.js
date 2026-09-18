@@ -29,6 +29,32 @@ OVVAR.onPaint = function (event) {
   if (hit) OVVAR.model.scheduleRefresh();
 };
 
+/**
+ * Saving and reopening. `save_project` fires inside the .bbmodel codec's compile, with the object
+ * about to be written; the codec's own `parsed` fires at the end of parse, once the textures and
+ * the cubes are in the project -- which is the earliest the ovve can be put back together, because
+ * it is built out of them.
+ */
+OVVAR.onSaveProject = function (event) {
+  var s = OVVAR.state;
+  if (!s.ctx || !s.project || s.project !== Project) return;
+  event.model.ovvar = OVVAR.model.saveState();
+};
+
+OVVAR.onParsedProject = function (event) {
+  if (typeof Format === 'undefined' || !Format || Format.id !== 'ovvar') return;
+  if (!event.model || !event.model.ovvar) return;
+  OVVAR.model.restoreState(event.model.ovvar);
+};
+
+/** The tab holding the ovve has gone, so the next Ovvar project may have the plugin. */
+OVVAR.onCloseProject = function (event) {
+  var s = OVVAR.state;
+  if (!s.project) return;
+  if (event && event.project && event.project !== s.project) return;
+  OVVAR.model.forgetProject();
+};
+
 if (typeof Plugin !== 'undefined') {
   Plugin.register('ovvar', {
     title: 'Ovvar',
@@ -44,16 +70,30 @@ if (typeof Plugin !== 'undefined') {
     tags: ['Minecraft: Java Edition'],
 
     onload: function () {
+      // `ovvar_art` has to be a declared Texture property or the codec drops it: it is the tag that
+      // says which catalogue file a texture is, and without it a reopened project has pixels and no
+      // idea what they are.
+      OVVAR.state.properties = [new Property(Texture, 'string', 'ovvar_art')];
       OVVAR.model.registerFormat();
       OVVAR.panel.register();
-      Blockbench.on('finished_edit', OVVAR.onPaint);
-      OVVAR.state.listeners.push(['finished_edit', OVVAR.onPaint]);
+      var on = [
+        ['finished_edit', OVVAR.onPaint],
+        ['save_project', OVVAR.onSaveProject],
+        ['close_project', OVVAR.onCloseProject]
+      ];
+      on.forEach(function (l) { Blockbench.on(l[0], l[1]); OVVAR.state.listeners.push(l); });
+      Codecs.project.on('parsed', OVVAR.onParsedProject);
+      OVVAR.state.codecListeners.push(['parsed', OVVAR.onParsedProject]);
     },
 
     onunload: function () {
       var s = OVVAR.state;
       s.listeners.forEach(function (l) { Blockbench.removeListener(l[0], l[1]); });
       s.listeners = [];
+      s.codecListeners.forEach(function (l) { Codecs.project.removeListener(l[0], l[1]); });
+      s.codecListeners = [];
+      s.properties.forEach(function (prop) { prop.delete(); });
+      s.properties = [];
       if (s.pending) { cancelAnimationFrame(s.pending.frame); clearTimeout(s.pending.timer); s.pending = null; }
       if (s.panel) { s.panel.delete(); s.panel = null; }
       if (s.format) { s.format.delete(); s.format = null; }
@@ -64,6 +104,7 @@ if (typeof Plugin !== 'undefined') {
       s.textures = {};
       s.artTextures = {};
       s.added = {};
+      s.sizes = [];
       s.dirty = {};
       s.cubes = [];
       s.group = null;

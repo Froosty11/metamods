@@ -279,18 +279,25 @@ OVVAR.panel.addSize = function () {
       // shows today, and the point of drawing it again is to fix what the scaler got wrong.
       var from = s.ctx.art(patch.fits.filled);
       var start = (from.w >= size && from.h >= size) ? OVVAR.compose.downscaled(from, size, size) : OVVAR.tex.blank(size, size);
+      // The generator had already scaled this size, so the drawing takes that entry's place --
+      // pushing beside it would leave two arts claiming one file, and `refit` would pick whichever
+      // sorted first.
       var art = {file: file, w: size, h: size, 'default': false, generated: false, source: null};
-      patch.arts.push(art);
-      patch.arts.sort(function (a, b) { return a.w * a.h - b.w * b.h; });
-      m.artByFile[file] = art;
+      OVVAR.model.putArt(m, patch, art);
       OVVAR.panel.refit(m, patch);
+      s.sizes.push({patch: patch.id, file: file, w: size, h: size});
       s.dirty[file] = true;
       s.ctx.put(file, start);
-      var tex = new Texture({name: file.replace('patches/', '')}).fromDataURL(s.io.dataUrl(start)).add(false);
+      var tex = s.artTextures[file];
+      if (tex) {
+        tex.updateSource(s.io.dataUrl(start));
+      } else {
+        tex = new Texture({name: file.replace('patches/', '')}).fromDataURL(s.io.dataUrl(start)).add(false);
+        tex.ovvar_art = file;
+        s.artTextures[file] = tex;
+      }
       tex.uv_width = size;
       tex.uv_height = size;
-      tex.ovvar_art = file;
-      s.artTextures[file] = tex;
       tex.select();
       OVVAR.model.refresh();
     },
@@ -337,7 +344,7 @@ OVVAR.panel.exportToRepo = function () {
   var write = function () {
     s.io.mkdirp(dir);
     files.forEach(function (file) {
-      var image = OVVAR.model.readTexture(s.artTextures[file]);
+      var image = OVVAR.model.readArt(s.artTextures[file]);
       s.io.write(dir + '/' + file.replace('patches/', ''), s.io.encode(image));
     });
     var added = s.added;

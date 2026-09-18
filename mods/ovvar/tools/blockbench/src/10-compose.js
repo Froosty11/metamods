@@ -551,6 +551,13 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
     if (cell.piece !== piece) continue;
     if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
+    // Nothing painted on it yet is the ordinary state of a patch just invented, and it is a
+    // different thing from art that missed its cell. Said once for the whole patch, before the
+    // seat's two halves: a half-empty art still has a half to draw.
+    if (OVVAR.tex.isEmpty(ctx.art(OVVAR.compose.artFor(m, patch, cell).file))) {
+      ctx.warnings.push(patch.name + ' is blank; paint it');
+      continue;
+    }
     // The seat is one patch cut in half, so it is drawn twice -- a leg at a time.
     var sides = cell.side === 'seat' ? ['right', 'left'] : [cell.side];
     for (var s = 0; s < sides.length; s++) {

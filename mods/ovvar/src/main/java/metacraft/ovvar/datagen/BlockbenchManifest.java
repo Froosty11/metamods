@@ -89,7 +89,7 @@ public final class BlockbenchManifest implements DataProvider {
 
 	@Override
 	public CompletableFuture<?> run(CachedOutput output) {
-		this.files = new Writes(output, root);
+		this.files = new Writes(output);
 		JsonObject m = new JsonObject();
 		m.addProperty("version", VERSION);
 		// Stated rather than implied: see the class javadoc. A plugin that finds this false is

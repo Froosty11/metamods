@@ -199,6 +199,14 @@ OVVAR.makeIo = function (req, scope) {
     var bytes = io.encode(image);
     return 'data:image/png;base64,' + Buf.from(bytes.buffer, bytes.byteOffset, bytes.length).toString('base64');
   };
+  // The other way round. A texture carries its own PNG as a data URL, which is the only copy of it
+  // that is there the instant a project is parsed -- and it is byte-exact, where a canvas is not.
+  io.fromDataUrl = function (url) {
+    var comma = url.indexOf(',');
+    if (comma < 0 || url.slice(0, comma).indexOf(';base64') < 0) throw new Error('not a base64 data URL');
+    var b = Buf.from(url.slice(comma + 1), 'base64');
+    return new Uint8Array(b.buffer, b.byteOffset, b.length);
+  };
   return io;
 };
 
@@ -797,6 +805,13 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
     if (cell.piece !== piece) continue;
     if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
+    // Nothing painted on it yet is the ordinary state of a patch just invented, and it is a
+    // different thing from art that missed its cell. Said once for the whole patch, before the
+    // seat's two halves: a half-empty art still has a half to draw.
+    if (OVVAR.tex.isEmpty(ctx.art(OVVAR.compose.artFor(m, patch, cell).file))) {
+      ctx.warnings.push(patch.name + ' is blank; paint it');
+      continue;
+    }
     // The seat is one patch cut in half, so it is drawn twice -- a leg at a time.
     var sides = cell.side === 'seat' ? ['right', 'left'] : [cell.side];
     for (var s = 0; s < sides.length; s++) {
@@ -835,12 +850,15 @@ OVVAR.state = {
   textures: {},      // topA, topB, bottomA, bottomB
   artTextures: {},   // catalogue file name -> Texture Vlad paints on
   added: {},         // patch id -> the catalogue entry this project invented
+  sizes: [],         // {patch, file, w, h} this project drew a patch again at
   dirty: {},         // art file name -> true, for Export
   cubes: [],
   group: null,
   format: null,
   panel: null,
   listeners: [],
+  codecListeners: [],
+  properties: [],    // the Blockbench Properties the plugin declares, to take back on unload
   pending: null      // the requestAnimationFrame that coalesces a burst of refreshes
 };
 
@@ -932,14 +950,64 @@ OVVAR.model.forgetCheckout = function () {
   s.artTextures = {};
   s.dirty = {};
   s.added = {};
+  s.sizes = [];
 };
 
-/** Open a checkout: load its manifest, build the cubes, make the textures, compose once. */
+/** The project these cubes belonged to has gone: let the next one build its own. */
+OVVAR.model.forgetProject = function () {
+  var s = OVVAR.state;
+  s.project = null;
+  s.cubes = [];
+  s.group = null;
+  s.textures = {};
+  s.artTextures = {};
+  s.checkout = null;
+  s.io = null;
+  s.ctx = null;
+  s.dirty = {};
+  s.added = {};
+  s.sizes = [];
+  s.design = {chapter: null, nercabbad: false, placements: []};
+  if (s.panel && s.panel.inside_vue) {
+    s.panel.inside_vue.design = s.design;
+    s.panel.inside_vue.warnings = [];
+    s.panel.inside_vue.revision++;
+  }
+};
+
+/**
+ * Open a checkout: load its manifest, build the cubes, make the textures, compose once.
+ *
+ * Two things are settled before anything is touched. One ovve at a time: the state below is one
+ * object for the whole app, so a second Ovvar project would take this one's textures away from it
+ * -- it is refused by name instead. And the manifest is loaded first, so a mistyped path leaves the
+ * open ovve exactly as it was; only then, if this is a different checkout and there is unexported
+ * art, is the artist asked before it goes.
+ */
 OVVAR.model.build = function (checkout) {
   var s = OVVAR.state;
+  if (s.project && typeof Project !== 'undefined' && Project !== s.project) {
+    throw new Error('Another Ovvar project is already open. Close the other Ovvar tab first: '
+      + 'the plugin draws one ovve at a time.');
+  }
   var io = OVVAR.makeIo(OVVAR.require, checkout);
   var m = OVVAR.loadManifest(io, checkout);
-  // Only once the manifest has actually loaded: a typo in the path must leave the open ovve alone.
+  var losing = (s.checkout && s.checkout !== checkout) ? Object.keys(s.dirty) : [];
+  if (losing.length) {
+    Blockbench.showMessageBox({
+      title: 'Ovvar', icon: 'warning',
+      message: losing.length + (losing.length === 1 ? ' patch has' : ' patches have')
+        + ' not been exported and will be discarded:\n\n' + losing.join('\n'),
+      buttons: ['Open anyway', 'Cancel'], confirmIndex: 0, cancelIndex: 1
+    }, function (button) { if (button === 0) OVVAR.model.open(io, m, checkout); });
+    return;
+  }
+  OVVAR.model.open(io, m, checkout);
+};
+
+/** The rest of `build`, once the questions it had to ask have been answered. */
+OVVAR.model.open = function (io, m, checkout) {
+  var s = OVVAR.state;
   if (s.checkout && s.checkout !== checkout) OVVAR.model.forgetCheckout();
   s.checkout = checkout;
   s.io = io;
@@ -981,6 +1049,135 @@ OVVAR.model.build = function (checkout) {
   OVVAR.model.loadCatalogueTextures();
   OVVAR.model.refresh();
   Canvas.updateAll();
+  try { localStorage.setItem('ovvar_checkout', checkout); } catch (e) { /* a private window; no matter */ }
+};
+
+// ---- the project file
+//
+// Blockbench already saves the cubes, the four garment textures and every patch art as textures in
+// the .bbmodel -- what it cannot know is which ovve they are: the chapter, whether it is zipped
+// down, what is sewn where, which arts have not been exported yet, and which patches and sizes this
+// project invented that no manifest has heard of. That is what goes under `model.ovvar`, written on
+// save and read back after the textures have been parsed.
+
+OVVAR.model.SAVE_VERSION = 1;
+
+/** What `save_project` writes into the .bbmodel. */
+OVVAR.model.saveState = function () {
+  var s = OVVAR.state;
+  return {
+    version: OVVAR.model.SAVE_VERSION,
+    checkout: s.checkout,
+    design: {
+      chapter: s.design.chapter,
+      nercabbad: !!s.design.nercabbad,
+      placements: s.design.placements.map(function (p) { return {cell: p.cell, patch: p.patch}; })
+    },
+    dirty: Object.keys(s.dirty),
+    added: JSON.parse(JSON.stringify(s.added)),
+    sizes: JSON.parse(JSON.stringify(s.sizes))
+  };
+};
+
+/**
+ * Put back what this project invented before anything asks the manifest for it: a patch drawn here
+ * and never exported is in no manifest, and a placement naming it would only warn.
+ */
+OVVAR.model.replayCatalogue = function (m, saved) {
+  Object.keys(saved.added || {}).forEach(function (id) {
+    if (m.patchById[id]) return;
+    var entry = JSON.parse(JSON.stringify(saved.added[id]));
+    m.patches.push(entry);
+    m.patchById[id] = entry;
+    entry.arts.forEach(function (a) { m.artByFile[a.file] = a; });
+  });
+  (saved.sizes || []).forEach(function (size) {
+    var patch = m.patchById[size.patch];
+    if (!patch) return;
+    var art = {file: size.file, w: size.w, h: size.h, 'default': false, generated: false, source: null};
+    OVVAR.model.putArt(m, patch, art);
+    OVVAR.panel.refit(m, patch);
+  });
+};
+
+/**
+ * An art on a patch, replacing the entry of the same name rather than sitting beside it -- drawing
+ * a size the generator had already scaled must take that size's place, not leave two arts claiming
+ * the same file.
+ */
+OVVAR.model.putArt = function (m, patch, art) {
+  var at = -1;
+  for (var i = 0; i < patch.arts.length; i++) if (patch.arts[i].file === art.file) at = i;
+  if (at >= 0) patch.arts[at] = art; else patch.arts.push(art);
+  patch.arts.sort(function (a, b) { return a.w * a.h - b.w * b.h; });
+  m.artByFile[art.file] = art;
+};
+
+/** The cubes, the group and the four garment textures a reopened project already has. */
+OVVAR.model.adopt = function () {
+  var s = OVVAR.state;
+  s.project = Project;
+  s.group = Group.all.find(function (g) { return g.name === 'ovve'; }) || null;
+  s.cubes = OVVAR.model.CUBES.map(function (c) {
+    return Cube.all.find(function (cube) { return cube.name === c.name; });
+  });
+  if (s.cubes.indexOf(undefined) >= 0) { s.cubes = []; s.project = null; return false; }
+  s.textures = {};
+  var ok = true;
+  ['topA', 'topB', 'bottomA', 'bottomB'].forEach(function (key) {
+    var tex = Texture.all.find(function (t) { return t.name === 'ovve_' + key + '.png'; });
+    if (!tex) ok = false; else s.textures[key] = tex;
+  });
+  if (!ok) { s.cubes = []; s.textures = {}; s.project = null; return false; }
+  s.artTextures = {};
+  Texture.all.forEach(function (t) { if (t.ovvar_art) s.artTextures[t.ovvar_art] = t; });
+  return true;
+};
+
+/**
+ * Read `model.ovvar` back after the codec has parsed the textures. The checkout is opened again
+ * from its path -- the manifest is the repo's, never the project file's -- and what the project
+ * invented is replayed on top of it.
+ */
+OVVAR.model.restoreState = function (saved) {
+  var s = OVVAR.state;
+  if (!saved || saved.version > OVVAR.model.SAVE_VERSION) return;
+  if (s.project && Project !== s.project) {
+    Blockbench.showMessageBox({title: 'Ovvar', icon: 'warning',
+      message: 'Another Ovvar project is already open, so this one was opened without its ovve. '
+        + 'Close the other Ovvar tab and reopen this file.'});
+    return;
+  }
+  if (!OVVAR.model.adopt()) return;
+  s.design = {
+    chapter: saved.design && saved.design.chapter || null,
+    nercabbad: !!(saved.design && saved.design.nercabbad),
+    placements: ((saved.design && saved.design.placements) || []).slice()
+  };
+  if (s.panel && s.panel.inside_vue) s.panel.inside_vue.design = s.design;
+  s.added = JSON.parse(JSON.stringify(saved.added || {}));
+  s.sizes = JSON.parse(JSON.stringify(saved.sizes || []));
+  s.dirty = {};
+  (saved.dirty || []).forEach(function (f) { s.dirty[f] = true; });
+  try {
+    var io = OVVAR.makeIo(OVVAR.require, saved.checkout);
+    var m = OVVAR.loadManifest(io, saved.checkout);
+    OVVAR.model.replayCatalogue(m, saved);
+    s.checkout = saved.checkout;
+    s.io = io;
+    s.ctx = OVVAR.model.paintable(OVVAR.compose.ctx(io, m));
+    var uv = OVVAR.model.uvSize(m);
+    Project.texture_width = uv[0];
+    Project.texture_height = uv[1];
+    OVVAR.model.loadCatalogueTextures();
+    Object.keys(s.dirty).forEach(OVVAR.model.readBack);
+    OVVAR.model.refresh();
+    Canvas.updateAll();
+  } catch (e) {
+    Blockbench.showMessageBox({title: 'Ovvar', icon: 'warning',
+      message: 'This ovve was drawn against ' + saved.checkout + ', which will not open:\n\n'
+        + String(e && e.message ? e.message : e) + '\n\nUse "Open checkout…" to point it somewhere else.'});
+  }
 };
 
 /**
@@ -1055,13 +1252,25 @@ OVVAR.model.scheduleRefresh = function () {
 };
 
 /**
- * A patch art texture Vlad has just painted, read back into an image. `forgetArt` below then
- * makes the composer read it again.
+ * What a patch art texture holds now, as an image.
  *
- * Canvas pixels are premultiplied, so a texel painted at alpha 0 loses its colour here -- which
- * is right: the brush never produces one, and the PNG the export writes is encoded from this
- * same image.
+ * Off the texture's own PNG, not its canvas. Blockbench rewrites `source` from the canvas at the
+ * end of every edit, so it is always current; it survives a save and is there the instant a
+ * project is parsed, while the canvas is still blank; and it is byte-exact, where reading a canvas
+ * premultiplies and would lose the colour of any texel drawn at alpha 0.
+ *
+ * `tex.width` cannot be used to tell whether the canvas is ready, by the way: it is a declared
+ * Texture property, so a reopened project restores it from the file long before the image decodes.
  */
+OVVAR.model.readArt = function (tex) {
+  if (tex.layers_enabled) tex.updateLayerChanges(true);
+  if (typeof tex.source === 'string' && tex.source.indexOf('data:image/png') === 0) {
+    return OVVAR.state.io.decode(OVVAR.state.io.fromDataUrl(tex.source));
+  }
+  return OVVAR.model.readTexture(tex);
+};
+
+/** The fallback: a texture whose pixels are only on its canvas. */
 OVVAR.model.readTexture = function (tex) {
   if (tex.layers_enabled) tex.updateLayerChanges();
   var w = tex.width, h = tex.height;
@@ -1101,8 +1310,8 @@ OVVAR.model.paintable = function (ctx) {
 OVVAR.model.readBack = function (file) {
   var s = OVVAR.state;
   var tex = s.artTextures[file];
-  if (!s.ctx || !tex || !tex.width) return;
-  s.ctx.put(file, OVVAR.model.readTexture(tex));
+  if (!s.ctx || !tex) return;
+  s.ctx.put(file, OVVAR.model.readArt(tex));
 };
 // The sidebar: what ovve this is, what is sewn on it, and the four things Vlad does -- sew,
 // unpick, draw a new patch, put it in the repo.
@@ -1385,18 +1594,25 @@ OVVAR.panel.addSize = function () {
       // shows today, and the point of drawing it again is to fix what the scaler got wrong.
       var from = s.ctx.art(patch.fits.filled);
       var start = (from.w >= size && from.h >= size) ? OVVAR.compose.downscaled(from, size, size) : OVVAR.tex.blank(size, size);
+      // The generator had already scaled this size, so the drawing takes that entry's place --
+      // pushing beside it would leave two arts claiming one file, and `refit` would pick whichever
+      // sorted first.
       var art = {file: file, w: size, h: size, 'default': false, generated: false, source: null};
-      patch.arts.push(art);
-      patch.arts.sort(function (a, b) { return a.w * a.h - b.w * b.h; });
-      m.artByFile[file] = art;
+      OVVAR.model.putArt(m, patch, art);
       OVVAR.panel.refit(m, patch);
+      s.sizes.push({patch: patch.id, file: file, w: size, h: size});
       s.dirty[file] = true;
       s.ctx.put(file, start);
-      var tex = new Texture({name: file.replace('patches/', '')}).fromDataURL(s.io.dataUrl(start)).add(false);
+      var tex = s.artTextures[file];
+      if (tex) {
+        tex.updateSource(s.io.dataUrl(start));
+      } else {
+        tex = new Texture({name: file.replace('patches/', '')}).fromDataURL(s.io.dataUrl(start)).add(false);
+        tex.ovvar_art = file;
+        s.artTextures[file] = tex;
+      }
       tex.uv_width = size;
       tex.uv_height = size;
-      tex.ovvar_art = file;
-      s.artTextures[file] = tex;
       tex.select();
       OVVAR.model.refresh();
     },
@@ -1443,7 +1659,7 @@ OVVAR.panel.exportToRepo = function () {
   var write = function () {
     s.io.mkdirp(dir);
     files.forEach(function (file) {
-      var image = OVVAR.model.readTexture(s.artTextures[file]);
+      var image = OVVAR.model.readArt(s.artTextures[file]);
       s.io.write(dir + '/' + file.replace('patches/', ''), s.io.encode(image));
     });
     var added = s.added;
@@ -1513,6 +1729,32 @@ OVVAR.onPaint = function (event) {
   if (hit) OVVAR.model.scheduleRefresh();
 };
 
+/**
+ * Saving and reopening. `save_project` fires inside the .bbmodel codec's compile, with the object
+ * about to be written; the codec's own `parsed` fires at the end of parse, once the textures and
+ * the cubes are in the project -- which is the earliest the ovve can be put back together, because
+ * it is built out of them.
+ */
+OVVAR.onSaveProject = function (event) {
+  var s = OVVAR.state;
+  if (!s.ctx || !s.project || s.project !== Project) return;
+  event.model.ovvar = OVVAR.model.saveState();
+};
+
+OVVAR.onParsedProject = function (event) {
+  if (typeof Format === 'undefined' || !Format || Format.id !== 'ovvar') return;
+  if (!event.model || !event.model.ovvar) return;
+  OVVAR.model.restoreState(event.model.ovvar);
+};
+
+/** The tab holding the ovve has gone, so the next Ovvar project may have the plugin. */
+OVVAR.onCloseProject = function (event) {
+  var s = OVVAR.state;
+  if (!s.project) return;
+  if (event && event.project && event.project !== s.project) return;
+  OVVAR.model.forgetProject();
+};
+
 if (typeof Plugin !== 'undefined') {
   Plugin.register('ovvar', {
     title: 'Ovvar',
@@ -1528,16 +1770,30 @@ if (typeof Plugin !== 'undefined') {
     tags: ['Minecraft: Java Edition'],
 
     onload: function () {
+      // `ovvar_art` has to be a declared Texture property or the codec drops it: it is the tag that
+      // says which catalogue file a texture is, and without it a reopened project has pixels and no
+      // idea what they are.
+      OVVAR.state.properties = [new Property(Texture, 'string', 'ovvar_art')];
       OVVAR.model.registerFormat();
       OVVAR.panel.register();
-      Blockbench.on('finished_edit', OVVAR.onPaint);
-      OVVAR.state.listeners.push(['finished_edit', OVVAR.onPaint]);
+      var on = [
+        ['finished_edit', OVVAR.onPaint],
+        ['save_project', OVVAR.onSaveProject],
+        ['close_project', OVVAR.onCloseProject]
+      ];
+      on.forEach(function (l) { Blockbench.on(l[0], l[1]); OVVAR.state.listeners.push(l); });
+      Codecs.project.on('parsed', OVVAR.onParsedProject);
+      OVVAR.state.codecListeners.push(['parsed', OVVAR.onParsedProject]);
     },
 
     onunload: function () {
       var s = OVVAR.state;
       s.listeners.forEach(function (l) { Blockbench.removeListener(l[0], l[1]); });
       s.listeners = [];
+      s.codecListeners.forEach(function (l) { Codecs.project.removeListener(l[0], l[1]); });
+      s.codecListeners = [];
+      s.properties.forEach(function (prop) { prop.delete(); });
+      s.properties = [];
       if (s.pending) { cancelAnimationFrame(s.pending.frame); clearTimeout(s.pending.timer); s.pending = null; }
       if (s.panel) { s.panel.delete(); s.panel = null; }
       if (s.format) { s.format.delete(); s.format = null; }
@@ -1548,6 +1804,7 @@ if (typeof Plugin !== 'undefined') {
       s.textures = {};
       s.artTextures = {};
       s.added = {};
+      s.sizes = [];
       s.dirty = {};
       s.cubes = [];
       s.group = null;

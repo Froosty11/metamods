@@ -97,7 +97,7 @@ public final class GeneratedAssets implements DataProvider {
 
 	@Override
 	public CompletableFuture<?> run(CachedOutput output) {
-		this.files = new Writes(output, root);
+		this.files = new Writes(output);
 		Map<String, String> lang = new LinkedHashMap<>();
 		lang.put("itemGroup." + MOD, "Ovvar");
 		// The companion top's inventory icon: the vanilla empty-chestplate-slot silhouette, so the slot
