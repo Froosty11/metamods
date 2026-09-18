@@ -180,6 +180,7 @@ OVVAR.model.refresh = function () {
   s.textures.bottomB.updateSource(s.io.dataUrl(result.bottom.B));
   if (s.panel && s.panel.inside_vue) {
     s.panel.inside_vue.warnings = s.ctx.warnings.slice();
+    s.panel.inside_vue.revision++;
   }
   Canvas.updateAll();
 };
@@ -188,14 +189,23 @@ OVVAR.model.refresh = function () {
  * A refresh at the end of this frame. A stroke can finish several edits in a row and the model
  * only has to be right once; a recompose is a handful of milliseconds, so one frame of delay is
  * all the coalescing it needs.
+ *
+ * The timer beside the frame is not a second debounce: requestAnimationFrame does not run at all
+ * while the window is hidden, and an edit can still finish there. Without it the first such edit
+ * would leave `pending` set for ever and the ovve would stop redrawing even once the window came
+ * back. Whichever fires first cancels the other.
  */
 OVVAR.model.scheduleRefresh = function () {
   var s = OVVAR.state;
-  if (s.pending !== null) return;
-  s.pending = requestAnimationFrame(function () {
+  if (s.pending) return;
+  var run = function () {
+    if (!s.pending) return;
+    cancelAnimationFrame(s.pending.frame);
+    clearTimeout(s.pending.timer);
     s.pending = null;
     OVVAR.model.refresh();
-  });
+  };
+  s.pending = {frame: requestAnimationFrame(run), timer: setTimeout(run, 100)};
 };
 
 /**
