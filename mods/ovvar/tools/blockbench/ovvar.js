@@ -914,11 +914,33 @@ OVVAR.model.hasGeometry = function () {
   return !!(s.project && typeof Project !== 'undefined' && Project === s.project && s.cubes.length);
 };
 
+/**
+ * Every trace of the checkout that was open: the art textures (which are that checkout's PNGs,
+ * named after its files), what was drawn on them and what the project invented. Pointing the same
+ * project at a second checkout without this would draw B's ovve out of A's art and then export A's
+ * pixels into B, because loadCatalogueTextures skips any file it already has a texture for.
+ *
+ * The design is kept: the placements are the artist's work, and composePiece warns by name about
+ * any cell or patch the new manifest has never heard of.
+ */
+OVVAR.model.forgetCheckout = function () {
+  var s = OVVAR.state;
+  Object.keys(s.artTextures).forEach(function (file) {
+    var tex = s.artTextures[file];
+    if (tex && Texture.all.indexOf(tex) >= 0) tex.remove(true);
+  });
+  s.artTextures = {};
+  s.dirty = {};
+  s.added = {};
+};
+
 /** Open a checkout: load its manifest, build the cubes, make the textures, compose once. */
 OVVAR.model.build = function (checkout) {
   var s = OVVAR.state;
   var io = OVVAR.makeIo(OVVAR.require, checkout);
   var m = OVVAR.loadManifest(io, checkout);
+  // Only once the manifest has actually loaded: a typo in the path must leave the open ovve alone.
+  if (s.checkout && s.checkout !== checkout) OVVAR.model.forgetCheckout();
   s.checkout = checkout;
   s.io = io;
   s.ctx = OVVAR.model.paintable(OVVAR.compose.ctx(io, m));
@@ -1058,10 +1080,20 @@ OVVAR.model.readTexture = function (tex) {
  */
 OVVAR.model.paintable = function (ctx) {
   var painted = {};
-  var read = ctx.art;
+  var read = ctx.art, forget = ctx.forget;
   ctx.painted = painted;
   ctx.art = function (file) { return painted[file] || read(file); };
   ctx.put = function (file, image) { painted[file] = image; };
+  // forget() drops what was read off disk, so it must drop what was painted over it too -- and it
+  // empties `warnings` in place, the way refresh() does, so nothing can end up holding the old
+  // array.
+  ctx.forget = function () {
+    var kept = ctx.warnings;
+    forget();
+    ctx.warnings = kept;
+    kept.length = 0;
+    for (var file in painted) delete painted[file];
+  };
   return ctx;
 };
 
@@ -1090,10 +1122,17 @@ OVVAR.panel.askForCheckout = function () {
         description: 'The folder holding mods/ovvar. The manifest is read from mods/ovvar/src/main/generated/ovvar/blockbench/manifest.json.'
       }
     },
+    onClose: function () { this.delete(); },
     onConfirm: function (result) {
+      var path = String(result.path || '').trim().replace(/\/+$/, '');
+      if (!path) {
+        Blockbench.showMessageBox({title: 'Ovvar', icon: 'error',
+          message: 'Type the folder holding mods/ovvar.'});
+        return false;
+      }
       this.hide();
       try {
-        OVVAR.model.build(String(result.path || '').trim().replace(/\/+$/, ''));
+        OVVAR.model.build(path);
         localStorage.setItem('ovvar_checkout', OVVAR.state.checkout);
       } catch (e) {
         Blockbench.showMessageBox({
@@ -1213,6 +1252,7 @@ OVVAR.panel.sew = function () {
       var allowed = options();
       if (!allowed[result.cell]) this.setFormValues({cell: Object.keys(allowed)[0]}, false);
     },
+    onClose: function () { this.delete(); },
     onConfirm: function (result) {
       this.hide();
       var cell = m.cellById[result.cell];
@@ -1247,22 +1287,30 @@ OVVAR.panel.newPatch = function () {
       name: {label: 'Name', type: 'text', value: ''},
       artist: {label: 'Artist', type: 'text', value: ''},
       seat: {label: 'Across the seat', type: 'checkbox', value: false},
-      w: {label: 'Width', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2},
-      h: {label: 'Height', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2}
+      // A seat patch has no width to choose -- it is always both cells wide -- and its height
+      // range is its own, so it gets its own field rather than a shared one with two meanings.
+      w: {label: 'Width', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2,
+        condition: function (form) { return !form.seat; }},
+      h: {label: 'Height', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2,
+        condition: function (form) { return !form.seat; }},
+      seatHeight: {label: 'Height', type: 'number', value: m.px, min: m.px, max: m.seatHeightMax, step: 2,
+        condition: function (form) { return !!form.seat; },
+        description: 'A seat patch is ' + 2 * m.px + ' px wide, across both cells.'}
     },
     onConfirm: function (result) {
-      var problems = OVVAR.panel.checkNewPatch(m, result);
+      var w = result.seat ? 2 * m.px : result.w;
+      var h = result.seat ? result.seatHeight : result.h;
+      var asked = {id: result.id, name: result.name, artist: result.artist, seat: !!result.seat, w: w, h: h};
+      var problems = OVVAR.panel.checkNewPatch(m, asked);
       if (problems.length) {
         Blockbench.showMessageBox({title: 'Ovvar', icon: 'error', message: problems.join('\n')});
         return false;
       }
       this.hide();
-      var w = result.seat ? 2 * m.px : result.w;
-      var h = result.h;
       var file = 'patches/' + result.id + '.png';
       var entry = {
-        id: result.id, name: result.name, seat: !!result.seat, w: w, h: h,
-        artist: result.artist || null,
+        id: asked.id, name: asked.name, seat: asked.seat, w: w, h: h,
+        artist: asked.artist || null,
         arts: [{file: file, w: w, h: h, 'default': true, generated: false, source: null}],
         fits: {over: file, clipped: file, filled: file}
       };
@@ -1281,24 +1329,30 @@ OVVAR.panel.newPatch = function () {
       tex.uv_height = h;
       tex.ovvar_art = file;
       s.artTextures[file] = tex;
-      Texture.selected = tex;
+      tex.select();
       Blockbench.showQuickMessage('Draw ' + result.name + ' in Paint mode, then Sew…', 3000);
       OVVAR.model.refresh();
-    }
+    },
+    onClose: function () { this.delete(); }
   }).show();
 };
 
-/** The rules Patches.Patch's constructor enforces, said before the art is made rather than after. */
+/**
+ * The rules Patches.Patch's constructor enforces, said before the art is made rather than after.
+ * `asked` is the size already resolved: a seat patch is two cells wide whatever the form holds.
+ */
 OVVAR.panel.checkNewPatch = function (m, result) {
   var out = [];
   if (!/^[a-z0-9_]+$/.test(result.id)) out.push('An id is lower case letters, digits and underscores: "' + result.id + '" is not.');
   if (m.patchById[result.id]) out.push('There is already a patch called ' + result.id + '.');
   if (!result.name) out.push('Give it a name.');
   var h = result.h;
+  // Patch's constructor rejects an odd size whatever the patch is, the seat included -- an odd
+  // seat height passes a check that only looks at the range and then fails datagen.
+  if (h % 2 || (!result.seat && result.w % 2)) out.push('Patch art is an even size both ways.');
   if (result.seat) {
     if (h < m.px || h > m.seatHeightMax) out.push('A seat patch is ' + m.px + '–' + m.seatHeightMax + ' px tall (and always ' + 2 * m.px + ' wide).');
   } else {
-    if (result.w % 2 || h % 2) out.push('Patch art is an even size both ways.');
     if (result.w < 6 || result.w > m.maxArt || h < 6 || h > m.maxArt) out.push('Patch art is 6–' + m.maxArt + ' px each way.');
   }
   return out;
@@ -1343,9 +1397,10 @@ OVVAR.panel.addSize = function () {
       tex.uv_height = size;
       tex.ovvar_art = file;
       s.artTextures[file] = tex;
-      Texture.selected = tex;
+      tex.select();
       OVVAR.model.refresh();
-    }
+    },
+    onClose: function () { this.delete(); }
   }).show();
 };
 
@@ -1391,9 +1446,11 @@ OVVAR.panel.exportToRepo = function () {
       var image = OVVAR.model.readTexture(s.artTextures[file]);
       s.io.write(dir + '/' + file.replace('patches/', ''), s.io.encode(image));
     });
+    var added = s.added;
     s.dirty = {};
-    var lines = Object.keys(s.added).map(function (id) {
-      var p = s.added[id];
+    s.added = {};
+    var lines = Object.keys(added).map(function (id) {
+      var p = added[id];
       var by = p.artist ? '.by("' + p.artist + '")' : '';
       if (p.seat) return 'Patch.seat("' + p.id + '", "' + p.name + '", ' + p.w + ', ' + p.h + ')' + by + ',';
       // new Patch(id, name) is Spot.PX square -- a cell-sized patch; anything else says its size.
@@ -1408,8 +1465,11 @@ OVVAR.panel.exportToRepo = function () {
         paste: {type: 'info', text: lines.length
           ? 'Add to the ALL list in Patches.java, last (a design’s instant code is its position):\n\n' + lines.join('\n')
           : 'No new catalogue entries — only art was redrawn.'},
-        next: {type: 'info', text: 'Then run ./gradlew :mods:ovvar:runDatagen and commit src/main/generated.'}
-      }
+        next: {type: 'info', text: 'Then, in the checkout: re-run ./gradlew :mods:ovvar:runDatagen, '
+          + 'and commit the new art under mods/ovvar/src/main/resources/art/ovvar/patches/ together '
+          + 'with the Patches.java line. Nothing under src/main/generated/ is ever committed.'}
+      },
+      onClose: function () { this.delete(); }
     }).show();
   };
   if (existing.length) {

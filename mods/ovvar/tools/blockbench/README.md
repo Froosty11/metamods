@@ -43,7 +43,9 @@ If the manifest is not there the plugin says so and names the command to run.
   `mods/ovvar/src/main/resources/art/ovvar/patches/`, warns before overwriting anything, and then
   shows the `Patches.java` line(s) to paste. New entries go **last** in the `ALL` list: a design's
   instant code is its position, so inserting one in the middle repaints everything already sewn.
-- Then, in the checkout: `./gradlew :mods:ovvar:runDatagen` and commit `src/main/generated`.
+- Then, in the checkout: re-run `./gradlew :mods:ovvar:runDatagen`, and commit the new art under
+  `mods/ovvar/src/main/resources/art/ovvar/patches/` together with the `Patches.java` line. Nothing
+  under `src/main/generated/` is ever committed — datagen rewrites it.
 
 ## What the preview is and is not
 
@@ -51,6 +53,11 @@ The base cloth is drawn as the chapter's own texture, unsqueezed; a patch is dra
 squeeze baked into the pixels, the way `GeneratedAssets.placedWrapped` bakes it. The two only
 disagree where a patch hangs over onto a neighbouring face — a patch bends round the chest's
 corner here as it does in game, while the cloth behind it does not.
+
+One thing the preview shows that the game does not: a seam of cloth down the middle of a seat
+patch. The two leg boxes are each half a unit proud and so overlap, and Blockbench has to pick one
+of the two coplanar back faces to draw; in game each leg's inner rim is hidden behind the other
+leg. The pixels are the same — only the seam is ours.
 
 The plugin does not do dye colours and the instant channel, the wardrobe paper doll, armour worn
 over the ovve, posing, or editing the chapter garments themselves (they are only displayed).

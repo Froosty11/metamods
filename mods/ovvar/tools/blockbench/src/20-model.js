@@ -90,11 +90,33 @@ OVVAR.model.hasGeometry = function () {
   return !!(s.project && typeof Project !== 'undefined' && Project === s.project && s.cubes.length);
 };
 
+/**
+ * Every trace of the checkout that was open: the art textures (which are that checkout's PNGs,
+ * named after its files), what was drawn on them and what the project invented. Pointing the same
+ * project at a second checkout without this would draw B's ovve out of A's art and then export A's
+ * pixels into B, because loadCatalogueTextures skips any file it already has a texture for.
+ *
+ * The design is kept: the placements are the artist's work, and composePiece warns by name about
+ * any cell or patch the new manifest has never heard of.
+ */
+OVVAR.model.forgetCheckout = function () {
+  var s = OVVAR.state;
+  Object.keys(s.artTextures).forEach(function (file) {
+    var tex = s.artTextures[file];
+    if (tex && Texture.all.indexOf(tex) >= 0) tex.remove(true);
+  });
+  s.artTextures = {};
+  s.dirty = {};
+  s.added = {};
+};
+
 /** Open a checkout: load its manifest, build the cubes, make the textures, compose once. */
 OVVAR.model.build = function (checkout) {
   var s = OVVAR.state;
   var io = OVVAR.makeIo(OVVAR.require, checkout);
   var m = OVVAR.loadManifest(io, checkout);
+  // Only once the manifest has actually loaded: a typo in the path must leave the open ovve alone.
+  if (s.checkout && s.checkout !== checkout) OVVAR.model.forgetCheckout();
   s.checkout = checkout;
   s.io = io;
   s.ctx = OVVAR.model.paintable(OVVAR.compose.ctx(io, m));
@@ -234,10 +256,20 @@ OVVAR.model.readTexture = function (tex) {
  */
 OVVAR.model.paintable = function (ctx) {
   var painted = {};
-  var read = ctx.art;
+  var read = ctx.art, forget = ctx.forget;
   ctx.painted = painted;
   ctx.art = function (file) { return painted[file] || read(file); };
   ctx.put = function (file, image) { painted[file] = image; };
+  // forget() drops what was read off disk, so it must drop what was painted over it too -- and it
+  // empties `warnings` in place, the way refresh() does, so nothing can end up holding the old
+  // array.
+  ctx.forget = function () {
+    var kept = ctx.warnings;
+    forget();
+    ctx.warnings = kept;
+    kept.length = 0;
+    for (var file in painted) delete painted[file];
+  };
   return ctx;
 };
 
