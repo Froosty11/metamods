@@ -77,7 +77,6 @@ The PolymITer chapters are excluded (reference textures due for removal).
 **Project.** *File › New › Ovvar* (a `ModelFormat` the plugin registers) or the sidebar's
 *Open checkout…*. It builds:
 
-- an inner player (`Steve`/`Alex` preset, Blockbench's own skin) so the cloth sits on a person;
 - six armour cubes from `skinBoxes` and the inflate table, box-UV on a 64×32 grid with the project
   texture size 128×64; the left arm and leg cubes `mirror_uv` and bound to texture **B**, the rest
   to texture **A**;
@@ -93,10 +92,10 @@ covers and vice versa (`Spot.overlapping`); everything else may overlap. *New pa
 16 wide, 8..10 tall), artist. It adds a blank art texture and a catalogue entry in the project.
 *Add size…* adds a hand-drawn variant (8×8 / 12×12 / 16×16) for a patch.
 
-**compose().** Pure, in `src/compose.js`, on `{w,h,data:Uint8ClampedArray}` images:
+**compose(design) → `{top: {A, B}, bottom: {A, B}}`.** Pure, in `src/10-compose.js`, on `{w,h,data:Uint8Array}` images (the top and the legs are separate armour textures in the game, so four in all):
 
-1. base = chapter art (`flattened`: the skin's outer layer painted onto the base boxes), then
-   `withLeft` for arms and legs, scaled ×`detail`; nercabbad variant when zipped down.
+1. base = the committed chapter layer texture (`generated/.../<chapter>/top.png`, `bottom.png`,
+   `_nercabbad` when zipped down). Loading it rather than re-cutting it avoids porting the HSB tint of `it_kisel`; the ported `flattened`/`withLeft` cut is kept only as a golden test.
 2. for each placement in stacked order: art = `fits[fit(cell)]` (or the scaler for a variant not
    drawn), `placed` / for side cells `placedWrapped`, seat halves as above; blit onto A for BODY and
    RIGHT, onto B for LEFT (seat: `_r`→A, `_l`→B).
@@ -142,9 +141,9 @@ mods/ovvar/src/main/generated/ovvar/blockbench/{manifest.json, art/*.png}
   texels equals the committed `textures/entity/equipment/<layer>/patch/<cell>/<patch>.png`
   (seat: `_r`/`_l`). This is the whole of `placed`, `artFor` and the seat cut.
 - **anchored golden:** the 512 manifest samples, exact to 1e-9.
-- **wrapped golden:** for every body cell × patch, `placedWrapped` equals the committed trim
-  texture `textures/trims/entity/humanoid/<...>.png` (those are `placedWrapped` outputs).
-- **scaler golden:** `downscale(16×16 → 12, 8)` equals `generated/ovvar/blockbench/art/*.png`.
+- **wrapped golden:** for the seven top-piece body cells × patch (`Trims.fits`, 56 files), `placedWrapped` equals the committed
+  trim texture `textures/trims/entity/humanoid/<cell>_<patch>.png` (those are `placedWrapped` outputs). Limb wrapping has no golden; `anchored` is pinned by samples.
+- **scaler golden:** `downscaled(16×16 → 12, 8)` equals `generated/ovvar/blockbench/art/*.png` (only `it_8x8` exists today), plus a hand-built test of the tie rule.
 - **stacking:** a design with BACK_BIG + BACK_TOP_LEFT composes with the small one on top.
 - **left/right:** a LEFT sleeve placement changes B only; a RIGHT one A only.
 - Java side: a game test asserts the manifest's cell table equals `Spot.values()` field for
@@ -155,7 +154,7 @@ CI does not run Node; the plugin tests are run by hand and before each export of
 
 ## Out of scope
 
-The instant channel (dye colour, preview library, trims as such), the wardrobe paper doll, armour
+An inner Steve/Alex body under the cloth (a later version), the instant channel (dye colour, preview library, trims as such), the wardrobe paper doll, armour
 over the ovve, animation/posing, submitting the plugin to the Blockbench store, and editing the
 chapter garments themselves (they are just displayed).
 
