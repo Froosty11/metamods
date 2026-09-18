@@ -280,3 +280,30 @@ OVVAR.compose.placementTexture = function (ctx, cell, patch, side) {
   var drawn = cell.side === 'left' ? OVVAR.tex.flipX(art) : art;
   return OVVAR.compose.placed(m, cell, drawn, cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry));
 };
+
+/**
+ * GeneratedAssets.placedWrapped: `placed`, then the strip squeezed round the box the way the
+ * shader does (`anchored`), baked column by column -- each column of the part's side rows shows
+ * the art column the shader would sample there. Vanilla draws the trim channel, so this is the
+ * only place the squeeze is written into pixels; it is also what the plugin draws a body cell's
+ * art with, which is why art bends round the chest's corners in the preview.
+ */
+OVVAR.compose.placedWrapped = function (m, cell, art, x) {
+  var flat = OVVAR.compose.placed(m, cell, art, x);
+  if (flat === null) return null;
+  var D = m.detail, W = m.texture[0], H = m.texture[1];
+  var stripStart = cell.stripStart * D, stripEnd = stripStart + cell.stripWidth * D;
+  var inflate = m.inflate[cell.piece];
+  var anchor = cell.face;
+  var out = OVVAR.tex.blank(W, H);
+  for (var column = stripStart; column < stripEnd; column++) {
+    var w = OVVAR.compose.anchored((column + 0.5) / D, inflate, anchor);
+    if (w < 0) continue;
+    var texel = stripStart + Math.floor(w * D);
+    for (var row = m.faceRow * D; row < (m.faceRow + m.faceRows) * D; row++) {
+      var p = OVVAR.tex.get(flat, texel, row);
+      if (p !== 0) OVVAR.tex.set(out, column, row, p);
+    }
+  }
+  return out;
+};

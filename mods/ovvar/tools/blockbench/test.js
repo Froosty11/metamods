@@ -224,3 +224,28 @@ test('every committed placement texture is placed() + artFor()', () => {
   assert.strictEqual(checked, 268, 'expected 268 placement textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
+
+test('every committed trim texture is placedWrapped()', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const bad = [];
+  let checked = 0;
+  for (const cell of m.cells) {
+    // Trims.fits: the top's own body box only -- vanilla draws a trim on both limbs and our
+    // shader cannot hide one, so a limb cell can never be a trim.
+    if (cell.piece !== 'top' || cell.side !== 'body') continue;
+    for (const patch of m.patches) {
+      if (patch.seat) continue;
+      const file = 'trims/entity/' + cell.layerFolder + '/' + cell.id + '_' + patch.id + '.png';
+      const want = ctx.generated(file);
+      const entry = OVVAR.compose.artFor(m, patch, cell);
+      const got = OVVAR.compose.placedWrapped(m, cell, ctx.art(entry.file),
+        cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry));
+      const d = OVVAR.tex.diff(want, got, []);
+      if (d.length) bad.push(file + ': ' + d.join('; '));
+      checked++;
+    }
+  }
+  assert.strictEqual(checked, 56, 'expected 56 trim textures, walked ' + checked);
+  assert.deepStrictEqual(bad, []);
+});
