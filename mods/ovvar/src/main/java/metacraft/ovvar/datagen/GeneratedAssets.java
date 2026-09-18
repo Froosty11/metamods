@@ -58,16 +58,16 @@ public final class GeneratedAssets implements DataProvider {
 	private static final String MOD = Ovvar.MOD_ID;
 
 	/** Skin-layout boxes (x, y, w, h) that the armour model draws, and which garment owns each. */
-	private static final int[] BODY = {16, 16, 24, 16};
-	private static final int[] RIGHT_ARM = {40, 16, 16, 16};
-	private static final int[] RIGHT_LEG = {0, 16, 16, 16};
+	static final int[] BODY = {16, 16, 24, 16};
+	static final int[] RIGHT_ARM = {40, 16, 16, 16};
+	static final int[] RIGHT_LEG = {0, 16, 16, 16};
 	/** The skin's second layer for each, and the left limbs (base, second layer) — the website draws these in 3D. */
-	private static final int[] BODY_OUTER = {16, 32, 24, 16};
-	private static final int[] RIGHT_ARM_OUTER = {40, 32, 16, 16}, RIGHT_LEG_OUTER = {0, 32, 16, 16};
-	private static final int[] LEFT_ARM = {32, 48, 16, 16}, LEFT_ARM_OUTER = {48, 48, 16, 16};
-	private static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
+	static final int[] BODY_OUTER = {16, 32, 24, 16};
+	static final int[] RIGHT_ARM_OUTER = {40, 32, 16, 16}, RIGHT_LEG_OUTER = {0, 32, 16, 16};
+	static final int[] LEFT_ARM = {32, 48, 16, 16}, LEFT_ARM_OUTER = {48, 48, 16, 16};
+	static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
 	/** The trousers' share of the body box: the bottom two texel rows of its side faces (the waistband). */
-	private static final int[] WAIST = {16, 30, 24, 2};
+	static final int[] WAIST = {16, 30, 24, 2};
 	/**
 	 * Garment and patch textures are the armour layout at {@link Spot#DETAIL} texels per skin
 	 * texel ({@code W}×{@code H}); base garments cut from the skins are upscaled to it, patch art
@@ -75,7 +75,7 @@ public final class GeneratedAssets implements DataProvider {
 	 */
 	private static final int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
 	/** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
-	private static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
+	static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
 
 	private final Path root, assets, data;
 	private final List<CompletableFuture<?>> writes = new ArrayList<>();
@@ -648,9 +648,9 @@ public final class GeneratedAssets implements DataProvider {
 	// ---- the texel contract with ovvar.glsl
 
 	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip (or {@value Spot#TOP_FACE}, the box's top face); preview: G = cells in the half, B = instant designs. Base textures have none (0). */
-	private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
+	static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
-	private static final int LAYER_X = W - 3;
+	static final int LAYER_X = W - 3;
 	/**
 	 * Three to six left of the marker: the palette the {@code OVVAR_DEBUG_TOP_FACE_*} switches paint
 	 * a box's top faces from — mirrored, unmirrored, no cell matched, a cell matched. A dev switch in
@@ -659,10 +659,10 @@ public final class GeneratedAssets implements DataProvider {
 	 * (skin x 56–64), which no box and no mirror strip touches, and inside the library cell the
 	 * preview texture reserves for the marker row.
 	 */
-	private static final int DEBUG_X = W - 7;
-	private static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
+	static final int DEBUG_X = W - 7;
+	static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
-	private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
+	static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**
 	 * Preview texture tables, four of them side by side from skin texel 40, column-major 16 tall,
 	 * {@value #TABLE_COLUMNS} columns each (so {@value #TABLE_SIZE} entries per table, addressed as

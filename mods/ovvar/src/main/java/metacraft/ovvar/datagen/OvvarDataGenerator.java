@@ -7,6 +7,10 @@ import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 public final class OvvarDataGenerator implements DataGeneratorEntrypoint {
 	@Override
 	public void onInitializeDataGenerator(FabricDataGenerator generator) {
-		generator.createPack().addProvider(GeneratedAssets::new);
+		var pack = generator.createPack();
+		pack.addProvider(GeneratedAssets::new);
+		// The Blockbench plugin's copy of Spot/Patches/Chapter, so it can draw a patch the way the
+		// game does without a game running.
+		pack.addProvider(BlockbenchManifest::new);
 	}
 }
