@@ -46,6 +46,19 @@ OVVAR.tex = {
     return out;
   },
 
+  /**
+   * A hard copy of a rectangle, alpha-0 texels included -- unlike `blit`, which leaves them
+   * alone the way Tex.blit does. The mirror strip needs this: where the left sleeve is
+   * transparent, the right sleeve's art must not show through from underneath.
+   */
+  copyRect: function (dst, src, sx, sy, w, h, dx, dy) {
+    var out = OVVAR.tex.copy(dst);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) OVVAR.tex.set(out, dx + x, dy + y, OVVAR.tex.get(src, sx + x, sy + y));
+    }
+    return out;
+  },
+
   crop: function (im, x, y, w, h) {
     return OVVAR.tex.blit(OVVAR.tex.blank(w, h), im, x, y, w, h, 0, 0);
   },
@@ -367,4 +380,188 @@ OVVAR.compose.downscaled = function (im, w, h) {
     }
   }
   return out;
+};
+
+/**
+ * Tex.withoutGreenKey: the website's overlays mark "erase the skin here" with pure green, and
+ * armour has nothing to erase, so those pixels become transparent. Matched loosely, because a
+ * colour-managed PNG can decode 00FF00 as 01FE00.
+ */
+OVVAR.compose.withoutGreenKey = function (im) {
+  var out = OVVAR.tex.copy(im);
+  for (var y = 0; y < im.h; y++) {
+    for (var x = 0; x < im.w; x++) {
+      var p = OVVAR.tex.get(im, x, y);
+      if (OVVAR.tex.r(p) < 32 && OVVAR.tex.g(p) > 223 && OVVAR.tex.b(p) < 32 && OVVAR.tex.a(p) > 127) {
+        OVVAR.tex.set(out, x, y, 0);
+      }
+    }
+  }
+  return out;
+};
+
+/**
+ * GeneratedAssets.flattened: the website renders the skin's second layer as a raised 3D layer
+ * (belt folds, pockets, the hanging top of a rolled-down ovve). The armour model has one box per
+ * part, so that layer is painted onto the base boxes -- and onto the left limbs' own boxes, for
+ * withLeft.
+ */
+OVVAR.compose.flattened = function (m, skin) {
+  var boxes = m.skinBoxes;
+  var pairs = [
+    [boxes.body, boxes.bodyOuter], [boxes.rightArm, boxes.rightArmOuter], [boxes.rightLeg, boxes.rightLegOuter],
+    [boxes.leftArm, boxes.leftArmOuter], [boxes.leftLeg, boxes.leftLegOuter]
+  ];
+  var out = skin;
+  for (var i = 0; i < pairs.length; i++) {
+    var base = pairs[i][0], outer = pairs[i][1];
+    var over = OVVAR.tex.blit(OVVAR.tex.blank(skin.w, skin.h), skin, outer[0], outer[1], outer[2], outer[3], base[0], base[1]);
+    out = OVVAR.tex.composite(out, over);
+  }
+  return out;
+};
+
+/**
+ * GeneratedAssets.withLeft: the left limb's art one strip up from the right limb's box
+ * (mirrorShift rows), with every face mirrored in place. The armour model draws the left limb as
+ * a mirror image off the RIGHT limb's strips, so the art has to be pre-mirrored to come out
+ * straight; the plugin's texture B then copies this strip down onto the limb rows, which is what
+ * a mirror_uv cube reads.
+ *
+ * Box layout inside a 16x16 strip: top and bottom faces (4x4) at +4 and +8 on the first four
+ * rows, then four 4x12 side faces.
+ */
+OVVAR.compose.withLeft = function (m, tex, box, skin, leftBox) {
+  var x = box[0], y = box[1], my = y - m.mirrorShift;
+  var left = OVVAR.tex.blit(OVVAR.tex.blank(64, 64), skin, leftBox[0], leftBox[1], leftBox[2], leftBox[3], 0, 0);
+  var out;
+  if (OVVAR.tex.isEmpty(left)) {
+    out = OVVAR.tex.blit(tex, tex, x, y, box[2], box[3], x, my);
+  } else {
+    // The skin lays the left limb out for an unmirrored cube: its first side strip is the inner
+    // face and its third the outer, the other way round from the right limb's strips the model
+    // reads. Swap them so the outer art lands on the outer face.
+    out = OVVAR.tex.blit(tex, skin, leftBox[0], leftBox[1], leftBox[2], leftBox[3], x, my);
+    out = OVVAR.tex.blit(out, skin, leftBox[0] + 8, leftBox[1] + 4, 4, 12, x, my + 4);
+    out = OVVAR.tex.blit(out, skin, leftBox[0], leftBox[1] + 4, 4, 12, x + 8, my + 4);
+  }
+  out = OVVAR.tex.flipXRect(out, x + 4, my, 4, 4);
+  out = OVVAR.tex.flipXRect(out, x + 8, my, 4, 4);
+  for (var face = 0; face < 4; face++) out = OVVAR.tex.flipXRect(out, x + face * 4, my + 4, 4, 12);
+  return out;
+};
+
+/**
+ * The chapter's cloth, cut out of its website overlay the way GeneratedAssets does it. The
+ * plugin itself loads the committed layer texture instead (ctx.base) -- it is the same pixels,
+ * and it costs nothing for a chapter whose cloth is tinted or hand-drawn. This is here so the
+ * tests can prove withLeft and flattened were ported right.
+ */
+OVVAR.compose.buildBase = function (ctx, chapterId, piece, nercabbad) {
+  var m = ctx.m, boxes = m.skinBoxes, D = m.detail;
+  var chapter = m.chapterById[chapterId];
+  // The manifest drops a null property rather than writing it (absentMeansNull), so a chapter
+  // with no tint has no `tint` key at all -- read it for truth, not against null.
+  if (chapter.tint) throw new Error(chapter.name + ' is tinted; load its committed layer instead');
+  function overlay(file) {
+    var path = [m.checkout, 'mods/ovvar/src/main/resources/art/ovvar', file].join('/');
+    return OVVAR.compose.flattened(m, OVVAR.compose.withoutGreenKey(ctx.io.decode(ctx.io.read(path))));
+  }
+  function cut(src, list) {
+    var out = OVVAR.tex.blank(64, 32);
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i];
+      out = OVVAR.tex.blit(out, src, b[0], b[1], b[2], b[3], b[0], b[1]);
+    }
+    return out;
+  }
+  if (piece === 'top') {
+    var over = overlay(chapter.art);
+    return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(over, [boxes.body, boxes.rightArm]), boxes.rightArm, over, boxes.leftArm), D);
+  }
+  if (!nercabbad) {
+    var o2 = overlay(chapter.art);
+    return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(o2, [boxes.rightLeg, boxes.waist]), boxes.rightLeg, o2, boxes.leftLeg), D);
+  }
+  // Rolled down: the legs plus the top hanging at the waist, all on the legs slot's layer.
+  var rolled = overlay(chapter.nercabbad);
+  return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(rolled, [boxes.rightLeg, boxes.body]), boxes.rightLeg, rolled, boxes.leftLeg), D);
+};
+
+/**
+ * Texture B: the mirror strip copied down onto the limb rows, so a mirror_uv cube reading the
+ * standard strip shows the left limb's own art. The body box has no mirror strip -- it is one
+ * box, drawn unmirrored -- so only the limb this piece owns is copied.
+ */
+OVVAR.compose.mirrorStrip = function (m, piece, im) {
+  var D = m.detail;
+  var box = piece === 'top' ? m.skinBoxes.rightArm : m.skinBoxes.rightLeg;
+  var my = box[1] - m.mirrorShift;
+  return OVVAR.tex.copyRect(im, im, box[0] * D, my * D, box[2] * D, box[3] * D, box[0] * D, box[1] * D);
+};
+
+/** Spot.stacked: bottom first -- layer order, and the order they came in within a layer. */
+OVVAR.compose.stacked = function (m, placements) {
+  return placements.slice().sort(function (a, b) {
+    return m.cellById[a.cell].layer - m.cellById[b.cell].layer;
+  });
+};
+
+/**
+ * One half of the garment, as the two textures the cubes wear.
+ *
+ * A: the cloth, plus every BODY and RIGHT placement. B: the cloth with the mirror strip copied
+ * down, plus every LEFT placement. The seat is one patch cut in half, `_r` on A and `_l` on B.
+ *
+ * A side cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat:
+ * the game does the squeeze in the shader, Blockbench has no shader, and this is what makes art
+ * bend round the chest's and the sleeve's corners the way it does in game. A top-face cell (the
+ * shoulders) is never squeezed -- the top face is not on the strip's perimeter -- so it stays
+ * `placed`. Mirroring a limb's art and then wrapping is the same as wrapping and then mirroring,
+ * because the squeeze is symmetric about the anchor face's centre and a limb cell is that whole
+ * face.
+ */
+OVVAR.compose.composePiece = function (ctx, piece, design) {
+  var m = ctx.m;
+  var base = ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
+  var A = OVVAR.tex.copy(base);
+  var B = OVVAR.compose.mirrorStrip(m, piece, base);
+  var placements = OVVAR.compose.stacked(m, design.placements || []);
+  for (var i = 0; i < placements.length; i++) {
+    var p = placements[i];
+    var cell = m.cellById[p.cell], patch = m.patchById[p.patch];
+    if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
+    if (cell.piece !== piece) continue;
+    if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
+    var sides = cell.side === 'seat' ? ['right', 'left'] : [cell.side];
+    for (var s = 0; s < sides.length; s++) {
+      var side = sides[s];
+      var entry = OVVAR.compose.artFor(m, patch, cell);
+      var art = ctx.art(entry.file);
+      var x, drawn;
+      if (cell.side === 'seat') {
+        drawn = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.px, art.h);
+        if (side === 'left') drawn = OVVAR.tex.flipX(drawn);
+        x = cell.u * m.detail;
+      } else {
+        drawn = cell.side === 'left' ? OVVAR.tex.flipX(art) : art;
+        x = cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry);
+      }
+      var tex = cell.top ? OVVAR.compose.placed(m, cell, drawn, x) : OVVAR.compose.placedWrapped(m, cell, drawn, x);
+      if (tex === null) {
+        ctx.warnings.push(patch.name + ' lands entirely off ' + cell.label + '; not drawn');
+        continue;
+      }
+      var onto = (side === 'left') ? 'B' : 'A';
+      if (onto === 'A') A = OVVAR.tex.blit(A, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
+      else B = OVVAR.tex.blit(B, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
+      if (cell.side === 'body') B = OVVAR.tex.blit(B, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
+    }
+  }
+  return {A: A, B: B};
+};
+
+/** Both halves, both sides: what the four textures of the project are set to. */
+OVVAR.compose.compose = function (ctx, design) {
+  return {top: OVVAR.compose.composePiece(ctx, 'top', design), bottom: OVVAR.compose.composePiece(ctx, 'bottom', design)};
 };

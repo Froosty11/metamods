@@ -300,3 +300,135 @@ test('downscale votes by area, breaks ties to the rarer colour, and keeps the so
     assert.ok(seen.has(t.get(small, x, y)), 'downscale invented ' + t.get(small, x, y).toString(16));
   }
 });
+
+test('the ported base build equals the committed chapter layer textures', () => {
+  const ctx = context();
+  const m = ctx.m;
+  let checked = 0;
+  for (const chapter of m.chapters) {
+    // A tinted chapter's cloth goes through Tex.tinted (HSB), which the plugin does not port --
+    // it loads the committed layer instead. The untinted ones prove withLeft and flattened.
+    // (The manifest omits a null property, so an untinted chapter has no `tint` key at all.)
+    if (chapter.tint) continue;
+    for (const piece of ['top', 'bottom']) {
+      const want = ctx.base(chapter.id, piece, false);
+      const got = OVVAR.compose.buildBase(ctx, chapter.id, piece, false);
+      assert.deepStrictEqual(OVVAR.tex.diff(want, got, m.markerTexels), [], chapter.id + '/' + piece);
+      checked++;
+    }
+    if (chapter.rollable) {
+      const want = ctx.base(chapter.id, 'bottom', true);
+      const got = OVVAR.compose.buildBase(ctx, chapter.id, 'bottom', true);
+      assert.deepStrictEqual(OVVAR.tex.diff(want, got, m.markerTexels), [], chapter.id + '/bottom_nercabbad');
+      checked++;
+    }
+  }
+  // data (3) + it (3) + media (2); it_kisel is tinted and skipped.
+  assert.strictEqual(checked, 8, 'walked ' + checked + ' base textures');
+});
+
+test("texture B shows the left limb's own art, not the right limb's mirrored", () => {
+  const ctx = context();
+  const m = ctx.m;
+  const t = OVVAR.tex;
+  const D = m.detail;
+  // Every kind of half, because the Task 0 spike found a generated top's arm strip all but
+  // symmetric (36 texels of shading): a mirror strip that did nothing would barely show there.
+  // The Media frack's leggings and a rolled-down ovve carry a left leg that is materially its
+  // own art, and those are what pin the copy down. The counts today are 36 / 64 / 28 differing
+  // texels; the thresholds sit under them so a redrawn ovve does not fail this test, while a
+  // deleted mirror strip (which would make B identical to A) still does.
+  const halves = [
+    ['top', 'data', false, m.skinBoxes.rightArm, 1],
+    ['bottom', 'media', false, m.skinBoxes.rightLeg, 32],
+    ['bottom', 'data', true, m.skinBoxes.rightLeg, 8]
+  ];
+  for (const [piece, chapter, nercabbad, box, least] of halves) {
+    const {A, B} = OVVAR.compose.composePiece(ctx, piece, {chapter: chapter, nercabbad: nercabbad, placements: []});
+    const what = chapter + '/' + piece + (nercabbad ? ' (rolled down)' : '');
+    const my = box[1] - m.mirrorShift;              // the mirror strip, one box up
+    let differ = 0;
+    for (let y = 0; y < box[3] * D; y++) {
+      for (let x = 0; x < box[2] * D; x++) {
+        const strip = t.get(A, box[0] * D + x, my * D + y);   // the mirror strip on A
+        const limb = t.get(B, box[0] * D + x, box[1] * D + y);
+        assert.strictEqual(limb, strip, what + ' B limb texel (' + x + ',' + y + ') is not the mirror strip');
+        if (t.get(A, box[0] * D + x, box[1] * D + y) !== limb) differ++;
+      }
+    }
+    // The left limb's art is its own, so B must differ from A over the limb's own rows.
+    assert.ok(differ >= least,
+      what + ': B differs from A on only ' + differ + ' limb texels (wanted at least ' + least + ')');
+  }
+  // The body box is the same on both -- it is one box, drawn unmirrored.
+  const {A, B} = OVVAR.compose.composePiece(ctx, 'top', {chapter: 'data', nercabbad: false, placements: []});
+  const body = m.skinBoxes.body;
+  assert.deepStrictEqual(t.diff(
+    t.crop(A, body[0] * D, body[1] * D, body[2] * D, body[3] * D),
+    t.crop(B, body[0] * D, body[1] * D, body[2] * D, body[3] * D), []), []);
+});
+
+test('a LEFT placement changes B only and a RIGHT one A only', () => {
+  const ctx = context();
+  const bare = {chapter: 'data', nercabbad: false, placements: []};
+  const base = OVVAR.compose.composePiece(ctx, 'top', bare);
+  const right = OVVAR.compose.composePiece(ctx, 'top',
+    {chapter: 'data', nercabbad: false, placements: [{cell: 'sleeve_out_top_r', patch: 'itk'}]});
+  const left = OVVAR.compose.composePiece(ctx, 'top',
+    {chapter: 'data', nercabbad: false, placements: [{cell: 'sleeve_out_top_l', patch: 'itk'}]});
+  assert.deepStrictEqual(OVVAR.tex.diff(base.B, right.B, []), [], 'a RIGHT sleeve patch touched B');
+  assert.ok(OVVAR.tex.diff(base.A, right.A, []).length > 0, 'a RIGHT sleeve patch did not touch A');
+  assert.deepStrictEqual(OVVAR.tex.diff(base.A, left.A, []), [], 'a LEFT sleeve patch touched A');
+  assert.ok(OVVAR.tex.diff(base.B, left.B, []).length > 0, 'a LEFT sleeve patch did not touch B');
+});
+
+test('placements stack in layer order whatever order they were sewn in', () => {
+  const ctx = context();
+  const m = ctx.m;
+  assert.strictEqual(m.cellById.back_big.layer, 0);
+  assert.strictEqual(m.cellById.back_top_left.layer, 1);
+  const big = {cell: 'back_big', patch: 'itk'};
+  const small = {cell: 'back_top_left', patch: 'data'};
+  const order = OVVAR.compose.stacked(m, [small, big]).map(p => p.cell);
+  assert.deepStrictEqual(order, ['back_big', 'back_top_left']);
+  const one = OVVAR.compose.composePiece(ctx, 'top', {chapter: 'data', nercabbad: false, placements: [big, small]});
+  const two = OVVAR.compose.composePiece(ctx, 'top', {chapter: 'data', nercabbad: false, placements: [small, big]});
+  assert.deepStrictEqual(OVVAR.tex.diff(one.A, two.A, []), [], 'sewing order changed the picture');
+  const alone = OVVAR.compose.composePiece(ctx, 'top', {chapter: 'data', nercabbad: false, placements: [big]});
+  assert.ok(OVVAR.tex.diff(alone.A, one.A, []).length > 0, 'the small patch did not draw over the big one');
+  // compose() gives both halves of both pieces at once.
+  const all = OVVAR.compose.compose(ctx, {chapter: 'data', nercabbad: false,
+    placements: [big, small, {cell: 'seat', patch: 'rivals'}]});
+  assert.ok(all.top.A && all.top.B && all.bottom.A && all.bottom.B);
+  assert.ok(OVVAR.tex.diff(all.bottom.A, OVVAR.compose.composePiece(ctx, 'bottom', {chapter: 'data', nercabbad: false, placements: []}).A, []).length > 0,
+    "the seat's right half did not reach the bottom's A");
+});
+
+test('copyRect is a hard copy where blit leaves the destination alone', () => {
+  // The mirror strip is a copy, not a blit: where the left sleeve is transparent, the right
+  // sleeve's cloth underneath must be wiped, not left showing. No committed chapter has such a
+  // texel today, so the difference is pinned here rather than by a golden.
+  const t = OVVAR.tex;
+  const src = t.blank(2, 1);
+  t.set(src, 0, 0, 0x00123456);           // alpha 0, but a colour: blit skips it, copyRect does not
+  t.set(src, 1, 0, 0xFF00FF00);
+  const dst = t.blank(2, 1);
+  t.set(dst, 0, 0, 0xFFAABBCC);
+  t.set(dst, 1, 0, 0xFFAABBCC);
+  assert.strictEqual(t.get(t.blit(dst, src, 0, 0, 2, 1, 0, 0), 0, 0), 0xFFAABBCC);
+  assert.strictEqual(t.get(t.copyRect(dst, src, 0, 0, 2, 1, 0, 0), 0, 0), 0x00123456);
+  assert.strictEqual(t.get(t.copyRect(dst, src, 0, 0, 2, 1, 0, 0), 1, 0), 0xFF00FF00);
+  // Neither one touches its argument.
+  assert.strictEqual(t.get(dst, 0, 0), 0xFFAABBCC);
+  // ... and the mirror strip is the caller that needs it: a transparent texel on the strip wipes
+  // the limb row underneath rather than letting the right limb's cloth show through.
+  const ctx = context();
+  const m = ctx.m;
+  const D = m.detail;
+  const box = m.skinBoxes.rightArm;
+  const my = box[1] - m.mirrorShift;
+  const fake = t.blank(m.texture[0], m.texture[1]);
+  t.set(fake, box[0] * D, box[1] * D, 0xFFAABBCC);        // the right sleeve's cloth
+  t.set(fake, box[0] * D, my * D, 0x00123456);            // the left sleeve, transparent there
+  assert.strictEqual(t.get(OVVAR.compose.mirrorStrip(m, 'top', fake), box[0] * D, box[1] * D), 0x00123456);
+});
