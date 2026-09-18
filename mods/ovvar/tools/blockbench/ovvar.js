@@ -521,11 +521,14 @@ OVVAR.compose.placed = function (m, cell, art, x) {
 };
 
 /**
- * One committed placement texture, minus the marker texels: the art this cell shows, mirrored
- * for a left limb (the model mirrors it back), cut in half for the seat. `side` is 'body',
- * 'right' or 'left' -- for the seat it is the leg being drawn, for anything else the cell's own.
+ * What a placement draws and where: the art this cell shows, mirrored for a left limb (the model
+ * mirrors it back), cut in half for the seat, and the texel column its left edge sits at. `side`
+ * is 'body', 'right' or 'left' -- for the seat it is the leg being drawn, for anything else the
+ * cell's own. The committed placement textures and the plugin's live composite both go through
+ * this, so they cannot drift apart; all they choose is what to hand it to (`placed` or
+ * `placedWrapped`).
  */
-OVVAR.compose.placementTexture = function (ctx, cell, patch, side) {
+OVVAR.compose.placementArt = function (ctx, cell, patch, side) {
   var m = ctx.m;
   var entry = OVVAR.compose.artFor(m, patch, cell);
   var art = ctx.art(entry.file);
@@ -533,11 +536,18 @@ OVVAR.compose.placementTexture = function (ctx, cell, patch, side) {
     // The art is drawn as seen from behind, so its left half belongs on the wearer's LEFT leg;
     // that half is then flipped in x, because the model flips the left leg's texture back.
     var half = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.px, art.h);
-    if (side === 'left') half = OVVAR.tex.flipX(half);
-    return OVVAR.compose.placed(m, cell, half, cell.u * m.detail);
+    return {art: side === 'left' ? OVVAR.tex.flipX(half) : half, x: cell.u * m.detail};
   }
-  var drawn = cell.side === 'left' ? OVVAR.tex.flipX(art) : art;
-  return OVVAR.compose.placed(m, cell, drawn, cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry));
+  return {
+    art: cell.side === 'left' ? OVVAR.tex.flipX(art) : art,
+    x: cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry)
+  };
+};
+
+/** One committed placement texture, minus the marker texels: `placementArt`, laid on flat. */
+OVVAR.compose.placementTexture = function (ctx, cell, patch, side) {
+  var drawn = OVVAR.compose.placementArt(ctx, cell, patch, side);
+  return OVVAR.compose.placed(ctx.m, cell, drawn.art, drawn.x);
 };
 
 /**
@@ -746,11 +756,19 @@ OVVAR.compose.mirrorStrip = function (m, piece, im) {
   return OVVAR.tex.copyRect(im, im, box[0] * D, my * D, box[2] * D, box[3] * D, box[0] * D, box[1] * D);
 };
 
-/** Spot.stacked: bottom first -- layer order, and the order they came in within a layer. */
+/**
+ * Spot.stacked: bottom first -- layer order, and the order they came in within a layer.
+ *
+ * A placement naming a cell this manifest has never heard of (an older plugin against a newer
+ * design, a hand-edited file) sorts as layer 0 and stays in the list, so composePiece is the one
+ * place that warns about it; the sort must not be the thing that throws.
+ */
 OVVAR.compose.stacked = function (m, placements) {
-  return placements.slice().sort(function (a, b) {
-    return m.cellById[a.cell].layer - m.cellById[b.cell].layer;
-  });
+  function layer(p) {
+    var cell = m.cellById[p.cell];
+    return cell ? cell.layer : 0;
+  }
+  return placements.slice().sort(function (a, b) { return layer(a) - layer(b); });
 };
 
 /**
@@ -779,29 +797,22 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
     if (cell.piece !== piece) continue;
     if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
+    // The seat is one patch cut in half, so it is drawn twice -- a leg at a time.
     var sides = cell.side === 'seat' ? ['right', 'left'] : [cell.side];
     for (var s = 0; s < sides.length; s++) {
       var side = sides[s];
-      var entry = OVVAR.compose.artFor(m, patch, cell);
-      var art = ctx.art(entry.file);
-      var x, drawn;
-      if (cell.side === 'seat') {
-        drawn = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.px, art.h);
-        if (side === 'left') drawn = OVVAR.tex.flipX(drawn);
-        x = cell.u * m.detail;
-      } else {
-        drawn = cell.side === 'left' ? OVVAR.tex.flipX(art) : art;
-        x = cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry);
-      }
-      var tex = cell.top ? OVVAR.compose.placed(m, cell, drawn, x) : OVVAR.compose.placedWrapped(m, cell, drawn, x);
+      var drawn = OVVAR.compose.placementArt(ctx, cell, patch, side);
+      var tex = cell.top
+        ? OVVAR.compose.placed(m, cell, drawn.art, drawn.x)
+        : OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
       if (tex === null) {
         ctx.warnings.push(patch.name + ' lands entirely off ' + cell.label + '; not drawn');
         continue;
       }
-      var onto = (side === 'left') ? 'B' : 'A';
-      if (onto === 'A') A = OVVAR.tex.blit(A, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
-      else B = OVVAR.tex.blit(B, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
-      if (cell.side === 'body') B = OVVAR.tex.blit(B, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
+      // A left limb's art belongs on B alone; a right limb's on A alone; the body box is one box
+      // that both textures carry, so it goes on both.
+      if (side !== 'left') A = OVVAR.tex.blit(A, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
+      if (side === 'left' || cell.side === 'body') B = OVVAR.tex.blit(B, tex, 0, 0, m.texture[0], m.texture[1], 0, 0);
     }
   }
   return {A: A, B: B};

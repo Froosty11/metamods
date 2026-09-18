@@ -432,3 +432,74 @@ test('copyRect is a hard copy where blit leaves the destination alone', () => {
   t.set(fake, box[0] * D, my * D, 0x00123456);            // the left sleeve, transparent there
   assert.strictEqual(t.get(OVVAR.compose.mirrorStrip(m, 'top', fake), box[0] * D, box[1] * D), 0x00123456);
 });
+
+test('a placement naming an unknown cell warns instead of throwing', () => {
+  const ctx = context();
+  const design = {chapter: 'data', nercabbad: false, placements: [
+    {cell: 'no_such_cell', patch: 'itk'},
+    {cell: 'another_ghost', patch: 'itk'},          // two, because the sort compares them to each other
+    {cell: 'back_big', patch: 'itk'},
+    {cell: 'back_top_left', patch: 'no_such_patch'}
+  ]};
+  // The sort must not be the thing that throws: an unknown cell has no layer to compare.
+  assert.deepStrictEqual(OVVAR.compose.stacked(ctx.m, design.placements).map(p => p.cell),
+    ['no_such_cell', 'another_ghost', 'back_big', 'back_top_left']);
+  const out = OVVAR.compose.compose(ctx, design);
+  assert.ok(out.top.A && out.top.B && out.bottom.A && out.bottom.B);
+  // Once per half, for each of the three bad placements.
+  assert.deepStrictEqual(ctx.warnings.filter(w => w.indexOf('unknown placement') === 0).sort(), [
+    'unknown placement another_ghost/itk', 'unknown placement another_ghost/itk',
+    'unknown placement back_top_left/no_such_patch', 'unknown placement back_top_left/no_such_patch',
+    'unknown placement no_such_cell/itk', 'unknown placement no_such_cell/itk'
+  ]);
+  // The good placement still drew.
+  const bare = OVVAR.compose.composePiece(ctx, 'top', {chapter: 'data', nercabbad: false, placements: []});
+  assert.ok(OVVAR.tex.diff(bare.A, out.top.A, []).length > 0, 'the one good placement was lost');
+});
+
+test('a BODY placement reaches both textures and a limb one only its own', () => {
+  const ctx = context();
+  const t = OVVAR.tex;
+  const bare = {chapter: 'data', nercabbad: false, placements: []};
+  const base = OVVAR.compose.composePiece(ctx, 'top', bare);
+  function changed(a, b) {
+    let n = 0;
+    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) if (t.get(a, x, y) !== t.get(b, x, y)) n++;
+    return n;
+  }
+  // The chest and the back are one box, worn by both cubes: a patch sewn there has to be on B as
+  // well, or the left half of the body shows bare cloth where the patch should be.
+  const body = OVVAR.compose.composePiece(ctx, 'top',
+    {chapter: 'data', nercabbad: false, placements: [{cell: 'back_big', patch: 'itk'}]});
+  const onA = changed(base.A, body.A);   // 196 texels today
+  assert.ok(onA >= 128, 'the back patch changed only ' + onA + ' texels of A');
+  assert.strictEqual(changed(base.B, body.B), onA, 'the back patch did not reach B the same way');
+  // A limb box is not shared: the right sleeve is A's alone.
+  const sleeve = OVVAR.compose.composePiece(ctx, 'top',
+    {chapter: 'data', nercabbad: false, placements: [{cell: 'sleeve_out_top_r', patch: 'itk'}]});
+  assert.ok(changed(base.A, sleeve.A) > 0, 'the right sleeve patch did not draw on A');
+  assert.strictEqual(changed(base.B, sleeve.B), 0, 'the right sleeve patch reached B');
+});
+
+test('a side cell is composed through the squeeze and a top-face cell flat', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const t = OVVAR.tex;
+  const W = m.texture[0], H = m.texture[1];
+  const patch = m.patchById.itk;
+  // A side cell (the back) bends round the box's corners, so its art is baked through
+  // placedWrapped; a top-face cell (a shoulder) is not on the strip's perimeter and stays flat.
+  const cases = [['back_big', OVVAR.compose.placedWrapped], ['shoulder_r', OVVAR.compose.placed]];
+  for (const [id, placer] of cases) {
+    const cell = m.cellById[id];
+    const drawn = OVVAR.compose.placementArt(ctx, cell, patch, cell.side);
+    const want = t.blit(ctx.base('data', 'top', false), placer(m, cell, drawn.art, drawn.x), 0, 0, W, H, 0, 0);
+    const got = OVVAR.compose.composePiece(ctx, 'top',
+      {chapter: 'data', nercabbad: false, placements: [{cell: id, patch: 'itk'}]}).A;
+    assert.deepStrictEqual(t.diff(want, got, []), [], id);
+    // ... and the other placer would have given a different picture, so this pins the choice.
+    const other = (placer === OVVAR.compose.placed ? OVVAR.compose.placedWrapped : OVVAR.compose.placed)(m, cell, drawn.art, drawn.x);
+    assert.ok(other === null || t.diff(t.blit(ctx.base('data', 'top', false), other, 0, 0, W, H, 0, 0), got, []).length > 0,
+      id + ': the two placers agree, so this test proves nothing');
+  }
+});
