@@ -249,3 +249,54 @@ test('every committed trim texture is placedWrapped()', () => {
   assert.strictEqual(checked, 56, 'expected 56 trim textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
+
+test('downscale reproduces every generated art PNG', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const generated = [];
+  for (const patch of m.patches) {
+    for (const art of patch.arts) {
+      if (!art.generated) continue;
+      generated.push(art.file);
+      const src = ctx.art(art.source);
+      const got = OVVAR.compose.downscaled(src, art.w, art.h);
+      const want = io.decode(io.read(OVVAR.artPath(m, CHECKOUT, art)));
+      assert.deepStrictEqual(OVVAR.tex.diff(want, got, []), [], art.file + ' (from ' + art.source + ')');
+    }
+  }
+  // One today: `it` ships a 12x12 default and a 16x16 drawing, so only its 8x8 is scaled.
+  assert.deepStrictEqual(generated, ['patches/it_8x8.png']);
+});
+
+test('downscale votes by area, breaks ties to the rarer colour, and keeps the source palette', () => {
+  const t = OVVAR.tex;
+  const A = 0xFF112233, B = 0xFF445566;
+  const src = t.blank(4, 4);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) t.set(src, x, y, A);
+  t.set(src, 0, 1, B);
+  t.set(src, 1, 1, B);
+  // Block (0,0) covers A,A,B,B -- an exact 2-2 tie, and B is the rarer colour overall (2 vs 14),
+  // which is the rule that keeps an outline or a letter stroke alive through a shrink.
+  const out = OVVAR.compose.downscaled(src, 2, 2);
+  assert.strictEqual(t.get(out, 0, 0), B);
+  assert.strictEqual(t.get(out, 1, 0), A);
+  assert.strictEqual(t.get(out, 0, 1), A);
+  assert.strictEqual(t.get(out, 1, 1), A);
+  // A pixel under alpha 128 votes as nothing at all, and a block that votes nothing comes out
+  // fully clear -- not the half-transparent colour it was written in.
+  const faint = t.blank(2, 2);
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) t.set(faint, x, y, 0x7F00FF00);
+  assert.strictEqual(t.get(OVVAR.compose.downscaled(faint, 1, 1), 0, 0), 0);
+  // No colour the source did not have: the trim channel's key palette depends on it.
+  const ctx = context();
+  const big = ctx.art('patches/itk_16x16.png');
+  const small = OVVAR.compose.downscaled(big, 12, 12);
+  const seen = new Set();
+  for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) {
+    const p = t.get(big, x, y);
+    seen.add(t.a(p) < 128 ? 0 : p);
+  }
+  for (let y = 0; y < small.h; y++) for (let x = 0; x < small.w; x++) {
+    assert.ok(seen.has(t.get(small, x, y)), 'downscale invented ' + t.get(small, x, y).toString(16));
+  }
+});

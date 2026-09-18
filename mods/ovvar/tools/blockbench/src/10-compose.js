@@ -307,3 +307,64 @@ OVVAR.compose.placedWrapped = function (m, cell, art, x) {
   }
   return out;
 };
+
+/** Below this alpha a pixel votes as nothing at all, and a pixel that wins as nothing comes out clear. */
+OVVAR.compose.VOTING_ALPHA = 128;
+
+/**
+ * Tex.downscaled, exactly: the source shrunk to w x h by an area-weighted majority vote, each
+ * output pixel taking whichever colour covers most of the rectangle it stands for.
+ *
+ * A vote and not an average, because the result must use no colour the source did not -- the
+ * trim channel permutes a key palette built from every opaque colour of every patch art, so a
+ * blended edge pixel would have no slot, and it is pixel art besides. Ties go to the colour that
+ * is RARER in the whole source: the background always has the votes, so an even split has to
+ * fall the other way or every thin thing in the art dissolves. A remaining tie goes to whichever
+ * colour appears first reading rows, so the answer never depends on iteration order.
+ *
+ * Integer arithmetic throughout (the overlap of output pixel i with source pixel j in units of
+ * 1/(W*W')), so exact ties are exactly ties -- Number is good to 2^53 and the products here are
+ * at most 16*16*16*16, so nothing rounds.
+ */
+OVVAR.compose.downscaled = function (im, w, h) {
+  if (w <= 0 || h <= 0 || w > im.w || h > im.h) {
+    throw new Error('cannot scale ' + im.w + 'x' + im.h + ' down to ' + w + 'x' + h);
+  }
+  // Keyed once: an invisible pixel votes as the same "nothing" whatever colour it is written in,
+  // an opaque one as its exact ARGB, which is never 0 -- so key 0 is transparency alone.
+  var n = im.w * im.h;
+  var key = new Array(n);
+  var frequency = new Map(), firstSeen = new Map();
+  for (var i = 0; i < n; i++) {
+    var p = OVVAR.tex.get(im, i % im.w, (i / im.w) | 0);
+    var k = OVVAR.tex.a(p) < OVVAR.compose.VOTING_ALPHA ? 0 : p;
+    key[i] = k;
+    frequency.set(k, (frequency.get(k) || 0) + 1);
+    if (!firstSeen.has(k)) firstSeen.set(k, i);
+  }
+  var out = OVVAR.tex.blank(w, h);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var votes = new Map();
+      for (var sy = 0; sy < im.h; sy++) {
+        var oy = Math.min((y + 1) * im.h, (sy + 1) * h) - Math.max(y * im.h, sy * h);
+        if (oy <= 0) continue;
+        for (var sx = 0; sx < im.w; sx++) {
+          var ox = Math.min((x + 1) * im.w, (sx + 1) * w) - Math.max(x * im.w, sx * w);
+          if (ox > 0) {
+            var kk = key[sy * im.w + sx];
+            votes.set(kk, (votes.get(kk) || 0) + ox * oy);
+          }
+        }
+      }
+      var won = 0, winning = -1;
+      votes.forEach(function (count, colour) {
+        var better = count > winning || (count === winning && (frequency.get(colour) < frequency.get(won)
+          || (frequency.get(colour) === frequency.get(won) && firstSeen.get(colour) < firstSeen.get(won))));
+        if (winning < 0 || better) { won = colour; winning = count; }
+      });
+      OVVAR.tex.set(out, x, y, won);   // key 0 is transparency, which is the clear pixel it came from
+    }
+  }
+  return out;
+};
