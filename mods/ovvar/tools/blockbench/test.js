@@ -149,3 +149,46 @@ test('png decode throws on a truncated file instead of returning garbage', () =>
   const truncated = full.subarray(0, 40);
   assert.throws(() => io.decode(truncated));
 });
+
+test('the image ops behave like Tex', () => {
+  const t = OVVAR.tex;
+  const a = t.blank(4, 3);
+  assert.strictEqual(a.w, 4);
+  assert.strictEqual(a.h, 3);
+  assert.strictEqual(t.get(a, 1, 1), 0);
+  t.set(a, 1, 1, 0xFF804020);
+  assert.strictEqual(t.get(a, 1, 1), 0xFF804020);
+  // A texel written at alpha 0 keeps its colour: datagen's `placed` copies any non-zero packed
+  // ARGB, so those texels are part of the goldens and may not be flattened away.
+  t.set(a, 2, 1, 0x0000FF00);
+  assert.strictEqual(t.get(a, 2, 1), 0x0000FF00);
+  // blit skips alpha-0 source texels (Tex.blit tests a(p) > 0), so 0x0000FF00 does not travel.
+  const b = t.blit(t.blank(4, 3), a, 0, 0, 4, 3, 0, 0);
+  assert.strictEqual(t.get(b, 1, 1), 0xFF804020);
+  assert.strictEqual(t.get(b, 2, 1), 0);
+  // flipX mirrors the whole image; flipXRect only the rectangle.
+  const f = t.flipX(a);
+  assert.strictEqual(t.get(f, 2, 1), 0xFF804020);
+  // scale is nearest-neighbour by an integer factor.
+  const s = t.scale(a, 2);
+  assert.strictEqual(s.w, 8);
+  assert.strictEqual(s.h, 6);
+  assert.strictEqual(t.get(s, 3, 3), 0xFF804020);
+  assert.strictEqual(t.get(s, 2, 2), 0xFF804020);
+  // crop lifts a rectangle out; the source's alpha-0 texels do not survive blit, as above.
+  const c = t.crop(a, 1, 1, 2, 1);
+  assert.strictEqual(c.w, 2);
+  assert.strictEqual(t.get(c, 0, 0), 0xFF804020);
+  assert.deepStrictEqual(t.diff(a, t.copy(a), []), []);
+});
+
+test('anchored matches all 512 manifest samples exactly', () => {
+  const m = OVVAR.loadManifest(io, CHECKOUT);
+  assert.strictEqual(m.anchoredSamples.length, 512);
+  let worst = 0;
+  for (const [skinX, inflate, anchor, want] of m.anchoredSamples) {
+    const got = OVVAR.compose.anchored(skinX, inflate, anchor);
+    worst = Math.max(worst, Math.abs(got - want));
+  }
+  assert.ok(worst < 1e-9, 'anchored is off by ' + worst);
+});
