@@ -18,7 +18,7 @@ include "mods:metacraft-moderation"
 include "mods:metacraft-pause"
 include "mods:metacraft-player-specific-scoreboards"
 include "mods:metacraft-resource-packs"
-include "mods:metacraft-rivals"
+include "mods:rivals-paint"
 include "mods:metacraft-zones"
 include "mods:point-system"
 
