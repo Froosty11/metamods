@@ -64,9 +64,9 @@ jobs:
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         if: github.ref == 'refs/heads/prod'
         with:
-          server: pterodactyl.kth.it
-          port: 3022
-          username: github-actions.a98edceb
+          server: mc.datasektionen.se
+          port: 2022
+          username: github-actions.604966da
           password: ${{ secrets.AUTODEPLOY_PASSWORD }}
           local_path: '*.jar'
           remote_path: 'mods/update'
@@ -75,9 +75,9 @@ jobs:
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         if: github.ref == 'refs/heads/minigame'
         with:
-          server: mc.datasektionen.se
+          server: pterodactyl.kth.it
           port: 3022
-          username: github-actions.032bfc9c
+          username: github-actions.a98edceb
           password: ${{ secrets.AUTODEPLOY_PASSWORD }}
           local_path: '*.jar'
           remote_path: 'mods/update'
