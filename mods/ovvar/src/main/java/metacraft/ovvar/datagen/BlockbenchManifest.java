@@ -1,8 +1,6 @@
 package metacraft.ovvar.datagen;
 
-import com.google.common.hash.Hashing;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.content.Chapter;
@@ -13,11 +11,7 @@ import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,6 +28,18 @@ import java.util.concurrent.CompletableFuture;
  * plugin can show today's catalogue whole, and so the scaler it ports
  * ({@link Tex#downscaled}) has a golden to be held to. Nothing else is written — the plugin
  * reads the placement textures, the trims and the garment layers the generator already writes.
+ *
+ * <p><b>An absent key means null.</b> Every generated file of ours is written through
+ * {@link DataProvider#saveStable}, which serialises without nulls, so a null field is a key that
+ * is not there rather than a key whose value is {@code null} — {@code chapters[].tint},
+ * {@code chapters[].nercabbad}, {@code chapters[].layers.bottomNercabbad},
+ * {@code patches[].artist} and a drawn art's {@code arts[].source}. That is the convention, not
+ * an accident of the writer, so the manifest says so out loud in {@code absentMeansNull} and the
+ * plugin asserts it: reading a field is {@code x == null || x === undefined}, never
+ * {@code 'x' in o}.
+ *
+ * <p>Note that {@code seatHeightMax} is {@link Patches#SEAT_HEIGHT_MAX}, which is 12
+ * ({@link Spot#PX} plus a texel of overhang each way) — the design sketch's 20 was stale.
  */
 public final class BlockbenchManifest implements DataProvider {
 	/** Bumped when the schema changes in a way an older plugin could not read; the plugin refuses a newer one. */
@@ -67,9 +73,10 @@ public final class BlockbenchManifest implements DataProvider {
 	/** Reference art due for removal: the plugin does not offer them. */
 	private static final String POLYMITER = "_polymiter";
 
+	/** This run's files; made fresh in {@link #run}, which is where the cache to write them through arrives. */
+	private Writes files;
+
 	private final Path root;
-	private final List<CompletableFuture<?>> writes = new ArrayList<>();
-	private CachedOutput out;
 
 	public BlockbenchManifest(FabricPackOutput output) {
 		this.root = output.getOutputFolder();
@@ -82,10 +89,12 @@ public final class BlockbenchManifest implements DataProvider {
 
 	@Override
 	public CompletableFuture<?> run(CachedOutput output) {
-		this.out = output;
-		writes.clear();
+		this.files = new Writes(output, root);
 		JsonObject m = new JsonObject();
 		m.addProperty("version", VERSION);
+		// Stated rather than implied: see the class javadoc. A plugin that finds this false is
+		// reading a manifest some other writer made and should not guess at its nulls.
+		m.addProperty("absentMeansNull", true);
 		m.addProperty("detail", Spot.DETAIL);
 		m.addProperty("faceRow", Spot.FACE_ROW);
 		m.addProperty("faceRows", Spot.FACE_ROWS);
@@ -114,10 +123,10 @@ public final class BlockbenchManifest implements DataProvider {
 		// Spot.stacked has no table to write out — it is a sort — so the manifest states the rule
 		// and the plugin's own stacking test is what holds it.
 		m.addProperty("stackedOrder", "layer ascending, then sewing order");
-		json(root.resolve(DIR + "manifest.json"), m);
+		files.json(root.resolve(DIR + "manifest.json"), m);
 		Ovvar.LOGGER.info("[{} datagen] Blockbench manifest: {} cells, {} patches, {} anchored samples",
 				Ovvar.MOD_ID, Spot.values().length, Patches.all().size(), SAMPLES);
-		return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
+		return files.allOf();
 	}
 
 	/**
@@ -129,7 +138,9 @@ public final class BlockbenchManifest implements DataProvider {
 	 */
 	private static JsonArray markerTexels() {
 		JsonArray out = new JsonArray();
-		for (int i = 0; i < GeneratedAssets.DEBUG.length; i++) out.add(ints(GeneratedAssets.DEBUG_X + i, GeneratedAssets.MARKER_Y));
+		for (int i = 0; i < GeneratedAssets.DEBUG.length; i++) {
+			out.add(ints(GeneratedAssets.DEBUG_X + i, GeneratedAssets.MARKER_Y));
+		}
 		out.add(ints(GeneratedAssets.LAYER_X, GeneratedAssets.MARKER_Y));
 		out.add(ints(GeneratedAssets.MARKER_KIND_X, GeneratedAssets.MARKER_Y));
 		out.add(ints(GeneratedAssets.MARKER_X, GeneratedAssets.MARKER_Y));
@@ -167,7 +178,7 @@ public final class BlockbenchManifest implements DataProvider {
 			c.addProperty("name", chapter.name);
 			c.addProperty("art", chapter.overlay + ".png");
 			c.addProperty("nercabbad", chapter.nercabbadOverlay == null ? null : chapter.nercabbadOverlay + ".png");
-			if (chapter.tint == null) c.add("tint", com.google.gson.JsonNull.INSTANCE); else c.addProperty("tint", chapter.tint);
+			c.addProperty("tint", chapter.tint);
 			c.addProperty("rollable", chapter.rollable);
 			JsonObject layers = new JsonObject();
 			layers.addProperty("top", Piece.TOP.layer + "/" + chapter.id + "/top.png");
@@ -233,7 +244,7 @@ public final class BlockbenchManifest implements DataProvider {
 				arts.add(a);
 				if (art.generated()) {
 					String name = art.file().substring(art.file().lastIndexOf('/') + 1);
-					png(root.resolve(DIR + "art/" + name + ".png"), Tex.art(art));
+					files.png(root.resolve(DIR + "art/" + name + ".png"), Tex.art(art));
 				}
 			}
 			p.add("arts", arts);
@@ -266,20 +277,5 @@ public final class BlockbenchManifest implements DataProvider {
 		JsonArray out = new JsonArray();
 		for (int v : values) out.add(v);
 		return out;
-	}
-
-	private void json(Path path, JsonElement element) {
-		writes.add(DataProvider.saveStable(out, element, path));
-	}
-
-	private void png(Path path, Tex tex) {
-		byte[] data = tex.png();
-		writes.add(CompletableFuture.runAsync(() -> {
-			try {
-				out.writeIfNeeded(path, data, Hashing.sha1().hashBytes(data));
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
-			}
-		}));
 	}
 }

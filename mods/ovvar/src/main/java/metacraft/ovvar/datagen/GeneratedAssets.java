@@ -1,8 +1,6 @@
 package metacraft.ovvar.datagen;
 
-import com.google.common.hash.Hashing;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import metacraft.ovvar.Ovvar;
@@ -27,8 +25,6 @@ import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,17 +53,24 @@ import static metacraft.ovvar.datagen.J.obj;
 public final class GeneratedAssets implements DataProvider {
 	private static final String MOD = Ovvar.MOD_ID;
 
-	/** Skin-layout boxes (x, y, w, h) that the armour model draws, and which garment owns each. */
-	static final int[] BODY = {16, 16, 24, 16};
-	static final int[] RIGHT_ARM = {40, 16, 16, 16};
-	static final int[] RIGHT_LEG = {0, 16, 16, 16};
+	/**
+	 * Skin-layout boxes (x, y, w, h) that the armour model draws, and which garment owns each.
+	 *
+	 * <p>These and the texel contract below are public because {@link BlockbenchManifest} publishes
+	 * them for the Blockbench plugin and a game test in {@code metacraft.ovvar.gametest} holds the
+	 * manifest to them — quoting the generator's own numbers rather than keeping a second copy is
+	 * the whole point, so they have to be readable from outside this package.
+	 */
+	public static final int[] BODY = {16, 16, 24, 16};
+	public static final int[] RIGHT_ARM = {40, 16, 16, 16};
+	public static final int[] RIGHT_LEG = {0, 16, 16, 16};
 	/** The skin's second layer for each, and the left limbs (base, second layer) — the website draws these in 3D. */
-	static final int[] BODY_OUTER = {16, 32, 24, 16};
-	static final int[] RIGHT_ARM_OUTER = {40, 32, 16, 16}, RIGHT_LEG_OUTER = {0, 32, 16, 16};
-	static final int[] LEFT_ARM = {32, 48, 16, 16}, LEFT_ARM_OUTER = {48, 48, 16, 16};
-	static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
+	public static final int[] BODY_OUTER = {16, 32, 24, 16};
+	public static final int[] RIGHT_ARM_OUTER = {40, 32, 16, 16}, RIGHT_LEG_OUTER = {0, 32, 16, 16};
+	public static final int[] LEFT_ARM = {32, 48, 16, 16}, LEFT_ARM_OUTER = {48, 48, 16, 16};
+	public static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
 	/** The trousers' share of the body box: the bottom two texel rows of its side faces (the waistband). */
-	static final int[] WAIST = {16, 30, 24, 2};
+	public static final int[] WAIST = {16, 30, 24, 2};
 	/**
 	 * Garment and patch textures are the armour layout at {@link Spot#DETAIL} texels per skin
 	 * texel ({@code W}×{@code H}); base garments cut from the skins are upscaled to it, patch art
@@ -75,11 +78,11 @@ public final class GeneratedAssets implements DataProvider {
 	 */
 	private static final int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
 	/** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
-	static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
+	public static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
 
 	private final Path root, assets, data;
-	private final List<CompletableFuture<?>> writes = new ArrayList<>();
-	private CachedOutput out;
+	/** This run's files; made fresh in {@link #run}, which is where the cache to write them through arrives. */
+	private Writes files;
 
 	public GeneratedAssets(FabricPackOutput output) {
 		this.root = output.getOutputFolder();
@@ -94,19 +97,18 @@ public final class GeneratedAssets implements DataProvider {
 
 	@Override
 	public CompletableFuture<?> run(CachedOutput output) {
-		this.out = output;
-		writes.clear();
+		this.files = new Writes(output, root);
 		Map<String, String> lang = new LinkedHashMap<>();
 		lang.put("itemGroup." + MOD, "Ovvar");
 		// The companion top's inventory icon: the vanilla empty-chestplate-slot silhouette, so the slot
 		// reads as an ordinary empty chest slot while the ovve's sleeves still render from its
 		// equipment asset (which the inventory model does not touch).
-		json(assets.resolve("items/blank.json"), obj("model", obj("type", "minecraft:model", "model", MOD + ":item/empty_chest")));
-		json(assets.resolve("models/item/empty_chest.json"),
+		files.json(assets.resolve("items/blank.json"), obj("model", obj("type", "minecraft:model", "model", MOD + ":item/empty_chest")));
+		files.json(assets.resolve("models/item/empty_chest.json"),
 				obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/empty_chest")));
 		// The empty-slot silhouette is a GUI sprite, a different atlas than item textures, so copy it
 		// into one of ours for the icon to resolve.
-		png(assets.resolve("textures/item/empty_chest.png"), Vanilla.texture("gui/sprites/container/slot/chestplate"));
+		files.png(assets.resolve("textures/item/empty_chest.png"), Vanilla.texture("gui/sprites/container/slot/chestplate"));
 		// A model that draws nothing at all: the wardrobe screen's preview slots must keep their
 		// tooltip (which patch is on which spot) while the paper doll behind them shows through, so
 		// their item wears this ovvar:invisible model instead of an icon.
@@ -209,7 +211,7 @@ public final class GeneratedAssets implements DataProvider {
 						if (side == Spot.Side.LEFT) half = half.flipX();   // the model mirrors the left leg
 						Tex tex = placed(spot, half, spot.u * D);
 						String suffix = side == Spot.Side.LEFT ? "_l" : "_r";
-						png(assets.resolve(dir + "patch/seat/" + patch.id() + suffix + ".png"), sided(tex, spot, side));
+						files.png(assets.resolve(dir + "patch/seat/" + patch.id() + suffix + ".png"), sided(tex, spot, side));
 					}
 					placementTextures += 2;
 					continue;
@@ -217,7 +219,7 @@ public final class GeneratedAssets implements DataProvider {
 				// Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
 				// a left cell's art is mirrored (the model mirrors the left limb).
 				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + variant.offsetX(spot));
-				png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
+				files.png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
 				placementTextures++;
 			}
 		}
@@ -234,9 +236,9 @@ public final class GeneratedAssets implements DataProvider {
 				String name = Trims.patternName(placement);
 				Patches.Art variant = Patches.artFor(patch, spot);
 				Tex tex = placedWrapped(spot, arts.get(variant), spot.u * D + variant.offsetX(spot));
-				png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
+				files.png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
 				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
-				json(data.resolve("trim_pattern/" + name + ".json"),
+				files.json(data.resolve("trim_pattern/" + name + ".json"),
 						obj("asset_id", MOD + ":" + name, "decal", false, "description", obj("text", patch.name() + " on the " + spot.label())));
 			}
 		}
@@ -246,10 +248,10 @@ public final class GeneratedAssets implements DataProvider {
 		Tex key = Tex.blank(colours.size(), 1);
 		for (int i = 0; i < colours.size(); i++) key = key.with(i, 0, colours.get(i));
 		String palettes = "textures/trims/color_palettes/";
-		png(assets.resolve(palettes + "key.png"), key);
-		png(assets.resolve(palettes + Trims.MATERIAL + ".png"), key);
-		json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("palette_id", MOD + ":" + Trims.MATERIAL, "description", obj("text", "Patch")));   // 26.3: an id, the permutation key
-		json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
+		files.png(assets.resolve(palettes + "key.png"), key);
+		files.png(assets.resolve(palettes + Trims.MATERIAL + ".png"), key);
+		files.json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("palette_id", MOD + ":" + Trims.MATERIAL, "description", obj("text", "Patch")));   // 26.3: an id, the permutation key
+		files.json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
 				"type", "minecraft:paletted_permutations",
 				"textures", arr(trimTextures.toArray()),
 				"palette_key", MOD + ":trims/color_palettes/key",
@@ -321,13 +323,13 @@ public final class GeneratedAssets implements DataProvider {
 				tex = tex.with(CELL_SIZE_TABLE_X + index / 16, index % 16, rgb(spot.px(), spot.pxHeight(), spot.layer()));
 			}
 			require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
-			png(assets.resolve("textures/entity/equipment/" + target.layer + "/" + target.name + ".png"), marked(tex, target.inflateAs));
+			files.png(assets.resolve("textures/entity/equipment/" + target.layer + "/" + target.name + ".png"), marked(tex, target.inflateAs));
 		}
 		for (String material : OvveFeet.MATERIALS) {
 			require(Vanilla.exists("assets/minecraft/textures/entity/equipment/humanoid/" + material + ".png"), "no vanilla equipment texture for " + material);
 		}
 		for (String material : concat(OvveFeet.NONE, OvveFeet.MATERIALS)) {
-			json(assets.resolve("equipment/feet/" + material + ".json"), JsonParser.parseString(EquipmentJson.feetJson(material)));
+			files.json(assets.resolve("equipment/feet/" + material + ".json"), JsonParser.parseString(EquipmentJson.feetJson(material)));
 		}
 		Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} arts in the preview library", MOD, placementTextures, library.size());
 
@@ -347,7 +349,7 @@ public final class GeneratedAssets implements DataProvider {
 			// The chest wrap: the top under a real chestplate of each metal material. The chestplate's
 			// arms and neck are largely transparent, so the ovve's sleeves show through underneath.
 			for (String material : OvveFeet.MATERIALS) {
-				json(assets.resolve("equipment/chest/" + chapter.id + "/" + material + ".json"),
+				files.json(assets.resolve("equipment/chest/" + chapter.id + "/" + material + ".json"),
 						JsonParser.parseString(EquipmentJson.chestJson(chapter, material)));
 			}
 
@@ -396,8 +398,8 @@ public final class GeneratedAssets implements DataProvider {
 
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);
-		json(assets.resolve("lang/en_us.json"), langJson);
-		return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
+		files.json(assets.resolve("lang/en_us.json"), langJson);
+		return files.allOf();
 	}
 
 	private static List<String> concat(String first, List<String> rest) {
@@ -469,7 +471,7 @@ public final class GeneratedAssets implements DataProvider {
 					"sewing glyph " + glyph.name() + " is " + tex.width + "\u00d7" + tex.height + ", the font expects " + glyph.width() + "\u00d7" + glyph.height());
 			String file = MOD + ":" + SewingFont.TEXTURE_DIR + glyph.name() + ".png";
 			// Padded below to the tallest ascent it is drawn with: the client rejects an ascent above the height.
-			png(assets.resolve("textures/" + SewingFont.TEXTURE_DIR + glyph.name() + ".png"), tex.padBottom(glyph.textureHeight()).reachingRightEdge());
+			files.png(assets.resolve("textures/" + SewingFont.TEXTURE_DIR + glyph.name() + ".png"), tex.padBottom(glyph.textureHeight()).reachingRightEdge());
 			for (int top = glyph.minTop(); top <= glyph.maxTop(); top++) {
 				int ascent = SewingFont.Glyph.ascent(top);
 				require(ascent >= 0 && ascent <= glyph.textureHeight(), "sewing glyph " + glyph.name() + " at top " + top + " needs ascent " + ascent);
@@ -480,8 +482,8 @@ public final class GeneratedAssets implements DataProvider {
 		JsonObject advances = new JsonObject();
 		SewingFont.spaceAdvances().forEach((c, advance) -> advances.addProperty(String.valueOf(c), advance));
 		providers.add(obj("type", "space", "advances", advances));
-		json(assets.resolve("font/" + SewingFont.ID.getPath() + ".json"), obj("providers", arr(providers.toArray())));
-		json(root.resolve(Outline.RESOURCE.substring(1)), outlines);
+		files.json(assets.resolve("font/" + SewingFont.ID.getPath() + ".json"), obj("providers", arr(providers.toArray())));
+		files.json(root.resolve(Outline.RESOURCE.substring(1)), outlines);
 		Ovvar.LOGGER.info("[{} datagen] sewing font: {} glyphs, {} codepoints; {} outlines", MOD, textures.size(), providers.size() - 1, outlines.size());
 	}
 
@@ -551,7 +553,7 @@ public final class GeneratedAssets implements DataProvider {
 
 	/** The equipment definition of one half with nothing sewn on; Combos writes the others into the pack. */
 	private void equipment(Chapter chapter, Piece piece, boolean nercabbad) {
-		json(assets.resolve("equipment/" + Looks.assetPath(chapter, piece, nercabbad, "") + ".json"),
+		files.json(assets.resolve("equipment/" + Looks.assetPath(chapter, piece, nercabbad, "") + ".json"),
 				JsonParser.parseString(EquipmentJson.json(chapter, piece, nercabbad, List.of())));
 	}
 
@@ -648,9 +650,9 @@ public final class GeneratedAssets implements DataProvider {
 	// ---- the texel contract with ovvar.glsl
 
 	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip (or {@value Spot#TOP_FACE}, the box's top face); preview: G = cells in the half, B = instant designs. Base textures have none (0). */
-	static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
+	public static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
-	static final int LAYER_X = W - 3;
+	public static final int LAYER_X = W - 3;
 	/**
 	 * Three to six left of the marker: the palette the {@code OVVAR_DEBUG_TOP_FACE_*} switches paint
 	 * a box's top faces from — mirrored, unmirrored, no cell matched, a cell matched. A dev switch in
@@ -659,10 +661,10 @@ public final class GeneratedAssets implements DataProvider {
 	 * (skin x 56–64), which no box and no mirror strip touches, and inside the library cell the
 	 * preview texture reserves for the marker row.
 	 */
-	static final int DEBUG_X = W - 7;
-	static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
+	public static final int DEBUG_X = W - 7;
+	public static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
-	static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
+	public static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**
 	 * Preview texture tables, four of them side by side from skin texel 40, column-major 16 tall,
 	 * {@value #TABLE_COLUMNS} columns each (so {@value #TABLE_SIZE} entries per table, addressed as
@@ -774,16 +776,16 @@ public final class GeneratedAssets implements DataProvider {
 
 	private void layer(Chapter chapter, Piece piece, String name, Tex tex) {
 		tex = marked(tex, piece);
-		png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + chapter.id + "/" + name + ".png"), tex);
+		files.png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + chapter.id + "/" + name + ".png"), tex);
 	}
 
 	/** Item definition, flat model and texture for one item. */
 	private void item(String name, Tex texture) {
 		require(texture.width == 16 && texture.height == 16, name + " icon is not 16×16");
-		json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
-		json(assets.resolve("models/item/" + name + ".json"),
+		files.json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
+		files.json(assets.resolve("models/item/" + name + ".json"),
 				obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/" + name)));
-		png(assets.resolve("textures/item/" + name + ".png"), texture);
+		files.png(assets.resolve("textures/item/" + name + ".png"), texture);
 	}
 
 	/**
@@ -823,31 +825,16 @@ public final class GeneratedAssets implements DataProvider {
 	 */
 	private void sprite(String name, Tex texture) {
 		require(texture.width == 16 && texture.height == 16, name + " sprite is not 16×16");
-		json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
-		json(assets.resolve("models/item/" + name + ".json"), obj(
+		files.json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
+		files.json(assets.resolve("models/item/" + name + ".json"), obj(
 				"textures", obj("0", MOD + ":item/" + name, "particle", MOD + ":item/" + name),
 				"elements", arr(obj(
 						"from", arr(0, 0, 8), "to", arr(16, 16, 8), "shade", false,
 						"faces", obj("south", obj("uv", arr(0, 0, 16, 16), "texture", "#0"))))));
-		png(assets.resolve("textures/item/" + name + ".png"), texture);
+		files.png(assets.resolve("textures/item/" + name + ".png"), texture);
 	}
 
 	private static void require(boolean ok, String message) {
 		if (!ok) throw new IllegalStateException("[" + MOD + " datagen] " + message);
-	}
-
-	private void json(Path path, JsonElement element) {
-		writes.add(DataProvider.saveStable(out, element, path));
-	}
-
-	private void png(Path path, Tex tex) {
-		byte[] data = tex.png();
-		writes.add(CompletableFuture.runAsync(() -> {
-			try {
-				out.writeIfNeeded(path, data, Hashing.sha1().hashBytes(data));
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
-			}
-		}));
 	}
 }
