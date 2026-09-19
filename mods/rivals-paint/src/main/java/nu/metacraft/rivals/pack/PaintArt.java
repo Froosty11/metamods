@@ -25,13 +25,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Paint art for connected paint (spec §5). No edge tiles: the shader draws the border. Per colour
- * sixteen 16×16 textures of one flat colour, the four connection bits in the low nibble of red and
- * the paint marker in alpha; uniform sprites survive mipmapping exactly, which is what makes reading
- * bits back out of a texel safe. Six one-quad models (one per attach direction), and a variants
- * blockstate for each donor block mapping every client state in use to its model and texture; donor
- * states we do not use — the waterlogged multiface ones, the powered redstone wire, the pale moss
- * carpet's own base — point at the empty model, so they draw nothing at all.
+ * Paint art for connected paint (spec §5). No edge tiles: the border is geometry, and the shader
+ * draws the rest. Per colour sixteen 16×16 textures of one flat colour, the four connection bits in
+ * the low nibble of red and the paint marker in alpha; uniform sprites survive mipmapping exactly,
+ * which is what makes reading bits back out of a texel safe. Ninety-six face models — one per
+ * (bits, attach direction) — each the cell's face inset {@link #INSET} texel on every unconnected side
+ * with a stepped notch at a corner both of whose sides are unconnected (see {@link #faceModel}), and a
+ * variants blockstate for each donor block mapping every client state in use to its model and
+ * texture; donor states we do not use — the waterlogged multiface ones, the pale moss carpet's own
+ * base — point at the empty model, so they draw nothing at all.
+ *
+ * <p>The border lives in the geometry because Sodium draws chunks with its own shaders and refuses a
+ * pack's {@code terrain.vsh}/{@code terrain.fsh} outright ("replaces terrain shaders, which are not
+ * supported"): on such a client the gloss shader never runs, and a cell whose only border was the
+ * shader's discard was a flat full square. The geometry is what every client sees; the shader, where it
+ * runs, still wobbles the edge and rounds the corner inside it (its inset ranges over 0..2 texels, so the
+ * fixed 1-texel geometry inset clips only the wobble's innermost step).
  *
  * <p>Each quad's {@code uv} is flipped per face so the sprite's u and v axes line up with the paint's
  * own in-plane axes: the gloss shader takes its in-face coordinate from the sprite (a block display has no
@@ -57,6 +66,10 @@ public final class PaintArt {
 	/** How far off the attach face a quad sits, in sixteenths, as in vanilla's own multiface models. */
 	private static final double OFFSET = 0.1;
 	private static final int BLOCK_FACE_COUNT = 6;
+	/** Texels an unconnected side is inset by: the border every client sees, shader or not. */
+	public static final int INSET = 1;
+	/** Texels along each edge a corner notch reaches, where both sides meeting there are unconnected. */
+	public static final int NOTCH = 3;
 
 	private PaintArt() {}
 
@@ -64,8 +77,9 @@ public final class PaintArt {
 		return "paint_" + color.id + "_" + bits;
 	}
 
-	public static String modelName(Direction attach) {
-		return "paint_face_" + attach.getSerializedName();
+	/** The shared face model for one connection pattern on one attach direction. */
+	public static String modelName(int bits, Direction attach) {
+		return "paint_face_" + bits + "_" + attach.getSerializedName();
 	}
 
 	/** The wrapper model that hangs one colour's (bits) texture on the face quad for {@code attach}. */
@@ -90,8 +104,10 @@ public final class PaintArt {
 				files.put("assets/" + Rivals.MOD_ID + "/textures/block/" + textureName(color, bits) + ".png", uniform(color.rgb, bits));
 			}
 		}
-		for (Direction attach : DIRECTIONS) {
-			files.put("assets/" + Rivals.MOD_ID + "/models/block/" + modelName(attach) + ".json", json(faceModel(attach)));
+		for (int bits = 0; bits < BITS; bits++) {
+			for (Direction attach : DIRECTIONS) {
+				files.put("assets/" + Rivals.MOD_ID + "/models/block/" + modelName(bits, attach) + ".json", json(faceModel(bits, attach)));
+			}
 		}
 		for (PaintColor color : PaintColor.values()) {
 			for (int bits = 0; bits < 16; bits++) {
@@ -135,23 +151,42 @@ public final class PaintArt {
 		}
 	}
 
-	/** One paper-thin element against the attach face, both sides textured with {@code #paint}, no tint. */
+	/** The whole cell's face: one paper-thin element against the attach face, both sides textured with {@code #paint}, no tint. */
 	static JsonObject element(Direction attach) {
+		return element(attach, 0, 0, SIZE, SIZE);
+	}
+
+	/**
+	 * A paper-thin element against the attach face covering {@code [ua, ub) × [va, vb)} of the cell in
+	 * the paint's own in-plane axes (u, v — see {@link #uv}), both sides textured with that same
+	 * rectangle of {@code #paint} so the sprite's texel grid stays on the cell's, and never tinted.
+	 */
+	static JsonObject element(Direction attach, int ua, int va, int ub, int vb) {
 		double plane = attach.getAxisDirection() == Direction.AxisDirection.NEGATIVE ? OFFSET : SIZE - OFFSET;
 		Direction.Axis axis = attach.getAxis();
 		JsonObject element = new JsonObject();
-		element.add("from", corner(axis, plane, 0));
-		element.add("to", corner(axis, plane, SIZE));
+		element.add("from", corner(axis, plane, ua, va));
+		element.add("to", corner(axis, plane, ub, vb));
 		JsonObject faces = new JsonObject();
-		for (Direction side : sides(axis)) faces.add(side.getSerializedName(), face(side));
+		for (Direction side : sides(axis)) faces.add(side.getSerializedName(), face(side, ua, va, ub, vb));
 		element.add("faces", faces);
 		return element;
 	}
 
-	/** A corner of the quad: {@code plane} on the attach axis, {@code span} on the other two. */
-	private static JsonArray corner(Direction.Axis axis, double plane, double span) {
+	/** The paint's in-plane axes for an attach axis: (u, v) = (x, z) on Y, (z, y) on X, (x, y) on Z. */
+	private static Direction.Axis[] plane(Direction.Axis axis) {
+		return switch (axis) {
+			case Y -> new Direction.Axis[] {Direction.Axis.X, Direction.Axis.Z};
+			case X -> new Direction.Axis[] {Direction.Axis.Z, Direction.Axis.Y};
+			case Z -> new Direction.Axis[] {Direction.Axis.X, Direction.Axis.Y};
+		};
+	}
+
+	/** A corner of the quad: {@code plane} on the attach axis, {@code u} and {@code v} on the paint's in-plane axes. */
+	private static JsonArray corner(Direction.Axis axis, double plane, double u, double v) {
+		Direction.Axis[] in = plane(axis);
 		JsonArray corner = new JsonArray();
-		for (Direction.Axis a : Direction.Axis.values()) corner.add(number(a == axis ? plane : span));
+		for (Direction.Axis a : Direction.Axis.values()) corner.add(number(a == axis ? plane : a == in[0] ? u : v));
 		return corner;
 	}
 
@@ -164,9 +199,9 @@ public final class PaintArt {
 		};
 	}
 
-	private static JsonObject face(Direction side) {
+	private static JsonObject face(Direction side, int ua, int va, int ub, int vb) {
 		JsonArray uv = new JsonArray();
-		for (int value : uv(side)) uv.add(value);
+		for (int value : uv(side, ua, va, ub, vb)) uv.add(value);
 		JsonObject face = new JsonObject();
 		face.add("uv", uv);
 		face.addProperty("texture", "#paint");
@@ -196,10 +231,19 @@ public final class PaintArt {
 	 * </ul>
 	 */
 	public static int[] uv(Direction side) {
+		return uv(side, 0, 0, SIZE, SIZE);
+	}
+
+	/**
+	 * The same for a face covering {@code [ua, ub) × [va, vb)} of the cell in the paint's axes: the
+	 * sprite rectangle is that same one, with the flips above deciding which corner of the array it
+	 * starts at, so an inset quad still shows the texels under it and the shader's cell coordinate holds.
+	 */
+	public static int[] uv(Direction side, int ua, int va, int ub, int vb) {
 		return switch (side) {
-			case UP -> new int[] {0, 0, SIZE, SIZE};
-			case DOWN, SOUTH, WEST -> new int[] {0, SIZE, SIZE, 0};
-			case NORTH, EAST -> new int[] {SIZE, SIZE, 0, 0};
+			case UP -> new int[] {ua, va, ub, vb};
+			case DOWN, SOUTH, WEST -> new int[] {ua, vb, ub, va};
+			case NORTH, EAST -> new int[] {ub, vb, ua, va};
 		};
 	}
 
@@ -208,19 +252,35 @@ public final class PaintArt {
 		return value == Math.rint(value) ? (Number) (int) value : (Number) value;
 	}
 
-	/** The shared quad for one attach direction; the wrapper models fill in {@code #paint}. */
-	static JsonObject faceModel(Direction attach) {
+	/**
+	 * The shared face for one connection pattern on one attach direction; the wrapper models fill in
+	 * {@code #paint}. A connected side runs to the cell's edge, an unconnected one is inset {@link #INSET}
+	 * texel, and a corner both of whose sides are unconnected is notched: the face is the union of three
+	 * overlapping rectangles — one inset {@link #NOTCH} on the unconnected u sides and {@code INSET} on
+	 * v, one the other way round, and one inset {@code INSET + 1} on both — which at a doubly unconnected
+	 * corner leaves an L-shaped step, the pixel-art rounding the shader's 4.5-texel radius then carves
+	 * further where it runs. A pattern with no such corner is one rectangle.
+	 */
+	static JsonObject faceModel(int bits, Direction attach) {
+		boolean negU = (bits & 1) != 0, posU = (bits & 2) != 0, negV = (bits & 4) != 0, posV = (bits & 8) != 0;
 		JsonObject model = new JsonObject();
 		model.addProperty("ambientocclusion", false);
 		JsonArray elements = new JsonArray();
-		elements.add(element(attach));
+		boolean notched = (!negU || !posU) && (!negV || !posV);
+		if (!notched) {
+			elements.add(element(attach, negU ? 0 : INSET, negV ? 0 : INSET, posU ? SIZE : SIZE - INSET, posV ? SIZE : SIZE - INSET));
+		} else {
+			elements.add(element(attach, negU ? 0 : NOTCH, negV ? 0 : INSET, posU ? SIZE : SIZE - NOTCH, posV ? SIZE : SIZE - INSET));
+			elements.add(element(attach, negU ? 0 : INSET, negV ? 0 : NOTCH, posU ? SIZE : SIZE - INSET, posV ? SIZE : SIZE - NOTCH));
+			elements.add(element(attach, negU ? 0 : INSET + 1, negV ? 0 : INSET + 1, posU ? SIZE : SIZE - INSET - 1, posV ? SIZE : SIZE - INSET - 1));
+		}
 		model.add("elements", elements);
 		return model;
 	}
 
 	static JsonObject wrapperModel(PaintColor color, int bits, Direction attach) {
 		JsonObject model = new JsonObject();
-		model.addProperty("parent", Rivals.MOD_ID + ":block/" + modelName(attach));
+		model.addProperty("parent", Rivals.MOD_ID + ":block/" + modelName(bits, attach));
 		model.add("textures", textures(color, bits));
 		return model;
 	}

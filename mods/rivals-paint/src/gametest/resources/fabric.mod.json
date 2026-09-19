@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "rivals-clienttest",
+	"version": "1.0.0",
+	"name": "Rivals client tests",
+	"description": "Screenshot tests: a client sees what the server paints.",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"nu.metacraft.rivals.clienttest.RivalsClientTests"
+		]
+	},
+	"mixins": [
+		"rivals-clienttest.mixins.json"
+	],
+	"depends": {
+		"rivals-paint": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

@@ -25,9 +25,9 @@ paint, which only a dedicated Rivals server wants.
 
 - Two sides, one colour each: **DATA** `#BD3754` and **IT** `#8A57BD`. A side *is* a plain vanilla
   scoreboard team, and which team is configurable — `config/rivals-paint/teams.json`,
-  `{"teams": {"data": "data", "it": "it"}}`, where the keys are the two colour slots and each value is the
-  scoreboard team name that slot uses. It defaults to the slot's own id, so out of the box the teams are
-  called `data` and `it` as before; a server that already runs teams of its own points a slot at one
+  `{"teams": {"data": "main.data", "it": "main.it"}}`, where the keys are the two colour slots and each value
+  is the scoreboard team name that slot uses. It defaults to `main.` plus the slot's id — the two teams the
+  MAIN datapack runs on the minigame server, so that server needs no file; any other server points a slot at one
   instead of keeping a second pair. `PaintColor.byTeam` — the single question anything here asks about a
   player's side — resolves through those names, `/rivals setup` creates any that do not exist and says
   which it made, and `/rivals reload` re-reads the file. Players join with `/team join <name>`.
@@ -163,7 +163,7 @@ paint, which only a dedicated Rivals server wants.
   | Weapon | Ink | Cadence | Damage | Shot | Splatcraft |
   |---|---|---|---|---|---|
   | shooter | 1 | 3 ticks (held) | 8, −0.34/tick from tick 3, floor 4 | one ball at 2.0 straight for 8 blocks, then 0.5 falling at 0.075; one bounce; 3×3 splat; spread 6° on the ground, 12° in the air | `splattershot.json` |
-  | charger | 2 → 18 | 20 ticks | 8 → 16 over a partial charge, **32 at a full one** | hold right click to aim (the spyglass scope; a full charge is 20 ticks), left click to fire a hitscan line of 9 → 24 blocks, stopped by the first block or player in it | `splat_charger.json` |
+  | charger | 2 → 18 | 20 ticks | 8 → 16 over a partial charge, **32 at a full one** | hold right click to aim (the spyglass scope; a full charge is 20 ticks), let go to fire a hitscan line of 9 → 24 blocks, stopped by the first block or player in it | `splat_charger.json` |
   | slosher | 7 | 12 ticks (click) | 7, flat | 2 pellets 8° apart, lobbed 15° up at 1.1 under gravity 0.06, 5×5 splat, no bounce | `slosher.json` |
   | roller | 9 a flick, 1 per 5 ticks rolling | 15 ticks after a flick | flick 30, −3.45/tick from tick 8, floor 7; roll 25 | **hold** right click to roll a 3-wide strip where you walk, with 8% more speed, no sprinting, and a head that runs over anyone in front once per 10 ticks — both only while you are actually moving, so a roller parked in a doorway is not a wall of damage, and paint thrown up where the head touches the ground; **left click** to flick 3 drops in a high arc | `splat_roller.json` |
 
@@ -357,9 +357,9 @@ paint, which only a dedicated Rivals server wants.
 
   The same thing happens **on join**, through `ServerPlayConnectionEvents.JOIN` — unless a match is
   *playing*, in which case the arrival is a mid-match add instead (armed, on their team, with the three
-  seconds of respawn grace), so nobody loads into a firefight. A **lobby death** puts a dressed player on
-  their own team's spawn and everybody else at the level's own respawn point, rather than wherever they
-  happened to die.
+  seconds of respawn grace), so nobody loads into a firefight. Outside a round this mod moves nobody
+  and sets nobody's game mode: the team spawns are the round's, this is one minigame of several, and a
+  lobby death respawns wherever the world says. A join only has the Rivals kit taken back.
 - **The round loop.** `Match` is one machine for the whole server, in memory:
   **LOBBY → COUNTDOWN (5 s) → PLAYING (n minutes) → ENDED (10 s) → LOBBY**.
 
@@ -372,7 +372,7 @@ paint, which only a dedicated Rivals server wants.
 
   `start` checks readiness (unless forced), makes sure both teams exist the way `/rivals setup` does, puts
   every player on a side into the match, clears the paint inside the arena, hands each player the weapon they
-  picked (the shooter if they never picked), teleports them to their team's spawn in survival, and
+  picked (the shooter if they never picked), teleports them to their team's spawn in adventure (always adventure — an arena is painted, not mined), and
   freezes them for the countdown: titles 5…1, a note under each, then **GO!**. Frozen is a −100 %
   `MOVEMENT_SPEED` modifier plus a −100 % `JUMP_STRENGTH` one — transient attribute modifiers by id,
   exactly as the roller's speed bonus is, so they are exact, they do not appear in the client's effect
@@ -382,18 +382,35 @@ paint, which only a dedicated Rivals server wants.
   selector in its own, and the weapon lock with them, since the lock is only ever "a paint weapon in slot
   0") and every Rivals boss bar — the timer and the score bars — comes off every screen, so a player is
   left with the inventory they walked in with. `/rivals kit` and `/rivals gun` still hand out items outside
-  a match, for testing an arena. Everybody freezes again, the paint is counted, and the winner is titled in their
+  a match, for testing an arena. Everybody is put in spectator, the paint is counted, and the winner is titled in their
   own colour — "DATA wins!", "IT wins!" or "Draw", with both percentages under it and in chat — while ten
   team-coloured rockets go up over three seconds at the winner's spawn. Ten seconds later it is the lobby
-  again. Every transition clears `InkOnScreen` and stops any `Roll` for everybody: ink on the glass is
+  again: adventure back on, and everybody teleported to the level's own respawn point (`Lobby.sendHome`). Every transition clears `InkOnScreen` and stops any `Roll` for everybody: ink on the glass is
   health lost in a round that is over, and a roll that survived a teleport is a player rolling on a spawn
   platform.
 
   **Dying** during PLAYING puts a player back on their own team's spawn (Fabric's `AFTER_RESPAWN`, which
   hands over the new entity — overriding the respawn position itself would also have to answer for the
   bed, the anchor and the end portal), frozen and invulnerable for three seconds with a "Respawning"
-  title and a clean screen, and re-armed. A player who **joins mid-match** gets the same treatment as a
-  respawn, so nobody loads into a firefight.
+  title and a clean screen, re-armed — and re-dressed: a round is played in the side's ovve, and a death may
+  have dropped it. A player who **joins mid-match** gets the same treatment as a respawn, so nobody loads
+  into a firefight.
+
+  **Dressing.** Each side has a **dress function** saved with the arena (`/rivals dress-function set data|it
+  <function>`, `show`), run as the player — gamemaster permission, output suppressed — at every way into a
+  round: the start, a mid-round join, a respawn (a death may have dropped the ovve). It is the datapack's
+  way of putting the side's ovve on, and this mod never names an item:
+
+  ```
+  /rivals dress-function set data main:api/dress_data    →  item replace entity @s armor.legs with ovvar:data_ovve
+  /rivals dress-function set it   main:api/dress_it      →  item replace entity @s armor.legs with ovvar:it_kisel_ovve
+  ```
+
+  No function set means players keep whatever they wear.
+
+  **Changing weapon mid-round** is done at your own spawn: `WeaponPicks.pickRefusal` refuses a pick — and
+  the selector refuses to open — during PLAYING further than `SWAP_RADIUS` (8 blocks) from the side's own
+  spawn. The lobby and the countdown are anywhere.
 
   The clock and the roster are both handed in: `Match.tick` takes the tick count and `start` takes a
   supplier of the players, defaulting to the online list. Nothing in `Match` reads `getTickCount()` on its
@@ -564,8 +581,17 @@ paint, which only a dedicated Rivals server wants.
   silhouette. Per colour there are 16 uniform 16×16 textures — the paint colour, alpha 235 (the
   gloss shader's marker: the window 233..237 is the one band in 200..254 that no vanilla block texture
   has a texel in, with 232 on `nether_portal` and 238 on `frosted_ice` the nearest values that exist), and the four connection bits packed into the low
-  nibble of the red channel (`r = (base & 0xF0) | bits`) — plus six shared one-quad models, one per
-  attach direction, each 0.1/16 off the face like the multiface donors. A blockstate `variants` file
+  nibble of the red channel (`r = (base & 0xF0) | bits`) — plus 96 shared face models, one per
+  (bits, attach direction), each 0.1/16 off the face like the multiface donors. **The border is
+  geometry**: a face model's quads stop one texel short of the cell on every unconnected side, and a
+  corner both of whose sides are unconnected is notched three texels along each edge with a one-texel
+  step (three overlapping rectangles, so the union is an L-shaped corner). That is what a client sees
+  with no shader at all — and Sodium is exactly that client: it draws chunks with its own shaders and
+  refuses a pack's `terrain.vsh`/`terrain.fsh` outright (its log says "replaces terrain shaders, which
+  are not supported"), so before this a Sodium player saw every painted cell as a flat full square,
+  while the display quads beside it (item shader, which Sodium leaves alone) had their borders. Each
+  quad's `uv` is the rectangle it covers, so the sprite's texel grid stays the cell's and the shader's
+  in-face coordinate still holds. A blockstate `variants` file
   per donor block maps every one of its states to either a wrapper model (a connected cell's face
   quad with its (colour, bits) texture) or a mask model (a corner cell's quad-per-face, all on the
   all-connected texture); states paint doesn't use point at an empty model. The override replaces the
@@ -590,8 +616,12 @@ paint, which only a dedicated Rivals server wants.
   and glint/sheen/fresnel mixed toward white — now computed from that same distance field instead of
   sampling neighbour texels; every other texel keeps vanilla's shading byte for byte. (v2 keyed this
   into `block.vsh`/`block.fsh`, which chunk terrain never runs through, so the gloss never rendered;
-  those overrides are gone.) Known limit: a shader pack (e.g. Iris) replaces the core shaders
-  wholesale and loses the gloss.
+  those overrides are gone.) The shader's inset runs 0..2 texels; the geometry's fixed one texel clips
+  only the wobble's innermost step, and its corner (4.5-texel radius) is always inside the geometry's
+  notch. Known limit: Sodium, and a shader pack (e.g. Iris), replace the terrain shaders wholesale and
+  lose the gloss and the wobble — they keep the geometry's border, which is the point of it. A client
+  screenshot test (`./gradlew :mods:rivals-paint:runClientGameTest`, and again with
+  `-Psodium=mc26.3-0.9.2-fabric`) photographs both.
 - The pack overrides `assets/minecraft/shaders/core/item.vsh`/`item.fsh` as well, with the same gloss
   block behind the same marker guard, because that is the pair that draws the display quads: both
   display kinds render block models through `Sheets.cutoutBlockItemSheet()`, which is
@@ -820,13 +850,15 @@ paint, which only a dedicated Rivals server wants.
 
 ```
 /rivals setup            make the two teams (names from config/rivals-paint/teams.json)
-/team join data @s
+/team join main.data @s
 /rivals gun              shooter, the default
 /rivals gun slosher      or charger / roller
 /rivals kit              one of every weapon
 /rivals score
 /rivals reset
-/rivals reload           re-read teams.json, unpaintable.json and main.json
+/rivals reload           re-read every file in config/rivals-paint/ (teams, unpaintable, main, weapons, specials)
+/rivals config           what each config file is for and holds right now
+/rivals help             the whole setup, in order
 /rivals weapons          the weapon picker dialog (any player)
 /rivals weapons pick roller   what its buttons run
 /rivals spawn set data   where a team starts
@@ -840,10 +872,11 @@ paint, which only a dedicated Rivals server wants.
 ### Running a match
 
 The two sides are plain **vanilla scoreboard teams**. Which ones is set in
-`config/rivals-paint/teams.json` (`{"teams": {"data": "data", "it": "it"}}` — the keys are the two
+`config/rivals-paint/teams.json` (`{"teams": {"data": "main.data", "it": "main.it"}}` — the keys are the two
 colour slots, the values are the team names they use), written with its own `_help` the first time the
 server starts and re-read by `/rivals reload`. Point a slot at a team the server already runs, or leave the
-defaults and let `/rivals setup` make `data` and `it`. Players join a side with `/team join <name>`.
+defaults — MAIN's own `main.data` and `main.it` — and let `/rivals setup` make them if they are missing. Players
+join a side with `/team join <name>`.
 
 In order, once per arena:
 
@@ -858,7 +891,7 @@ In order, once per arena:
 Then, once per round:
 
 ```
-/team join data @s                     each player picks a side (or an operator assigns them)
+/team join main.data @s                     each player picks a side (or an operator assigns them)
 /rivals weapons                        each player, or right-click the weapon selector
 /rivals special                        and what F throws; the weapon picker's last button opens it too
 /rivals ready                          fails and names anybody on neither team

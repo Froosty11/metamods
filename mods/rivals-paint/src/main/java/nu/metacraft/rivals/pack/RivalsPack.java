@@ -42,7 +42,7 @@ public final class RivalsPack {
 			int colors = PaintColor.values().length;
 			Rivals.LOGGER.info(
 					"[{}] pack: {} paint files ({} bit textures, {} face models, {} wrappers, {} mask models, 1 empty model, {} donor overrides), {} ink files, terrain and item shaders",
-					Rivals.MOD_ID, paint.size(), colors * PaintArt.BITS, Direction.values().length,
+					Rivals.MOD_ID, paint.size(), colors * PaintArt.BITS, PaintArt.BITS * Direction.values().length,
 					colors * PaintArt.BITS * Direction.values().length, colors * PaintStates.SPLAT_PER_COLOR,
 					PaintStates.DONORS.size(), ink.size());
 			for (String name : SHADERS) builder.addData("assets/minecraft/shaders/core/" + name, shader(name));

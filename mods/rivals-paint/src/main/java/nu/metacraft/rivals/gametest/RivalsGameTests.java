@@ -169,6 +169,13 @@ public final class RivalsGameTests {
 	private static final List<Block> SPLAT_DONORS = Stream.concat(
 			Stream.of(Blocks.PALE_MOSS_CARPET), FLAT_DONORS.stream()).toList();
 
+	static {
+		// A gun is a round's: outside PLAYING it refuses everybody but an admin, and a mock player is no admin.
+		// Most of these tests fire in no round at all, so the batch runs with that rule off; the one test of
+		// the rule itself turns it back on for its own synchronous body.
+		PaintWeapon.setArmedOutsideMatch(true);
+	}
+
 	@GameTest
 	public void modLoads(GameTestHelper helper) {
 		helper.succeed();
@@ -267,12 +274,16 @@ public final class RivalsGameTests {
 				String texturePath = "assets/rivals-paint/textures/" + texture.substring(texture.indexOf(':') + 1) + ".png";
 				helper.assertTrue(files.containsKey(texturePath), "texture in pack: " + texturePath);
 				if (json.has("parent")) {
-					// A connected cell: the wrapper hangs its texture on one of the six shared face quads.
+					// A connected cell: the wrapper hangs its texture on the shared face for its own bits and
+					// attach direction — one rectangle, or three where a corner is notched (paintFacesCarryTheirBorder).
+					PaintStates.Entry entry = PaintStates.entry(state);
 					String parent = json.get("parent").getAsString();
+					helper.assertValueEqual(parent, Rivals.MOD_ID + ":block/" + PaintArt.modelName(entry.bits(), entry.face()), "parent of " + modelPath);
 					String parentPath = "assets/rivals-paint/models/block/" + parent.substring(parent.indexOf('/') + 1) + ".json";
 					helper.assertTrue(files.containsKey(parentPath), "parent model in pack: " + parentPath);
 					JsonObject parentJson = JsonParser.parseString(new String(files.get(parentPath), StandardCharsets.UTF_8)).getAsJsonObject();
-					helper.assertValueEqual(parentJson.getAsJsonArray("elements").size(), 1, parentPath + " is one quad");
+					int quads = parentJson.getAsJsonArray("elements").size();
+					helper.assertTrue(quads == 1 || quads == 3, parentPath + " is one rectangle or a notched three, not " + quads);
 				} else {
 					// A splat mask: one model listing a quad per painted face, all on the all-connected texture.
 					helper.assertValueEqual(json.getAsJsonArray("elements").size(),
@@ -281,10 +292,11 @@ public final class RivalsGameTests {
 			}
 			helper.assertValueEqual(variants.size(), states, donor + ": a variant for every state");
 		}
-		// The quad itself: a plane the full 16×16 of the cell, a tenth of a sixteenth off the attach face
-		// (vanilla's own multiface offset), textured on both of its sides with the whole sprite and never
-		// tinted — a slab, a smaller uv or a tintindex would each change what the shader is handed.
-		String facePath = "assets/rivals-paint/models/block/" + PaintArt.modelName(Direction.DOWN) + ".json";
+		// The all-connected quad itself: a plane the full 16×16 of the cell, a tenth of a sixteenth off the
+		// attach face (vanilla's own multiface offset), textured on both of its sides with the whole sprite
+		// and never tinted — a slab, a smaller uv or a tintindex would each change what the shader is handed.
+		// (The other fifteen patterns inset that plane on their unconnected sides: paintFacesCarryTheirBorder.)
+		String facePath = "assets/rivals-paint/models/block/" + PaintArt.modelName(15, Direction.DOWN) + ".json";
 		JsonObject face = JsonParser.parseString(new String(files.get(facePath), StandardCharsets.UTF_8)).getAsJsonObject();
 		JsonArray elements = face.getAsJsonArray("elements");
 		helper.assertValueEqual(elements.size(), 1, facePath + " is one quad");
@@ -308,6 +320,57 @@ public final class RivalsGameTests {
 			// sprite, because the shader reads the cell's own coordinate out of it.
 			helper.assertValueEqual(uv.toString(), java.util.Arrays.toString(PaintArt.uv(Direction.byName(side))).replace(" ", ""),
 					facePath + " " + side + " uv covers the sprite");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The border is geometry, so a Sodium client — which draws chunks with its own shaders and refuses the
+	 * pack's terrain pair — sees a shaped sheet and not a flat full square. Per pattern: a connected side
+	 * runs to the cell's edge, an unconnected one is inset one texel, and a corner both of whose sides are
+	 * unconnected is notched three texels along each edge with a one-texel step. Judged on the union of
+	 * the elements' rectangles, texel by texel, on the up face (u = x, v = z) and on north (u = x, v = y,
+	 * with the flips the uv table gives), and every face's uv is the rectangle it covers, so the texel
+	 * grid under an inset quad is still the cell's.
+	 */
+	@GameTest
+	public void paintFacesCarryTheirBorder(GameTestHelper helper) {
+		Map<String, byte[]> files = PaintArt.packFiles();
+		for (Direction attach : Direction.values()) {
+			for (int bits = 0; bits < PaintArt.BITS; bits++) {
+				String path = "assets/rivals-paint/models/block/" + PaintArt.modelName(bits, attach) + ".json";
+				JsonObject model = JsonParser.parseString(new String(files.get(path), StandardCharsets.UTF_8)).getAsJsonObject();
+				boolean negU = (bits & 1) != 0, posU = (bits & 2) != 0, negV = (bits & 4) != 0, posV = (bits & 8) != 0;
+				boolean[][] covered = new boolean[16][16];
+				int uAxis = attach.getAxis() == Direction.Axis.Y ? 0 : attach.getAxis() == Direction.Axis.X ? 2 : 0;
+				int vAxis = attach.getAxis() == Direction.Axis.Y ? 2 : 1;
+				for (JsonElement e : model.getAsJsonArray("elements")) {
+					JsonObject element = e.getAsJsonObject();
+					JsonArray from = element.getAsJsonArray("from"), to = element.getAsJsonArray("to");
+					int ua = from.get(uAxis).getAsInt(), ub = to.get(uAxis).getAsInt();
+					int va = from.get(vAxis).getAsInt(), vb = to.get(vAxis).getAsInt();
+					for (int u = ua; u < ub; u++) {
+						for (int v = va; v < vb; v++) covered[u][v] = true;
+					}
+					for (var face : element.getAsJsonObject("faces").entrySet()) {
+						JsonArray uv = face.getValue().getAsJsonObject().getAsJsonArray("uv");
+						int[] want = PaintArt.uv(Direction.byName(face.getKey()), ua, va, ub, vb);
+						for (int i = 0; i < 4; i++) {
+							helper.assertValueEqual(uv.get(i).getAsInt(), want[i], path + " " + face.getKey() + " uv[" + i + "] is the rectangle it covers");
+						}
+					}
+				}
+				for (int u = 0; u < 16; u++) {
+					for (int v = 0; v < 16; v++) {
+						int du = Math.min(negU ? 16 : u, posU ? 16 : 15 - u);   // texels in from the nearest unconnected u side
+						int dv = Math.min(negV ? 16 : v, posV ? 16 : 15 - v);
+						boolean inset = du < PaintArt.INSET || dv < PaintArt.INSET;
+						boolean notch = du < PaintArt.NOTCH && dv < PaintArt.NOTCH && !(du > PaintArt.INSET && dv > PaintArt.INSET);
+						boolean want = !inset && !notch;
+						helper.assertValueEqual(covered[u][v], want, path + " texel (" + u + "," + v + ") for bits " + bits);
+					}
+				}
+			}
 		}
 		helper.succeed();
 	}
@@ -595,7 +658,7 @@ public final class RivalsGameTests {
 			MultiActionDialog dialog = WeaponDialog.build(player);
 			helper.assertValueEqual(dialog.common().body().size(), 4, "one picture per weapon");
 			helper.assertValueEqual(dialog.actions().size(), 5, "one button per weapon, and one out to the special");
-			helper.assertValueEqual(dialog.columns(), 2, "two buttons to a row");
+			helper.assertValueEqual(dialog.columns(), 4, "the four weapons on one row");
 			int index = 0;
 			for (Weapon weapon : Weapon.values()) {
 				ItemBody picture = (ItemBody) dialog.common().body().get(index);
@@ -616,7 +679,7 @@ public final class RivalsGameTests {
 			// With no pick of their own the shooter is the one marked, since that is what a match hands out.
 			helper.assertValueEqual(WeaponChoice.DEFAULT, Weapon.SHOOTER, "the default is the shooter");
 			helper.assertTrue(((ItemBody) dialog.common().body().getFirst()).description().orElseThrow()
-					.contents().getString().contains("(current)"), "and it is the one marked current");
+					.contents().getString().contains("yours"), "and it is the one marked as theirs");
 			// The last button is the other half of a loadout: it says what F throws now and opens the picker.
 			ActionButton special = dialog.actions().getLast();
 			helper.assertValueEqual(buttonCommand(special), WeaponDialog.SPECIAL_COMMAND, "the last button opens the special picker");
@@ -1370,7 +1433,7 @@ public final class RivalsGameTests {
 
 			Match.tick(level.getServer(), playing + 60L * 20L);
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "time is up");
-			helper.assertTrue(Match.isFrozen(one), "everybody is frozen for the result");
+			helper.assertTrue(one.gameMode.getGameModeForPlayer() == GameType.SPECTATOR, "everybody watches the result as a spectator");
 			helper.assertTrue(!Match.finalCounts().isEmpty(), "and the paint was counted");
 			// A match that runs out of clock takes the kit back exactly as a stopped one does.
 			helper.assertValueEqual(paintWeapons(one) + selectors(one), 0, "one is carrying nothing of ours");
@@ -1497,7 +1560,7 @@ public final class RivalsGameTests {
 
 			helper.assertTrue(Match.stop(t + 400, helper.getLevel().getServer()), "stopped early");
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "which is the same ending");
-			helper.assertTrue(Match.isFrozen(player), "and the same freeze");
+			helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.SPECTATOR, "and the same spectator seat");
 			// The whistle: no kit, no lock, no bars.
 			helper.assertValueEqual(paintWeapons(player), 0, "the weapon went back with the whistle");
 			helper.assertValueEqual(selectors(player), 0, "and so did the selector");
@@ -1591,37 +1654,6 @@ public final class RivalsGameTests {
 		helper.succeed();
 	}
 
-	/**
-	 * Coming back to life outside a match: a dressed player lands on their own team's spawn, and one with
-	 * no team lands at the world spawn instead of wherever they happened to die.
-	 */
-	@GameTest
-	public void theLobbyRespawnsOnTheTeamSpawn(GameTestHelper helper) {
-		ServerLevel level = helper.getLevel();
-		Arena arena = Arena.of(level);
-		ServerPlayer player = connected(mockServerPlayer(helper, GameType.SURVIVAL));
-		helper.getLevel().getScoreboard().addPlayerToTeam(player.getScoreboardName(), team(helper, PaintColor.IT));
-		try {
-			arena.forget();
-			Vec3 itAt = helper.absoluteVec(new Vec3(5.5, 2.0, 5.5));
-			arena.setSpawn(PaintColor.IT, new Arena.Spawn(itAt, 90f, 5f));
-			player.setPos(helper.absoluteVec(new Vec3(1.5, 2.0, 1.5)));
-			Lobby.sendToSpawn(player);
-			helper.assertTrue(player.position().distanceTo(itAt) < 1.0e-3,
-					"a team player lands on their team's spawn, not " + player.position());
-			helper.assertValueEqual(player.getYRot(), 90f, "facing the way the spawn faces");
-			// With no spawn for their colour there is nothing to send them to but the world spawn.
-			arena.forget();
-			BlockPos world = level.getRespawnData().pos();
-			Lobby.sendToSpawn(player);
-			helper.assertTrue(player.position().distanceTo(new Vec3(world.getX() + 0.5, world.getY(), world.getZ() + 0.5)) < 1.0e-3,
-					"and with no team spawn, the world's own, not " + player.position());
-		} finally {
-			arena.forget();
-			helper.getLevel().getScoreboard().removePlayerFromTeam(player.getScoreboardName(), team(helper, PaintColor.IT));
-		}
-		helper.succeed();
-	}
 
 	/**
 	 * Arena bounds around this test's own structure and nothing else.
@@ -1639,8 +1671,9 @@ public final class RivalsGameTests {
 
 	private static PlayerTeam team(GameTestHelper helper, PaintColor color) {
 		ServerScoreboard board = helper.getLevel().getScoreboard();
-		PlayerTeam team = board.getPlayerTeam(color.id);
-		return team != null ? team : board.addPlayerTeam(color.id);
+		// Under the configured name, so the tests follow teams.json the way a player's /team join does.
+		PlayerTeam team = board.getPlayerTeam(TeamNames.nameOf(color));
+		return team != null ? team : board.addPlayerTeam(TeamNames.nameOf(color));
 	}
 
 	/**
@@ -1745,6 +1778,28 @@ public final class RivalsGameTests {
 		player.setPos(at.x, at.y, at.z);
 		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(PaintWeapon.of(Weapon.SHOOTER)));
 		return player;
+	}
+
+	/**
+	 * Outside a round the gun refuses too — a paint gun is a round's, and the only reason to hold one
+	 * between rounds is an admin testing an arena. Told through the same gate the team check is.
+	 */
+	@GameTest
+	public void gunOutsideARoundDoesNotShoot(GameTestHelper helper) {
+		Player player = gunner(helper);
+		helper.getLevel().getScoreboard().addPlayerToTeam(player.getScoreboardName(), team(helper, PaintColor.DATA));
+		try {
+			PaintWeapon.setArmedOutsideMatch(false);
+			helper.assertValueEqual(Match.state(), Match.State.LOBBY, "no round is running");
+			helper.assertTrue(PaintWeapon.firingRefusal(player) != null, "so a player who is not an admin is refused");
+			InteractionResult result = PaintWeapon.of(Weapon.SHOOTER).use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+			helper.assertTrue(result == InteractionResult.FAIL, "use fails outside a round");
+			helper.assertTrue(helper.getEntities(PaintBall.TYPE, new BlockPos(4, 3, 4), 4.0).isEmpty(), "no paint ball spawned");
+		} finally {
+			PaintWeapon.setArmedOutsideMatch(true);
+			helper.getLevel().getScoreboard().removePlayerFromTeam(player.getScoreboardName());
+		}
+		helper.succeed();
 	}
 
 	/** Without a team the gun refuses: no projectile, no cooldown. */
@@ -2226,20 +2281,20 @@ public final class RivalsGameTests {
 		PlayerTeam renamed = board.addPlayerTeam(renamedName);
 		PlayerTeam stranger = board.addPlayerTeam(strangerName);
 		try {
-			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), "data", "the default name is the side's own id");
-			helper.assertValueEqual(TeamNames.slotOf("it").orElse(null), PaintColor.IT, "and it reads back");
+			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), "main.data", "the default name is MAIN's team for the side");
+			helper.assertValueEqual(TeamNames.slotOf("main.it").orElse(null), PaintColor.IT, "and it reads back");
 			helper.assertTrue(TeamNames.slotOf(strangerName).isEmpty(), "a team of nobody's is nobody's");
 			helper.assertTrue(TeamNames.renamed().isEmpty(), "nothing is off its default");
 
 			helper.assertTrue(TeamNames.set(PaintColor.DATA, renamedName), "DATA is pointed elsewhere");
 			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), renamedName, "which is the name it now uses");
 			helper.assertValueEqual(TeamNames.slotOf(renamedName).orElse(null), PaintColor.DATA, "and it resolves");
-			helper.assertTrue(TeamNames.slotOf("data").isEmpty(), "while the old name is nobody's");
+			helper.assertTrue(TeamNames.slotOf("main.data").isEmpty(), "while the old name is nobody's");
 			helper.assertValueEqual(TeamNames.renamed(), List.of(PaintColor.DATA), "one side is off its default");
-			helper.assertValueEqual(TeamNames.nameList(), renamedName + ", it", "listed as " + TeamNames.nameList());
+			helper.assertValueEqual(TeamNames.nameList(), renamedName + ", main.it", "listed as " + TeamNames.nameList());
 			// Two sides may not share a name: a team cannot be both, and the lookup would have to guess.
 			helper.assertFalse(TeamNames.set(PaintColor.IT, renamedName), "IT cannot take DATA's team");
-			helper.assertValueEqual(TeamNames.nameOf(PaintColor.IT), "it", "so IT keeps its own");
+			helper.assertValueEqual(TeamNames.nameOf(PaintColor.IT), "main.it", "so IT keeps its own");
 			// And a real team under the configured name is DATA, while any other team is nobody's.
 			helper.assertValueEqual(PaintColor.byTeam(renamed).orElse(null), PaintColor.DATA,
 					"a team under the configured name is DATA");
@@ -2534,11 +2589,11 @@ public final class RivalsGameTests {
 			helper.assertValueEqual(java.util.Arrays.toString(PaintArt.uv(side)),
 					java.util.Arrays.toString(entry.getValue()), side + " uv");
 		}
-		// And every generated face model actually carries them: two faces per attach direction, the two
-		// sides of the paper-thin quad, each with the flip its own facing needs.
+		// And every generated all-connected face model actually carries them: two faces per attach
+		// direction, the two sides of the paper-thin quad, each with the flip its own facing needs.
 		Map<String, byte[]> files = PaintArt.packFiles();
 		for (Direction attach : Direction.values()) {
-			String path = "assets/rivals-paint/models/block/" + PaintArt.modelName(attach) + ".json";
+			String path = "assets/rivals-paint/models/block/" + PaintArt.modelName(15, attach) + ".json";
 			helper.assertTrue(files.containsKey(path), "model in pack: " + path);
 			JsonObject model = JsonParser.parseString(new String(files.get(path), StandardCharsets.UTF_8)).getAsJsonObject();
 			JsonObject faces = model.getAsJsonArray("elements").get(0).getAsJsonObject().getAsJsonObject("faces");
@@ -5013,12 +5068,12 @@ public final class RivalsGameTests {
 	}
 
 	/**
-	 * Letting go of the scope is not a shot. The charger's two buttons are the scope (right, held) and
-	 * the trigger (left), so a release fires nothing, costs nothing and paints nothing — however long
-	 * the charge was held for.
+	 * Letting go of the scope is the shot. A vanilla client refuses to attack while it is using an item —
+	 * and the scope is a spyglass in use — so a scoped charger has no left click at all; the release is
+	 * the one gesture that always arrives, and it fires at whatever charge the hold built.
 	 */
 	@GameTest
-	public void chargerReleaseDoesNotFire(GameTestHelper helper) {
+	public void chargerFiresWhenTheScopeIsLetGo(GameTestHelper helper) {
 		stoneFloor(helper, 5);
 		Player player = gunner(helper);
 		ItemStack charger = new ItemStack(PaintWeapon.of(Weapon.CHARGER));
@@ -5029,14 +5084,12 @@ public final class RivalsGameTests {
 		player.setYRot(-90f); // look +X, down the floor
 		player.setXRot(0f);
 		player.startUsingItem(InteractionHand.MAIN_HAND);
-		boolean fired = PaintWeapon.of(Weapon.CHARGER).releaseUsing(charger, helper.getLevel(), player,
+		PaintWeapon.of(Weapon.CHARGER).releaseUsing(charger, helper.getLevel(), player,
 				Weapon.CHARGE_MAX_TICKS - Weapon.CHARGE_FULL_TICKS);
-		helper.assertTrue(!fired, "a release is not a shot");
-		helper.assertValueEqual(Ink.get(charger), Ink.MAX, "and costs nothing");
-		for (int x = 1; x <= 4; x++) {
-			helper.assertTrue(!isPaint(helper.getBlockState(new BlockPos(x, 2, 2)), PaintColor.DATA),
-					"nothing painted at x=" + x);
-		}
+		helper.assertTrue(Ink.get(charger) < Ink.MAX, "a full-charge release is a shot, and it costs ink: " + Ink.get(charger));
+		boolean painted = false;
+		for (int x = 1; x <= 4; x++) painted |= isPaint(helper.getBlockState(new BlockPos(x, 2, 2)), PaintColor.DATA);
+		helper.assertTrue(painted, "and the line landed on the floor in front of the player");
 		helper.succeed();
 	}
 

@@ -59,22 +59,32 @@ public final class Arena extends SavedData {
 		}
 	}
 
-	public record TeamArenaData(Optional<Spawn> spawn, Optional<FunctionOrTag> onVictory) {
-		public static final TeamArenaData DEFAULT = new TeamArenaData(Optional.empty(), Optional.empty());
+	/**
+	 * What the arena knows per side: where they start, what runs when they win, and what dresses one of
+	 * them — a function run as the player at round start, on a mid-round join and on every respawn, so a
+	 * datapack can put the side's ovve on with a plain {@code item replace}.
+	 */
+	public record TeamArenaData(Optional<Spawn> spawn, Optional<FunctionOrTag> onVictory, Optional<FunctionOrTag> onDress) {
+		public static final TeamArenaData DEFAULT = new TeamArenaData(Optional.empty(), Optional.empty(), Optional.empty());
 
 		public static final Codec<TeamArenaData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 				Spawn.CODEC.optionalFieldOf("spawn").forGetter(TeamArenaData::spawn),
-				FunctionOrTag.CODEC.optionalFieldOf("on_victory").forGetter(TeamArenaData::onVictory)
+				FunctionOrTag.CODEC.optionalFieldOf("on_victory").forGetter(TeamArenaData::onVictory),
+				FunctionOrTag.CODEC.optionalFieldOf("on_dress").forGetter(TeamArenaData::onDress)
 			).apply(instance, TeamArenaData::new)
 		);
 
 		public TeamArenaData withSpawn(Spawn spawn) {
-			return new TeamArenaData(Optional.ofNullable(spawn), onVictory);
+			return new TeamArenaData(Optional.ofNullable(spawn), onVictory, onDress);
 		}
 
 		public TeamArenaData withVictoryFunction(FunctionOrTag onVictory) {
-			return new TeamArenaData(spawn, Optional.ofNullable(onVictory));
+			return new TeamArenaData(spawn, Optional.ofNullable(onVictory), onDress);
+		}
+
+		public TeamArenaData withDressFunction(FunctionOrTag onDress) {
+			return new TeamArenaData(spawn, onVictory, Optional.ofNullable(onDress));
 		}
 	}
 
@@ -129,6 +139,16 @@ public final class Arena extends SavedData {
 
 	public void setWinFunction(PaintColor color, FunctionOrTag function) {
 		teamData.put(color, teamData.getOrDefault(color, TeamArenaData.DEFAULT).withVictoryFunction(function));
+		setDirty();
+	}
+
+	/** The function that dresses a player of this side, if the arena has one. */
+	public Optional<FunctionOrTag> getDressFunction(PaintColor color) {
+		return teamData.getOrDefault(color, TeamArenaData.DEFAULT).onDress;
+	}
+
+	public void setDressFunction(PaintColor color, FunctionOrTag function) {
+		teamData.put(color, teamData.getOrDefault(color, TeamArenaData.DEFAULT).withDressFunction(function));
 		setDirty();
 	}
 

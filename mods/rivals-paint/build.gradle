@@ -4,10 +4,22 @@ version = project.rivals_version
 
 // Server-side game tests (Fabric GameTest API) live in the main source set:
 // ./gradlew mods:rivals-paint:runGameTest
+// Client screenshot tests (src/gametest, ./gradlew :mods:rivals-paint:runClientGameTest, needs a
+// display): a real client joins an in-process server and photographs the paint. -Psodium puts Sodium
+// on that client, to see what its terrain pipeline does to the paint shader.
 fabricApi {
 	configureTests {
+		createSourceSet = true
+		modId = "rivals-clienttest"
 		enableGameTests = true
+		enableClientGameTests = true
 		eula = true
+		username = "Tester"
+	}
+}
+if (project.hasProperty('sodium')) {
+	dependencies {
+		runtimeOnly("maven.modrinth:sodium:${project.sodium}")
 	}
 }
 

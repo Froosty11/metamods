@@ -46,6 +46,8 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
+import nu.metacraft.rivals.Lobby;
+import nu.metacraft.rivals.Match;
 import nu.metacraft.rivals.PaintColor;
 import nu.metacraft.rivals.PlayerTick;
 import nu.metacraft.rivals.Rivals;
@@ -63,9 +65,10 @@ import java.util.UUID;
 
 /**
  * Every paint weapon, in one item class parameterised by a {@link Weapon}. Right click fires: it throws
- * paint in the colour of the holder's vanilla team, and no team means no shot. Left click is the second
- * trigger — the roller's flick and the charger's shot, the two gestures that belong to a weapon whose
- * right click is a hold — and <b>F</b>, the swap-hands key, is the special: the splat bomb. Clients
+ * paint in the colour of the holder's vanilla team, and no team means no shot. Left click is the roller's
+ * flick, the one second gesture that belongs to a weapon whose right click is a hold; the charger fires
+ * when the scope is <em>let go</em>, because a vanilla client refuses to attack while it is using an item,
+ * so a scoped charger has no left click at all. <b>F</b>, the swap-hands key, is the special: the splat bomb. Clients
  * see a stand-in vanilla item wearing our 3D model; the model's ink is dye-tinted, and each inventory
  * tick writes the holder's team colour into the server-side stack as that dye, so every viewer sees the
  * weapon in its holder's colour.
@@ -76,7 +79,7 @@ import java.util.UUID;
  * <caption>controls</caption>
  * <tr><th>weapon</th><th>right click</th><th>left click</th><th>F</th></tr>
  * <tr><td>shooter</td><td>hold to fire</td><td>—</td><td>splat bomb</td></tr>
- * <tr><td>charger</td><td>hold to scope/charge</td><td>fire the charge</td><td>— (no bomb)</td></tr>
+ * <tr><td>charger</td><td>hold to scope/charge, let go to fire</td><td>— (blocked by the scope)</td><td>— (no bomb)</td></tr>
  * <tr><td>slosher</td><td>slosh</td><td>—</td><td>splat bomb</td></tr>
  * <tr><td>roller</td><td>hold to roll</td><td>flick</td><td>splat bomb</td></tr>
  * </table>
@@ -366,7 +369,7 @@ public final class PaintWeapon extends Item implements PolymerItem {
 		if (ready.isEmpty()) return false;
 		PaintColor color = ready.get();
 		if (weapon == Weapon.CHARGER) {
-			actionBar(player, Component.literal("The charger carries no bomb — left click fires the line")
+			actionBar(player, Component.literal("The charger carries no bomb — hold right click, let go to fire")
 					.withStyle(ChatFormatting.GRAY));
 			return false;
 		}
@@ -628,14 +631,22 @@ public final class PaintWeapon extends Item implements PolymerItem {
 			Roll.stop(player);
 			return false;
 		}
-		// Letting go of the scope is not a shot: the trigger is the left click, so that the aim and the
-		// firing are two buttons rather than one gesture. A short scoped hold is the one case worth a
-		// word, because someone clicking this weapon the way the others are clicked sees nothing
-		// happen at all and reads it as broken.
-		if (weapon != Weapon.CHARGER) return false;
-		if (held < WeaponTuning.get(weapon).intValue(Param.CHARGE_MIN)) {
-			actionBar(player, Component.literal("Hold right click to aim, left click to fire").withStyle(ChatFormatting.GRAY));
+		// Letting go of the scope is the shot. It was the left click for a while — aim and fire as two
+		// buttons — but a vanilla client will not attack while it is using an item, and the scope is a
+		// spyglass in use, so a scoped charger had no left click at all and could never fire. The charge
+		// is what the hold built, read off the ticks here rather than off chargeOf, which asks the
+		// player whether they are using the item and gets a different answer depending on which side of
+		// stopUsingItem this is called from.
+		if (weapon != Weapon.CHARGER || !(level instanceof ServerLevel serverLevel)) return false;
+		WeaponTuning tuning = WeaponTuning.get(weapon);
+		float charge = Math.min(1.0f, held / (float) Math.max(1, tuning.intValue(Param.CHARGE_FULL)));
+		Optional<PaintColor> ready = ready(serverLevel, player, stack); // team, refill, squid
+		if (ready.isEmpty()) return false;
+		if (Ink.get(stack) < chargeCost(tuning, charge)) {
+			outOfInk(serverLevel, player, stack);
+			return false;
 		}
+		chargerShot(serverLevel, player, stack, charge, ready.get());
 		return false;
 	}
 
@@ -736,7 +747,38 @@ public final class PaintWeapon extends Item implements PolymerItem {
 	 * exactly a shot that has one, so looking the team up again afterwards was a second call that could
 	 * only have failed if this one had.
 	 */
+	/**
+	 * Whether a gun works in the lobby for a player who is not an admin. False on a server: a paint gun
+	 * is a round's, and the only reason to be holding one between rounds is {@code /rivals gun}, which is
+	 * an admin testing an arena. The game tests fire outside any round and flip this on for the batch.
+	 */
+	private static boolean armedOutsideMatch = false;
+
+	public static void setArmedOutsideMatch(boolean armed) {
+		armedOutsideMatch = armed;
+	}
+
+	/**
+	 * Why this player may not fire now, or null if they may: a gun works while a round is PLAYING, and
+	 * in the lobby for an admin (or under {@link #setArmedOutsideMatch}); never in the countdown or the
+	 * ten seconds after the whistle, when everybody is at a spawn or watching.
+	 */
+	public static @Nullable String firingRefusal(Player player) {
+		return switch (Match.state()) {
+			case PLAYING -> null;
+			case COUNTDOWN -> "Wait for GO!";
+			case ENDED -> "The round is over";
+			case LOBBY -> armedOutsideMatch || (player instanceof ServerPlayer serverPlayer && Lobby.isAdmin(serverPlayer))
+					? null : "No round is running";
+		};
+	}
+
 	private Optional<PaintColor> ready(ServerLevel level, Player player, ItemStack gun) {
+		String refusal = firingRefusal(player);
+		if (refusal != null) {
+			actionBar(player, Component.literal(refusal).withStyle(ChatFormatting.RED));
+			return Optional.empty();
+		}
 		Optional<PaintColor> color = PaintColor.byTeam(player.getTeam());
 		if (color.isEmpty()) {
 			actionBar(player, Component.literal("Join a team first: /team join " + PaintColor.values()[0].id)

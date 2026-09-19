@@ -1,7 +1,6 @@
 package nu.metacraft.rivals;
 
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -17,7 +16,6 @@ import nu.metacraft.rivals.gun.InkOnScreen;
 import nu.metacraft.rivals.gun.Roll;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * What being between matches means for a player: adventure mode and no Rivals kit at all — no gun, no
@@ -38,9 +36,9 @@ import java.util.Optional;
  * who joins while a match is <em>playing</em> is not given the lobby treatment at all: they are added to
  * the match ({@link Match#addMidMatch}), which arms them and gives them the respawn grace.
  *
- * <p>Respawning in the lobby puts a player on one of the two sides back on that side's own spawn, and
- * everyone else at the world spawn — the same rule as in a match, minus the freeze, so that a lobby death
- * does not scatter people across the map.
+ * <p><b>Outside a round this mod does not move anybody.</b> The team spawns are the round's, and this is
+ * one minigame of several on the server: a lobby death respawns wherever the world says, and a join
+ * only has the Rivals kit taken back, not a game mode set.
  */
 public final class Lobby {
 	/** The permission that keeps a player's own game mode. */
@@ -50,15 +48,12 @@ public final class Lobby {
 
 	public static void init() {
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> receiveOnJoin(handler.getPlayer()));
-		// A lobby death: the team spawn if they are on one, the world spawn if not. The match's own hook
-		// answers a death during PLAYING and this one steps aside for it.
-		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			if (alive || Match.state() == Match.State.PLAYING) return;
-			sendToSpawn(newPlayer);
-		});
 	}
 
-	/** A player arriving: into the match if one is on, into the lobby otherwise. */
+	/**
+	 * A player arriving: into the match if one is on; otherwise only the kit is taken back, because a
+	 * server that runs other games too does not want its players' game mode set by this one on every join.
+	 */
 	public static void receiveOnJoin(ServerPlayer player) {
 		if (Match.state() == Match.State.PLAYING
 				&& Match.addMidMatch(player, player.level().getServer().getTickCount())) {
@@ -66,7 +61,7 @@ public final class Lobby {
 					.withStyle(ChatFormatting.GREEN));
 			return;
 		}
-		receive(player);
+		Match.disarm(player);
 	}
 
 	/**
@@ -90,22 +85,13 @@ public final class Lobby {
 		return taken;
 	}
 
-	/** Their own side's spawn if their scoreboard team is one of the two, the world spawn otherwise. */
-	public static void sendToSpawn(ServerPlayer player) {
+	/** The level's own respawn point, whatever team they are on: where a round leaves everybody when it is over. */
+	public static void sendHome(ServerPlayer player) {
 		if (!(player.level() instanceof ServerLevel level)) return;
-		Optional<PaintColor> color = PaintColor.byTeam(player.getTeam());
-		Optional<Arena.Spawn> spawn = color.flatMap(c -> Arena.of(level).spawn(c));
-		if (spawn.isPresent()) {
-			Arena.Spawn at = spawn.get();
-			player.teleportTo(level, at.pos().x, at.pos().y, at.pos().z, java.util.Set.<Relative>of(),
-					at.yaw(), at.pitch(), true);
-		} else {
-			// The level's own respawn point: the world spawn, and its stored look with it.
-			LevelData.RespawnData world = level.getRespawnData();
-			BlockPos at = world.pos();
-			player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5,
-					java.util.Set.<Relative>of(), world.yaw(), world.pitch(), true);
-		}
+		LevelData.RespawnData world = level.getRespawnData();
+		BlockPos at = world.pos();
+		player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5,
+				java.util.Set.<Relative>of(), world.yaw(), world.pitch(), true);
 		InkOnScreen.clear(player);
 	}
 

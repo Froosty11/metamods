@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.BossEvent;
@@ -76,7 +77,8 @@ import java.util.function.Supplier;
  * <p><b>Frozen</b> means a −100 % {@code MOVEMENT_SPEED} modifier and a −100 % {@code JUMP_STRENGTH} one,
  * transient attribute modifiers by id exactly as the roller's speed bonus is, rather than potion effects:
  * they are exact, they do not show up in the client's effect list and they come off by id. Used for the
- * countdown, for the ten seconds after the whistle and for the three a respawn costs.
+ * countdown and for the three seconds a respawn costs; the ten seconds after the whistle are
+ * spectator instead.
  *
  * <p>Every transition wipes {@link InkOnScreen} and stops any {@link Roll} for everybody: ink on the
  * glass is health you lost in a round that is over, and a roll that survived a teleport is a player
@@ -198,7 +200,7 @@ public final class Match {
 	/**
 	 * Begin a match: check everybody is on one of the two sides (unless {@code force}), make sure both
 	 * teams exist, clear the arena's paint, hand out the weapon each player picked, teleport them to their
-	 * side's spawn in survival, freeze them and start the countdown.
+	 * side's spawn in adventure, freeze them and start the countdown.
 	 */
 	public static Result start(MinecraftServer server, ServerLevel level, Supplier<List<ServerPlayer>> players,
 			int minutes, boolean force, long now) {
@@ -282,7 +284,7 @@ public final class Match {
 
 	/**
 	 * Put one player into the match: their side's scoreboard team (which is what gives their paint a
-	 * colour), the weapon they picked, their side's spawn, survival. Also what a player who joins
+	 * colour), the weapon they picked, their side's spawn, adventure. Also what a player who joins
 	 * mid-match gets.
 	 */
 	public static void join(MinecraftServer server, ServerPlayer player, PaintColor color) {
@@ -292,8 +294,11 @@ public final class Match {
 		// where the board learns their name — see Stats.remember.
 		Stats.remember(player);
 		arm(player);
+		dress(player, color);
 		place(player, color);
-		player.setGameMode(GameType.SURVIVAL);
+		// Adventure, in and out of a round: an arena is painted, not mined, and the lobby puts the same mode
+		// back, so nobody is ever handed survival by this mod.
+		player.setGameMode(GameType.ADVENTURE);
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 	}
@@ -346,6 +351,19 @@ public final class Match {
 	 */
 	public static int disarm(ServerPlayer player) {
 		return WeaponPicks.sweep(player) + WeaponSelector.take(player);
+	}
+
+	/**
+	 * Run the arena's dress function for this side as the player, if it has one — the datapack's way of
+	 * putting the side's ovve on ({@code /rivals dress-function set}), run with a gamemaster's permission and
+	 * no chat feedback. Every way into a round comes through here: the start, a mid-round join, a respawn.
+	 */
+	static void dress(ServerPlayer player, PaintColor color) {
+		if (arena == null) return;
+		MinecraftServer server = arena.getServer();
+		Arena.of(arena).getDressFunction(color).ifPresent(functions -> functions.getFunctions(server).forEach(function ->
+				server.getFunctions().execute(function, player.createCommandSourceStack()
+						.withSuppressedOutput().withPermission(LevelBasedPermissionSet.GAMEMASTER))));
 	}
 
 	/** Move a player onto their team's spawn, if this level has one. */
@@ -488,7 +506,9 @@ public final class Match {
 		// is a real draw, which the titles say and the arena's draw function answers.
 		if (winner == null) winner = Stats.sideWithMostKills(roster.get());
 		for (ServerPlayer player : roster.get()) {
-			freeze(player);
+			// The result is watched, not stood through: spectator for the celebration, and the lobby puts
+			// adventure back and sends everybody home.
+			player.setGameMode(GameType.SPECTATOR);
 			disarm(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
@@ -578,13 +598,22 @@ public final class Match {
 		state = State.LOBBY;
 		stateEnds = now;
 		stateBegan = now;
+		// Whether something else takes over from here: an arena with an end function is MAIN's, and MAIN's
+		// outro puts people where it wants them. With none set this mod is on its own and sends them home.
+		boolean handedOver = arena != null && (Arena.of(arena).getWinFunction(winner).isPresent()
+				|| Arena.of(arena).getDrawFunction().isPresent());
 		onStateEnded();
 		clearBars();
+		// The paint goes with the round: the arena is shared with every other game on the server, and a
+		// floor left painted is the last round's result presented as scenery.
+		if (arena != null) clearArena(arena);
 		List<ServerPlayer> players = roster.get();
 		for (ServerPlayer player : players) {
 			thaw(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
+			player.setGameMode(GameType.ADVENTURE);
+			if (!handedOver) Lobby.sendHome(player);
 		}
 		Lobby.receiveAll(players);
 	}
@@ -609,6 +638,8 @@ public final class Match {
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 		arm(player);
+		// Their inventory may have been dropped with them: the side's dress function again, whatever they have.
+		PaintColor.byTeam(player.getTeam()).ifPresent(color -> dress(player, color));
 		grace(player, now);
 		title(player, Component.literal("Respawning").withStyle(ChatFormatting.AQUA), Component.empty());
 	}
