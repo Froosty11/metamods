@@ -100,6 +100,8 @@ public final class WardrobeGui extends SimpleGui {
 	/** Whose wardrobe is on show — the player's own, or somebody else's for {@code /ovvar look}. */
 	private final UUID owner;
 	private final String ownerName;
+	/** The chest behind the pocket, when the pocket is one; it follows the store while the screen is open. */
+	private @Nullable StashPocket pocket;
 
 	public static void open(ServerPlayer player) {
 		WardrobeGui gui = new WardrobeGui(player, player.getUUID(), player.getName().getString(), defaultChapter(player), Angle.FRONT, 0);
@@ -305,7 +307,13 @@ public final class WardrobeGui extends SimpleGui {
 
 	// ---- building the screen
 
+	@Override
+	public void onTick() {
+		if (pocket != null) pocket.tick();
+	}
+
 	private void build() {
+		pocket = null;
 		for (int i = 0; i < ROWS * WIDTH; i++) clearSlot(i);
 		if (!Wardrobes.loaded(owner)) {
 			Wardrobes.fetch(owner);
@@ -432,6 +440,16 @@ public final class WardrobeGui extends SimpleGui {
 		int showing = Math.min(page, pages - 1);
 		List<Integer> slots = pocketSlots(pages > 1);
 		int from = showing * perPage(stashed.size());
+		if (chest()) {
+			// Real slots, picked from and dropped into like a chest (StashPocket): this page's kinds
+			// first, the rest free to put patches in. No hover lines: the items are the real thing.
+			List<Patches.Patch> onPage = stashed.subList(from, Math.min(stashed.size(), from + perPage(stashed.size())));
+			pocket = new StashPocket(player, owner, onPage, slots.size());
+			pocket.fill(wardrobe);
+			for (int i = 0; i < slots.size(); i++) setSlot(slots.get(i), pocket.slot(i));
+			buildPageArrows(pages, showing);
+			return;
+		}
 		for (int i = 0; i + from < stashed.size() && i < slots.size(); i++) {
 			Patches.Patch patch = stashed.get(from + i);
 			int count = wardrobe.count(patch);
@@ -464,10 +482,24 @@ public final class WardrobeGui extends SimpleGui {
 		}
 		// An empty stash says so in the glyph layer (WardrobeFont.NO_PATCHES, drawn by the title
 		// across the whole pocket): no item here, so there is nothing to hover or mistake for a patch.
+		buildPageArrows(pages, showing);
+	}
+
+	private void buildPageArrows(int pages, int showing) {
 		if (pages > 1) {
 			if (showing > 0) setSlot(PAGE_PREVIOUS, pageArrow(WardrobeAction.PAGE_PREVIOUS, showing - 1, pages));
 			if (showing < pages - 1) setSlot(PAGE_NEXT, pageArrow(WardrobeAction.PAGE_NEXT, showing + 1, pages));
 		}
+	}
+
+	/**
+	 * Is the pocket a chest here: patches may leave the stash as items and the private sewing
+	 * flow is off (with sessions on a click on a patch has a job of its own, so the pocket stays
+	 * the click pocket). A refused player, a minigame server and a look at somebody else never get
+	 * real slots.
+	 */
+	private boolean chest() {
+		return own() && OwnedSewing.editingRefusal(player) == null && config().canWithdraw() && !config().sessions();
 	}
 
 	/** One of the pocket's page arrows: the rotation arrows' own sprite, pointing the same way, another job. */
@@ -516,7 +548,8 @@ public final class WardrobeGui extends SimpleGui {
 	 * pane named "\<verb\> (not here)" carrying the reason {@link StashConfig} gives for it.
 	 */
 	private void buildActions(ServerPlayer player, Wardrobe wardrobe) {
-		setSlot(TAKE_OUT_HINT, action(WardrobeAction.TAKE_OUT, config().whyNoWithdraw(), null));
+		setSlot(TAKE_OUT_HINT, action(WardrobeAction.TAKE_OUT, config().whyNoWithdraw(), null,
+				chest() ? "Pick patches up on the left as from a chest; drop patches there to put them in" : null));
 		setSlot(SEW_HINT, action(WardrobeAction.SEW, config().whyNoSessions(), null));
 		setSlot(DEPOSIT, action(WardrobeAction.PUT_IN, config().whyNoDeposit(), () -> Stash.deposit(player, reply -> {
 			player.sendOverlayMessage(Component.literal(reply));
@@ -553,12 +586,17 @@ public final class WardrobeGui extends SimpleGui {
 	 * lives on the collection slots themselves (there is no selected patch for a button to act on).
 	 */
 	private GuiElement action(WardrobeAction what, @Nullable String why, @Nullable Runnable click) {
+		return action(what, why, click, null);
+	}
+
+	/** The same, with {@code does} in place of the action's own line when the gesture differs here. */
+	private GuiElement action(WardrobeAction what, @Nullable String why, @Nullable Runnable click, @Nullable String does) {
 		boolean available = why == null;
 		GuiElementBuilder element = GuiElementBuilder.from(icon(what, available))
 				.setName(Component.literal(available ? what.verb : what.verb + " (not here)")
 						.withStyle(available ? ChatFormatting.AQUA : ChatFormatting.DARK_GRAY));
 		if (!available) element.addLoreLine(Component.literal(why).withStyle(ChatFormatting.RED));
-		element.addLoreLine(Component.literal(what.does).withStyle(available ? ChatFormatting.GRAY : ChatFormatting.DARK_GRAY));
+		element.addLoreLine(Component.literal(does != null ? does : what.does).withStyle(available ? ChatFormatting.GRAY : ChatFormatting.DARK_GRAY));
 		if (available && click != null) element.setCallback((index, type, action, gui) -> click.run());
 		return element.build();
 	}
@@ -594,7 +632,8 @@ public final class WardrobeGui extends SimpleGui {
 			book.addLoreLine(Component.literal(StashConfig.LOOK_ONLY + " — sew on a survival server").withStyle(ChatFormatting.RED));
 		} else {
 			boolean leftTakes = !config().sessions() || config().stashClick() == StashConfig.StashClick.WITHDRAW;
-			if (config().canWithdraw()) book.addLoreLine(Component.literal((leftTakes ? "Left" : "Right") + "-click a patch to take it out as an item (trade it!)").withStyle(ChatFormatting.WHITE));
+			if (chest()) book.addLoreLine(Component.literal("Pick patches up from the stash as from a chest (trade them!); drop patches in to put them away").withStyle(ChatFormatting.WHITE));
+			else if (config().canWithdraw()) book.addLoreLine(Component.literal((leftTakes ? "Left" : "Right") + "-click a patch to take it out as an item (trade it!)").withStyle(ChatFormatting.WHITE));
 			if (config().sessions()) book.addLoreLine(Component.literal((leftTakes ? "Right" : "Left") + "-click to sew it on your ovve on a private stand").withStyle(ChatFormatting.WHITE));
 		}
 		// The counts in full, whatever the header had room to draw of them.
