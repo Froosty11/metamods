@@ -76,7 +76,8 @@ import java.util.function.Supplier;
  * <p><b>Frozen</b> means a −100 % {@code MOVEMENT_SPEED} modifier and a −100 % {@code JUMP_STRENGTH} one,
  * transient attribute modifiers by id exactly as the roller's speed bonus is, rather than potion effects:
  * they are exact, they do not show up in the client's effect list and they come off by id. Used for the
- * countdown, for the ten seconds after the whistle and for the three a respawn costs.
+ * countdown and for the three seconds a respawn costs; the ten seconds after the whistle are
+ * spectator instead.
  *
  * <p>Every transition wipes {@link InkOnScreen} and stops any {@link Roll} for everybody: ink on the
  * glass is health you lost in a round that is over, and a roll that survived a teleport is a player
@@ -106,6 +107,7 @@ public final class Match {
 	private static long stateEnds;
 	/** The absolute tick the current state began, for the countdown's and the fireworks' own counting. */
 	private static long stateBegan;
+	private static Runnable onStateEnded = () -> {};
 	private static int minutes;
 	private static @Nullable ServerBossEvent timer;
 	private static @Nullable PaintColor winner;
@@ -197,7 +199,7 @@ public final class Match {
 	/**
 	 * Begin a match: check everybody is on one of the two sides (unless {@code force}), make sure both
 	 * teams exist, clear the arena's paint, hand out the weapon each player picked, teleport them to their
-	 * side's spawn in survival, freeze them and start the countdown.
+	 * side's spawn in adventure, freeze them and start the countdown.
 	 */
 	public static Result start(MinecraftServer server, ServerLevel level, Supplier<List<ServerPlayer>> players,
 			int minutes, boolean force, long now) {
@@ -234,6 +236,9 @@ public final class Match {
 			teamed++;
 		}
 		clearArena(level);
+		// After the teams are settled and the arena is clear: an empty board, and a zero for everybody
+		// playing, so MAIN's outro sorts the whole roster rather than only whoever scored.
+		Stats.startRound(server, roster.get());
 		enter(State.COUNTDOWN, now, COUNTDOWN_TICKS);
 		for (ServerPlayer player : roster.get()) freeze(player);
 		askUnarmed(report);
@@ -278,15 +283,21 @@ public final class Match {
 
 	/**
 	 * Put one player into the match: their side's scoreboard team (which is what gives their paint a
-	 * colour), the weapon they picked, their side's spawn, survival. Also what a player who joins
+	 * colour), the weapon they picked, their side's spawn, adventure. Also what a player who joins
 	 * mid-match gets.
 	 */
 	public static void join(MinecraftServer server, ServerPlayer player, PaintColor color) {
 		PlayerTeam team = server.getScoreboard().getPlayerTeam(TeamNames.nameOf(color));
 		if (team != null) server.getScoreboard().addPlayerToTeam(player.getScoreboardName(), team);
+		// Every way into a match is through here, including a player who turns up half way, so this is
+		// where the board learns their name — see Stats.remember.
+		Stats.remember(player);
 		arm(player);
+		Ovves.dress(player, color);
 		place(player, color);
-		player.setGameMode(GameType.SURVIVAL);
+		// Adventure, in and out of a round: an arena is painted, not mined, and the lobby puts the same mode
+		// back, so nobody is ever handed survival by this mod.
+		player.setGameMode(GameType.ADVENTURE);
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 	}
@@ -350,10 +361,26 @@ public final class Match {
 
 	// ---- stopping
 
-	/** The whistle, early. Returns whether there was a match to stop. */
-	public static boolean stop(long now) {
+	/**
+	 * The whistle, early, from an operator ({@code /rivals match stop}). Returns whether there was a match to
+	 * stop. The same ending as the clock's: the board is written and the arena's win function runs when the
+	 * celebration is over.
+	 */
+	public static boolean stop(long now, MinecraftServer server) {
 		if (!running()) return false;
-		end(now);
+		end(now, server, false);
+		return true;
+	}
+
+	/**
+	 * The whistle, early, from MAIN's own running flag dropping ({@link MainPack}). Returns whether there was
+	 * a match to stop. The board is still written — an outro may well want the numbers however the round
+	 * finished — but the arena's win function is <em>not</em> run: MAIN is already ending the game, and
+	 * telling it so again would be MAIN answering itself.
+	 */
+	public static boolean stopQuietly(long now, MinecraftServer server) {
+		if (!running()) return false;
+		end(now, server, true);
 		return true;
 	}
 
@@ -362,11 +389,14 @@ public final class Match {
 		clearBars();
 		for (ServerPlayer player : roster.get()) thaw(player);
 		state = State.LOBBY;
+		onStateEnded = () -> {};
 		arena = null;
 		winner = null;
 		finalCounts = Map.of();
 		respawning.clear();
 		roster = List::of;
+		Stats.clearAll();
+		MainPack.forget();
 	}
 
 	// ---- the clock
@@ -417,7 +447,7 @@ public final class Match {
 
 	private static void playing(MinecraftServer server, long now) {
 		if (ticksLeft(now) <= 0) {
-			end(now);
+			end(now, server, false);
 			return;
 		}
 		// Once a second: the bar's text is m:ss, so there is nothing to redraw between seconds, and the
@@ -443,13 +473,28 @@ public final class Match {
 	 * The whistle: freeze everybody, count the paint, say who won in their own colour and start the
 	 * winner's fireworks. The percentages are both printed, because "DATA wins" without a figure is a
 	 * result nobody can argue with or learn from.
+	 *
+	 * <p>The MAIN datapack never ends this minigame on its own, so the arena says how: its win function for
+	 * the winning side, or its draw function when there is none ({@link Arena#getWinFunction}, set with
+	 * {@code /rivals win-function set} and {@code /rivals draw-function set}), run when the celebration is
+	 * over and the lobby begins. {@code quiet} leaves that out — the flag-dropped stop, see
+	 * {@link #stopQuietly}. The per-player board ({@link Stats}) is written either way, and before any of
+	 * it, so MAIN's outro reads finished numbers.
 	 */
-	private static void end(long now) {
+	private static void end(long now, MinecraftServer server, boolean quiet) {
 		clearBars();
 		finalCounts = arena == null ? Map.of() : PaintTally.of(arena).count(arena);
+		// The board before the titles: count() has just pruned the paint that is gone, so the held-paint
+		// credit read off it now is the same picture the percentages are.
+		if (arena != null) Stats.publish(server, arena);
 		winner = decide(finalCounts);
+		// Equal paint is not equal play: the side that killed more takes it. Still level after that and it
+		// is a real draw, which the titles say and the arena's draw function answers.
+		if (winner == null) winner = Stats.sideWithMostKills(roster.get());
 		for (ServerPlayer player : roster.get()) {
-			freeze(player);
+			// The result is watched, not stood through: spectator for the celebration, and the lobby puts
+			// adventure back and sends everybody home.
+			player.setGameMode(GameType.SPECTATOR);
 			disarm(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
@@ -461,7 +506,17 @@ public final class Match {
 			player.sendSystemMessage(Component.literal(percentages(finalCounts)));
 		}
 		fireworksSent = 0;
-		enter(State.ENDED, now, ENDED_TICKS);
+		enter(
+			State.ENDED, now, ENDED_TICKS, () -> {
+				if (arena != null && !quiet) {
+					Arena.of(arena).getWinFunction(winner).ifPresent(functions -> {
+						functions.getFunctions(server).forEach(function -> {
+							server.getFunctions().execute(function, server.getFunctions().getGameLoopSender());
+						});
+					});
+				}
+			}
+		);
 	}
 
 	/** Who painted most, or empty for a tie (including a match where nobody painted anything). */
@@ -515,6 +570,11 @@ public final class Match {
 		}
 	}
 
+	private static void onStateEnded() {
+		onStateEnded.run();
+		onStateEnded = () -> {};
+	}
+
 	/**
 	 * Back to the lobby: nobody frozen, nobody's screen inked, nobody rolling — and then {@link Lobby},
 	 * which is what decides what being between matches means for a player (adventure mode, empty hands,
@@ -524,20 +584,29 @@ public final class Match {
 		state = State.LOBBY;
 		stateEnds = now;
 		stateBegan = now;
+		onStateEnded();
 		clearBars();
 		List<ServerPlayer> players = roster.get();
 		for (ServerPlayer player : players) {
 			thaw(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
+			player.setGameMode(GameType.ADVENTURE);
+			Lobby.sendHome(player);
 		}
 		Lobby.receiveAll(players);
 	}
 
 	private static void enter(State next, long now, long ticks) {
+		enter(next, now, ticks, () -> {});
+	}
+
+	private static void enter(State next, long now, long ticks, Runnable action) {
+		onStateEnded();
 		state = next;
 		stateBegan = now;
 		stateEnds = now + ticks;
+		onStateEnded = action;
 	}
 
 	// ---- death and respawn
@@ -548,6 +617,8 @@ public final class Match {
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 		arm(player);
+		// Their inventory may have been dropped with them: the side's ovve back on, whatever they have.
+		PaintColor.byTeam(player.getTeam()).ifPresent(color -> Ovves.dress(player, color));
 		grace(player, now);
 		title(player, Component.literal("Respawning").withStyle(ChatFormatting.AQUA), Component.empty());
 	}

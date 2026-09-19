@@ -42,7 +42,7 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     needs: build
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'  || github.ref == 'refs/heads/cclan'
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'  || github.ref == 'refs/heads/minigame'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -73,11 +73,11 @@ jobs:
           sftp_only: true
       - name: Deploy to event server
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        if: github.ref == 'refs/heads/cclan'
+        if: github.ref == 'refs/heads/minigame'
         with:
-          server: mc.datasektionen.se
-          port: 2022
-          username: github-actions.032bfc9c
+          server: pterodactyl.kth.it
+          port: 3022
+          username: github-actions.a98edceb
           password: ${{ secrets.AUTODEPLOY_PASSWORD }}
           local_path: '*.jar'
           remote_path: 'mods/update'
