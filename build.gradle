@@ -29,13 +29,16 @@ subprojects {
     apply plugin: "net.fabricmc.fabric-loom"
 	apply plugin: "checkstyle"
 
+    // -PdistExclude=a,b leaves those mod modules out of the combined jar (a server that runs
+    // ovvar without rivals-paint, say). The dev-time CheckMods only runs in a dev environment.
     ext.initDist = { ->
+        def excluded = (project.findProperty('distExclude') ?: '').split(',').collect { it.trim() }.findAll { it }
         dependencies {
             rootProject.subprojects.each {
                 if (nonModSubProjects.contains(it.name)) {
                     return
                 }
-                if (it.name == "dist") {
+                if (it.name == "dist" || excluded.contains(it.name)) {
                     return
                 }
                 implementation(project(path: "${it.path}"))
