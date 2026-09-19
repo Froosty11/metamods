@@ -636,7 +636,10 @@ cell exactly as it always was.
 Everything that draws a patch goes through the same call: the pack's placement textures, the instant
 channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one
 thing that does not is the **sewing game**, which is played before the cell is settled and so shows
-the catalogue's own art whatever the cell will pick.
+the patch's **largest** art whatever the cell will pick (`Seam.art`): the picture blows the art up to
+96 px either way, so the drawing with the most in it is the one to blow up, and the seam is traced
+round that drawing too. The stitch count is still the catalogue size's, brought back by the ratio of
+the two, so sewing ITK from its 16×16 takes the nine holes its 12×12 took.
 
 The instant path cannot ask the question — the dye colour carries a cell and a design, not a
 choice — so the preview texture's design tables hold a row per (design, fit), the library holds
