@@ -13,7 +13,7 @@ import static metacraft.ovvar.sewing.SewingFont.PICTURE_WIDTH;
 import static metacraft.ovvar.sewing.SewingFont.PITCH;
 
 /**
- * The seam around a patch, in picture px: the patch's art scaled up and centred on the cloth, and
+ * The seam around a patch, in picture px: the patch's largest art ({@link #art}) scaled up and centred on the cloth, and
  * {@code stitches} holes along its {@link Outline}, clockwise from the top left. The holes come in
  * pairs — one just outside the edge on the cloth, where the thread comes up, and one just inside
  * it on the patch, where it goes down again — so the thread crosses the edge and back like a whip
@@ -34,7 +34,7 @@ public record Seam(Patches.Patch patch, int stitches) {
 
 	public static final Style STYLE = Style.WHIP;
 
-	/** The patch's art is scaled up whole to fit this many px in either direction: an 8×8 at 96 px, a 16×8 seat at 96×48, a 12×12 at 96. */
+	/** The patch's art is scaled up whole to fit this many px in either direction: an 8×8 at 96 px, a 16×8 seat at 96×48, a 12×12 and a 16×16 both at 96. */
 	public static final int PATCH_FIT = 96;
 	/** How far outside and inside the edge the holes sit. */
 	private static final int OUT = 4, IN = 4;
@@ -52,20 +52,43 @@ public record Seam(Patches.Patch patch, int stitches) {
 	 */
 	public static int stitchesFor(Patches.Patch patch, int base) {
 		double cell = 4.0 * Spot.ART_PX;
-		return Mth.clamp((int) Math.round(base * Outline.of(patch.id()).length() / cell), OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES);
+		return Mth.clamp((int) Math.round(base * outlineInCatalogueTexels(patch) / cell), OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES);
+	}
+
+	/**
+	 * The outline is traced round {@link #art} — the largest drawing, which may be bigger than the
+	 * catalogue's own size — so its length is brought back to the size the patch takes up on the
+	 * ovve before it is turned into a stitch count: an ITK sewn from its 16×16 gets the same nine
+	 * holes it got from the 12×12, only drawn sharper.
+	 */
+	private static double outlineInCatalogueTexels(Patches.Patch patch) {
+		Patches.Art art = art(patch);
+		double ratio = Math.sqrt((double) (patch.width() * patch.height()) / (art.width() * art.height()));
+		return Outline.of(patch.id()).length() * ratio;
+	}
+
+	/**
+	 * The art the game draws and traces its seam round: the largest the patch has, whatever cell
+	 * it will end up on, since the picture blows it up to {@link #PATCH_FIT} px anyway and the
+	 * biggest drawing is the one with the most in it. {@link Patches.Patch#variants} is largest last.
+	 */
+	public static Patches.Art art(Patches.Patch patch) {
+		List<Patches.Art> variants = patch.variants();
+		return variants.get(variants.size() - 1);
 	}
 
 	/** Picture px per art px: whole, the largest that fits {@link #PATCH_FIT}. */
 	public static int scale(Patches.Patch patch) {
-		return Math.max(1, Math.min(PATCH_FIT / patch.width(), PATCH_FIT / patch.height()));
+		Patches.Art art = art(patch);
+		return Math.max(1, Math.min(PATCH_FIT / art.width(), PATCH_FIT / art.height()));
 	}
 
 	public static int patchWidth(Patches.Patch patch) {
-		return patch.width() * scale(patch);
+		return art(patch).width() * scale(patch);
 	}
 
 	public static int patchHeight(Patches.Patch patch) {
-		return patch.height() * scale(patch);
+		return art(patch).height() * scale(patch);
 	}
 
 	/** The patch's top-left on the picture: centred. */

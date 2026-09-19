@@ -431,8 +431,9 @@ public final class GeneratedAssets implements DataProvider {
 	 * font. Each patch's outline is traced from its art's opaque texels.
 	 *
 	 * <p>The sewing game is about the patch rather than about where it is going — it is played
-	 * before the cell is committed to — so it shows the catalogue's own art ({@code Patch.art()}),
-	 * whatever the cell it lands on will pick ({@link Patches#artFor}).
+	 * before the cell is committed to — so it shows the patch's largest art ({@link Seam#art}),
+	 * whatever the cell it lands on will pick ({@link Patches#artFor}), and the outline is traced
+	 * round that same art.
 	 */
 	private void sewingFont(Map<Chapter, Integer> chapterColours, Map<Patches.Art, Tex> arts) {
 		Tex cloth = sewingArt("cloth", SewingFont.PITCH, SewingFont.PITCH);
@@ -449,7 +450,7 @@ public final class GeneratedAssets implements DataProvider {
 		}
 		JsonObject outlines = new JsonObject();
 		for (Patches.Patch patch : Patches.all()) {
-			Tex art = arts.get(patch.art());
+			Tex art = arts.get(Seam.art(patch));   // the largest drawing: the glyph and the outline are both of it
 			textures.put(SewingFont.patch(patch).name(), art.scale(Seam.scale(patch)));
 			JsonArray segments = new JsonArray();
 			for (int[] s : outline(art, patch.id())) segments.add(J.nums(s[0], s[1], s[2], s[3], s[4], s[5]));
