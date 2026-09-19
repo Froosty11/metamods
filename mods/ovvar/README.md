@@ -219,11 +219,19 @@ stands`, showcase) keep their patches on the item as before.
 read-only on somebody's ovve — anybody's, here or not — with their stash left out of it. On a
 survival server, on your own:
 
-- **left-click a patch** to take one out as an ordinary item: sew it on any armour stand wearing
-  your ovve, the way it always worked, or trade it. The chest button puts every patch item you
-  carry back in;
-- **right-click a patch** for a private sewing session, only where `sessions` is on (off by
-  default; `stash_click` swaps the two buttons):
+- **the pocket is a chest** (`sessions` off, the default): pick a stack up, shift-click it into
+  your inventory, take half, press a number key — every gesture a chest allows. The patches are
+  ordinary items: sew them on any armour stand wearing your ovve, the way it always worked, or
+  trade them. Drop patch items onto the pocket to put them back, or use the chest button, which
+  puts every patch item you carry in at once. Behind the slots is `StashPocket`, an optimistic
+  mirror of one page of the stash: a change to the slots is one compare-and-set write, the slots
+  refill from the store when it says yes (a kind with more than a stack of it tops up), and when it
+  says no what you took is pulled back out of your cursor and inventory and what you put in is
+  handed back. The slot layout is fixed while the screen is open, so a kind that runs out leaves
+  its slot empty rather than shuffling the rest along under the pointer;
+- with `sessions` on the pocket is the **click pocket** instead, because a click on a patch has a
+  job of its own there: **left-click a patch** takes one out as an item, **right-click a patch**
+  opens a private sewing session (`stash_click` swaps the two buttons):
   an armour stand named after you appears two blocks ahead in a walking pose wearing your ovve;
   hotbar slot 9 gets the patch (as many as the stash holds) and slot 8 a pair of shears, both fake
   and pinned there (`ovvar:session`: no dropping, no moving, the hotbar selection is held to those
@@ -256,8 +264,10 @@ row 5   [take out][put in][sew][see in 3D][finish][ · ][ · ][help][close]
 
 - a tab is the chapter's *ovve*, named "Data ovve", the one on show glinting and its lore reading
   "(showing)" while the others read "Click to switch to it";
-- a patch in the pocket says how many of it are in the stash, where it may be sewn, and who drew it
-  ("Art by Kexana" — the credit `PatchItem` puts on the item itself);
+- a patch in the click pocket says how many of it are in the stash, where it may be sewn, and who
+  drew it ("Art by Kexana" — the credit `PatchItem` puts on the item itself); in the chest pocket
+  the stack *is* the item, so it carries only what `PatchItem` puts on it, and the count is the
+  stack's size (the stats strip has the stash's total);
 - the preview is the **whole** ovve, top and trousers as one figure, and the two buttons at cols 7
   and 8 turn it a quarter at a time (front, their right, back, their left; per open screen, front to
   begin with). There is no piece toggle any more — the chestplate and boots that prompted "why is
@@ -362,8 +372,9 @@ ovve". It works for a player who is not here, because a wardrobe is a row in a s
 inventory — the name goes through the server's own profile resolver (the one `/whitelist add` uses)
 and the wardrobe is fetched by UUID.
 
-The left block (cols 0-4, rows 1-4) is the patch collection — the stash, one slot per kind, left
-and right click exactly as before (take out / start a session) — and it **pages** once there are
+The left block (cols 0-4, rows 1-4) is the patch collection — the stash, one slot per kind: real
+chest slots where patches may leave (`StashPocket`, above), the click pocket with sessions on
+(take out / start a session) — and it **pages** once there are
 more kinds than fit, where it used to give the last slot up to a "+N more" marker. Twenty kinds
 still use all twenty slots; from the twenty-first the two ends of the bottom row become the page
 arrows (the rotation arrows' own sprites, pointing the same ways), so a page holds eighteen — and
@@ -476,8 +487,8 @@ pure white, so the stitching reads the same on every chapter.
     bank_on_pickup           minigame (default: only on a minigame server) | always | never
     bank_in_creative         bank creative players' patch items too (default false)
     unpick_to_stash          unpicking on an ordinary stand sends the patch to the stash instead of the hand (default false)
-    withdraw                 right-click in the stash takes a patch out as an item (default true; never on a minigame server)
-    sessions                 the private sewing flow exists (default false: the stash only hands patches out)
+    withdraw                 patches may be taken out of the stash as items (default true; never on a minigame server)
+    sessions                 the private sewing flow exists (default false: the pocket is a chest and only hands patches out)
     stash_click              withdraw (default: left-click takes the patch out as an item, right-click opens a session) | session (the reverse)
     any_stand                sew and unpick on any armour stand wearing an owned ovve, not only a session stand (default true)
     session_reach            blocks a player may walk from their session stand (default 8)

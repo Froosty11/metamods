@@ -5,6 +5,7 @@ import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.ServerConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.Ownership;
@@ -44,7 +45,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JavaOps;
@@ -782,6 +785,244 @@ public final class WardrobeTests {
 				.thenSucceed();
 	}
 
+	// ---- the pocket as a chest
+
+	/** A stash config like the server's, with sessions on or off. */
+	private static StashConfig withSessions(StashConfig s, boolean sessions) {
+		return new StashConfig(s.minigameServer(), s.sewGameModes(), s.ingameObjective(), s.bankOnPickup(), s.bankInCreative(),
+				s.unpickToStash(), s.withdraw(), sessions, s.stashClick(), s.anyStand(), s.sessionReach(), s.sessionSeconds(), s.explainInChat());
+	}
+
+	private static void withStash(StashConfig stash, Runnable step) {
+		StashConfig before = OvvarConfig.get().stash();
+		try {
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+			step.run();
+		} finally {
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), before));
+		}
+	}
+
+	private static void setUp(UUID owner, AtomicReference<Wardrobes.Outcome> outcome, java.util.function.UnaryOperator<Wardrobe> change) {
+		outcome.set(null);
+		Wardrobes.update(owner, change, outcome::set);
+	}
+
+	/** The pocket's real slot, or a failed test (not a crashed server) when the pocket is not a chest. */
+	private static Slot pocketSlot(GameTestHelper helper, WardrobeGui gui, int index) {
+		Slot slot = gui.getCustomSlot(index);
+		if (slot == null) helper.fail("pocket slot " + index + " is not a real slot");
+		return slot;
+	}
+
+	/** How many of a patch the player has in hand: the inventory and whatever is on the cursor. */
+	private static int patchesCarried(ServerPlayer player, Patches.Patch patch) {
+		int n = 0;
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			ItemStack stack = player.getInventory().getItem(i);
+			if (stack.getItem() == ModContent.patchItem(patch)) n += stack.getCount();
+		}
+		ItemStack carried = player.containerMenu.getCarried();
+		if (carried.getItem() == ModContent.patchItem(patch)) n += carried.getCount();
+		return n;
+	}
+
+	/**
+	 * With taking out allowed and sessions off (the default), the pocket is real slots: one per
+	 * kind, holding a stack the size of the stash's count (64 at most), that the client can pick
+	 * from like a chest, and no drawn element with a click callback. Sessions on: the click pocket.
+	 */
+	@GameTest(maxTicks = 1200)
+	public void pocketIsAChestWhenPatchesMayLeave(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		AtomicReference<Wardrobes.Outcome> outcome = new AtomicReference<>();
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> setUp(owner, outcome, w -> w.add(ITK_PATCH, 100).add(NYCKELN_PATCH, 3)))
+				.thenWaitUntil(() -> assertThat(outcome.get() == Wardrobes.Outcome.OK, "setup outcome " + outcome.get()))
+				.thenExecute(() -> guarded(server, () -> {
+					StashConfig stash = OvvarConfig.get().stash();
+					withStash(withSessions(stash, false), () -> {
+						WardrobeGui gui = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
+						// Sorted by name: the ITK first, then the Nyckeln.
+						Slot first = gui.getCustomSlot(9), second = gui.getCustomSlot(10), third = gui.getCustomSlot(11);
+						if (first == null || second == null) helper.fail("the pocket is not made of real slots");
+						if (gui.getGuiElement(9) != null) helper.fail("the pocket still carries a drawn element at its first slot");
+						if (first.getItem().getItem() != ModContent.patchItem(ITK_PATCH) || first.getItem().getCount() != 64) {
+							helper.fail("first pocket slot holds " + first.getItem() + ", wanted 64 ITK (a stack of the 100)");
+						}
+						if (second.getItem().getItem() != ModContent.patchItem(NYCKELN_PATCH) || second.getItem().getCount() != 3) {
+							helper.fail("second pocket slot holds " + second.getItem() + ", wanted 3 Nyckeln");
+						}
+						if (third == null || !third.getItem().isEmpty()) helper.fail("an unused pocket slot is not an empty real slot (to put patches in)");
+						if (third.mayPlace(new ItemStack(Items.STONE))) helper.fail("the pocket accepts stone");
+						ItemStack fake = new ItemStack(ModContent.patchItem(ITK_PATCH));
+						fake.set(ModComponents.SESSION, true);
+						if (third.mayPlace(fake)) helper.fail("the pocket accepts a session fake patch");
+						if (!third.mayPlace(new ItemStack(ModContent.patchItem(ITK_PATCH)))) helper.fail("the pocket refuses a real patch");
+					});
+					withStash(withSessions(stash, true), () -> {
+						WardrobeGui gui = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
+						if (gui.getCustomSlot(9) != null) helper.fail("with sessions on the pocket is a chest; it should be the click pocket");
+						if (isEmpty(gui, 9)) helper.fail("with sessions on the pocket has no first patch");
+					});
+					// A look at somebody else: no stash at all, in either shape.
+					WardrobeGui look = WardrobeGui.forTestLook(player, UUID.randomUUID(), "Somebody", CHAPTER, Angle.FRONT);
+					if (look.getCustomSlot(9) != null || !isEmpty(look, 9)) helper.fail("a look at somebody else shows their stash");
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/**
+	 * Taking a stack out of a pocket slot, as the client does when it picks the stack up, writes the
+	 * stash: the count falls by what left, and a kind with more than a stack of it tops the slot up
+	 * with what remains.
+	 */
+	@GameTest(maxTicks = 1200)
+	public void takingFromThePocketWritesTheStash(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		AtomicReference<Wardrobes.Outcome> outcome = new AtomicReference<>();
+		AtomicReference<WardrobeGui> gui = new AtomicReference<>();
+		StashConfig stash = OvvarConfig.get().stash();
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> setUp(owner, outcome, w -> w.add(ITK_PATCH, 100).add(NYCKELN_PATCH, 3)))
+				.thenWaitUntil(() -> assertThat(outcome.get() == Wardrobes.Outcome.OK, "setup outcome " + outcome.get()))
+				.thenExecute(() -> guarded(server, () -> withStash(withSessions(stash, false), () -> {
+					gui.set(WardrobeGui.forTest(player, CHAPTER, Angle.FRONT));
+					// The client picks the whole ITK stack up (Slot.remove is what a pick-up does)
+					ItemStack taken = pocketSlot(helper, gui.get(), 9).remove(64);
+					if (taken.getCount() != 64) helper.fail("picked up " + taken.getCount() + ", wanted 64");
+					player.containerMenu.setCarried(taken);
+					// and two of the three Nyckeln.
+					player.getInventory().add(pocketSlot(helper, gui.get(), 10).remove(2));
+				})))
+				.thenWaitUntil(() -> assertThat(Wardrobes.current(owner).count(ITK_PATCH) == 36 && Wardrobes.current(owner).count(NYCKELN_PATCH) == 1,
+						"stash after taking: " + Wardrobes.current(owner).count(ITK_PATCH) + " ITK, " + Wardrobes.current(owner).count(NYCKELN_PATCH) + " Nyckeln; wanted 36 and 1"))
+				.thenWaitUntil(() -> assertThat(pocketSlot(helper, gui.get(), 9).getItem().getCount() == 36, "the ITK slot did not top up to the 36 left: " + pocketSlot(helper, gui.get(), 9).getItem()))
+				.thenExecute(() -> guarded(server, () -> {
+					if (pocketSlot(helper, gui.get(), 10).getItem().getCount() != 1) helper.fail("the Nyckeln slot shows " + pocketSlot(helper, gui.get(), 10).getItem() + ", wanted 1");
+					if (patchesCarried(player, ITK_PATCH) != 64 || patchesCarried(player, NYCKELN_PATCH) != 2) {
+						helper.fail("the player holds " + patchesCarried(player, ITK_PATCH) + " ITK and " + patchesCarried(player, NYCKELN_PATCH) + " Nyckeln; wanted 64 and 2");
+					}
+					player.containerMenu.setCarried(ItemStack.EMPTY);
+					player.getInventory().clearContent();
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/** A patch stack put into a pocket slot goes into the stash, and the slot then shows the kind's whole count. */
+	@GameTest(maxTicks = 1200)
+	public void puttingIntoThePocketDeposits(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		AtomicReference<Wardrobes.Outcome> outcome = new AtomicReference<>();
+		AtomicReference<WardrobeGui> gui = new AtomicReference<>();
+		StashConfig stash = OvvarConfig.get().stash();
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> setUp(owner, outcome, w -> w.add(ITK_PATCH, 2)))
+				.thenWaitUntil(() -> assertThat(outcome.get() == Wardrobes.Outcome.OK, "setup outcome " + outcome.get()))
+				.thenExecute(() -> guarded(server, () -> withStash(withSessions(stash, false), () -> {
+					gui.set(WardrobeGui.forTest(player, CHAPTER, Angle.FRONT));
+					// Three Nyckeln dropped into the first empty slot, and one more ITK onto the ITK stack.
+					pocketSlot(helper, gui.get(), 10).set(new ItemStack(ModContent.patchItem(NYCKELN_PATCH), 3));
+					pocketSlot(helper, gui.get(), 9).set(new ItemStack(ModContent.patchItem(ITK_PATCH), 3));
+				})))
+				.thenWaitUntil(() -> assertThat(Wardrobes.current(owner).count(ITK_PATCH) == 3 && Wardrobes.current(owner).count(NYCKELN_PATCH) == 3,
+						"stash after putting in: " + Wardrobes.current(owner).count(ITK_PATCH) + " ITK, " + Wardrobes.current(owner).count(NYCKELN_PATCH) + " Nyckeln; wanted 3 and 3"))
+				.thenExecute(() -> guarded(server, () -> {
+					if (pocketSlot(helper, gui.get(), 10).getItem().getCount() != 3) helper.fail("the Nyckeln slot shows " + pocketSlot(helper, gui.get(), 10).getItem());
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/**
+	 * The store says no (another server moved the stash first): what the player picked up comes
+	 * back out of their hands, the cursor first and then the inventory, and the pocket shows the
+	 * stash as the store holds it.
+	 */
+	@GameTest(maxTicks = 1200)
+	public void aRefusedTakeComesBackOutOfTheHand(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		AtomicReference<Wardrobes.Outcome> outcome = new AtomicReference<>();
+		AtomicReference<WardrobeGui> gui = new AtomicReference<>();
+		AtomicBoolean refuse = new AtomicBoolean();
+		StashConfig stash = OvvarConfig.get().stash();
+		FileBackend files = new FileBackend(dir);
+		WardrobeBackend refusing = new WardrobeBackend() {
+			@Override
+			public Optional<Wardrobe> load(UUID id) throws IOException {
+				return files.load(id);
+			}
+
+			@Override
+			public boolean store(UUID id, Wardrobe next, long expectedVersion) throws IOException {
+				return !refuse.get() && files.store(id, next, expectedVersion);
+			}
+
+			@Override
+			public String describe() {
+				return "refusing";
+			}
+		};
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, refusing);
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> setUp(owner, outcome, w -> w.add(ITK_PATCH, 5)))
+				.thenWaitUntil(() -> assertThat(outcome.get() == Wardrobes.Outcome.OK, "setup outcome " + outcome.get()))
+				.thenExecute(() -> guarded(server, () -> withStash(withSessions(stash, false), () -> {
+					gui.set(WardrobeGui.forTest(player, CHAPTER, Angle.FRONT));
+					refuse.set(true);
+					ItemStack taken = pocketSlot(helper, gui.get(), 9).remove(5);
+					// Two on the cursor, three already put away in the inventory.
+					player.containerMenu.setCarried(taken.split(2));
+					player.getInventory().add(taken);
+				})))
+				.thenWaitUntil(() -> assertThat(patchesCarried(player, ITK_PATCH) == 0, "the player still holds " + patchesCarried(player, ITK_PATCH) + " ITK after the store refused"))
+				.thenExecute(() -> guarded(server, () -> {
+					if (Wardrobes.current(owner).count(ITK_PATCH) != 5) helper.fail("the stash lost patches to a refused write: " + Wardrobes.current(owner).count(ITK_PATCH));
+					if (pocketSlot(helper, gui.get(), 9).getItem().getCount() != 5) helper.fail("the pocket shows " + pocketSlot(helper, gui.get(), 9).getItem() + " after the refusal, wanted 5 ITK");
+					refuse.set(false);
+					player.getInventory().clearContent();
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
 	/** On a minigame server the take-out and sew actions are grey panes carrying the reason; the help book still explains why. */
 	@GameTest(maxTicks = 1200)
 	public void wardrobeActionsRespectTheMode(GameTestHelper helper) throws IOException {
@@ -1014,8 +1255,8 @@ public final class WardrobeTests {
 						helper.fail("a page counter on a stash that fits one page");
 					}
 					// Sorted by name, so a kind keeps its slot however the counts change.
-					String first = gui.getGuiElement(WardrobeGui.pocketSlots(false).get(0)).getItemStack().getHoverName().getString();
-					if (!first.equals("ITK")) helper.fail("the first slot holds " + first + ", wanted the first kind by name");
+					ItemStack first = shown(gui, WardrobeGui.pocketSlots(false).get(0));
+					if (first.getItem() != ModContent.patchItem(ITK_PATCH)) helper.fail("the first slot holds " + first + ", wanted the first kind by name (ITK)");
 					release(server);
 				}))
 				.thenSucceed();
@@ -2711,7 +2952,17 @@ public final class WardrobeTests {
 				.thenSucceed();
 	}
 
+	/** The stack a slot shows, whether it is a real slot (the chest pocket) or a drawn element. */
+	private static ItemStack shown(WardrobeGui gui, int slot) {
+		Slot real = gui.getCustomSlot(slot);
+		if (real != null) return real.getItem();
+		GuiElement element = gui.getGuiElement(slot);
+		return element == null ? ItemStack.EMPTY : element.getItemStack();
+	}
+
 	private static boolean isEmpty(WardrobeGui gui, int slot) {
+		Slot real = gui.getCustomSlot(slot);
+		if (real != null) return real.getItem().isEmpty();
 		GuiElement element = gui.getGuiElement(slot);
 		return element == null || element.getItemStack().isEmpty();
 	}
