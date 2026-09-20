@@ -114,11 +114,12 @@ OVVAR.panel.register = function () {
   return OVVAR.state.panel;
 };
 
-/** Which cells a patch may go on, grouped by part, in the enum's own order. */
-OVVAR.panel.cellOptions = function (m, patch) {
+/** Which cells a patch may go on, grouped by part, in the enum's own order — the chapter's halves only (a frack has no legs). */
+OVVAR.panel.cellOptions = function (m, patch, chapter) {
   var out = {};
   m.cells.forEach(function (cell) {
     if (!patch.seat !== !(cell.id === 'seat')) return;
+    if (!OVVAR.compose.hasPiece(chapter, cell.piece)) return;
     out[cell.id] = (cell.piece === 'top' ? 'Top — ' : 'Bottom — ') + cell.label;
   });
   return out;
@@ -133,7 +134,7 @@ OVVAR.panel.sew = function () {
   // patch may go there. Blockbench's select input re-reads a function-valued `options` every time
   // the menu is opened, so the list is a function rather than something onFormChange rewrites --
   // a replaced options object would never reach the input that was built with the old one.
-  var options = function () { return OVVAR.panel.cellOptions(m, chosen); };
+  var options = function () { return OVVAR.panel.cellOptions(m, chosen, m.chapterById[s.design.chapter]); };
   new Dialog('ovvar_sew', {
     title: 'Sew a patch on',
     form: {

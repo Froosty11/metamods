@@ -729,7 +729,10 @@ public final class WardrobePreview {
 		if (cached != null) return cached;
 		// Not computeIfAbsent: reading the two halves puts them in this same map.
 		Tex top = read(Piece.TOP, EquipmentJson.baseTexture(chapter, Piece.TOP, false));
-		Tex bottom = read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false));
+		// A frack has no trousers: nothing under the top.
+		Tex bottom = chapter.pieces().contains(Piece.BOTTOM)
+				? read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false))
+				: Tex.blank(top.width, top.height);
 		Tex cloth = bottom.composite(top);
 		CACHE.put(key, cloth);
 		return cloth;

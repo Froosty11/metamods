@@ -554,7 +554,11 @@ OVVAR.compose.stacked = function (m, placements) {
  */
 OVVAR.compose.composePiece = function (ctx, piece, design) {
   var m = ctx.m;
-  var base = ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
+  var chapter = m.chapterById[design.chapter];
+  // A chest-slot chapter (the Media frack) is all top: its legs are drawn with nothing, and a
+  // placement on a leg cell has nowhere to go.
+  var legless = piece === 'bottom' && !OVVAR.compose.hasPiece(chapter, piece);
+  var base = legless ? OVVAR.tex.blank(m.texture[0], m.texture[1]) : ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
   var A = OVVAR.tex.copy(base);
   var B = OVVAR.compose.mirrorStrip(m, piece, base);
   var placements = OVVAR.compose.stacked(m, design.placements || []);
@@ -563,6 +567,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     var cell = m.cellById[p.cell], patch = m.patchById[p.patch];
     if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
     if (cell.piece !== piece) continue;
+    if (legless) { ctx.warnings.push(chapter.name + ' has no legs: ' + cell.label + ' is not drawn'); continue; }
     if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
     // Nothing painted on it yet is the ordinary state of a patch just invented, and it is a
     // different thing from art that missed its cell. Said once for the whole patch, before the
@@ -590,6 +595,11 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     }
   }
   return {A: A, B: B};
+};
+
+/** Chapter.pieces: does the garment have this half? An ovve has both; a frack (chest slot) only the top. */
+OVVAR.compose.hasPiece = function (chapter, piece) {
+  return piece === 'top' || !chapter || chapter.slot !== 'chest';
 };
 
 /** Both halves, both sides: what the four textures of the project are set to. */

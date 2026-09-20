@@ -88,7 +88,7 @@ public final class SewingGame {
 
 	/** Opens the seam for a placement the player just aimed at. Replaces any game they had going. */
 	public static void start(ServerPlayer player, ArmorStand stand, Placement placement, Patches.Patch patch) {
-		Chapter chapter = stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem ovve ? ovve.chapter : Chapter.values()[0];
+		Chapter chapter = OvveItem.worn(stand).getItem() instanceof OvveItem ovve ? ovve.chapter : Chapter.values()[0];
 		Game game = new Game(stand.getUUID(), chapter, placement, patch, ThreadLocalRandom.current().nextInt(), Seam.stitchesFor(patch, OvvarConfig.get().stitches()), 0);
 		GAMES.put(player.getUUID(), game);
 		show(player, game);
@@ -151,7 +151,7 @@ public final class SewingGame {
 
 	private static ArmorStand standFor(ServerPlayer player, Game game) {
 		if (!(player.level() instanceof ServerLevel level) || !(level.getEntity(game.stand) instanceof ArmorStand stand)) return null;
-		if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return null;
+		if (!(OvveItem.worn(stand).getItem() instanceof OvveItem)) return null;
 		if (player.getEyePosition().distanceTo(stand.position()) > StandSewing.REACH + 1) return null;
 		return stand;
 	}

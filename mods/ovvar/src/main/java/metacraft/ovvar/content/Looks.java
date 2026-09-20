@@ -67,14 +67,20 @@ public final class Looks {
 		stack.set(ModComponents.PATCHES, placements);
 	}
 
+	/** Does this garment have the cell at all (a frack has no legs), and is it free enough to take the patch? */
 	public static boolean canSew(ItemStack stack, Placement placement) {
-		return SpotPlacements.canApply(sewn(stack), placement);
+		return hasPiece(stack, placement.piece()) && SpotPlacements.canApply(sewn(stack), placement);
+	}
+
+	/** Whether the garment is drawn with this half: everything but a frack's legs. A non-garment stack has both. */
+	public static boolean hasPiece(ItemStack stack, Piece piece) {
+		return !(stack.getItem() instanceof OvveItem item) || item.chapter.pieces().contains(piece);
 	}
 
 	/** Sew a patch on a spot, replacing whatever was there or overlapping it. */
 	public static boolean sew(ItemStack stack, Placement placement) {
 		var sewn = sewn(stack);
-		if (SpotPlacements.canApply(sewn, placement)) {
+		if (hasPiece(stack, placement.piece()) && SpotPlacements.canApply(sewn, placement)) {
 			setSewn(stack, SpotPlacements.apply(sewn, placement));
 			return true;
 		} else {

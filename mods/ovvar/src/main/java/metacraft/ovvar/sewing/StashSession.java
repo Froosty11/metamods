@@ -177,7 +177,7 @@ public final class StashSession {
 		OvveItem.setTopUp(ovve, true);
 		ovve.set(ModComponents.ON_STAND, true);
 		OvveItem.refresh(ovve);
-		stand.setItemSlot(EquipmentSlot.LEGS, ovve);
+		OvveItem.wear(stand, ovve);
 		level.addFreshEntity(stand);
 
 		var inventory = player.getInventory();
@@ -198,7 +198,7 @@ public final class StashSession {
 
 	/** The chapter of the ovve they wear, else one in their inventory, else one they have a design for, else the first. */
 	private static Chapter chapterFor(ServerPlayer player) {
-		if (player.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem worn) return worn.chapter;
+		if (OvveItem.worn(player).getItem() instanceof OvveItem worn) return worn.chapter;
 		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
 			if (player.getInventory().getItem(i).getItem() instanceof OvveItem carried) return carried.chapter;
 		}

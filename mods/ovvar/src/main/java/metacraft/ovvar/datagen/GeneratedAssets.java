@@ -360,6 +360,14 @@ public final class GeneratedAssets implements DataProvider {
 						JsonParser.parseString(EquipmentJson.chestJson(chapter, material)));
 			}
 
+			String ovve = ModContent.ovveId(chapter).getPath();
+			Tex tinted = icon.tinted(colour);
+			item(ovve, tinted);
+			lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
+			// A frack is all top: no legs layer (what the overlay paints on the legs, the coat's tails,
+			// is left out — a chest item cannot draw there), no companion top, no cuffs.
+			if (!chapter.pieces().contains(Piece.BOTTOM)) continue;
+
 			// The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
 			Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
 					.blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
@@ -388,14 +396,10 @@ public final class GeneratedAssets implements DataProvider {
 				equipment(chapter, Piece.BOTTOM, true);
 			}
 
-			String ovve = ModContent.ovveId(chapter).getPath();
 			String topItem = ModContent.topId(chapter).getPath();
-			Tex tinted = icon.tinted(colour);
-			item(ovve, tinted);
 			item(topItem, Tex.blank(16, 16).blit(tinted, 0, 0, 16, 8, 0, 0));
 			String feetItem = ModContent.feetId(chapter).getPath();
 			item(feetItem, Tex.blank(16, 16).blit(tinted, 0, 12, 16, 4, 0, 12));
-			lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
 			lang.put("item." + MOD + "." + topItem, chapter.name + " " + chapter.garmentWord() + " (top)");
 			lang.put("item." + MOD + "." + feetItem, chapter.name + " " + chapter.garmentWord() + " (cuffs)");
 		}

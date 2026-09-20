@@ -37,7 +37,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a bundle with
+ * A chapter's ovve: one item, worn in the legs slot, with pockets — or, for a chapter whose
+ * {@link Chapter#slot} is the chest, its frack: the same item worn as a chestplate, which is its
+ * own top (no companion, nothing to roll, no legs). It is a bundle with
  * {@link Pockets#SIZE} times the room (through metacraft-bundles, which also shows the real fill
  * level to vanilla clients) that can also be filled while worn, by clicking items onto the legs slot.
  *
@@ -63,9 +65,45 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 		this.id = id;
 	}
 
+	/** Is the top showing? A frack's always is: it is the top. An ovve's is a state on the stack. */
 	public static boolean topUp(ItemStack ovve) {
+		if (ovve.getItem() instanceof OvveItem item && item.chapter.slot == EquipmentSlot.CHEST) return true;
 		return Boolean.TRUE.equals(ovve.get(ModComponents.TOP_UP));
 	}
+
+	/** Does this garment need the companion top in the chest slot while its top is up? Only an ovve does. */
+	public static boolean needsCompanionTop(ItemStack garment) {
+		return garment.getItem() instanceof OvveItem item && item.chapter.slot == EquipmentSlot.LEGS && topUp(garment);
+	}
+
+	// ---- which slot
+
+	/** The garment this entity wears, in whichever slot its chapter uses (an ovve in the legs, a frack in the chest), or EMPTY. */
+	public static ItemStack worn(LivingEntity wearer) {
+		for (EquipmentSlot slot : GARMENT_SLOTS) {
+			ItemStack stack = wearer.getItemBySlot(slot);
+			if (stack.getItem() instanceof OvveItem item && item.chapter.slot == slot) return stack;
+		}
+		return ItemStack.EMPTY;
+	}
+
+	public static boolean wears(LivingEntity wearer) {
+		return !worn(wearer).isEmpty();
+	}
+
+	/** Puts a garment on in its own slot. */
+	public static void wear(LivingEntity wearer, ItemStack garment) {
+		wearer.setItemSlot(((OvveItem) garment.getItem()).chapter.slot, garment);
+	}
+
+	/** Takes whatever garment the entity wears off, returning it (EMPTY if none). */
+	public static ItemStack takeOff(LivingEntity wearer) {
+		ItemStack worn = worn(wearer);
+		if (!worn.isEmpty()) wearer.setItemSlot(((OvveItem) worn.getItem()).chapter.slot, ItemStack.EMPTY);
+		return worn;
+	}
+
+	private static final List<EquipmentSlot> GARMENT_SLOTS = List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST);
 
 	public static void setTopUp(ItemStack ovve, boolean up) {
 		if (up) ovve.set(ModComponents.TOP_UP, true);
@@ -169,7 +207,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 
 	// ---- wearing
 
-	/** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
+	/** Worn (player or armour stand): keep the companion top and the cuffs in step every tick — an ovve's; a frack has neither. */
 	@Override
 	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
 		if (entity instanceof ServerPlayer player) {
@@ -179,7 +217,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 			syncDesign(player, stack);
 			// The backstop under the equip checks: an ovve that got into the slot anyway (/item replace,
 			// a mod, a rule changed while it was worn) comes off again, into the inventory it came from.
-			if (slot == EquipmentSlot.LEGS && Ownership.blocksWearing(player, stack)) {
+			if (slot == chapter.slot && Ownership.blocksWearing(player, stack)) {
 				evict(player, stack);
 				return;
 			}
@@ -189,17 +227,17 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 			UUID owner = owner(stack);
 			if (owner != null && !Wardrobes.loaded(owner)) Wardrobes.fetch(owner);
 		}
-		if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
+		if (slot == EquipmentSlot.LEGS && chapter.slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
 			OvveTop.sync(wearer, stack);
 			OvveFeet.sync(wearer, stack);
 		}
 	}
 
-	/** Takes a foreign ovve off this player, back into their inventory (or onto the ground), with a word in chat. */
-	private static void evict(ServerPlayer player, ItemStack ovve) {
+	/** Takes a foreign garment off this player, back into their inventory (or onto the ground), with a word in chat. */
+	private void evict(ServerPlayer player, ItemStack ovve) {
 		String refusal = Ownership.wearRefusal(player, ovve);
 		ItemStack taken = ovve.copy();
-		player.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+		player.setItemSlot(chapter.slot, ItemStack.EMPTY);
 		if (!player.getInventory().add(taken)) player.drop(taken, false, Prediction.SERVER_ONLY);
 		if (refusal != null) Ownership.refuse(player, refusal);
 	}
@@ -217,7 +255,9 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
 		boolean up = topUp(stack);
 		List<Placement> sewn = SpotPlacements.asPlacementList(Looks.sewn(stack));
-		tooltip.add(Component.literal("Zipped " + (up ? "up" : "down") + " · " + countLabel(sewn.size())).withStyle(ChatFormatting.GRAY));
+		// A frack has no zip: its first line is the count alone.
+		String state = chapter.slot == EquipmentSlot.CHEST ? "" : "Zipped " + (up ? "up" : "down") + " · ";
+		tooltip.add(Component.literal(state + countLabel(sewn.size())).withStyle(ChatFormatting.GRAY));
 		for (String line : patchLines(sewn, PATCH_LIST_WIDTH, PATCH_LIST_LINES)) {
 			tooltip.add(Component.literal(line).withStyle(ChatFormatting.GRAY));
 		}
@@ -317,7 +357,9 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	@Override
 	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
 		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.BOTTOM, !topUp(stack), context, lookup);
+		// An ovve's item is its bottom half, rolled down when the top is; a frack's is its top.
+		Piece piece = chapter.ownPiece();
+		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, piece, piece == Piece.BOTTOM && !topUp(stack), context, lookup);
 		return out;
 	}
 }

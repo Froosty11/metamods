@@ -312,6 +312,7 @@ test('the ported base build equals the committed chapter layer textures', () => 
     // (The manifest omits a null property, so an untinted chapter has no `tint` key at all.)
     if (chapter.tint) continue;
     for (const piece of ['top', 'bottom']) {
+      if (!OVVAR.compose.hasPiece(chapter, piece)) continue;   // a frack has no legs to build
       const want = ctx.base(chapter.id, piece, false);
       const got = OVVAR.compose.buildBase(ctx, chapter.id, piece, false);
       assert.deepStrictEqual(OVVAR.tex.diff(want, got, m.markerTexels), [], chapter.id + '/' + piece);
@@ -324,8 +325,28 @@ test('the ported base build equals the committed chapter layer textures', () => 
       checked++;
     }
   }
-  // data (3) + it (3) + media (2); it_kisel is tinted and skipped.
-  assert.strictEqual(checked, 8, 'walked ' + checked + ' base textures');
+  // data (3) + it (3) + media (1: a frack is all top); it_kisel is tinted and skipped.
+  assert.strictEqual(checked, 7, 'walked ' + checked + ' base textures');
+});
+
+test('a chest-slot chapter has no bottom half: blank leg textures, no leg cells, a warning for a leg placement', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const media = m.chapterById.media;
+  assert.strictEqual(media.slot, 'chest', 'the manifest says which slot the garment is worn in');
+  assert.strictEqual(m.chapterById.data.slot, 'legs');
+  assert.ok(!media.layers.bottom, 'a frack has no bottom layer to load');
+  const out = OVVAR.compose.compose(ctx, {chapter: 'media', nercabbad: false, placements: [{cell: 'leg_front_top_r', patch: 'itk'}]});
+  assert.ok(out.top.A && out.top.B && out.bottom.A && out.bottom.B, 'all four textures still come back');
+  assert.ok(OVVAR.tex.isEmpty(out.bottom.A) && OVVAR.tex.isEmpty(out.bottom.B), 'the leg textures are blank');
+  assert.ok(!OVVAR.tex.isEmpty(out.top.A), 'the top is still the coat');
+  assert.deepStrictEqual(ctx.warnings, ['Media has no legs: ' + m.cellById.leg_front_top_r.label + ' is not drawn']);
+  // The sew dialog offers no leg cells for it, and still does for an ovve.
+  const itk = m.patchById.itk;
+  const frackCells = Object.keys(OVVAR.panel.cellOptions(m, itk, media));
+  assert.ok(frackCells.length > 0 && frackCells.every(id => m.cellById[id].piece === 'top'), 'a frack offers top cells only: ' + frackCells);
+  const ovveCells = Object.keys(OVVAR.panel.cellOptions(m, itk, m.chapterById.data));
+  assert.ok(ovveCells.some(id => m.cellById[id].piece === 'bottom'), 'an ovve still offers its leg cells');
 });
 
 test("texture B shows the left limb's own art, not the right limb's mirrored", () => {
@@ -335,13 +356,12 @@ test("texture B shows the left limb's own art, not the right limb's mirrored", (
   const D = m.detail;
   // Every kind of half, because the Task 0 spike found a generated top's arm strip all but
   // symmetric (36 texels of shading): a mirror strip that did nothing would barely show there.
-  // The Media frack's leggings and a rolled-down ovve carry a left leg that is materially its
-  // own art, and those are what pin the copy down. The counts today are 36 / 64 / 28 differing
-  // texels; the thresholds sit under them so a redrawn ovve does not fail this test, while a
-  // deleted mirror strip (which would make B identical to A) still does.
+  // A rolled-down ovve carries a left leg that is materially its own art, and that is what pins
+  // the copy down (the Media frack's tails used to, until it became a chest-slot garment with no
+  // legs at all). The thresholds sit under today's counts so a redrawn ovve does not fail this
+  // test, while a deleted mirror strip (which would make B identical to A) still does.
   const halves = [
     ['top', 'data', false, m.skinBoxes.rightArm, 1],
-    ['bottom', 'media', false, m.skinBoxes.rightLeg, 32],
     ['bottom', 'data', true, m.skinBoxes.rightLeg, 8]
   ];
   for (const [piece, chapter, nercabbad, box, least] of halves) {

@@ -1,6 +1,9 @@
 package metacraft.ovvar.content;
 
+import net.minecraft.world.entity.EquipmentSlot;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Set;
 
 
 /**
@@ -9,19 +12,23 @@ import org.jspecify.annotations.Nullable;
  * {@code tint} recolours the overlay for chapters that only differ by colour.
  */
 public enum Chapter {
-	DATA("data", "Data", "data", "data-nercabbad", null, null, true),
-	IT("it", "IT", "it", "it-nercabbad", null, null, true),
+	DATA("data", "Data", "data", "data-nercabbad", null, null, true, EquipmentSlot.LEGS),
+	IT("it", "IT", "it", "it-nercabbad", null, null, true, EquipmentSlot.LEGS),
 	/** The older silicon-blue IT ovve; PolymITer's kiselblå, applied to the IT overlay. */
-	IT_KISEL("it_kisel", "Silicon-blue IT", "it", "it-nercabbad", null, 0x769BB0, true),
-	/** The tailcoat: always up (a frack has nothing to roll down). */
-	MEDIA("media", "Media", "mediafrack", null, null, null, false),
+	IT_KISEL("it_kisel", "Silicon-blue IT", "it", "it-nercabbad", null, 0x769BB0, true, EquipmentSlot.LEGS),
+	/**
+	 * The tailcoat: a chest-slot garment, the one thing that sets it apart from the ovvar. It is
+	 * its own top — no companion, nothing to roll down, no legs and no cuffs; its pockets and its
+	 * patches (the top's cells only) work as an ovve's do.
+	 */
+	MEDIA("media", "Media", "mediafrack", null, null, null, false, EquipmentSlot.CHEST),
 	/**
 	 * For comparison: the same ovvar with PolymITer's hand-drawn leggings texture
 	 * ({@code art/ovvar/polymiter/nercabbad.png}, its red one) for the rolled-down state, shifted to
 	 * the chapter's colour — PolymITer only ever drew that state, so the top is the website's.
 	 */
-	DATA_POLYMITER("data_polymiter", "Data (PolymITer)", "data", "data-nercabbad", "polymiter/nercabbad", null, true),
-	IT_POLYMITER("it_polymiter", "IT (PolymITer)", "it", "it-nercabbad", "polymiter/nercabbad", null, true);
+	DATA_POLYMITER("data_polymiter", "Data (PolymITer)", "data", "data-nercabbad", "polymiter/nercabbad", null, true, EquipmentSlot.LEGS),
+	IT_POLYMITER("it_polymiter", "IT (PolymITer)", "it", "it-nercabbad", "polymiter/nercabbad", null, true, EquipmentSlot.LEGS);
 
 	public final String id;
 	public final String name;
@@ -36,9 +43,15 @@ public enum Chapter {
 	public final @Nullable Integer tint;
 	/** Whether the top can be rolled down; needs a nercabbad overlay. */
 	public final boolean rollable;
+	/**
+	 * The slot the garment itself is worn in. LEGS is an ovve: one item with pockets in the legs
+	 * slot, its top a companion in the chest slot while it is up. CHEST is a frack: the same item,
+	 * pockets and all, worn as a chestplate — only the {@link Piece#TOP} half exists for it.
+	 */
+	public final EquipmentSlot slot;
 
 	Chapter(String id, String name, String overlay, @Nullable String nercabbadOverlay, @Nullable String nercabbadArmour,
-			@Nullable Integer tint, boolean rollable) {
+			@Nullable Integer tint, boolean rollable, EquipmentSlot slot) {
 		this.id = id;
 		this.name = name;
 		this.overlay = overlay;
@@ -46,7 +59,19 @@ public enum Chapter {
 		this.nercabbadArmour = nercabbadArmour;
 		this.tint = tint;
 		this.rollable = rollable;
+		this.slot = slot;
 		if (rollable && nercabbadOverlay == null) throw new IllegalStateException(id + " is rollable but has no nercabbad overlay");
+		if (rollable && slot != EquipmentSlot.LEGS) throw new IllegalStateException(id + " is rollable but is not worn in the legs slot");
+	}
+
+	/** The halves this garment is drawn as, and so the cells a patch may go on: both for an ovve, the top alone for a frack. */
+	public Set<Piece> pieces() {
+		return slot == EquipmentSlot.CHEST ? Set.of(Piece.TOP) : Set.of(Piece.TOP, Piece.BOTTOM);
+	}
+
+	/** The half the garment item itself draws: the bottom of an ovve (its top is the companion), the whole of a frack. */
+	public Piece ownPiece() {
+		return slot == EquipmentSlot.CHEST ? Piece.TOP : Piece.BOTTOM;
 	}
 
 	/** The chapter with this id, or null. */

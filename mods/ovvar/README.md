@@ -18,6 +18,13 @@ anywhere else. Real chest armour goes on over it as usual (right-click it, or sw
 slot) and hides the top until it comes off again. Leather-grade defence, no durability. The
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
+The Media frack is the same item worn as a **chestplate** (`Chapter.slot`): a tailcoat is a top,
+and that is what sets it apart from the ovvar. Its pockets and its patches work as an ovve's, but
+there is no companion top (it is the top), nothing to roll up or down, no legs — only the top's
+cells take a patch, and the coat's tails in the overlay are not drawn — and no cuffs. Wherever
+the code asks what somebody wears it asks `OvveItem.worn`, which looks in whichever slot the
+chapter uses.
+
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
 belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it, and one
@@ -127,7 +134,8 @@ not a possession — out of a chest slot it deletes itself and the ovve's own ti
 straight back, so vanilla's swap of that slot looked like the top jumping back onto the stand and
 nothing else happening. The garment is one item in the legs slot, so taking its top off the stand
 means taking the ovve off; the companion goes with it. Real chest armour over the ovve is still
-vanilla's to swap, and a session stand still refuses everything but sewing. While the ovve is on a stand its patches are flat item displays laid on their cells
+vanilla's to swap, and a session stand still refuses everything but sewing. (A frack *is* the
+chest slot's item, so there vanilla's swap already hands it over and the click is left alone.) While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
 is taken off and worn. A shoulder's sprite lies flat on the arm box's own top face, which faces
@@ -186,7 +194,7 @@ enchantments, the top being up or down stay with the item.
 Handing somebody an ovve does not hand them the wardrobe behind it, so an owned ovve is worn and
 changed by its owner and by nobody else:
 
-- **wearing.** A foreign ovve does not go in the legs slot: the armour slot refuses it (dragging,
+- **wearing.** A foreign ovve does not go in the legs slot (a foreign frack not in the chest slot): the armour slot refuses it (dragging,
   clicking, shift-clicking), a dispenser aimed at the player refuses it, right-clicking it says
   "That ovve belongs to \<name\>" in red, and one forced in anyway (`/item replace`, another mod,
   the rule changed while it was worn) is taken off on the wearer's next tick and put back in their
@@ -553,7 +561,10 @@ its sprite lies on that plane; that an empty-handed click on a stand's chest tak
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
 swap; and
 the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
-sewn on the last pull, nothing sewn after cutting the thread). `WardrobeTests` runs the store
+sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
+to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
+finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
+a stand click left to vanilla's swap, and the seam sewing onto it. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do

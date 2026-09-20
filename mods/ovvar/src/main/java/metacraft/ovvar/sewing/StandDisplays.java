@@ -78,7 +78,7 @@ public final class StandDisplays {
 			if (entity instanceof ArmorStand stand && (slot == EquipmentSlot.LEGS || slot == EquipmentSlot.CHEST)) CHANGED.add(stand.getUUID());
 		});
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
-			if (entity instanceof ArmorStand stand && stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem) CHANGED.add(stand.getUUID());
+			if (entity instanceof ArmorStand stand && OvveItem.wears(stand)) CHANGED.add(stand.getUUID());
 		});
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
 			if (entity instanceof ArmorStand) CHANGED.add(entity.getUUID());
@@ -91,7 +91,7 @@ public final class StandDisplays {
 			CHANGED.remove(id);
 			ArmorStand stand = findStand(server, id);
 			Shown shown = SHOWN.get(id);
-			boolean wears = stand != null && stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem;
+			boolean wears = stand != null && OvveItem.wears(stand);
 			if (wears && shown == null) {
 				SHOWN.put(id, new Shown(stand));
 			} else if (!wears && shown != null) {
@@ -101,7 +101,7 @@ public final class StandDisplays {
 		}
 		for (Iterator<Shown> it = SHOWN.values().iterator(); it.hasNext(); ) {
 			Shown shown = it.next();
-			ItemStack ovve = shown.stand.getItemBySlot(EquipmentSlot.LEGS);
+			ItemStack ovve = OvveItem.worn(shown.stand);
 			if (shown.stand.isRemoved() || !(ovve.getItem() instanceof OvveItem)) {
 				shown.holder.destroy();
 				it.remove();
@@ -148,7 +148,8 @@ public final class StandDisplays {
 
 	private static boolean topShown(ArmorStand stand, ItemStack ovve) {
 		ItemStack chest = stand.getItemBySlot(EquipmentSlot.CHEST);
-		return OvveItem.topUp(ovve) && (chest.isEmpty() || chest.getItem() instanceof OvveTopItem);
+		// A frack is the chest slot's own item: its top is always there to be seen.
+		return OvveItem.topUp(ovve) && (chest == ovve || chest.isEmpty() || chest.getItem() instanceof OvveTopItem);
 	}
 
 	private static void update(Shown shown, ItemStack ovve) {

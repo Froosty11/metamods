@@ -556,7 +556,7 @@ public final class WardrobeGui extends SimpleGui {
 			if (isOpen()) build();
 		})));
 
-		ItemStack worn = player.getItemBySlot(EquipmentSlot.LEGS);
+		ItemStack worn = OvveItem.worn(player);
 		String noMannequin = config().whyNoMannequin() != null ? config().whyNoMannequin()
 				: worn.getItem() instanceof OvveItem ? null : "Wear an ovve first";
 		setSlot(MANNEQUIN, action(WardrobeAction.SEE_3D, noMannequin, () -> {
