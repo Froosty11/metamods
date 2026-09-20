@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The {@code stash} block of {@code config/ovvar.json}: what this server is, and when a player may
+ * The {@code stash} block of {@code config/ovvar.json5}: what this server is, and when a player may
  * take a patch out of their stash (onto their ovve). Every key has a default.
  *
  * @param minigameServer	  a minigame server: the stash and every ovve are view-only here — no sewing,
@@ -122,7 +122,7 @@ public record StashConfig(
 			},
 			GameType::getName);
 
-	/** Written into the file as {@code _help}, one line per key, since JSON has no comments. */
+	/** Written into the file as a comment above each key, and shown by {@code /ovvar config <key>}. */
 	public static final Map<String, String> HELP = new LinkedHashMap<>();
 	static {
 		HELP.put("_about", "What this server is, and the rules for patches here. Patches live in a player's stash (shared by all servers), on their ovve, or as items in the world.");
@@ -145,7 +145,6 @@ public record StashConfig(
 			Bank.MINIGAME, false, false, true, false, StashClick.WITHDRAW, true, 8.0, 300, true);
 
 	public static final MapCodec<StashConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", java.util.Map.of()).forGetter(c -> HELP),
 			Codec.BOOL.optionalFieldOf("minigame_server", DEFAULT.minigameServer).forGetter(StashConfig::minigameServer),
 			GAME_TYPE.listOf().optionalFieldOf("sew_game_modes", DEFAULT.sewGameModes).forGetter(StashConfig::sewGameModes),
 			Codec.STRING.optionalFieldOf("ingame_objective", DEFAULT.ingameObjective).forGetter(StashConfig::ingameObjective),
@@ -159,6 +158,6 @@ public record StashConfig(
 			Codec.doubleRange(1, 64).optionalFieldOf("session_reach", DEFAULT.sessionReach).forGetter(StashConfig::sessionReach),
 			Codec.intRange(10, 3600).optionalFieldOf("session_seconds", DEFAULT.sessionSeconds).forGetter(StashConfig::sessionSeconds),
 			Codec.BOOL.optionalFieldOf("explain_in_chat", DEFAULT.explainInChat).forGetter(StashConfig::explainInChat)
-	).apply(instance, (help, minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain) ->
+	).apply(instance, (minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain) ->
 			new StashConfig(minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain)));
 }

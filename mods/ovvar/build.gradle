@@ -26,6 +26,8 @@ dependencies {
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
 	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	// The design store's JDBC drivers, bundled jar-in-jar (config designs.jdbc.url picks one).
+	// The config file: JSON with comments (JSON5), read and written through Jankson.
+	implementation(include("blue.endless:jankson:1.2.3"))
 	implementation(include("org.mariadb.jdbc:mariadb-java-client:3.5.10"))
 	implementation(include("org.postgresql:postgresql:42.7.13"))
 	// Dev/test only: an in-memory database for the JDBC game test; not shipped.

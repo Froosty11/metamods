@@ -58,8 +58,8 @@ import java.util.stream.Stream;
  *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
  *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json;</li>
  *   <li>{@code config [key [value]]} — the config from in game: every key with its value, one key with its
- *	   default and help, or one key set (JSON or a bare word), saved to config/ovvar.json and applied;</li>
- *   <li>{@code reload} — config/ovvar.json read again and applied;</li>
+ *	   default and help, or one key set (JSON or a bare word), saved to config/ovvar.json5 and applied;</li>
+ *   <li>{@code reload} — config/ovvar.json5 read again and applied;</li>
  *   <li>{@code aimlog on|off} — log every click on a stand and every aim change with the numbers behind it (server log);</li>
  *   <li>{@code store status|show [player]|reload [player]|reconnect} — the wardrobe store: what it is and
  *	   what is cached, one player's designs and stash, drop and refetch them, or reopen the backend from the config;</li>
@@ -290,7 +290,7 @@ public final class ModCommands {
 
 	// ---- config
 
-	/** {@code /ovvar reload}: config/ovvar.json read again and applied. */
+	/** {@code /ovvar reload}: config/ovvar.json5 read again and applied. */
 	private static int reload(CommandContext<CommandSourceStack> ctx) {
 		OvvarConfig before = OvvarConfig.get();
 		OvvarConfig.reload();

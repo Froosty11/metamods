@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The {@code designs} block of {@code config/ovvar.json}: where the players' wardrobes (their
+ * The {@code designs} block of {@code config/ovvar.json5}: where the players' wardrobes (their
  * sewn patches per chapter and their stash of unsewn ones) live, and what sewing does when that
  * store cannot be reached. Every key has a default, so an older file without the block still loads.
  *
@@ -37,7 +37,7 @@ public record DesignStoreConfig(
 		boolean editRequiresOwner, boolean sewWhenUnreachable, boolean unpickWhenUnreachable, int retrySeconds,
 		boolean logQueries
 ) {
-	/** Written into the file as {@code _help}, one line per key, since JSON has no comments. */
+	/** Written into the file as a comment above each key, and shown by {@code /ovvar config <key>}. */
 	public static final Map<String, String> HELP = new LinkedHashMap<>();
 	static {
 		HELP.put("_about", "Where every player's wardrobe (their sewn patches per chapter and their stash of unsewn patches) is kept. All servers should point at the same store.");
@@ -100,7 +100,7 @@ public record DesignStoreConfig(
 			String url, String user, String password, String passwordEnv, String table, String driverClass,
 			int connectTimeoutSeconds, int queryTimeoutSeconds
 	) {
-		/** Written into the file as {@code _help}, since JSON has no comments. */
+		/** Written into the file as a comment above each key, and shown by {@code /ovvar config <key>}. */
 		public static final Map<String, String> HELP = new LinkedHashMap<>();
 		static {
 			HELP.put("_about", "The jdbc backend's connection settings; only read when designs.backend is \"jdbc\".");
@@ -117,7 +117,6 @@ public record DesignStoreConfig(
 		public static final Jdbc DEFAULT = new Jdbc("jdbc:mariadb://localhost:3306/metacraft", "metacraft", "", "OVVAR_DB_PASSWORD",
 				"ovve_wardrobes", "", 5, 5);
 		public static final Codec<Jdbc> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", Map.<String, String>of()).forGetter(c -> HELP),
 				Codec.STRING.optionalFieldOf("url", DEFAULT.url).forGetter(Jdbc::url),
 				Codec.STRING.optionalFieldOf("user", DEFAULT.user).forGetter(Jdbc::user),
 				Codec.STRING.optionalFieldOf("password", DEFAULT.password).forGetter(Jdbc::password),
@@ -126,7 +125,7 @@ public record DesignStoreConfig(
 				Codec.STRING.optionalFieldOf("driver_class", DEFAULT.driverClass).forGetter(Jdbc::driverClass),
 				Codec.intRange(1, 600).optionalFieldOf("connect_timeout_seconds", DEFAULT.connectTimeoutSeconds).forGetter(Jdbc::connectTimeoutSeconds),
 				Codec.intRange(1, 600).optionalFieldOf("query_timeout_seconds", DEFAULT.queryTimeoutSeconds).forGetter(Jdbc::queryTimeoutSeconds)
-		).apply(instance, (help, url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout) ->
+		).apply(instance, (url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout) ->
 				new Jdbc(url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout)));
 
 		/** The password to use: the environment variable when named and set, else the file's. */
@@ -161,13 +160,11 @@ public record DesignStoreConfig(
 	}
 
 	public static final MapCodec<DesignStoreConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", Map.<String, String>of()).forGetter(c -> HELP),
 			Backend.CODEC.optionalFieldOf("backend", DEFAULT.backend).forGetter(DesignStoreConfig::backend),
 			Codec.STRING.optionalFieldOf("file_directory", DEFAULT.fileDirectory).forGetter(DesignStoreConfig::fileDirectory),
 			// optionalFieldOf(key) (no default) always encodes the Optional it's given, unlike
-			// optionalFieldOf(key, default) which omits a value that equals the default — jdbc is a
-			// record and (unlike the scalar keys below) is never "equal to DEFAULT" by coincidence,
-			// but we want it written even when it genuinely is the default, so its own _help shows.
+			// optionalFieldOf(key, default) which omits a value that equals the default, so the
+			// jdbc block is in the encoding even when it is exactly the default.
 			Jdbc.CODEC.optionalFieldOf("jdbc").xmap(o -> o.orElse(Jdbc.DEFAULT), Optional::of).forGetter(DesignStoreConfig::jdbc),
 			Codec.BOOL.optionalFieldOf("bind_on_pickup", DEFAULT.bindOnPickup).forGetter(DesignStoreConfig::bindOnPickup),
 			OthersOvve.CODEC.optionalFieldOf("others_ovve", DEFAULT.othersOvve).forGetter(DesignStoreConfig::othersOvve),
@@ -176,6 +173,6 @@ public record DesignStoreConfig(
 			Codec.BOOL.optionalFieldOf("unpick_when_unreachable", DEFAULT.unpickWhenUnreachable).forGetter(DesignStoreConfig::unpickWhenUnreachable),
 			Codec.intRange(1, 3600).optionalFieldOf("retry_seconds", DEFAULT.retrySeconds).forGetter(DesignStoreConfig::retrySeconds),
 			Codec.BOOL.optionalFieldOf("log_queries", DEFAULT.logQueries).forGetter(DesignStoreConfig::logQueries)
-	).apply(instance, (help, backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log) ->
+	).apply(instance, (backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log) ->
 			new DesignStoreConfig(backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log)));
 }

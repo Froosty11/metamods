@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The config as keys, for {@code /ovvar config}: every leaf of {@code config/ovvar.json} by its
+ * The config as keys, for {@code /ovvar config}: every leaf of {@code config/ovvar.json5} by its
  * dotted path ({@code stitches}, {@code stash.withdraw}, {@code designs.jdbc.url}), read and set
  * through {@link OvvarConfig#CODEC} itself. A set encodes the config to JSON, replaces the one
  * leaf and decodes it back, so a value out of range, a name no enum has or a string where a list
@@ -56,12 +56,13 @@ public final class ConfigKeys {
 	 * and its value is written the way the codec would write it.
 	 */
 	public static JsonObject json(OvvarConfig config) {
-		JsonObject root = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow().getAsJsonObject();
-		fill(root, config);
-		return root;
+		JsonObject encoded = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow().getAsJsonObject();
+		return filled(encoded, config);
 	}
 
-	private static void fill(JsonObject block, Record record) {
+	/** The block in the record's own order: what the codec wrote where it wrote something, the record's value otherwise. */
+	private static JsonObject filled(JsonObject encoded, Record record) {
+		JsonObject out = new JsonObject();
 		for (RecordComponent component : record.getClass().getRecordComponents()) {
 			String key = snake(component.getName());
 			Object value;
@@ -70,13 +71,14 @@ public final class ConfigKeys {
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(key, e);
 			}
+			JsonElement written = encoded.get(key);
 			if (value instanceof Record nested) {
-				if (!block.has(key) || !block.get(key).isJsonObject()) block.add(key, new JsonObject());
-				fill(block.getAsJsonObject(key), nested);
-			} else if (!block.has(key)) {
-				block.add(key, toJson(value));
+				out.add(key, filled(written != null && written.isJsonObject() ? written.getAsJsonObject() : new JsonObject(), nested));
+			} else {
+				out.add(key, written != null ? written : toJson(value));
 			}
 		}
+		return out;
 	}
 
 	private static JsonElement toJson(Object value) {
@@ -126,11 +128,17 @@ public final class ConfigKeys {
 		return at.isJsonObject() ? null : at;
 	}
 
-	/** What the file's {@code _help} says about the key, or null. */
+	/** The help for the key (the comment above it in the file), or null. */
 	public static @Nullable String help(String key) {
 		int dot = key.lastIndexOf('.');
 		Map<String, String> block = HELP.get(dot < 0 ? "" : key.substring(0, dot));
 		return block == null ? null : block.get(key.substring(dot + 1));
+	}
+
+	/** What a block is about (the comment above the block in the file; the file's own for ""), or null. */
+	public static @Nullable String about(String block) {
+		Map<String, String> help = HELP.get(block);
+		return help == null ? null : help.get("_about");
 	}
 
 	/**

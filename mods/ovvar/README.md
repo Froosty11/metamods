@@ -153,7 +153,7 @@ one item model per piece — a single zero-thickness quad, so the displays are s
 it is sewn. That is the whole preview. The companion top and the virtual cuffs carry the same
 on-stand flag, so nothing draws the patches twice.
 
-With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
+With the stitching minigame on (`config/ovvar.json5`: `sewing_minigame`, `stitches`; default on,
 6 stitches for a cell-sized patch — a longer outline, a bigger patch or an intricate edge, takes
 proportionally more, up to 16) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the
 seam goes around its edge, following the shape of the art (a notched edge is sewn into its notch). The
@@ -473,7 +473,7 @@ everything placed at runtime. `WardrobeArt` tints
 every non-white pixel by `luminance/255 * colour` and leaves anything at or above luminance 250
 pure white, so the stitching reads the same on every chapter.
 
-`config/ovvar.json` → `designs` (the store):
+`config/ovvar.json5` → `designs` (the store):
 
     backend                  file (default) | jdbc
     file_directory           file backend: an absolute directory, "" = <world>/ovvar/wardrobes
@@ -491,7 +491,7 @@ pure white, so the stitching reads the same on every chapter.
     retry_seconds            how often failed loads and queued writes are retried (default 15)
     log_queries              log every load and store
 
-`config/ovvar.json` → `stash` (this server's rules):
+`config/ovvar.json5` → `stash` (this server's rules):
 
     minigame_server          true: view-only stash, no sewing or unpicking anywhere, patch items banked (default false)
     sew_game_modes           game modes that may sew and take patches out (default survival, creative)
@@ -507,7 +507,7 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-`config/ovvar.json` → `server` (what this server calls itself):
+`config/ovvar.json5` → `server` (what this server calls itself):
 
     name                     this server's name in the MOTD (default "METAcraft")
 
@@ -517,11 +517,11 @@ gets before they join: `METAcraft Survival · ovve sewing on stands, patches are
 above is optional in the file: the defaults are the ones documented here, and a key only needs
 writing to change it.
 
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
-`designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
-stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
-you would rather read the help there than here. Every block is always written, even one that is
-exactly its own defaults, so its `_help` is always there too.
+The file is JSON with comments (JSON5, through Jankson): every key is written, with the same
+help as above in a comment line over it, so open the file itself if you would rather read the help
+there than here. The mod rewrites the file when `/ovvar config` or `/ovvar minigame` change a
+value, and keeps the comments an admin has added. A file from before this format, `ovvar.json`
+with `_help` blocks, is read once and rewritten as `ovvar.json5`.
 
 The file backend is fine for one server or a shared mount; a network of servers wants `jdbc`
 (MariaDB/MySQL and PostgreSQL drivers ship in the jar).
@@ -532,14 +532,14 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
-    /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
+    /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json5
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar pack                                (any player) the latest resource pack, now
     /ovvar config                              every config key with its value (dotted: stash.withdraw, designs.jdbc.url)
     /ovvar config <key>                        one key: its value, its default and what it does
     /ovvar config <key> <value>                set it (JSON, or a bare word for a string), checked by the config's codec, saved and applied
-    /ovvar reload                              re-read config/ovvar.json and apply it
+    /ovvar reload                              re-read config/ovvar.json5 and apply it
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions

@@ -102,6 +102,103 @@ public final class ConfigCommandTests {
 		helper.succeed();
 	}
 
+	/** The file the mod writes has every key, the help as a comment over each, and reads back as the same config. */
+	@GameTest
+	public void savedFileIsCommentedAndReadsBack(GameTestHelper helper) {
+		OvvarConfig before = OvvarConfig.get();
+		try {
+			OvvarConfig.modify(c -> c.minigame(c.sewingMinigame(), 9));
+			String text = java.nio.file.Files.readString(OvvarConfig.PATH);
+			for (String want : List.of("// " + OvvarConfig.HELP.get("stitches"), "\"stitches\": 9", "// " + StashConfig.HELP.get("withdraw"),
+					"\"withdraw\":", "// " + DesignStoreConfig.Jdbc.HELP.get("url"), "\"sew_game_modes\": [", "// " + StashConfig.HELP.get("_about"))) {
+				if (!text.contains(want)) helper.fail("the file lacks: " + want + "\n" + text);
+			}
+			if (text.contains("_help")) helper.fail("the file still has a _help block");
+			OvvarConfig.reload();
+			if (OvvarConfig.get().stitches() != 9) helper.fail("read back stitches " + OvvarConfig.get().stitches());
+			if (!OvvarConfig.get().equals(before.minigame(before.sewingMinigame(), 9))) helper.fail("the file did not read back as the config that wrote it");
+		} catch (java.io.IOException e) {
+			helper.fail("could not read " + OvvarConfig.PATH + ": " + e);
+		} finally {
+			OvvarConfig.modify(c -> before);
+		}
+		helper.succeed();
+	}
+
+	/** An admin's own comment on a key survives the mod rewriting the file. */
+	@GameTest
+	public void adminCommentsSurviveARewrite(GameTestHelper helper) {
+		OvvarConfig before = OvvarConfig.get();
+		try {
+			String text = java.nio.file.Files.readString(OvvarConfig.PATH);
+			String help = "// " + OvvarConfig.HELP.get("stitches");
+			if (!text.contains(help)) helper.fail("no stitches help line to replace");
+			java.nio.file.Files.writeString(OvvarConfig.PATH, text.replace(help, "// Our note: six felt right at the playtest"));
+			OvvarConfig.reload();
+			OvvarConfig.modify(c -> c.minigame(c.sewingMinigame(), 9));
+			String after = java.nio.file.Files.readString(OvvarConfig.PATH);
+			if (!after.contains("// Our note: six felt right at the playtest")) helper.fail("the admin's comment was lost:\n" + after);
+			if (!after.contains("\"stitches\": 9")) helper.fail("the value was not written under the kept comment");
+		} catch (java.io.IOException e) {
+			helper.fail("could not read " + OvvarConfig.PATH + ": " + e);
+		} finally {
+			OvvarConfig.modify(c -> before);
+			OvvarConfig.save();
+		}
+		helper.succeed();
+	}
+
+	/** The old ovvar.json with _help blocks is read when there is no ovvar.json5, then rewritten as the new file. */
+	@GameTest
+	public void legacyFileIsReadOnceAndRewritten(GameTestHelper helper) {
+		OvvarConfig before = OvvarConfig.get();
+		try {
+			java.nio.file.Files.writeString(OvvarConfig.LEGACY_PATH, """
+					{
+						"_help": {"_about": "old", "stitches": "old help"},
+						"sewing_minigame": true,
+						"stitches": 7,
+						"stash": {"_help": {"withdraw": "old"}, "withdraw": false}
+					}
+					""");
+			java.nio.file.Files.delete(OvvarConfig.PATH);
+			OvvarConfig.reload();
+			if (OvvarConfig.get().stitches() != 7 || OvvarConfig.get().stash().withdraw()) helper.fail("the old file was not read: " + OvvarConfig.get());
+			if (!java.nio.file.Files.exists(OvvarConfig.PATH)) helper.fail("no " + OvvarConfig.PATH.getFileName() + " written from the old file");
+			if (java.nio.file.Files.exists(OvvarConfig.LEGACY_PATH)) helper.fail("the old file is still there");
+			if (java.nio.file.Files.readString(OvvarConfig.PATH).contains("_help")) helper.fail("the new file carried the _help blocks over");
+		} catch (java.io.IOException e) {
+			helper.fail("file trouble: " + e);
+		} finally {
+			OvvarConfig.modify(c -> before);
+			OvvarConfig.save();
+		}
+		helper.succeed();
+	}
+
+	/** A value the codec refuses in the file keeps the config that was, with the file named in the error. */
+	@GameTest
+	public void badFileIsRefusedAndTheOldConfigStays(GameTestHelper helper) {
+		OvvarConfig before = OvvarConfig.get();
+		try {
+			String text = java.nio.file.Files.readString(OvvarConfig.PATH);
+			java.nio.file.Files.writeString(OvvarConfig.PATH, text.replace("\"stitches\": " + before.stitches(), "\"stitches\": 99"));
+			try {
+				OvvarConfig.reload();
+				helper.fail("stitches 99 was read from the file");
+			} catch (IllegalStateException expected) {
+				if (!expected.getMessage().contains(OvvarConfig.PATH.getFileName().toString())) helper.fail("the error does not name the file: " + expected.getMessage());
+			}
+			if (OvvarConfig.get().stitches() != before.stitches()) helper.fail("the config changed on a refused file");
+		} catch (java.io.IOException e) {
+			helper.fail("file trouble: " + e);
+		} finally {
+			OvvarConfig.modify(c -> before);
+			OvvarConfig.save();
+		}
+		helper.succeed();
+	}
+
 	private static OvvarConfig ok(GameTestHelper helper, DataResult<OvvarConfig> result) {
 		if (result.isError()) helper.fail("refused: " + result.error().orElseThrow().message());
 		return result.getOrThrow();

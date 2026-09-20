@@ -1,6 +1,7 @@
 package metacraft.ovvar.gametest;
 
 import metacraft.ovvar.Motd;
+import metacraft.ovvar.ConfigKeys;
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.ServerConfig;
 import metacraft.ovvar.content.Chapter;
@@ -89,7 +90,7 @@ public final class WardrobeTests {
 
 	static {
 		// The moment the server is up — before the first test spawns a mock player and well before
-		// any test claims BUSY — detach the store from whatever config/ovvar.json names. Fabric-api's
+		// any test claims BUSY — detach the store from whatever config/ovvar.json5 names. Fabric-api's
 		// GameTest has no batch() to force these onto one worker (javap confirms), so without this a
 		// stray on-join fetch for a fixed test UUID can hit a live JDBC store with real rows before
 		// any test-owned backend is in place.
@@ -521,44 +522,32 @@ public final class WardrobeTests {
 				.thenSucceed();
 	}
 
-	// ---- the config file's _help
+	// ---- the config file's comments
 
 	/**
-	 * {@code config/ovvar.json} and its {@code designs}, {@code stash} and {@code server} blocks
-	 * each carry a {@code _help} object with an entry for every key they write, plus {@code _about};
-	 * this is the only comment JSON gets, so a key silently missing its line is worth failing on.
+	 * Every key the file writes has a help line (the comment over it, and what {@code /ovvar config <key>}
+	 * shows), every block an about line, and no HELP map names a key the file does not have; a key
+	 * silently missing its line is worth failing on.
 	 */
 	@GameTest
 	public void configHelpCoversEveryKey(GameTestHelper helper) {
-		// The plain factory-default config, not nudged off default anywhere: server/designs/stash
-		// (and jdbc inside designs) use optionalFieldOf(key).xmap(...) precisely so a block equal to
-		// its own default is still written (and so is its _help), unlike the scalar keys inside each
-		// block, which optionalFieldOf(key, default) still omits when they equal that default.
-		OvvarConfig config = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT);
-		JsonElement json = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config)
-				.getOrThrow(message -> new IllegalStateException("config does not encode: " + message));
-		JsonObject root = json.getAsJsonObject();
-		assertHelpCoversKeys(helper, root, OvvarConfig.HELP, "root");
-		assertHelpCoversKeys(helper, root.getAsJsonObject("server"), ServerConfig.HELP, "server");
-		JsonObject designs = root.getAsJsonObject("designs");
-		assertHelpCoversKeys(helper, designs, DesignStoreConfig.HELP, "designs");
-		assertHelpCoversKeys(helper, designs == null ? null : designs.getAsJsonObject("jdbc"), DesignStoreConfig.Jdbc.HELP, "designs.jdbc");
-		assertHelpCoversKeys(helper, root.getAsJsonObject("stash"), StashConfig.HELP, "stash");
+		List<String> keys = ConfigKeys.keys(OvvarConfig.DEFAULT);
+		for (String key : keys) {
+			if (ConfigKeys.help(key) == null) helper.fail("no help for " + key);
+		}
+		for (String block : List.of("", "server", "designs", "designs.jdbc", "stash")) {
+			if (ConfigKeys.about(block) == null) helper.fail("no _about for block '" + block + "'");
+		}
+		Map<String, Map<String, String>> maps = Map.of("", OvvarConfig.HELP, "server", ServerConfig.HELP,
+				"designs", DesignStoreConfig.HELP, "designs.jdbc", DesignStoreConfig.Jdbc.HELP, "stash", StashConfig.HELP);
+		for (var e : maps.entrySet()) {
+			for (String name : e.getValue().keySet()) {
+				if (name.equals("_about")) continue;
+				String key = e.getKey().isEmpty() ? name : e.getKey() + "." + name;
+				if (!keys.contains(key) && !maps.containsKey(key)) helper.fail("HELP names " + key + ", which the file does not have");
+			}
+		}
 		helper.succeed();
-	}
-
-	private static void assertHelpCoversKeys(GameTestHelper helper, JsonObject block, Map<String, String> help, String name) {
-		if (block == null) { helper.fail(name + " block was not written at all"); return; }
-		if (!block.has("_help")) helper.fail(name + " has no _help");
-		JsonObject written = block.getAsJsonObject("_help");
-		if (!written.has("_about")) helper.fail(name + "._help has no _about");
-		for (String key : block.keySet()) {
-			if (key.equals("_help")) continue;
-			if (!written.has(key)) helper.fail(name + "._help is missing an entry for " + key);
-		}
-		for (String key : help.keySet()) {
-			if (!written.has(key)) helper.fail(name + "._help does not match its HELP map: missing " + key);
-		}
 	}
 
 	// ---- the wardrobe screen
