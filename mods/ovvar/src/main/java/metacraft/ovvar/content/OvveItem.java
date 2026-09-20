@@ -65,6 +65,16 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 		this.id = id;
 	}
 
+	/**
+	 * An ovve does not go in a pocket, its own or another ovve's. Vanilla's one guard on what a
+	 * bundle takes is this flag, and bundles leave it on; off, every insert path refuses the ovve,
+	 * clicking it onto a worn one included.
+	 */
+	@Override
+	public boolean canFitInsideContainerItems() {
+		return false;
+	}
+
 	/** Is the top showing? A frack's always is: it is the top. An ovve's is a state on the stack. */
 	public static boolean topUp(ItemStack ovve) {
 		if (ovve.getItem() instanceof OvveItem item && item.chapter.slot == EquipmentSlot.CHEST) return true;

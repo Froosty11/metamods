@@ -469,6 +469,23 @@ public final class OvvarGameTests {
 		});
 	}
 
+	/** An ovve's pockets take an ordinary item and refuse an ovve, so one can never be folded into another. */
+	@GameTest
+	public void anOvveDoesNotFitInAnOvvesPockets(GameTestHelper helper) {
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
+		// Through the ovve's own contents, so the bundle mod's size factor rides along.
+		var pockets = ovve.getOrDefault(net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS,
+				net.minecraft.world.item.component.BundleContents.EMPTY).asMutable();
+		if (pockets.tryInsert(new ItemStack(net.minecraft.world.item.Items.STONE, 8)) != 8) helper.fail("the pockets refused stone");
+		for (Chapter chapter : Chapter.values()) {
+			ItemStack other = new ItemStack(ModContent.ovve(chapter));
+			if (pockets.tryInsert(other) != 0) helper.fail(chapter.id + "'s garment went into the pockets");
+			if (other.isEmpty()) helper.fail(chapter.id + "'s garment was consumed by the insert");
+		}
+		if (pockets.toImmutable().size() != 1) helper.fail("expected only the stone in the pockets, got " + pockets.toImmutable().size() + " stacks");
+		helper.succeed();
+	}
+
 	private static ArmorStand stand(GameTestHelper helper, float yaw, Rotations rightArm, Rotations leftArm, Rotations rightLeg, Rotations leftLeg) {
 		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(2, 1, 2));
 		stand.setYRot(yaw);

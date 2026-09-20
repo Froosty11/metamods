@@ -9,7 +9,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"metacraft.ovvar.clienttest.OvvarClientTests",
-			"metacraft.ovvar.clienttest.StashChestClientTests"
+			"metacraft.ovvar.clienttest.StashChestClientTests",
+			"metacraft.ovvar.clienttest.OvvePocketsClientTests"
 		]
 	},
 	"mixins": [

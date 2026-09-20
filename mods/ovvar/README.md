@@ -10,7 +10,11 @@ frack. An ovve is a single item worn in the legs slot with pockets: it is a bund
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; here `libs/metacraft-bundles-1.0.0.jar` is compiled against and the dev server runs
-without it, with vanilla-sized pockets). Right-click is the bundle's (hold to empty); sneak +
+without it, with vanilla-sized pockets). An ovve never goes into a pocket, its own or another's
+(`OvveItem.canFitInsideContainerItems` is off, which vanilla checks on every insert path). The
+bundle mod draws the real fill level as a lore-line bar; vanilla's own "Full" label, which it
+would print from the unscaled weight at half fill, is blanked by a lang override in that mod.
+Right-click is the bundle's (hold to empty); sneak +
 right-click rolls the top up or down; neither equips it, so drag it in or shift-click. While the
 top is up and the chest slot is free the
 mod keeps a companion "top" there so the sleeves render; it is not a real item and deletes itself
