@@ -21,6 +21,7 @@
 		"fabric-gametest": [
 			"metacraft.ovvar.gametest.OvvarGameTests",
 			"metacraft.ovvar.gametest.FrackTests",
+			"metacraft.ovvar.gametest.ConfigCommandTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
 			"metacraft.ovvar.gametest.BlockbenchManifestTests"
 		],

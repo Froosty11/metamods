@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Each build is a generation, and each player is on the generation they last loaded. A push is
  * a loading screen, so nobody gets one they did not cause: the pack is pushed to a player only
  * when their own sewing outgrew what the dye colour can show of it ({@link #claim}, at once when
- * the build is done), or when they ask with {@code /ovvar reload}. Everyone else keeps the pack
+ * the build is done), or when they ask with {@code /ovvar pack}. Everyone else keeps the pack
  * they have and sees what it holds plus the newest patches in the dye colour (see
  * {@link metacraft.ovvar.content.Looks#look}); whoever joins gets the current pack.
  */
@@ -168,7 +168,7 @@ public final class Combos {
 	}
 
 	/**
-	 * {@code /ovvar reload}: the current pack to the player if theirs is older, after a build if
+	 * {@code /ovvar pack}: the current pack to the player if theirs is older, after a build if
 	 * one is pending. Returns what to tell them.
 	 */
 	public static String reload(ServerPlayer player) {

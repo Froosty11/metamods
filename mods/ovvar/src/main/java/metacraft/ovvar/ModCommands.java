@@ -57,6 +57,9 @@ import java.util.stream.Stream;
  *	   one per patch (on the chest), every cell filled; mannequins by default, {@code false} for armour stands;</li>
  *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
  *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json;</li>
+ *   <li>{@code config [key [value]]} — the config from in game: every key with its value, one key with its
+ *	   default and help, or one key set (JSON or a bare word), saved to config/ovvar.json and applied;</li>
+ *   <li>{@code reload} — config/ovvar.json read again and applied;</li>
  *   <li>{@code aimlog on|off} — log every click on a stand and every aim change with the numbers behind it (server log);</li>
  *   <li>{@code store status|show [player]|reload [player]|reconnect} — the wardrobe store: what it is and
  *	   what is cached, one player's designs and stash, drop and refetch them, or reopen the backend from the config;</li>
@@ -64,7 +67,7 @@ import java.util.stream.Stream;
  *	   selectors), with the flourish and the explanation each.</li>
  * </ul>
  * And for everyone: {@code stash} opens the stash, {@code stash done} ends a sewing session, {@code stash deposit}
- * puts every held patch in.
+ * puts every held patch in, {@code pack} sends the latest resource pack.
  */
 public final class ModCommands {
 	private ModCommands() {}
@@ -76,6 +79,10 @@ public final class ModCommands {
 	private static final DynamicCommandExceptionType INVALID_PATCHES =
 			new DynamicCommandExceptionType(name -> Component.literal("Invalid patches: " + name));
 
+	private static final DynamicCommandExceptionType UNKNOWN_CONFIG_KEY =
+			new DynamicCommandExceptionType(key -> Component.literal("No config key '" + key + "'; /ovvar config lists them"));
+	private static final DynamicCommandExceptionType CONFIG_REFUSED =
+			new DynamicCommandExceptionType(why -> Component.literal("Not saved: " + why));
 	private static final DynamicCommandExceptionType NOT_AN_OVVE =
 			new DynamicCommandExceptionType(what -> Component.literal("Hold an ovve in your main hand, not " + what));
 
@@ -85,8 +92,19 @@ public final class ModCommands {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				dispatcher.register(Commands.literal(Ovvar.MOD_ID)
-						// Anyone: the latest resource pack, now (the one reload that is asked for).
-						.then(Commands.literal("reload").executes(ModCommands::reload))
+						// Anyone: the latest resource pack, now (the one pack push that is asked for).
+						.then(Commands.literal("pack").executes(ModCommands::pack))
+						// Gamemasters: the config re-read from its file and applied.
+						.then(Commands.literal("reload").requires(GAMEMASTER).executes(ModCommands::reload))
+						// Gamemasters: the config from in game, every key by its dotted path.
+						.then(Commands.literal("config").requires(GAMEMASTER)
+								.executes(ModCommands::configList)
+								.then(Commands.argument("key", StringArgumentType.word())
+										.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+												ConfigKeys.keys(OvvarConfig.get()).stream().filter(k -> !ConfigKeys.SECRET.contains(k)), builder))
+										.executes(ctx -> configShow(ctx, StringArgumentType.getString(ctx, "key")))
+										.then(Commands.argument("value", StringArgumentType.greedyString())
+												.executes(ctx -> configSet(ctx, StringArgumentType.getString(ctx, "key"), StringArgumentType.getString(ctx, "value"))))))
 						// Anyone: a look at somebody's ovve, theirs or their own, read-only.
 						.then(Commands.literal("look")
 								.executes(ctx -> {
@@ -263,10 +281,67 @@ public final class ModCommands {
 		return 1;
 	}
 
-	private static int reload(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+	private static int pack(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
 		String reply = Combos.reload(player);
 		ctx.getSource().sendSuccess(() -> Component.literal(reply), false);
+		return 1;
+	}
+
+	// ---- config
+
+	/** {@code /ovvar reload}: config/ovvar.json read again and applied. */
+	private static int reload(CommandContext<CommandSourceStack> ctx) {
+		OvvarConfig before = OvvarConfig.get();
+		OvvarConfig.reload();
+		String applied = apply(ctx.getSource().getServer(), before, OvvarConfig.get());
+		ctx.getSource().sendSuccess(() -> Component.literal("Config re-read from " + OvvarConfig.PATH.getFileName() + applied), true);
+		return 1;
+	}
+
+	/**
+	 * A changed config put to work: the MOTD always (server.name and the server's mode are in it),
+	 * the wardrobe store reopened and every online player's wardrobe refetched only when the
+	 * designs block changed, since reopening drops the cache. Everything else reads the config
+	 * live. Returns what was done, for the reply.
+	 */
+	private static String apply(net.minecraft.server.MinecraftServer server, OvvarConfig before, OvvarConfig after) {
+		Motd.apply(server);
+		if (before.designs().equals(after.designs())) return "";
+		Wardrobes.open(server, after.designs());
+		for (ServerPlayer online : server.getPlayerList().getPlayers()) Wardrobes.fetch(online.getUUID());
+		return "; store reopened: " + Wardrobes.status();
+	}
+
+	private static int configList(CommandContext<CommandSourceStack> ctx) {
+		OvvarConfig config = OvvarConfig.get();
+		StringBuilder out = new StringBuilder("Config (" + OvvarConfig.PATH.getFileName() + "):");
+		for (String key : ConfigKeys.keys(config)) {
+			out.append('\n').append(key).append(" = ").append(ConfigKeys.SECRET.contains(key) ? "(hidden)" : ConfigKeys.get(config, key));
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal(out.toString()), false);
+		return 1;
+	}
+
+	private static int configShow(CommandContext<CommandSourceStack> ctx, String key) throws CommandSyntaxException {
+		OvvarConfig config = OvvarConfig.get();
+		var value = ConfigKeys.get(config, key);
+		if (value == null) throw UNKNOWN_CONFIG_KEY.create(key);
+		String shown = ConfigKeys.SECRET.contains(key) ? "(hidden)" : value.toString();
+		String fallback = String.valueOf(ConfigKeys.get(OvvarConfig.DEFAULT, key));
+		String help = ConfigKeys.help(key);
+		ctx.getSource().sendSuccess(() -> Component.literal(key + " = " + shown + " (default " + fallback + ")" + (help == null ? "" : "\n" + help)), false);
+		return 1;
+	}
+
+	private static int configSet(CommandContext<CommandSourceStack> ctx, String key, String value) throws CommandSyntaxException {
+		OvvarConfig before = OvvarConfig.get();
+		var result = ConfigKeys.with(before, key, value);
+		if (result.isError()) throw CONFIG_REFUSED.create(result.error().orElseThrow().message());
+		OvvarConfig after = result.getOrThrow();
+		OvvarConfig.modify(c -> after);
+		String applied = apply(ctx.getSource().getServer(), before, after);
+		ctx.getSource().sendSuccess(() -> Component.literal(key + " = " + ConfigKeys.get(after, key) + ", saved" + applied), true);
 		return 1;
 	}
 
@@ -522,6 +597,7 @@ public final class ModCommands {
 		return 1;
 	}
 
+	/** {@code /ovvar store reconnect}: the config re-read and the store reopened whatever changed. */
 	private static int storeReconnect(CommandContext<CommandSourceStack> ctx) {
 		OvvarConfig.reload();
 		Motd.apply(ctx.getSource().getServer());   // server.name or the server's mode may have changed with it

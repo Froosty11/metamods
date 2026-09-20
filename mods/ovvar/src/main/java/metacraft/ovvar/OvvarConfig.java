@@ -8,6 +8,7 @@ import metacraft.ovvar.store.StashConfig;
 import net.fabricmc.loader.api.FabricLoader;
 import nu.metacraft.lib.config.container.ConfigContainer;
 
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -54,9 +55,10 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 			StashConfig.CODEC.codec().optionalFieldOf("stash").xmap(o -> o.orElse(StashConfig.DEFAULT), Optional::of).forGetter(OvvarConfig::stash)
 	).apply(instance, (help, minigame, stitches, server, designs, stash) -> new OvvarConfig(minigame, stitches, server, designs, stash)));
 
-	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, () -> new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT)
-	).build(FabricLoader.getInstance().getConfigDir().resolve(Ovvar.MOD_ID + ".json"));
+	public static final OvvarConfig DEFAULT = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT);
+	/** {@code config/ovvar.json}. */
+	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(Ovvar.MOD_ID + ".json");
+	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(CODEC, () -> DEFAULT).build(PATH);
 
 
 	public static OvvarConfig get() {

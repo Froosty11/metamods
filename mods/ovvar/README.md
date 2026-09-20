@@ -535,13 +535,17 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
-    /ovvar reload                              (any player) the latest resource pack, now
+    /ovvar pack                                (any player) the latest resource pack, now
+    /ovvar config                              every config key with its value (dotted: stash.withdraw, designs.jdbc.url)
+    /ovvar config <key>                        one key: its value, its default and what it does
+    /ovvar config <key> <value>                set it (JSON, or a bare word for a string), checked by the config's codec, saved and applied
+    /ovvar reload                              re-read config/ovvar.json and apply it
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
     /ovvar store show [player]                 a player's wardrobe (version, designs per chapter, stash)
     /ovvar store reload [player]               drop and refetch a player's wardrobe
-    /ovvar store reconnect                     re-read the config and reopen the store
+    /ovvar store reconnect                     re-read the config and reopen the store whether or not its block changed
 
 ## Building
 
@@ -771,7 +775,7 @@ nothing needs the pack (the patches are display entities). The pack is pushed to
 exactly two cases: an ovve came into their inventory — off a stand, `/ovvar give`, `/ovvar
 patches` — with more patches on a half than their pack plus the dye channels (and the trim) can show, in which
 case the pack is built at once and sent to them the moment it is ready (`Looks.claimIfNeeded`
-from `OvveItem.inventoryTick`); or they ran `/ovvar reload` (any player), which sends the
+from `OvveItem.inventoryTick`); or they ran `/ovvar pack` (any player), which sends the
 current pack, after a build if one is pending. Everyone else keeps the pack they have and sees
 what it holds plus the newest patches in the dye channels; a half with more new patches than
 that shows the older state to them until they reload or rejoin (a joining player gets the
@@ -784,7 +788,7 @@ ones whose clients draw it, and until they reload they see only the instant part
 tried, and it is wrong: a loading screen in the middle of play, for a garment somebody else sewed,
 costs far more than a shoulder patch that turns up a minute late. So the wearer gets the push (they
 caused it, and they are standing at a wardrobe or a stand, not in a fight), everybody else sees
-what their own pack plus the dye channels can show until they choose to `/ovvar reload` or rejoin,
+what their own pack plus the dye channels can show until they choose to `/ovvar pack` or rejoin,
 and reloading stays a thing you do when you want to.
 
 ## Square pixels
