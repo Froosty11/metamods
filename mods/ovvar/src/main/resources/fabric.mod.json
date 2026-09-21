@@ -19,6 +19,7 @@
 			"metacraft.ovvar.Ovvar"
 		],
 		"fabric-gametest": [
+			"metacraft.ovvar.gametest.DansePixelsTests",
 			"metacraft.ovvar.gametest.OvvarGameTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
 			"metacraft.ovvar.gametest.BlockbenchManifestTests"
@@ -28,7 +29,8 @@
 		]
 	},
 	"mixins": [
-		"ovvar.mixins.json"
+		"ovvar.mixins.json",
+		"ovvar-danse.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.19.2",
