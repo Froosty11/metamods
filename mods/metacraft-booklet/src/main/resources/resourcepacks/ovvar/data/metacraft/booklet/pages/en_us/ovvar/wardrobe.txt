@@ -9,7 +9,9 @@ order=4
 What you have sewn on, and the patches you own but have not sewn — your <bold>stash</bold> — are stored once for all the servers. Sew on one server, log into another wearing the same ovve; lose the item and a new ovve of that chapter shows your design again. Pockets and enchantments stay with the item; the look and the patches travel.
 
 ### Header: /ovvar stash
-<yellow>/ovvar stash</yellow> opens the wardrobe. The top row is an ovve per chapter you own — click one to switch. The left panel is your stash, one slot per kind of patch. The right panel is your ovve as it looks right now; the two buttons at its top right turn it round. The bottom row is what you can do here, greyed out where this server does not allow it, with the reason.
+### Image: metacraft:beside/ovvar/stash <yellow>/ovvar stash</yellow> opens it.<nl2><bold>Top:</bold> an ovve per chapter you own.<nl><bold>Left:</bold> your stash.<nl><bold>Right:</bold> your ovve now; the arrows turn it.<nl><bold>Bottom:</bold> what you can do here.
+
+Anything this server does not allow is greyed out, with the reason when you hover it.
 
 - <bold>Left-click</bold> a patch to take one out as an item: sew it on any stand wearing your ovve, or trade it.
 - The <bold>chest</bold> button puts every patch item you carry back into the stash.

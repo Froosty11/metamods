@@ -115,11 +115,54 @@ public final class BookletRenders implements FabricClientGameTest {
 				for (Scene scene : SCENES) {
 					if (!Files.exists(out.resolve(scene.name() + ".png"))) throw new AssertionError("no render of " + scene.name());
 				}
+				stash(ctx, server, conn, out.resolve("ovvar/stash.png"));
 				System.out.println("[metacraft-booklet] rendered " + SCENES.size() + " page image(s) to " + out.toAbsolutePath());
 			} catch (IOException e) {
 				throw new AssertionError(e);
 			}
 		}
+	}
+
+	/**
+	 * The stash menu, cut out of a screenshot: the Tester is given a design and some patches, opens
+	 * {@code /ovvar stash} at GUI scale 1, so the menu is drawn at its own pixels, and the top part
+	 * of the chest screen (the wardrobe; the Tester's inventory below it is left out) is kept.
+	 */
+	private static void stash(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn, Path file) {
+		server.runCommand("gamemode survival Tester");
+		// /ovvar give needs a player to run it (the console is refused), and each gift is a write to the
+		// wardrobe store that the next one must see, so they go one at a time.
+		server.runCommand("execute as Tester run ovvar give data itk it data spiken slaggan");
+		ctx.waitTicks(20);
+		for (String patch : List.of("itk", "tmeit", "jgs", "in", "kommn", "rivals", "nyckeln0x1", "maid")) {
+			server.runCommand("ovvar patch give Tester " + patch + " 2");
+			ctx.waitTicks(10);
+		}
+		ctx.waitTicks(60);
+		server.runCommand("execute as Tester run ovvar reload");
+		acceptResourcePack(ctx);
+		ctx.runOnClient(client -> {
+			client.options.guiScale().set(1);
+			client.resizeGui();
+		});
+		server.runCommand("execute as Tester run ovvar stash");
+		conn.waitForClientboundPackets();
+		ctx.waitFor(client -> client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen, 20 * 10);
+		ctx.getInput().setCursorPos(0, 0);   // no slot hovered, no tooltip
+		ctx.runOnClient(client -> client.gui.toastManager().clear());
+		ctx.waitTicks(20);
+		Path shot = ctx.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("stash_full"));
+		try {
+			BufferedImage full = ImageIO.read(shot.toFile());
+			// A 9×6 chest screen is 176×222, centred; its top 17 px are the title and 6 rows of 18 the
+			// menu, then a 3 px margin before the inventory's own label.
+			int w = 176, h = 17 + 6 * 18 + 3;
+			int x = (full.getWidth() - w) / 2, y = (full.getHeight() - 222) / 2;
+			ImageIO.write(full.getSubimage(x, y, w, h), "png", file.toFile());
+		} catch (IOException e) {
+			throw new AssertionError("cannot cut the stash out of " + shot, e);
+		}
+		ctx.runOnClient(client -> client.gui.setScreen(null));
 	}
 
 	private static final List<Scene> SCENES = List.of(

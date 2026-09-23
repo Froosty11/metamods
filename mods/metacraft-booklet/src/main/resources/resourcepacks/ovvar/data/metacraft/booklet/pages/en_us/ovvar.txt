@@ -7,10 +7,7 @@ icon=ovvar:data_ovve
 book_color=#e2007a
 order=10
 ### EndSection: PageInfo
-An <bold>ovve</bold> is your student overall: one garment, worn in the legs slot, that you sew
-<bold>patches</bold> onto. What you sew on stays yours on every server, and only you can change it.
-
-### Image: metacraft:ovvar/hero A Data ovve with patches on the chest, a sleeve, a shoulder and both legs.
+### Image: metacraft:beside/ovvar/hero An <bold>ovve</bold> is your student overall: one garment, worn in the legs slot, that you sew <bold>patches</bold> onto.<nl2>What you sew on stays yours on every server, and only you can change it.
 
 Four chapters, four steps:
 ### Category Entries: metacraft:ovvar

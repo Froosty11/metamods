@@ -26,21 +26,30 @@ lines are lists and numbered lines are not, and `<anything>` in angle brackets i
 **metacraft-kultur** has no chapter yet: the mod was not available when this was written. Its hook is the
 same shape as the others.
 
-## Page images
+## Page images, beside the text
 
-The pictures on the pages are isometric renders on a transparent background, made the way Patbox makes
-PolyFactory's: with his client-only [Simple Image Renderer](https://github.com/Patbox/SimpleImageRenderer),
-here driven by a client test instead of by hand. `BookletRenders` builds each scene in a flat world
-(mannequins in patched ovvar, a sewing stand, a painted wall of canvases) and renders it; the tool script
-trims the renders into `src/main/resources/assets/metacraft/textures/booklet/image/`:
+Every picture sits to the right of the text it goes with. Dialog bodies stack, so there is no such
+layout in Booklet; `Beside` makes one. Booklet draws an image as rows of 9 px glyph lines, the height
+of a line of text, so a page that names an image under `beside/`
+
+    ### Image: metacraft:beside/ovvar/hero The text that goes to the left of the picture.<nl2>More.
+
+has its text wrapped to the room left of the picture and each text line joined to one image row
+(`ImageBodyMixin` swaps Booklet's own layout for that one). Here one image pixel is one UI pixel, so
+each picture is made at its display size, about 80–180 px wide.
+
+The isometric renders are made the way Patbox makes PolyFactory's, with his client-only
+[Simple Image Renderer](https://github.com/Patbox/SimpleImageRenderer), driven by a client test instead of
+by hand. `BookletRenders` builds each scene in a flat world (mannequins in patched ovvar, a sewing stand,
+a painted wall of canvases) and renders it; it also gives the Tester a design and a stash, opens
+`/ovvar stash` at GUI scale 1 and cuts the menu out of a screenshot at its own pixels. The script trims
+the renders into `src/main/resources/assets/metacraft/textures/booklet/image/beside/`:
 
     METACRAFT_BOOKLET_RENDER=1 ./gradlew :mods:metacraft-booklet:runClientGameTest
     python3 mods/metacraft-booklet/tools/booklet_images.py
 
-Booklet draws an image at one pixel per UI pixel up to 292 px wide and divides wider ones by
-`ceil(width / 292)`, so the script lays every picture on a 584 px wide transparent image: shown at half
-size, twice as sharp. A page shows one with `### Image: metacraft:<path> Caption`; `GuideTests` fails if
-the image is missing. A new scene is a line in `BookletRenders.SCENES` and a few in its `build`.
+`GuideTests` fails if a page names an image that is not there. A new scene is a line in
+`BookletRenders.SCENES` and a few in its `build`.
 
 ## PolyDecorations: canvas only
 
@@ -69,4 +78,5 @@ question mark in the same style. It applies to every server dialog, not only the
 The dev runtime loads ovvar (run its `runDatagen` first) and PolyDecorations, so every chapter is on.
 `GuideTests` checks every page loads with a title, description and icon, is reachable from the index,
 and names only pages and items that exist, and that PolyDecorations is down to its canvas recipes.
-`GuideClientTests` opens every page on a vanilla client in a 1080p window and photographs it.
+`GuideClientTests` opens every page on a vanilla client in a 1080p window and photographs it, and again
+scrolled down (`docs/*_more.png`).

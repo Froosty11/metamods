@@ -23,6 +23,9 @@
 			"nu.metacraft.booklet.gametest.GuideTests"
 		]
 	},
+	"mixins": [
+		"metacraft-booklet.mixins.json"
+	],
 	"depends": {
 		"fabricloader": ">=0.19.2",
 		"minecraft": ">=26.3-rc.1 <26.4",

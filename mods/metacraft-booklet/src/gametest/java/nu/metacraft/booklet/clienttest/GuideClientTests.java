@@ -68,6 +68,13 @@ public final class GuideClientTests implements FabricClientGameTest {
 					ctx.waitTicks(2);
 					String name = "guide_" + page.getNamespace() + "_" + page.getPath().replace('/', '_');
 					ctx.takeScreenshot(TestScreenshotOptions.of(name));
+					// And the rest of a long page: scrolled down over the dialog's body.
+					ctx.getInput().setCursorPos(960, 540);
+					ctx.getInput().scroll(-6);
+					ctx.waitTicks(3);
+					ctx.getInput().setCursorPos(0, 0);
+					ctx.waitTicks(2);
+					ctx.takeScreenshot(TestScreenshotOptions.of(name + "_more"));
 					ctx.runOnClient(client -> client.gui.setScreen(null));
 					ctx.waitTicks(5);
 				}
