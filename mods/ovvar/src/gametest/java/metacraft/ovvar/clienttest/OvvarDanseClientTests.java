@@ -48,15 +48,24 @@ import java.util.Properties;
  *
  * <p>It returns at once when Danse is not loaded, so an ovvar checkout without the dev jar still
  * runs its client tests.
+ *
+ * <p><b>It must run before {@link OvvarClientTests}</b> — the entrypoint order in the test mod's
+ * {@code fabric.mod.json}. Danse animates through bil, whose bone updates run on a JVM-wide executor
+ * that bil shuts down on {@code SERVER_STOPPING}. One server per JVM on a real server, so it never
+ * matters there; here every test starts its own in-process server, and on any server after the
+ * first the stand-in spawns, dresses and then holds still for the whole gesture.
  */
 public final class OvvarDanseClientTests implements FabricClientGameTest {
 
 	/**
-	 * The gesture. {@code grow} is eleven seconds and plays once (so it ends, which the last
-	 * screenshot needs) and keeps the figure on the ground in front of the camera — {@code ascend},
-	 * the longest, lifts it out of frame.
+	 * The gesture. {@code zombie} plays once (so it ends, which the last screenshot needs), keeps
+	 * the figure on the ground in front of the camera, and holds both arms straight out from 0.8 s
+	 * to 4.4 s of its 5.25 — so the frame at three seconds is unmistakably a gesture, sleeves and
+	 * their patches in full view. ({@code grow}, the first choice, is a slow scale-up that looks
+	 * like standing still at that moment.)
 	 */
-	private static final String GESTURE = "grow";
+	private static final String GESTURE = "zombie";
+	private static final int GESTURE_TICKS = 105;   // 5.25 s
 
 	/**
 	 * Can Danse start a gesture in this JVM at all?
@@ -148,13 +157,13 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 				// stack trace.
 				server.runOnServer(mc -> de.tomalbrc.danse.GestureController.onStart(
 						mc.getPlayerList().getPlayers().getFirst(), GESTURE));
-				ctx.waitTicks(60);            // the camera swings out behind the stand-in and settles
+				ctx.waitTicks(60);            // the camera swings out and settles; zombie's arms are out from 0.8 s
 				conn.waitForClientboundPackets();
 
 				Path mid = ctx.takeScreenshot(TestScreenshotOptions.of(stage).withSize(1920, 1080));
 
-				// Let the gesture finish (grow is 11 s ≈ 220 ticks) and look at the real player again.
-				ctx.waitTicks(220);
+				// Let the gesture finish and look at the real player again.
+				ctx.waitTicks(GESTURE_TICKS + 40 - 60);
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(40);

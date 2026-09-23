@@ -794,8 +794,10 @@ tests on a dedicated server (`Run Tests.command`), which is where Danse works.
 
 **The screenshots.** `OvvarDanseClientTests` (`./gradlew :mods:ovvar:runClientGameTest`, and again
 under `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false` for the "before" frame) dresses the Tester in a
-Data ovve with four chest patches, one per sleeve and one per leg, starts Danse's `grow` gesture and
-photographs the stand-in, then the player again once it has ended. `docs/danse/before.png` is the
+Data ovve with four chest patches, one per sleeve and one per leg, starts Danse's `zombie` gesture —
+both arms straight out for most of its five seconds, so the frame is unmistakably a gesture and the
+sleeves are in full view — and photographs the stand-in three seconds in, then the player again once
+it has ended. `docs/danse/before.png` is the
 stand-in with the compat layer off — bare, black, no ovve at all — `after.png` the same stand-in with
 it on, and `after_gesture_end.png` the player dressed again afterwards, leg patches included. The
 frames prove it with ITK's green and Data's yellow, not IT's lilac: that lilac is a one-pixel
@@ -815,6 +817,14 @@ that is the environment, and no gesture can start there at all — with or witho
 one line (those five entries under `"mixins"`), which is the one change made to `libs/danse-2.6.0+26.3.jar`
 (`libs/danse-LICENSE-NOTICE.txt` says how); on a dedicated server the two spellings behave the same.
 With an unpatched Danse the test prints why it is skipping instead of failing.
+
+**The gesture test runs first**, before `OvvarClientTests`, and the order in the test mod's
+`fabric.mod.json` is load-bearing. Danse animates through bil (blockbench-import-library), whose bone
+updates run on a JVM-wide executor that bil shuts down on `SERVER_STOPPING`; a real server is one
+server per JVM so it never matters, but the client test harness starts one in-process server per
+test, and any server after the first gets a stand-in that spawns, dresses and holds still for the
+whole gesture — which is what the first round of screenshots showed. First in the list, the gesture
+test has the executor to itself.
 
 ## The guidebook
 
