@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import se.metacraft.playertrading.PlayerTrading;
 import se.metacraft.playertrading.block.TradingBlockEntities;
 import se.metacraft.playertrading.block.entities.ShopBlockEntity;
 import se.metacraft.playertrading.shop.Shop;
@@ -35,7 +36,7 @@ public abstract class V1460Mixin extends NamespacedSchema {
 	) {
 		schema.register(
 			map,
-			TradingBlockEntities.SHOP.builtInRegistryHolder().key().identifier().toString(),
+			PlayerTrading.getID("shop").toString(),
 			() -> DSL.optionalFields(
 				ShopBlockEntity.SHOP, DSL.optionalFields(
 					Shop.OFFERS, DSL.list(
