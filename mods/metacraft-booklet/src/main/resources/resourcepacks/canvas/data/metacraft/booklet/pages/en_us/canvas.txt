@@ -8,6 +8,8 @@ order=20
 ### EndSection: PageInfo
 A canvas (<citem 'polydecorations:canvas'>) is a 16×16 picture you paint one pixel at a time, right where it hangs.
 
+### Image: metacraft:canvas/wall Four canvases side by side, painted as one picture.
+
 ### Header: Making one
 Put a <citem 'minecraft:paper'> in the middle of a crafting grid and fill the other eight slots with sticks. Right-click any block face to hang it: on a wall, on the floor or on the ceiling.
 

@@ -15,6 +15,8 @@ Two places are special:
 - the <bold>big back</bold> cell is the whole back below the collar. The biggest patches fit it whole, and smaller ones may be sewn on top of it;
 - the <bold>seat</bold> takes one wide patch across the back of both legs, like <citem 'ovvar:patch_rivals'>.
 
+### Image: metacraft:ovvar/back The big back cell with two smaller patches over it, and a seat patch.
+
 There is no limit to how many patches an ovve carries.
 
 ### Header: One patch, one place

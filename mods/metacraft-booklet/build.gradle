@@ -32,6 +32,16 @@ dependencies {
 	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
 }
 
+// The page images: BookletRenders (METACRAFT_BOOKLET_RENDER=1 ./gradlew :mods:metacraft-booklet:runClientGameTest)
+// builds each scene and renders it isometric with Patbox's Simple Image Renderer, a client-only tool.
+dependencies {
+	gametestCompileOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
+	gametestRuntimeOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
+	gametestCompileOnly("maven.modrinth:polydecorations:${project.polydecorations_version}")
+	gametestCompileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
+	gametestCompileOnly(project(path: ":mods:ovvar"))
+}
+
 // The game tests run inside a server: JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew
 // :mods:metacraft-booklet:runServer [-PrunDir=<dir>].
 loom {

@@ -26,6 +26,22 @@ lines are lists and numbered lines are not, and `<anything>` in angle brackets i
 **metacraft-kultur** has no chapter yet: the mod was not available when this was written. Its hook is the
 same shape as the others.
 
+## Page images
+
+The pictures on the pages are isometric renders on a transparent background, made the way Patbox makes
+PolyFactory's: with his client-only [Simple Image Renderer](https://github.com/Patbox/SimpleImageRenderer),
+here driven by a client test instead of by hand. `BookletRenders` builds each scene in a flat world
+(mannequins in patched ovvar, a sewing stand, a painted wall of canvases) and renders it; the tool script
+trims the renders into `src/main/resources/assets/metacraft/textures/booklet/image/`:
+
+    METACRAFT_BOOKLET_RENDER=1 ./gradlew :mods:metacraft-booklet:runClientGameTest
+    python3 mods/metacraft-booklet/tools/booklet_images.py
+
+Booklet draws an image at one pixel per UI pixel up to 292 px wide and divides wider ones by
+`ceil(width / 292)`, so the script lays every picture on a 584 px wide transparent image: shown at half
+size, twice as sharp. A page shows one with `### Image: metacraft:<path> Caption`; `GuideTests` fails if
+the image is missing. A new scene is a line in `BookletRenders.SCENES` and a few in its `build`.
+
 ## PolyDecorations: canvas only
 
 PolyDecorations has no config to switch features off, so `polydecorations_canvas_only` overrides every

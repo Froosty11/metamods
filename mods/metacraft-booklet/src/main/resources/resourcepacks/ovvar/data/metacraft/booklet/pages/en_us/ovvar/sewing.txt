@@ -12,6 +12,8 @@ order=3
 
 <bold>Sneak</bold> to aim at the far side of the part you are looking at — the back of the body, the back of an arm. The aim follows the stand's pose, so a posed stand works too.
 
+### Image: metacraft:ovvar/stand An IT ovve on an armour stand, patches and all.
+
 ### Header: The stitching
 Where the stitching minigame is on, the right-click opens the sewing instead: the patch lies on the cloth and the seam runs around its edge. The needle sits on the next hole — click it to pull the thread through. The last pull sews the patch on. Escape, or "Cut the thread", gives up; the patch only leaves your hand when the seam is done.
 

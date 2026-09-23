@@ -8,6 +8,7 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
+			"nu.metacraft.booklet.clienttest.BookletRenders",
 			"nu.metacraft.booklet.clienttest.GuideClientTests"
 		]
 	},

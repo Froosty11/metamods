@@ -31,6 +31,7 @@ public final class GuideTests {
 	private static final String LANG = "en_us";
 	private static final Pattern PAGE_LINK = Pattern.compile("<page(?:link|ref)\\s+'([^']+)'");
 	private static final Pattern ITEM = Pattern.compile("<c?item\\s+'([^']+)'");
+	private static final Pattern IMAGE = Pattern.compile("(?m)^### Image:\\s*(\\S+)");
 	private static final Pattern CATEGORY = Pattern.compile("(?m)^category=(.*)$");
 	private static final Identifier BOOKSHELF = Identifier.fromNamespaceAndPath("booklet", "main_page");
 
@@ -114,6 +115,24 @@ public final class GuideTests {
 			while (items.find()) {
 				Identifier item = Identifier.tryParse(items.group(1));
 				if (item == null || !BuiltInRegistries.ITEM.containsKey(item)) wrong.add(entry.getKey() + " names item " + items.group(1));
+			}
+		}
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	@GameTest
+	public void everyImageInTheGuideIsInThePack(GameTestHelper helper) {
+		// Booklet finds an image in the resource pack; one that is not there is a gap on the page.
+		var self = FabricLoader.getInstance().getModContainer(MetacraftBooklet.MOD_ID).orElseThrow();
+		List<String> wrong = new ArrayList<>();
+		for (var entry : pages(helper).entrySet()) {
+			Matcher images = IMAGE.matcher(entry.getValue());
+			while (images.find()) {
+				Identifier image = Identifier.tryParse(images.group(1));
+				if (image == null || self.findPath("assets/" + image.getNamespace() + "/textures/booklet/image/" + image.getPath() + ".png").isEmpty()) {
+					wrong.add(entry.getKey() + " shows image " + images.group(1) + ", which is not in this mod's assets");
+				}
 			}
 		}
 		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
