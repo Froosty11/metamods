@@ -20,6 +20,19 @@ with
     ./gradlew build          # with JAVA_HOME on a JDK 25 — the build sets release 25
                              # but declares no toolchain, so it fails on an older default JVM
 
+One change was made to the built jar, and only to this jar: in its danse.mixins.json the
+five mixins are listed under "mixins" instead of "server". Upstream lists them as
+server-only, so on a client they are never applied, while GesturePlayerModelEntity.setup
+casts the player to LivingEntityAccessor regardless; the Fabric client game test harness
+runs its "dedicated" server inside the client JVM, and there that cast is refused and no
+gesture can start. On a dedicated server the two spellings behave the same. The change is
+
+    unzip danse-2.6.0+26.3.jar danse.mixins.json
+    sed -i 's/"server": \[/"mixins": [/' danse.mixins.json
+    zip danse-2.6.0+26.3.jar danse.mixins.json
+
+and is what lets OvvarDanseClientTests photograph a gesture.
+
 It is used by ovvar for development and tests only (modCompileOnly + modLocalRuntime); it
 is never shipped, and ovvar never declares Danse in its `depends`. The jar bundles Danse's
 own included libraries (blockbench-import-library, DialogUtils, sgui, placeholder-api and

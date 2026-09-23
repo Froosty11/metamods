@@ -791,21 +791,29 @@ back, a left sleeve's patch on the left arm and not the right, an ovve answering
 pass, and the downsample keeping one cell's patch near its cell. Those run with the rest of the game
 tests on a dedicated server (`Run Tests.command`), which is where Danse works.
 
-**There are no screenshots yet, and the reason is upstream.** `OvvarDanseClientTests` is written and
-registered (`./gradlew :mods:ovvar:runClientGameTest`, and again under
-`JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false` for the "before" frame), but it cannot photograph
-anything today: Danse lists `LivingEntityAccessor` and its four siblings in the **`"server"`**
-section of `danse.mixins.json`, so on a client those mixins are never applied — while
-`GesturePlayerModelEntity.setup` casts the player to that accessor to read their equipment. Mixin
-then refuses the classload:
+**The screenshots.** `OvvarDanseClientTests` (`./gradlew :mods:ovvar:runClientGameTest`, and again
+under `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false` for the "before" frame) dresses the Tester in a
+Data ovve with four chest patches, one per sleeve and one per leg, starts Danse's `grow` gesture and
+photographs the stand-in, then the player again once it has ended. `docs/danse/before.png` is the
+stand-in with the compat layer off — bare, black, no ovve at all — `after.png` the same stand-in with
+it on, and `after_gesture_end.png` the player dressed again afterwards, leg patches included. The
+frames prove it with ITK's green and Data's yellow, not IT's lilac: that lilac is a one-pixel
+diagonal on the 12×12 art, and one Danse pixel is two art pixels, so the downsample averages it into
+its neighbours — the limit of drawing a patch on a 64×32 grid, and the same on a real dedicated server.
+
+It only photographs anything because the dev jar is patched. Upstream Danse lists
+`LivingEntityAccessor` and its four siblings in the **`"server"`** section of `danse.mixins.json`,
+so on a client those mixins are never applied — while `GesturePlayerModelEntity.setup` casts the
+player to that accessor to read their equipment, and Mixin then refuses the classload:
 
     IllegalClassLoadError: Illegal classload request for de.tomalbrc.danse.mixin.LivingEntityAccessor.
     Mixin is defined in danse.mixins.json and cannot be referenced directly
 
 The Fabric client game test harness runs its "dedicated" server *inside the client's own JVM*, so
-that is the environment, and no gesture can start there at all — with or without ovvar. The upstream
-fix is one line (move those five entries from `"server"` to `"mixins"`); until then the test prints
-why it is skipping instead of failing, and `docs/danse/` stays empty.
+that is the environment, and no gesture can start there at all — with or without ovvar. The fix is
+one line (those five entries under `"mixins"`), which is the one change made to `libs/danse-2.6.0+26.3.jar`
+(`libs/danse-LICENSE-NOTICE.txt` says how); on a dedicated server the two spellings behave the same.
+With an unpatched Danse the test prints why it is skipping instead of failing.
 
 ## Reloads only when asked for
 

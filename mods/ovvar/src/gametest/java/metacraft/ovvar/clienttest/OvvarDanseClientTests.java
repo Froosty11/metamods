@@ -78,9 +78,10 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	 * dedicated server — where ovvar actually runs, and where {@code DansePixelsTests} exercises the
 	 * same pixels — the section applies and gestures work.
 	 *
-	 * <p>Upstream fix is one line: move those five entries from {@code "server"} to {@code "mixins"}.
-	 * Until then this test says why it cannot photograph anything rather than failing, and the
-	 * screenshots in {@code docs/danse/} are not regenerated.
+	 * <p>The fix is one line — those five entries under {@code "mixins"} instead of {@code "server"}
+	 * — and the dev jar in {@code libs/} carries it (see {@code libs/danse-LICENSE-NOTICE.txt}), so
+	 * here the gesture starts and the screenshots in {@code docs/danse/} come from this test. With
+	 * an unpatched Danse this says why it cannot photograph anything rather than failing.
 	 */
 	private static boolean danseCanGestureHere() {
 		try {
@@ -163,13 +164,17 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 
 				BufferedImage gesturing = read(mid);
 				Region box = Region.frame(gesturing);
-				// The same two probes the plain client test uses: ITK's green and IT's lilac cannot
-				// come from the cerise garment, so their presence proves the patches reached the
-				// stand-in — which, without the compat layer, wears no ovve at all.
+				// Two colours that cannot come from the cerise garment, so their presence proves the
+				// patches reached the stand-in — which, without the compat layer, wears no ovve at all.
+				// ITK's green is the plain client test's probe too. The plain test's other probe, IT's
+				// lilac, is deliberately not used here: on the 12×12 art it is a one-pixel diagonal, and
+				// Danse draws one pixel per skin texel (two art pixels), so the downsample averages that
+				// line into its dark-purple and white neighbours and no lilac survives. Data's yellow is a
+				// flat 2×2-or-bigger region and comes through the average exactly.
 				assertPresent(gesturing, box, "itk (green) on the stand-in",
 						(r, g, b) -> g > 100 && g > r + 60 && b < 140, 20);
-				assertPresent(gesturing, box, "it (lilac) on the stand-in",
-						(r, g, b) -> b > 150 && b > r + 25 && r > g + 20, 20);
+				assertPresent(gesturing, box, "data (yellow) on the stand-in",
+						(r, g, b) -> r > 150 && g > 130 && b < 60 && r > b + 100, 20);
 
 				// And once the gesture is over the wearer is dressed again — including the leg patches
 				// that ride in the boots channel, which Danse's own end-of-gesture resend loses.
