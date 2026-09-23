@@ -130,7 +130,10 @@ public final class GuideTests {
 			Matcher images = IMAGE.matcher(entry.getValue());
 			while (images.find()) {
 				Identifier image = Identifier.tryParse(images.group(1));
-				if (image == null || self.findPath("assets/" + image.getNamespace() + "/textures/booklet/image/" + image.getPath() + ".png").isEmpty()) {
+				boolean there = image != null && (nu.metacraft.booklet.Beside.wants(image)
+						? nu.metacraft.booklet.Beside.has(image)
+						: self.findPath("assets/" + image.getNamespace() + "/textures/booklet/image/" + image.getPath() + ".png").isPresent());
+				if (!there) {
 					wrong.add(entry.getKey() + " shows image " + images.group(1) + ", which is not in this mod's assets");
 				}
 			}

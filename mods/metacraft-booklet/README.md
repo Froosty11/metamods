@@ -35,18 +35,25 @@ of a line of text, so a page that names an image under `beside/`
     ### Image: metacraft:beside/ovvar/hero The text that goes to the left of the picture.<nl2>More.
 
 has its text laid beside the picture (`ImageBodyMixin` swaps Booklet's own layout for `Beside`'s).
-Booklet draws an image `ceil(width / 292)` image pixels to a UI pixel, so a picture beside text is a
-1152 px wide image (4 × 288 UI px, the detail a 1080p screen at GUI scale 4 shows) with the picture at
-its right and transparency to its left. Each line is that image row, a negative space back to the start
-of the line, and a line of text wrapped to the empty part; every line is padded to one width so the
-dialog, which centres lines, keeps them flush.
+The picture is a font of the mod's own, `assets/metacraft/font/beside.json`: cut into 16×9 UI px tiles
+(the height of a line of text), four image pixels to a UI pixel, the detail a 1080p screen at GUI scale 4
+shows. Each line of the body is a line of text wrapped to the room on the left and padded to exactly
+that width, a gap, and one row of tiles: only ordinary positive advances, so nothing depends on another
+font's spacing on the client.
+
+Two things the client is strict about. A bitmap glyph is as wide as its rightmost drawn column, so fully
+clear pixels are written with alpha 1 (invisible, but drawn) or clear-edged tiles would come out narrow.
+And the dialog's text widget wraps at the body width less 2 × 4 px and breaks the moment a line's running
+width passes that, so the −1 spacer goes *before* each tile (after it, the last tile would overshoot by
+one) and every line keeps a few pixels in hand; `Beside.SLACK`.
 
 The isometric renders are made the way Patbox makes PolyFactory's, with his client-only
 [Simple Image Renderer](https://github.com/Patbox/SimpleImageRenderer), driven by a client test instead of
 by hand. `BookletRenders` builds each scene in a flat world (mannequins in patched ovvar, the Tester at a
 sewing stand with a patch in hand and ovvar's washed-out preview on the stand, a painted wall of canvases) and renders it; it also gives the Tester a design and a stash, opens
-`/ovvar stash` at GUI scale 1 and cuts the menu out of a screenshot at its own pixels. The script trims
-the renders into `src/main/resources/assets/metacraft/textures/booklet/image/beside/`:
+`/ovvar stash` at GUI scale 1 and cuts the menu out of a screenshot at its own pixels. The script cuts
+the renders into that font (`textures/font/beside/`, `font/beside.json`, and `beside/index.json`, which
+`Beside` reads for each picture's width and rows):
 
     METACRAFT_BOOKLET_RENDER=1 ./gradlew :mods:metacraft-booklet:runClientGameTest
     python3 mods/metacraft-booklet/tools/booklet_images.py
