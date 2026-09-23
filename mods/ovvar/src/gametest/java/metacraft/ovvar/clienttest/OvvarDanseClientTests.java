@@ -66,6 +66,8 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	 */
 	private static final String GESTURE = "zombie";
 	private static final int GESTURE_TICKS = 105;   // 5.25 s
+	/** Field of view for the two frames: the figure fills the frame instead of a quarter of it. */
+	private static final int FOV = 50;
 
 	/**
 	 * Can Danse start a gesture in this JVM at all?
@@ -157,6 +159,10 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 				// stack trace.
 				server.runOnServer(mc -> de.tomalbrc.danse.GestureController.onStart(
 						mc.getPlayerList().getPlayers().getFirst(), GESTURE));
+				// Danse's camera and vanilla's third person both sit a few blocks off, which leaves the
+				// figure a quarter of the frame tall; a narrow field of view fills the frame with it at
+				// the pack's full resolution instead. Both frames are taken through it.
+				ctx.runOnClient(client -> client.options.fov().set(FOV));
 				ctx.waitTicks(60);            // the camera swings out and settles; zombie's arms are out from 0.8 s
 				conn.waitForClientboundPackets();
 
