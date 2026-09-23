@@ -1,0 +1,4 @@
+version = project.player_trading_version
+
+setupRunDatagen("metacraft-player-trading")
+addCoreDependencies()

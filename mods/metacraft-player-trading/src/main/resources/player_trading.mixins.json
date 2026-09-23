@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "se.metacraft.playertrading.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"GrindstoneMenuMixin",
+		"GrindstoneMenuMixin$FirstSlotMixin",
+		"HopperEntityMixin",
+		"LevelMixin",
+		"V1460Mixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

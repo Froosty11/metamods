@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-player-trading",
+	"version": "${version}",
+	"name": "Player Trading",
+	"description": "Allows player-to-player trading posts / shops by placing a custom block on a barrel!",
+	"authors": [
+		"Leddy231", "Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.playertrading.PlayerTrading"
+		],
+		"fabric-datagen": [
+			"se.metacraft.playertrading.DataGen"
+		]
+	},
+	"mixins": [
+		"player_trading.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric-api": "*",
+		"metacraft-core": "*"
+	}
+}

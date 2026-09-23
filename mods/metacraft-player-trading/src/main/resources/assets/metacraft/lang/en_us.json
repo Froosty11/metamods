@@ -1,0 +1,9 @@
+{
+	"block.metacraft.shop": "Shop",
+	"block.metacraft.admin_shop": "Admin Shop",
+	"block.metacraft.single_use_shop": "Single Use Shop",
+	"item.metacraft.shop_key": "Shop Key",
+	"item.metacraft.shop_key.owned": "%s's Shop Key",
+	"gui.metacraft.shop_config_menu": "Shop Config Menu",
+	"gui.metacraft.shop": "Shop"
+}
