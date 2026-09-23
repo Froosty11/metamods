@@ -75,6 +75,8 @@ public final class MetacraftBooklet implements ModInitializer {
 					return opened ? 1 : 0;
 				})));
 
+		Beside.init();
+
 		// The question-mark sprites under assets/minecraft, and Booklet's own assets need the pack too.
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();

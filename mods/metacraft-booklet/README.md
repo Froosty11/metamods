@@ -34,14 +34,17 @@ of a line of text, so a page that names an image under `beside/`
 
     ### Image: metacraft:beside/ovvar/hero The text that goes to the left of the picture.<nl2>More.
 
-has its text wrapped to the room left of the picture and each text line joined to one image row
-(`ImageBodyMixin` swaps Booklet's own layout for that one). Here one image pixel is one UI pixel, so
-each picture is made at its display size, about 80–180 px wide.
+has its text laid beside the picture (`ImageBodyMixin` swaps Booklet's own layout for `Beside`'s).
+Booklet draws an image `ceil(width / 292)` image pixels to a UI pixel, so a picture beside text is a
+1152 px wide image (4 × 288 UI px, the detail a 1080p screen at GUI scale 4 shows) with the picture at
+its right and transparency to its left. Each line is that image row, a negative space back to the start
+of the line, and a line of text wrapped to the empty part; every line is padded to one width so the
+dialog, which centres lines, keeps them flush.
 
 The isometric renders are made the way Patbox makes PolyFactory's, with his client-only
 [Simple Image Renderer](https://github.com/Patbox/SimpleImageRenderer), driven by a client test instead of
-by hand. `BookletRenders` builds each scene in a flat world (mannequins in patched ovvar, a sewing stand,
-a painted wall of canvases) and renders it; it also gives the Tester a design and a stash, opens
+by hand. `BookletRenders` builds each scene in a flat world (mannequins in patched ovvar, the Tester at a
+sewing stand with a patch in hand and ovvar's washed-out preview on the stand, a painted wall of canvases) and renders it; it also gives the Tester a design and a stash, opens
 `/ovvar stash` at GUI scale 1 and cuts the menu out of a screenshot at its own pixels. The script trims
 the renders into `src/main/resources/assets/metacraft/textures/booklet/image/beside/`:
 

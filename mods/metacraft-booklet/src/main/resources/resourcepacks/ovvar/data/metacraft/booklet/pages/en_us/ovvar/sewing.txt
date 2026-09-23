@@ -6,7 +6,7 @@ icon=minecraft:armor_stand
 order=3
 ### EndSection: PageInfo
 ### Header: On a stand
-### Image: metacraft:beside/ovvar/stand Put your ovve on an <citem 'minecraft:armor_stand'>.<nl2>Hold a patch and look at the stand: the patch shows washed-out where it will go, and the action bar names the spot.<nl2>Right-click to sew it on.
+### Image: metacraft:beside/ovvar/stand Put your ovve on an <citem 'minecraft:armor_stand'>.<nl2>Hold a patch and look at the stand: the patch shows <bold>washed-out</bold> where it will go, and the action bar names the spot.<nl2>Right-click to sew it on.
 
 <bold>Sneak</bold> to aim at the far side of the part you are looking at — the back of the body, the back of an arm. The aim follows the stand's pose, so a posed stand works too.
 

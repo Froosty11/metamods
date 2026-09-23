@@ -84,8 +84,11 @@ public final class BookletRenders implements FabricClientGameTest {
 				conn.waitForChunksRender();
 				server.runCommand("gamerule advance_time false");
 				server.runCommand("time set noon");
-				server.runCommand("gamemode spectator Tester");
-				server.runCommand("tp Tester 30 -50 10 0 30");
+				// The Tester is in the sewing picture: in front of the stand, a patch in hand, aiming at
+				// its chest, so ovvar shows the washed-out preview where the patch would go.
+				server.runCommand("gamemode survival Tester");
+				server.runCommand("item replace entity Tester weapon.mainhand with ovvar:patch_itk");
+				server.runCommand("tp Tester 40.5 -60 22.3 186 14");
 
 				server.runOnServer(mc -> build(mc.overworld()));
 				ctx.waitTicks(100);        // ovvar builds the patch combinations the mannequins wear
@@ -169,7 +172,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("ovvar/hero", new BlockPos(20, -60, 20), new BlockPos(20, -58, 20), 60),
 			new Scene("ovvar/back", new BlockPos(24, -60, 20), new BlockPos(24, -58, 20), 60),
 			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 70),
-			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 20), 60),
+			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 75),
 			new Scene("canvas/wall", new BlockPos(44, -60, 20), new BlockPos(45, -59, 21), 70));
 
 	private static void build(ServerLevel level) {
@@ -198,14 +201,13 @@ public final class BookletRenders implements FabricClientGameTest {
 		}
 		ArmorStand stand = new ArmorStand(EntityTypes.ARMOR_STAND, level);
 		stand.setPos(40.5, -60, 20.5);
-		stand.setYRot(45);
+		stand.setYRot(0);   // facing the Tester, south
 		stand.setShowArms(true);
 		stand.setLeftArmPose(new Rotations(-20, 0, -10));
 		stand.setRightArmPose(new Rotations(-15, 0, 10));
 		stand.setItemSlot(EquipmentSlot.LEGS, ovve(Chapter.IT, List.of(
-				new Placement(Spot.FRONT_TOP_LEFT, Patches.get("data")),
 				new Placement(Spot.FRONT_LOW_RIGHT, Patches.get("kommn")),
-				new Placement(Spot.SLEEVE_OUT_TOP_R, Patches.get("itk")))));
+				new Placement(Spot.SLEEVE_OUT_TOP_R, Patches.get("data")))));
 		level.addFreshEntity(stand);
 
 		// ---- canvas: a 2×2 wall of planks with a 32×32 picture across four canvases on its south face,
