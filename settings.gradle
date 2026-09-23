@@ -24,3 +24,4 @@ include "mods:point-system"
 
 include "mods:moredyes"
 include "mods:ovvar"
+include "mods:metacraft-booklet"

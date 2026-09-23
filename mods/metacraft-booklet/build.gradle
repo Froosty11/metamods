@@ -1,0 +1,43 @@
+// metacraft-booklet — the server's guidebook: Patbox's Booklet plus a chapter for each mod METAcraft
+// runs, each chapter a built-in datapack switched on only when its mod is loaded. See README.md.
+version = project.metacraft_booklet_version
+
+// Client screenshot test: a vanilla client opens every page and photographs it. Source set
+// src/gametest, task runClientGameTest (needs a display).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "metacraft-booklet-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+addPolymerDependency()
+dependencies {
+	// Booklet itself, and the Polymer module it builds its page fonts with but does not bundle
+	// (without it the resource pack fails to build and a client never finishes joining).
+	implementation(include("eu.pb4:booklet:${project.booklet_version}"))
+	implementation(include("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}"))
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+
+	// Dev/test runtime only: the mods the book has chapters for, so the chapters load and their
+	// item icons resolve. None of them is a dependency of the shipped mod.
+	runtimeOnly(project(path: ":mods:ovvar"))
+	runtimeOnly("maven.modrinth:polydecorations:${project.polydecorations_version}")
+	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
+	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
+}
+
+// The game tests run inside a server: JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew
+// :mods:metacraft-booklet:runServer [-PrunDir=<dir>].
+loom {
+	runs {
+		server {
+			runDir = project.findProperty('runDir') ?: 'run'
+		}
+	}
+}
