@@ -68,6 +68,11 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	private static final int GESTURE_TICKS = 105;   // 5.25 s
 	/** Field of view for the two frames: the figure fills the frame instead of a quarter of it. */
 	private static final int FOV = 50;
+	/**
+	 * {@code OVVAR_DANSE_FILM=1}: a frame every other tick through the gesture instead of the one
+	 * frame, for a clip ({@code ffmpeg -framerate 10 -pattern_type glob -i '*after_film_*.png' …}).
+	 */
+	private static final boolean FILM = "1".equals(System.getenv("OVVAR_DANSE_FILM"));
 
 	/**
 	 * Can Danse start a gesture in this JVM at all?
@@ -163,13 +168,23 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 				// figure a quarter of the frame tall; a narrow field of view fills the frame with it at
 				// the pack's full resolution instead. Both frames are taken through it.
 				ctx.runOnClient(client -> client.options.fov().set(FOV));
-				ctx.waitTicks(60);            // the camera swings out and settles; zombie's arms are out from 0.8 s
-				conn.waitForClientboundPackets();
-
-				Path mid = ctx.takeScreenshot(TestScreenshotOptions.of(stage).withSize(1920, 1080));
-
-				// Let the gesture finish and look at the real player again.
-				ctx.waitTicks(GESTURE_TICKS + 40 - 60);
+				Path mid;
+				if (FILM) {
+					// A frame every other tick through the whole gesture and a little past its end, for
+					// a clip; the frame at 60 ticks is the one the assertions read.
+					mid = null;
+					for (int t = 0; t < GESTURE_TICKS + 40; t += 2) {
+						ctx.waitTicks(2);
+						Path frame = ctx.takeScreenshot(TestScreenshotOptions.of(stage + "_film_" + String.format("%03d", t + 2)).withSize(1920, 1080));
+						if (t + 2 == 60) mid = frame;
+					}
+				} else {
+					ctx.waitTicks(60);            // the camera swings out and settles; zombie's arms are out from 0.8 s
+					conn.waitForClientboundPackets();
+					mid = ctx.takeScreenshot(TestScreenshotOptions.of(stage).withSize(1920, 1080));
+					// Let the gesture finish and look at the real player again.
+					ctx.waitTicks(GESTURE_TICKS + 40 - 60);
+				}
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(40);

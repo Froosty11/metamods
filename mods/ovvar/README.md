@@ -804,6 +804,11 @@ frames prove it with ITK's green and Data's yellow, not IT's lilac: that lilac i
 diagonal on the 12×12 art, and one Danse pixel is two art pixels, so the downsample averages it into
 its neighbours — the limit of drawing a patch on a 64×32 grid, and the same on a real dedicated server.
 
+`docs/danse/gesture.mp4` (and `.gif`) is the whole gesture in motion: `OVVAR_DANSE_FILM=1` makes the
+test photograph every other tick instead of once, and ffmpeg stitches the frames. The in-process server
+runs in real time while each screenshot holds the client up, so the gesture ends about halfway through
+the frames; the clip is the frames that still show the stand-in, at 7 fps.
+
 It only photographs anything because the dev jar is patched. Upstream Danse lists
 `LivingEntityAccessor` and its four siblings in the **`"server"`** section of `danse.mixins.json`,
 so on a client those mixins are never applied — while `GesturePlayerModelEntity.setup` casts the
