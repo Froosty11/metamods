@@ -22,7 +22,8 @@
 			"metacraft.ovvar.gametest.DansePixelsTests",
 			"metacraft.ovvar.gametest.OvvarGameTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
-			"metacraft.ovvar.gametest.BlockbenchManifestTests"
+			"metacraft.ovvar.gametest.BlockbenchManifestTests",
+			"metacraft.ovvar.gametest.GuideTests"
 		],
 		"fabric-datagen": [
 			"metacraft.ovvar.datagen.OvvarDataGenerator"
@@ -41,6 +42,7 @@
 		"polymer-resource-pack": "*",
 		"polymer-virtual-entity": "*",
 		"sgui": "*",
-		"metacraft-bundles": "*"
+		"metacraft-bundles": "*",
+		"booklet": "*"
 	}
 }

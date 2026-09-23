@@ -8,6 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.JavaOps;
 import metacraft.ovvar.content.*;
+import metacraft.ovvar.guide.Guide;
 import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.sewing.SewingGame;
 import metacraft.ovvar.sewing.StandSewing;
@@ -64,7 +65,7 @@ import java.util.stream.Stream;
  *	   selectors), with the flourish and the explanation each.</li>
  * </ul>
  * And for everyone: {@code stash} opens the stash, {@code stash done} ends a sewing session, {@code stash deposit}
- * puts every held patch in.
+ * puts every held patch in, {@code guide} opens the guidebook.
  */
 public final class ModCommands {
 	private ModCommands() {}
@@ -87,6 +88,12 @@ public final class ModCommands {
 				dispatcher.register(Commands.literal(Ovvar.MOD_ID)
 						// Anyone: the latest resource pack, now (the one reload that is asked for).
 						.then(Commands.literal("reload").executes(ModCommands::reload))
+						// Anyone: the guidebook, "How to ovvar".
+						.then(Commands.literal("guide").executes(ctx -> {
+							ServerPlayer player = ctx.getSource().getPlayerOrException();
+							if (!Guide.open(player)) throw NOT_AN_OVVE.create("the guide is missing (see the server log)");
+							return 1;
+						}))
 						// Anyone: a look at somebody's ovve, theirs or their own, read-only.
 						.then(Commands.literal("look")
 								.executes(ctx -> {

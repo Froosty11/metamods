@@ -513,6 +513,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
+    /ovvar guide                               (any player) the guidebook, "How to ovvar"
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -814,6 +815,29 @@ that is the environment, and no gesture can start there at all — with or witho
 one line (those five entries under `"mixins"`), which is the one change made to `libs/danse-2.6.0+26.3.jar`
 (`libs/danse-LICENSE-NOTICE.txt` says how); on a dedicated server the two spellings behave the same.
 With an unpatched Danse the test prints why it is skipping instead of failing.
+
+## The guidebook
+
+`/ovvar guide` (any player) opens "How to ovvar": a [Booklet](https://github.com/Patbox/booklet)
+guidebook — Patbox's server-side, data-driven one, a dialog on a vanilla client — written as text in
+`src/main/resources/data/ovvar/booklet/pages/en_us/` (`Guide.java` names the pages). The main page,
+`ovvar:guide`, is one entry of the server's encyclopedia: Booklet's own index lists every page in its
+`booklet:main_page` category, so the other mods on the server add their chapters the same way and
+the book grows without anything here changing. Its four chapters, in `ovvar:guide`, are the ovve
+(wearing it, the top, the pockets, whose it is), patches (earning them, where they go), sewing (the
+stand, the aim, the stitching, shears) and the wardrobe (`/ovvar stash`, sessions, minigame servers,
+`/ovvar look`). `booklet:guidebook[booklet:page='ovvar:guide']` is the same book as an item. Booklet
+is bundled jar-in-jar (`booklet_version` in `gradle.properties`) and is a `depends`.
+
+A page is a `### Section: PageInfo` block (`title`, `description`, `category`, `icon`, `order`) and
+then prose in Booklet's QuickText/markdown: `### Header:` lines, `-` lines for lists, a blank line
+for a paragraph, `<citem 'ovvar:patch_itk'>` for an item's name in yellow, `<pagelink 'ovvar:guide/sewing'>…</pagelink>`
+for a link. A page that fails to parse is only a stack trace in the log, a link to a missing page a
+button that does nothing and an unknown item id silently a stone, so `GuideTests` checks the pages
+against the running server's Booklet: every page loads with a title, description and icon, the main
+page is on the bookshelf and the chapters are in `Guide.CHAPTERS`' order, and every page link and
+item id in the text exists. Other languages go beside `en_us/` under their own code; a missing
+translation falls back to English.
 
 ## Reloads only when asked for
 
