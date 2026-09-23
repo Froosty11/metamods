@@ -807,7 +807,10 @@ its neighbours — the limit of drawing a patch on a 64×32 grid, and the same o
 `docs/danse/gesture.mp4` (and `.gif`) is the whole gesture in motion: `OVVAR_DANSE_FILM=1` makes the
 test photograph every other tick instead of once, and ffmpeg stitches the frames. The in-process server
 runs in real time while each screenshot holds the client up, so the gesture ends about halfway through
-the frames; the clip is the frames that still show the stand-in, at 7 fps.
+the frames; the clip is the frames that still show the stand-in, at 7 fps. `helicopter.mp4` (a spin with
+the arms out, every side of the ovve) and `handstand.mp4` (upside down, walking on the hands) are the
+same with `OVVAR_DANSE_GESTURE=helicopter OVVAR_DANSE_GESTURE_TICKS=228` and `handstand` / `140`;
+the pixel assertions only run on the default gesture.
 
 It only photographs anything because the dev jar is patched. Upstream Danse lists
 `LivingEntityAccessor` and its four siblings in the **`"server"`** section of `danse.mixins.json`,

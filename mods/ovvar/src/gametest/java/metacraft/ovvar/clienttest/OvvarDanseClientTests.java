@@ -64,8 +64,18 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	 * their patches in full view. ({@code grow}, the first choice, is a slow scale-up that looks
 	 * like standing still at that moment.)
 	 */
-	private static final String GESTURE = "zombie";
-	private static final int GESTURE_TICKS = 105;   // 5.25 s
+	private static final String DEFAULT_GESTURE = "zombie";
+	/**
+	 * {@code OVVAR_DANSE_GESTURE} / {@code OVVAR_DANSE_GESTURE_TICKS} film another gesture (say
+	 * {@code helicopter}, 228 ticks). The pixel assertions are tuned to zombie's pose and only run on it.
+	 */
+	private static final String GESTURE = envOr("OVVAR_DANSE_GESTURE", DEFAULT_GESTURE);
+	private static final int GESTURE_TICKS = Integer.parseInt(envOr("OVVAR_DANSE_GESTURE_TICKS", "105"));   // zombie: 5.25 s
+
+	private static String envOr(String name, String fallback) {
+		String v = System.getenv(name);
+		return v == null || v.isBlank() ? fallback : v;
+	}
 	/** Field of view for the two frames: the figure fills the frame instead of a quarter of it. */
 	private static final int FOV = 50;
 	/**
@@ -175,7 +185,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 					mid = null;
 					for (int t = 0; t < GESTURE_TICKS + 40; t += 2) {
 						ctx.waitTicks(2);
-						Path frame = ctx.takeScreenshot(TestScreenshotOptions.of(stage + "_film_" + String.format("%03d", t + 2)).withSize(1920, 1080));
+						Path frame = ctx.takeScreenshot(TestScreenshotOptions.of(stage + "_" + GESTURE + "_" + String.format("%03d", t + 2)).withSize(1920, 1080));
 						if (t + 2 == 60) mid = frame;
 					}
 				} else {
@@ -190,7 +200,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 				ctx.waitTicks(40);
 				Path after = ctx.takeScreenshot(TestScreenshotOptions.of(stage + "_gesture_end").withSize(1920, 1080));
 
-				if (!compat) return;   // the "before" run only takes the pictures
+				if (!compat || !GESTURE.equals(DEFAULT_GESTURE)) return;   // the "before" run, or another gesture, only takes the pictures
 
 				BufferedImage gesturing = read(mid);
 				Region box = Region.frame(gesturing);
