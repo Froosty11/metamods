@@ -1,0 +1,13 @@
+{
+	"max_wait_time": 2400,
+	"revive_duration": 200,
+	"item_pickup": false,
+	"xp_pickup": false,
+	"revive_effects": {
+		"health": 1.0,
+		"air": {"min": 10},
+		"hunger": {"min": 1},
+		"saturation": 0.0,
+		"effects": [{"id": "minecraft:hunger", "duration": 600, "show_icon": true}]
+	}
+}

@@ -19,17 +19,20 @@ import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
+import nu.metacraft.lib.config.describe.Config;
+import nu.metacraft.lib.config.describe.Option;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
 
+@Config(name = "Revival", description = "Downed players are revived by another player instead of dying outright.")
 public record RevivalConfig(
-		Optional<Integer> maxWaitTime,
-		int reviveDuration,
-		boolean itemPickup,
-		boolean xpPickup,
-		ReviveEffects reviveEffects
+		@Option(description = "How long, in ticks, a downed player can wait before dying anyway; empty to wait forever.", min = 1) Optional<Integer> maxWaitTime,
+		@Option(description = "How long, in ticks, reviving a downed player takes.", min = 0) int reviveDuration,
+		@Option(description = "Downed players can pick up items.") boolean itemPickup,
+		@Option(description = "Downed players can pick up experience orbs.") boolean xpPickup,
+		@Option(description = "Health, air, hunger, saturation and effects applied when a player is revived.") ReviveEffects reviveEffects
 ) {
 
 	public static final MapCodec<RevivalConfig> CODEC = RecordCodecBuilder.mapCodec(
@@ -68,19 +71,21 @@ public record RevivalConfig(
 		}
 	}
 
-	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RevivalConfig, WorldData>>, WorldData> CONFIG = ConfigContainer.Builder.create(
-			CODEC, () -> new RevivalConfig(
-					Optional.of(2400), 200, false, false, new ReviveEffects(
-							ConstantFloat.of(1.0f), IntLimit.lowerBound(10),
-							IntLimit.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
-							List.of(
-									new MobEffectInstance(MobEffects.HUNGER, 30*20)
-							)
+	public static final RevivalConfig DEFAULT = new RevivalConfig(
+			Optional.of(2400), 200, false, false, new ReviveEffects(
+					ConstantFloat.of(1.0f), IntLimit.lowerBound(10),
+					IntLimit.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
+					List.of(
+							new MobEffectInstance(MobEffects.HUNGER, 30*20)
 					)
 			)
+	);
+
+	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RevivalConfig, WorldData>>, WorldData> CONFIG = ConfigContainer.Builder.create(
+			CODEC, () -> DEFAULT
 	).reloadAfterServer().makeRegistryAware(
 			WorldData.CODEC
-	).refreshOnReload().setInitializer(() -> new WorldData(getDefaultReviveCondition())).build(
+	).refreshOnReload().describedBy(RevivalConfig.class).setInitializer(() -> new WorldData(getDefaultReviveCondition())).build(
 			FabricLoader.getInstance().getConfigDir().resolve("metacraft-revival.json")
 	);
 
