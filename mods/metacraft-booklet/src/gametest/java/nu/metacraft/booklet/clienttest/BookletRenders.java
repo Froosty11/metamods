@@ -1,9 +1,16 @@
 package nu.metacraft.booklet.clienttest;
 
 import eu.pb4.mapcanvas.api.utils.CanvasUtils;
+import eu.pb4.polydecorations.block.DecorationsBlocks;
+import eu.pb4.polydecorations.block.extension.AttachedSignPostBlock;
+import eu.pb4.polydecorations.block.extension.SignPostBlockEntity;
+import eu.pb4.polydecorations.block.extension.WallAttachedLanternBlock;
+import eu.pb4.polydecorations.block.item.MailboxBlock;
 import eu.pb4.polydecorations.canvas.CanvasData;
 import eu.pb4.polydecorations.canvas.CanvasPixels;
 import eu.pb4.polydecorations.entity.CanvasEntity;
+import eu.pb4.polydecorations.entity.DecorationsEntities;
+import eu.pb4.polydecorations.entity.FirstLeashFenceKnotEntity;
 import eu.pb4.polydecorations.item.DecorationsDataComponents;
 import eu.pb4.polydecorations.item.DecorationsItems;
 import eu.pb4.simpleimagerenderer.renderer.RegionImageRenderer;
@@ -23,17 +30,35 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Rotations;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.entity.decoration.Mannequin;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CeilingHangingSignBlock;
+import net.minecraft.world.level.block.LanternBlock;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.WoodType;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -41,9 +66,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The guidebook's page images, the way Patbox makes PolyFactory's: each scene is built in a flat
@@ -64,6 +96,9 @@ public final class BookletRenders implements FabricClientGameTest {
 	private static final int PITCH = -30, YAW = 45;
 
 	private record Scene(String name, BlockPos from, BlockPos to, int scale) {}
+
+	/** Entities drawn mid-swing, whatever they are doing: see {@code MidSwingMixin}. */
+	public static final Set<UUID> MID_SWING = ConcurrentHashMap.newKeySet();
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
@@ -91,6 +126,11 @@ public final class BookletRenders implements FabricClientGameTest {
 				server.runCommand("tp Tester 40.5 -60 22.3 186 14");
 
 				server.runOnServer(mc -> build(mc.overworld()));
+				// Mail in the mailboxes, so their flags are up.
+				for (BlockPos box : List.of(new BlockPos(50, -59, 20), new BlockPos(88, -59, 21))) {
+					server.runCommand("data merge block " + box.getX() + " " + box.getY() + " " + box.getZ()
+							+ " {inventory:[{uuid:[I;1,2,3,4],Items:[{Slot:0b,id:\"minecraft:paper\",count:1}]}]}");
+				}
 				ctx.waitTicks(100);        // ovvar builds the patch combinations the mannequins wear
 				// A pack is only pushed to a player whose own ovve outgrew it; nobody here wears one, so ask.
 				server.runCommand("execute as Tester run ovvar reload");
@@ -119,6 +159,10 @@ public final class BookletRenders implements FabricClientGameTest {
 					if (!Files.exists(out.resolve(scene.name() + ".png"))) throw new AssertionError("no render of " + scene.name());
 				}
 				stash(ctx, server, conn, out.resolve("ovvar/stash.png"));
+				Files.createDirectories(out.resolve("recipe"));
+				for (var recipe : RECIPES.entrySet()) {
+					recipe(ctx, server, conn, out.resolve("recipe/" + recipe.getKey() + ".png"), recipe.getValue());
+				}
 				System.out.println("[metacraft-booklet] rendered " + SCENES.size() + " page image(s) to " + out.toAbsolutePath());
 			} catch (IOException e) {
 				throw new AssertionError(e);
@@ -168,12 +212,71 @@ public final class BookletRenders implements FabricClientGameTest {
 		ctx.runOnClient(client -> client.gui.setScreen(null));
 	}
 
+	/**
+	 * The crafting recipes the pages show, each as the nine slots of a crafting table, left to right
+	 * and top to bottom ({@code ""} for an empty slot).
+	 */
+	private static final Map<String, List<String>> RECIPES = new LinkedHashMap<>();
+	static {
+		RECIPES.put("canvas", List.of("stick", "stick", "stick", "stick", "paper", "stick", "stick", "stick", "stick"));
+		RECIPES.put("mailbox", List.of("", "oak_log", "copper_ingot", "oak_slab", "paper", "oak_slab", "", "", ""));
+		RECIPES.put("sign_post", List.of("", "", "", "oak_planks", "oak_planks", "stick", "", "", ""));
+		RECIPES.put("rope", List.of("", "string", "", "string", "wheat", "string", "", "string", ""));
+		RECIPES.put("hammer", List.of("", "", "", "iron_nugget", "iron_ingot", "", "", "stick", ""));
+		RECIPES.put("trowel", List.of("", "", "", "iron_nugget", "iron_ingot", "", "stick", "iron_nugget", ""));
+	}
+
+	/**
+	 * A recipe, cut out of a screenshot the way the stash is: the Tester gets a crafting table's menu
+	 * with the ingredients already in its grid, so the result shows, and the grid, the arrow and the
+	 * result are kept.
+	 */
+	private static void recipe(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn, Path file, List<String> grid) {
+		server.runOnServer(mc -> {
+			ServerLevel level = mc.overworld();
+			ServerPlayer tester = mc.getPlayerList().getPlayerByName("Tester");
+			BlockPos table = new BlockPos(38, -60, 23);
+			level.setBlockAndUpdate(table, Blocks.CRAFTING_TABLE.defaultBlockState());
+			tester.openMenu(new SimpleMenuProvider((id, inventory, player) -> new CraftingMenu(id, inventory, ContainerLevelAccess.create(level, table)),
+					Component.translatable("container.crafting")));
+			CraftingMenu menu = (CraftingMenu) tester.containerMenu;
+			for (int i = 0; i < 9; i++) {
+				if (grid.get(i).isEmpty()) continue;
+				menu.getInputGridSlots().get(i).set(new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(grid.get(i)))));
+			}
+			menu.broadcastChanges();
+		});
+		conn.waitForClientboundPackets();
+		ctx.waitFor(client -> client.gui.screen() instanceof CraftingScreen, 20 * 10);
+		ctx.getInput().setCursorPos(0, 0);
+		ctx.waitTicks(10);
+		Path shot = ctx.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("recipe_full"));
+		try {
+			BufferedImage full = ImageIO.read(shot.toFile());
+			// A crafting screen is 176×166, centred: the grid starts at (30, 17), the result's big slot
+			// ends at (146, 57). Keep that and a little round it, between the title and the inventory's label.
+			int x = (full.getWidth() - 176) / 2, y = (full.getHeight() - 166) / 2;
+			ImageIO.write(full.getSubimage(x + 26, y + 15, 124, 57), "png", file.toFile());
+		} catch (IOException e) {
+			throw new AssertionError("cannot cut the recipe out of " + shot, e);
+		}
+		server.runOnServer(mc -> mc.getPlayerList().getPlayerByName("Tester").closeContainer());
+		ctx.waitFor(client -> client.gui.screen() == null, 20 * 10);
+	}
+
 	private static final List<Scene> SCENES = List.of(
 			new Scene("ovvar/hero", new BlockPos(20, -60, 20), new BlockPos(20, -58, 20), 60),
 			new Scene("ovvar/back", new BlockPos(24, -60, 20), new BlockPos(24, -58, 20), 60),
 			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 70),
 			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 75),
-			new Scene("canvas/wall", new BlockPos(44, -60, 20), new BlockPos(45, -59, 21), 70));
+			new Scene("decorating/canvas", new BlockPos(42, -60, 20), new BlockPos(45, -58, 22), 70),
+			new Scene("decorating/corner", new BlockPos(86, -60, 20), new BlockPos(89, -58, 21), 70),
+			new Scene("decorating/mailbox", new BlockPos(50, -60, 20), new BlockPos(50, -59, 20), 90),
+			new Scene("decorating/rope", new BlockPos(54, -60, 20), new BlockPos(58, -57, 20), 70),
+			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 90),
+			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 80),
+			new Scene("decorating/lead", new BlockPos(72, -60, 20), new BlockPos(76, -59, 20), 70),
+			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -211,7 +314,7 @@ public final class BookletRenders implements FabricClientGameTest {
 		level.addFreshEntity(stand);
 
 		// ---- canvas: a 2×2 wall of planks with a 32×32 picture across four canvases on its south face,
-		// the face the camera sees
+		// the face the camera sees; its lower left corner not painted yet, and a painter at it
 		for (int dx = 0; dx < 2; dx++) for (int dy = 0; dy < 2; dy++) {
 			level.setBlockAndUpdate(new BlockPos(44 + dx, -60 + dy, 20), Blocks.SPRUCE_PLANKS.defaultBlockState());
 		}
@@ -219,8 +322,10 @@ public final class BookletRenders implements FabricClientGameTest {
 		for (int cx = 0; cx < 2; cx++) for (int cy = 0; cy < 2; cy++) {
 			CanvasPixels pixels = new CanvasPixels();
 			for (int px = 0; px < 16; px++) for (int py = 0; py < 16; py++) {
-				int argb = picture.getRGB(cx * 16 + px, (1 - cy) * 16 + py);
-				pixels.setRaw(px, py, (argb >>> 24) < 128 ? 0 : CanvasUtils.findClosestRawColorARGB(argb | 0xFF000000));
+				int gx = cx * 16 + px, gy = (1 - cy) * 16 + py;
+				int argb = picture.getRGB(gx, gy);
+				boolean painted = (argb >>> 24) >= 128 && !(gy >= 20 && gx < 12);
+				pixels.setRaw(px, py, painted ? CanvasUtils.findClosestRawColorARGB(argb | 0xFF000000) : 0);
 			}
 			ItemStack canvas = new ItemStack(DecorationsItems.CANVAS);
 			canvas.set(DecorationsDataComponents.CANVAS_DATA, new CanvasData(Optional.of(pixels), Optional.empty(), false, false, false));
@@ -228,6 +333,107 @@ public final class BookletRenders implements FabricClientGameTest {
 			entity.loadFromStack(canvas);
 			level.addFreshEntity(entity);
 		}
+		Mannequin painter = new Mannequin(EntityTypes.MANNEQUIN, level);
+		// Beside the wall, not in front of it: the camera looks from the south-west.
+		painter.setPos(42.7, -60, 21.6);
+		float toCanvas = -110;   // looking east, at the unpainted corner
+		painter.setYRot(toCanvas); painter.setYBodyRot(toCanvas); painter.setYHeadRot(toCanvas);
+		painter.setXRot(10);
+		painter.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("red_dye"))));
+		level.addFreshEntity(painter);
+		MID_SWING.add(painter.getUUID());
+
+		// ---- decorating
+		mailboxOnPost(level, new BlockPos(50, -60, 20), Direction.SOUTH);
+
+		// rope: two posts, rope between their tops, a lantern and a hanging sign hung from it
+		for (int y = -60; y <= -57; y++) {
+			level.setBlockAndUpdate(new BlockPos(54, y, 20), Blocks.SPRUCE_LOG.defaultBlockState());
+			level.setBlockAndUpdate(new BlockPos(58, y, 20), Blocks.SPRUCE_LOG.defaultBlockState());
+		}
+		List<BlockPos> rope = List.of(new BlockPos(55, -57, 20), new BlockPos(56, -57, 20), new BlockPos(57, -57, 20), new BlockPos(57, -58, 20));
+		for (BlockPos pos : rope) level.setBlockAndUpdate(pos, DecorationsBlocks.ROPE.defaultBlockState());
+		level.setBlockAndUpdate(new BlockPos(55, -58, 20), Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true));
+		BlockPos hanging = new BlockPos(57, -59, 20);
+		level.setBlockAndUpdate(hanging, Blocks.OAK_HANGING_SIGN.defaultBlockState().setValue(CeilingHangingSignBlock.ROTATION, 0));
+		if (level.getBlockEntity(hanging) instanceof SignBlockEntity sign) {
+			sign.setText(signText("", "Post", "", ""), SignTextSlot.FRONT);
+		}
+		for (BlockPos pos : rope) reshape(level, pos);
+
+		signPost(level, new BlockPos(62, -60, 20), "Spawn", "Nether");
+
+		// lanterns: one on a wall of stone bricks, a soul lantern on a fence
+		level.setBlockAndUpdate(new BlockPos(66, -60, 20), Blocks.STONE_BRICKS.defaultBlockState());
+		level.setBlockAndUpdate(new BlockPos(66, -59, 20), Blocks.STONE_BRICKS.defaultBlockState());
+		wallLantern(level, new BlockPos(66, -59, 21), Blocks.LANTERN);
+		level.setBlockAndUpdate(new BlockPos(68, -60, 20), Blocks.OAK_FENCE.defaultBlockState());
+		level.setBlockAndUpdate(new BlockPos(68, -59, 20), Blocks.OAK_FENCE.defaultBlockState());
+		wallLantern(level, new BlockPos(68, -59, 21), Blocks.SOUL_LANTERN);
+
+		// a lead from fence post to fence post
+		for (int post : new int[] {72, 76}) {
+			level.setBlockAndUpdate(new BlockPos(post, -60, 20), Blocks.OAK_FENCE.defaultBlockState());
+			level.setBlockAndUpdate(new BlockPos(post, -59, 20), Blocks.OAK_FENCE.defaultBlockState());
+		}
+		FirstLeashFenceKnotEntity first = new FirstLeashFenceKnotEntity(DecorationsEntities.FIRST_LEASH_FENCE_KNOT, level);
+		first.setPos(72, -59, 20);
+		level.addFreshEntity(first);
+		first.setLeashedTo(LeashFenceKnotEntity.getOrCreateKnot(level, new BlockPos(76, -59, 20)), true);
+
+		// a path laid with a trowel: blocks drawn at random from a hotbar, in place of the grass
+		Random random = new Random(7);
+		List<Block> hotbar = List.of(Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE, Blocks.GRAVEL);
+		for (int px = 80; px <= 81; px++) for (int pz = 17; pz <= 21; pz++) {
+			level.setBlockAndUpdate(new BlockPos(px, -61, pz), hotbar.get(random.nextInt(hotbar.size())).defaultBlockState());
+		}
+
+		// the chapter's own picture, a street corner: a lantern on a wall, a mailbox, a sign post
+		for (int wx = 86; wx <= 87; wx++) for (int wy = -60; wy <= -58; wy++) {
+			level.setBlockAndUpdate(new BlockPos(wx, wy, 20), Blocks.STONE_BRICKS.defaultBlockState());
+		}
+		wallLantern(level, new BlockPos(86, -59, 21), Blocks.LANTERN);
+		mailboxOnPost(level, new BlockPos(88, -60, 21), Direction.SOUTH);
+		signPost(level, new BlockPos(89, -60, 21), "Spawn", "Mensa");
+	}
+
+	private static void mailboxOnPost(ServerLevel level, BlockPos post, Direction facing) {
+		level.setBlockAndUpdate(post, Blocks.OAK_FENCE.defaultBlockState());
+		level.setBlockAndUpdate(post.above(), DecorationsBlocks.WOODEN_MAILBOX.get(WoodType.OAK).defaultBlockState().setValue(MailboxBlock.FACING, facing));
+	}
+
+	/** A two-high oak fence, its top a sign post with a sign each half. */
+	private static void signPost(ServerLevel level, BlockPos foot, String upper, String lower) {
+		level.setBlockAndUpdate(foot, Blocks.OAK_FENCE.defaultBlockState());
+		BlockPos top = foot.above();
+		level.setBlockAndUpdate(top, AttachedSignPostBlock.MAP.get(Blocks.OAK_FENCE).defaultBlockState());
+		if (level.getBlockEntity(top) instanceof SignPostBlockEntity post) {
+			var item = DecorationsItems.SIGN_POST.get(WoodType.OAK);
+			// A sign faces whoever put it up: 45 faces the camera, south-west; 0 faces south.
+			post.setText(true, SignPostBlockEntity.Sign.of(item, 45, false).withText(signText(upper, "", "", "")));
+			post.setText(false, SignPostBlockEntity.Sign.of(item, 0, true).withText(signText(lower, "", "", "")));
+		}
+	}
+
+	/** A lantern on the south face of the block north of {@code pos}, as a sneak-click there puts it. */
+	private static void wallLantern(ServerLevel level, BlockPos pos, Block lantern) {
+		BlockPos wall = pos.north();
+		var attached = WallAttachedLanternBlock.getSupportType(level, Direction.SOUTH, wall, level.getBlockState(wall));
+		level.setBlockAndUpdate(pos, WallAttachedLanternBlock.VANILLA2WALL.get(lantern).defaultBlockState()
+				.setValue(WallAttachedLanternBlock.WATERLOGGED, false)
+				.setValue(WallAttachedLanternBlock.FACING, Direction.NORTH)
+				.setValue(WallAttachedLanternBlock.ATTACHED, attached));
+	}
+
+	/** The state a block would take from its neighbours, as if it had just been placed. */
+	private static void reshape(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		level.setBlockAndUpdate(pos, Block.updateFromNeighbourShapes(state, level, pos));
+	}
+
+	private static SignText signText(String... lines) {
+		List<Component> messages = Arrays.stream(lines).map(line -> (Component) Component.literal(line)).toList();
+		return new SignText(messages, messages, DyeColor.BLACK, false);
 	}
 
 	private static ItemStack ovve(Chapter chapter, List<Placement> placements) {

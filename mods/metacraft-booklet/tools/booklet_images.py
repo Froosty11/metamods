@@ -23,9 +23,11 @@ from PIL import Image
 MODULE = Path(__file__).resolve().parent.parent
 SRC = MODULE / "build/booklet-renders"
 ASSETS = MODULE / "src/main/resources/assets/metacraft"
-SIZE = {"ovvar/chapters": (150, 110), "canvas/wall": (100, 110), "ovvar/stand": (150, 120)}
+SIZE = {"ovvar/chapters": (150, 110), "ovvar/stand": (150, 120), "decorating/canvas": (130, 110),
+        "decorating/corner": (150, 110), "decorating/rope": (150, 110), "decorating/lantern": (130, 100),
+        "decorating/lead": (150, 80), "decorating/trowel": (110, 100)}
 DEFAULT_SIZE = (100, 120)
-AS_IS = {"ovvar/stash"}
+AS_IS = {"ovvar/stash"}   # and every recipe/*
 SCALE, TILE_W, TILE_H = 4, 16, 9          # UI px per tile
 TW, TH = TILE_W * SCALE, TILE_H * SCALE   # image px per tile
 SPACER = ""                           # advance -1: glyphs advance their width + 1
@@ -40,7 +42,7 @@ for src in sorted(SRC.rglob("*.png")):
     if name.startswith("probe/"):
         continue
     im = Image.open(src).convert("RGBA")
-    if name in AS_IS:
+    if name in AS_IS or name.startswith("recipe/"):
         im = im.resize((im.width * SCALE, im.height * SCALE), Image.NEAREST)
     else:
         box = im.getbbox()

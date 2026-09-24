@@ -4,6 +4,7 @@
 	"package": "nu.metacraft.booklet.clienttest.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"MidSwingMixin",
 		"PolymerHelloMixin",
 		"ServerPackAutoAcceptMixin"
 	],

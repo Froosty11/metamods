@@ -142,21 +142,25 @@ public final class GuideTests {
 		helper.succeed();
 	}
 
+	/** The PolyDecorations recipes METAcraft keeps: what the decorating chapter teaches. */
+	private static final Pattern KEPT = Pattern.compile("canvas.*|[a-z_]+_(mailbox|sign_post)|rope|hammer|trowel");
+
 	@GameTest
-	public void polyDecorationsHasOnlyItsCanvasRecipes(GameTestHelper helper) {
+	public void polyDecorationsHasOnlyTheRecipesWeKeep(GameTestHelper helper) {
 		if (!FabricLoader.getInstance().isModLoaded("polydecorations")) { helper.succeed(); return; }
 		List<String> left = new ArrayList<>();
-		boolean canvas = false;
+		List<String> kept = new ArrayList<>();
 		for (var holder : helper.getLevel().getServer().getRecipeManager().getRecipes()) {
 			Identifier id = holder.id().identifier();
 			if (!id.getNamespace().equals("polydecorations")) continue;
-			if (id.getPath().startsWith("canvas")) canvas |= id.getPath().equals("canvas");
-			else left.add(id.toString());
+			(KEPT.matcher(id.getPath()).matches() ? kept : left).add(id.getPath());
 		}
-		if (!canvas) helper.fail("polydecorations:canvas, the canvas's own recipe, is gone too");
+		for (String needed : List.of("canvas", "oak_mailbox", "oak_sign_post", "rope", "hammer", "trowel")) {
+			if (!kept.contains(needed)) helper.fail("polydecorations:" + needed + ", which the decorating chapter teaches, is gone");
+		}
 		if (!left.isEmpty()) {
 			helper.fail(left.size() + " other PolyDecorations recipe(s) still loaded — a newer PolyDecorations? regenerate "
-					+ "resourcepacks/polydecorations_canvas_only: " + String.join(", ", left.subList(0, Math.min(8, left.size()))));
+					+ "resourcepacks/polydecorations_s6: " + String.join(", ", left.subList(0, Math.min(8, left.size()))));
 		}
 		helper.succeed();
 	}

@@ -41,6 +41,10 @@ dependencies {
 	gametestRuntimeOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
 	gametestCompileOnly("maven.modrinth:polydecorations:${project.polydecorations_version}")
 	gametestCompileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
+	// PolyDecorations' blocks, which the scenes place, are built on these
+	gametestCompileOnly("eu.pb4:factorytools:0.12.1+26.3")
+	gametestCompileOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	gametestCompileOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
 	gametestCompileOnly(project(path: ":mods:ovvar"))
 }
 

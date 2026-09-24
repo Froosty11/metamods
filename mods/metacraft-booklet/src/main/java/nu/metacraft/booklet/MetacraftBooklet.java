@@ -26,8 +26,8 @@ import java.util.List;
  * registered only when its mod is loaded ({@link #HOOKS}), so a server without ovvar has no ovvar
  * chapter and none of its item icons to resolve. No chapter's mod is a dependency.
  *
- * <p>Besides pages: {@code polydecorations_canvas_only} switches off every PolyDecorations recipe
- * but the canvas's, and the resource pack turns the warning button vanilla puts on every server
+ * <p>Besides pages: {@code polydecorations_s6} switches off every PolyDecorations recipe but those
+ * of the few things METAcraft keeps, and the resource pack turns the warning button vanilla puts on every server
  * dialog into a question mark.
  *
  * <p>{@code /guide} (anyone) opens the index.
@@ -55,8 +55,8 @@ public final class MetacraftBooklet implements ModInitializer {
 	 */
 	public static final List<Hook> HOOKS = List.of(
 			new Hook("ovvar", "ovvar", false),
-			new Hook("polydecorations", "canvas", false),
-			new Hook("polydecorations", "polydecorations_canvas_only", true));
+			new Hook("polydecorations", "decorating", false),
+			new Hook("polydecorations", "polydecorations_s6", true));
 
 	@Override
 	public void onInitialize() {
