@@ -110,11 +110,19 @@ public final class ConfigEdits {
 			}
 			case WHOLE -> {
 				if (text.isEmpty()) return Optional.of("needs a value");
+				long value;
 				try {
-					object.addProperty(option.key(), Long.parseLong(text));
+					value = Long.parseLong(text);
 				} catch (NumberFormatException e) {
 					return Optional.of("\"" + text + "\" is not a whole number");
 				}
+				// Codec.INT would silently wrap a long that does not fit.
+				Class<?> type = option.valueType();
+				if (type == int.class || type == Integer.class) {
+					if (value > Integer.MAX_VALUE) return Optional.of(text + " is too large (at most " + Integer.MAX_VALUE + ")");
+					if (value < Integer.MIN_VALUE) return Optional.of(text + " is too small (at least " + Integer.MIN_VALUE + ")");
+				}
+				object.addProperty(option.key(), value);
 			}
 			case DECIMAL -> {
 				if (text.isEmpty()) return Optional.of("needs a value");

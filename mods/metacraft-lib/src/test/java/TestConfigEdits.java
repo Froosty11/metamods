@@ -57,6 +57,15 @@ public class TestConfigEdits {
 	}
 
 	@Test
+	public void wholeNumbersBeyondAnIntAreRefusedForAnIntOption() {
+		String large = error(Map.of("old-name", "3000000000"));
+		assertTrue(large.contains("3000000000 is too large"), large);
+		String small = error(Map.of("old-name", "-3000000000"));
+		assertTrue(small.contains("-3000000000 is too small"), small);
+		assertEquals(Integer.MAX_VALUE, edit(List.of(), Map.of("old-name", Integer.toString(Integer.MAX_VALUE))).getOrThrow().renamed());
+	}
+
+	@Test
 	public void outOfRangeAndUnknownChoiceAreRefused() {
 		assertTrue(error(Map.of("count", "99")).contains("count"));
 		assertTrue(error(Map.of("mode", "warp")).contains("mode"));
