@@ -75,4 +75,36 @@ public class TestPolyDecorationsSource {
 		assertTrue(source.loadError().isPresent());
 		assertEquals("{ broken", Files.readString(file));
 	}
+
+	@Test
+	public void applyAndResetRefuseAnUnknownPageInsteadOfThrowing(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("polydecorations.json");
+		Files.writeString(file, FORK_FILE);
+		ConfigSource source = PolyDecorationsSource.detect(file).orElseThrow();
+		assertInstanceOf(EditOutcome.Refused.class, source.apply(List.of("x"), Map.of("bench", "true"), source.hash()));
+		assertInstanceOf(EditOutcome.Refused.class, source.reset(List.of("x"), source.hash()));
+	}
+
+	@Test
+	public void resetTurnsEveryFeatureOnAndHonoursTheStaleHash(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("polydecorations.json");
+		Files.writeString(file, FORK_FILE);
+		ConfigSource source = PolyDecorationsSource.detect(file).orElseThrow();
+		assertEquals(new EditOutcome.Stale(), source.reset(List.of(), source.hash() + 1));
+		assertEquals(new EditOutcome.Saved(), source.reset(List.of(), source.hash()));
+		var json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+		for (var entry : json.getAsJsonObject("features").entrySet()) {
+			assertTrue(entry.getValue().getAsBoolean());
+		}
+	}
+
+	@Test
+	public void aReadFailureRefusesApplyRatherThanOverwriting(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("polydecorations.json");
+		Files.writeString(file, FORK_FILE);
+		ConfigSource source = PolyDecorationsSource.detect(file).orElseThrow();
+		Files.writeString(file, "{ broken");
+		assertInstanceOf(EditOutcome.Refused.class, source.apply(List.of(), Map.of("bench", "true"), source.hash()));
+		assertEquals("{ broken", Files.readString(file));
+	}
 }

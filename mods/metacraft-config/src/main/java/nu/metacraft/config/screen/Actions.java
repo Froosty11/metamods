@@ -9,6 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.config.MetacraftConfig;
 import nu.metacraft.config.source.*;
 import nu.metacraft.lib.custom_message.CustomMessageHandler;
 import nu.metacraft.lib.custom_message.CustomMessageRegistry;
@@ -72,7 +73,17 @@ public final class Actions {
 				return;
 			}
 			Map<String, String> values = Payloads.values(page, payload);
-			switch (source.apply(path, values, payload.getIntOr("hash", 0))) {
+			EditOutcome outcome;
+			try {
+				outcome = source.apply(path, values, payload.getIntOr("hash", 0));
+			} catch (RuntimeException e) {
+				// Adapters are third-party-shaped code; a bug there should not take the packet handler
+				// down with it.
+				MetacraftConfig.LOGGER.error("{} failed to save", source.id(), e);
+				show(player, source, path, Optional.of(Component.literal("Could not save: " + e.getMessage()).withStyle(ChatFormatting.RED)), values);
+				return;
+			}
+			switch (outcome) {
 				case EditOutcome.Saved saved -> show(player, source, path,
 						Optional.of(Component.literal("Saved.").withStyle(ChatFormatting.GREEN)), Map.of());
 				case EditOutcome.Refused refused -> show(player, source, path,
@@ -91,7 +102,14 @@ public final class Actions {
 				player.openDialog(Holder.direct(resetConfirmDialog(source, path)));
 				return;
 			}
-			EditOutcome outcome = source.reset(path, payload.getIntOr("hash", 0));
+			EditOutcome outcome;
+			try {
+				outcome = source.reset(path, payload.getIntOr("hash", 0));
+			} catch (RuntimeException e) {
+				MetacraftConfig.LOGGER.error("{} failed to reset", source.id(), e);
+				show(player, source, path, Optional.of(Component.literal("Could not reset: " + e.getMessage()).withStyle(ChatFormatting.RED)), Map.of());
+				return;
+			}
 			Component message = switch (outcome) {
 				case EditOutcome.Saved saved -> Component.literal("Reset to defaults.").withStyle(ChatFormatting.GREEN);
 				case EditOutcome.Refused refused -> Component.literal(refused.message()).withStyle(ChatFormatting.RED);

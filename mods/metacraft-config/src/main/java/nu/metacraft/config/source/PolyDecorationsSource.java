@@ -91,7 +91,13 @@ public final class PolyDecorationsSource implements ConfigSource {
 
 	@Override
 	public EditOutcome apply(List<String> path, Map<String, String> values, int expectedHash) {
+		if (!path.isEmpty()) return new EditOutcome.Refused("PolyDecorations has one page");
 		if (expectedHash != hash()) return new EditOutcome.Stale();
+		// A missing file is fine (nothing written yet); an existing file we cannot parse is not — do
+		// not treat it as a blank slate and overwrite whatever is actually wrong with it.
+		if (Files.exists(file) && read(file).isEmpty()) {
+			return new EditOutcome.Refused("cannot read " + file + ": it is not the fork's format, or is broken");
+		}
 		JsonObject json = read(file).orElseGet(() -> {
 			JsonObject fresh = new JsonObject();
 			fresh.add("features", new JsonObject());
@@ -114,6 +120,7 @@ public final class PolyDecorationsSource implements ConfigSource {
 
 	@Override
 	public EditOutcome reset(List<String> path, int expectedHash) {
+		if (!path.isEmpty()) return new EditOutcome.Refused("PolyDecorations has one page");
 		Map<String, String> allOn = new LinkedHashMap<>();
 		page(path).fields().forEach(field -> allOn.put(field.key(), "true"));
 		return apply(path, allOn, expectedHash);   // the fork's default is every feature on
