@@ -1,0 +1,5 @@
+{
+	"max_repair_cost": 40,
+	"cap_at_max_level": true,
+	"base_cost_increase_mode": "enchanting_only"
+}

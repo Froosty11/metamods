@@ -21,6 +21,8 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
+import nu.metacraft.lib.config.describe.Config;
+import nu.metacraft.lib.config.describe.Option;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,21 +30,28 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-public final class RepairFixConfig {
+@Config(name = "Repair Fix", description = "Anvil repair-cost balancing and enchantment combine costs.")
+public record RepairFixConfig(
+		@Option(description = "The highest an anvil repair can cost; empty for no cap.", min = 0, key = "max_repair_cost") Optional<Integer> maxRepairConst,
+		@Option(description = "Caps the anvil's cost display at the max repair cost, instead of graying it out past it.") boolean capAtMaxLevel,
+		@Option(description = "How the anvil's base repair cost climbs as items are repaired or combined.") BaseCostIncreaseMode baseCostIncreaseMode
+) {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(RepairFix.modid + ".json");
 
 	public static final MapCodec<RepairFixConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					ExtraCodecs.NON_NEGATIVE_INT.optionalFieldOf("max_repair_cost").forGetter(c -> c.maxRepairConst),
-					Codec.BOOL.fieldOf("cap_at_max_level").forGetter(c -> c.capAtMaxLevel),
-					BaseCostIncreaseMode.CODEC.fieldOf("base_cost_increase_mode").forGetter(c -> c.baseCostIncreaseMode)
+					ExtraCodecs.NON_NEGATIVE_INT.optionalFieldOf("max_repair_cost").forGetter(RepairFixConfig::maxRepairConst),
+					Codec.BOOL.fieldOf("cap_at_max_level").forGetter(RepairFixConfig::capAtMaxLevel),
+					BaseCostIncreaseMode.CODEC.fieldOf("base_cost_increase_mode").forGetter(RepairFixConfig::baseCostIncreaseMode)
 			).apply(instance, RepairFixConfig::new)
 	);
 
+	public static final RepairFixConfig DEFAULT = createDefault();
+
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RepairFixConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, RepairFixConfig::createDefault
-	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(configPath);
+			CODEC, () -> DEFAULT
+	).makeRegistryAware(Loaded.CODEC).describedBy(RepairFixConfig.class).setInitializer(Loaded::createDefault).build(configPath);
 
 	public static void init() {
 		getConfig();
@@ -56,31 +65,8 @@ public final class RepairFixConfig {
 		return CONTAINER.get(server);
 	}
 
-	private final Optional<Integer> maxRepairConst;
-
-	private final boolean capAtMaxLevel;
-
-	private BaseCostIncreaseMode baseCostIncreaseMode = BaseCostIncreaseMode.ENCHANTING_ONLY;
-
-	public RepairFixConfig(
-			Optional<Integer> maxRepairConst, boolean capAtMaxLevel,
-			BaseCostIncreaseMode baseCostIncreaseMode
-	) {
-		this.maxRepairConst = maxRepairConst;
-		this.capAtMaxLevel = capAtMaxLevel;
-		this.baseCostIncreaseMode = baseCostIncreaseMode;
-	}
-
-	public boolean capAtMaxLevel() {
-		return capAtMaxLevel;
-	}
-
 	public int getMaxRepairCost() {
 		return maxRepairConst.orElse(Integer.MAX_VALUE);
-	}
-
-	public BaseCostIncreaseMode baseCostIncreaseMode() {
-		return baseCostIncreaseMode;
 	}
 
 	private static RepairFixConfig createDefault() {
