@@ -94,6 +94,13 @@ public class TestConfigEdits {
 	}
 
 	@Test
+	public void resetOnUnknownPageIsRefused() {
+		String message = ConfigEdits.reset(SPEC, CODEC, Sample.DEFAULT, List.of("nope"), JsonOps.INSTANCE)
+				.error().orElseThrow().message();
+		assertTrue(message.contains("nope"));
+	}
+
+	@Test
 	public void textForms() {
 		assertEquals("60", ConfigEdits.text(SPEC.option("speed").orElseThrow(), 60.0));
 		assertEquals("0.5", ConfigEdits.text(SPEC.option("share").orElseThrow(), 0.5));

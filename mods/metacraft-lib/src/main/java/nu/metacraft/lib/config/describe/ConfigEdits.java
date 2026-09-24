@@ -50,7 +50,12 @@ public final class ConfigEdits {
 		if (page.isEmpty()) {
 			return DataResult.success(spec.defaults());
 		}
-		ConfigSpec<?> pageSpec = pageSpec(spec, page);
+		ConfigSpec<?> pageSpec;
+		try {
+			pageSpec = pageSpec(spec, page);
+		} catch (IllegalArgumentException e) {
+			return DataResult.error(e::getMessage);
+		}
 		JsonObject parent = navigate(root, page.subList(0, page.size() - 1));
 		parent.add(page.getLast(), encodeDefaults(pageSpec, ops));
 		return readBack(spec, codec, root, ops);
