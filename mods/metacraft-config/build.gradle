@@ -1,0 +1,2 @@
+// metacraft-config — /config: every described config the server runs, edited in a vanilla dialog.
+version = project.metacraft_config_version

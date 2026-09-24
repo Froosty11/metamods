@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "metacraft-config",
+  "version": "${version}",
+
+  "name": "METAcraft Config",
+  "description": "/config: change the server's mod settings in a dialog.",
+  "authors": [
+    "Froosty11"
+  ],
+  "contributors": [],
+  "contact": {
+    "sources": "${git_repo}",
+    "homepage": "${website}",
+    "issues": "${issues}"
+  },
+
+  "license": "Apache-2.0",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.config.MetacraftConfig"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "~${minecraft_version}",
+    "metacraft-lib": "*"
+  },
+  "suggests": {
+    "polydecorations": "*"
+  }
+}
