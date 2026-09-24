@@ -33,7 +33,8 @@ public final class Pages {
 		if (sources.isEmpty()) body.add(message(Component.literal("No configs are described on this server.")));
 		List<ActionButton> buttons = new ArrayList<>();
 		for (ConfigSource source : sources) {
-			String marks = (source.loadError().isPresent() ? " ⚠" : "") + (source.pendingRestart().isEmpty() ? "" : " ⟳");
+			// Vanilla's font has no ⟳; spell the restart marker out instead of drawing a tofu box.
+			String marks = (source.loadError().isPresent() ? " ⚠" : "") + (source.pendingRestart().isEmpty() ? "" : " (restart pending)");
 			buttons.add(button(Component.literal(source.name() + marks), Optional.of(Component.literal(source.description())),
 					OPEN, target(source.id(), List.of())));
 		}

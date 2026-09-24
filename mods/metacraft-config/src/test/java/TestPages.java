@@ -109,6 +109,21 @@ public class TestPages {
 	}
 
 	@Test
+	public void choiceInputWidensForALongLabelAndStillEncodes() {
+		Field field = new Field("mode", "Use vanilla's experimental minecart physics.", OptionKind.CHOICE, "experimental",
+				0, 0, 0, false, List.of("legacy", "experimental"), true, true);
+		SingleOptionInput input = assertInstanceOf(SingleOptionInput.class, Inputs.forField(field, "experimental"));
+		assertTrue(input.width() >= 400, "width was " + input.width());
+
+		Dialog dialog = new MultiActionDialog(
+				new CommonDialogData(Component.literal("t"), Optional.empty(), true, false, DialogAction.WAIT_FOR_RESPONSE,
+						List.of(), List.of(new Input("o0", input))),
+				List.of(new ActionButton(new CommonButtonData(Component.literal("Close"), 150), Optional.empty())),
+				Optional.empty(), 1);
+		assertEncodes(dialog);
+	}
+
+	@Test
 	public void configPageEncodesWithVanillaCodec(@TempDir Path dir) {
 		assertEncodes(Pages.config(demo(dir), List.of(), Optional.empty(), Map.of()));
 	}
