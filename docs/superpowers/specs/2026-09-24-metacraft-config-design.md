@@ -39,13 +39,12 @@ public record FasterMinecartsConfig(
 }
 ```
 
-- `@Config(name, description)` on the record; `@Option(description, min, max, restart, key)` on a
+- `@Config(name, description)` on the record; `@Option(description, min, max, step, restart, key)` on a
   component. `key` overrides the file key; by default it is the component name in snake_case.
   `min`/`max` default to unbounded (`-Infinity`/`Infinity`); `restart` defaults to false.
 - Supported types and their input:
   - `boolean` → toggle;
-  - `int`, `long`, `double`, `float` with `min`/`max` → slider (a number field when the range is
-    unbounded or wider than a slider can step through; see Part 3);
+  - `int`, `long`, `double`, `float` → a number field, or a slider for short ranges (see Part 3);
   - `String`, `Identifier` → text field;
   - an `enum` implementing `StringRepresentable` → single option;
   - `Optional<T>` of any of the above → the same input, empty meaning absent;
@@ -96,9 +95,12 @@ Existing callers compile and behave as before.
 - **Config page**: one dialog with an input per option, label = its description, range in the label.
   Nested records are buttons. Buttons: Save, Cancel, Back, Reset to defaults (asks first). Vanilla
   dialogs scroll; pages past ~20 options should be split into nested records by the config's author.
-- Dialog inputs are vanilla's: `boolean`, `number_range` (a slider; used when the range has at most
-  1000 steps at the option's precision, else a `text` input parsed as a number), `text` (multi-line for
-  lists), `single_option`. Button presses go back to the server through metacraft-lib's existing
+- Dialog inputs are vanilla's: `boolean`, `number_range`, `text` (multi-line for lists),
+  `single_option`. Vanilla's slider cannot be typed into, so a number is a slider only when its range
+  is bounded and has at most 50 steps (an `int` 1–16, or a `double` with `@Option(step = 0.05)` over
+  0–1); every other number is a `text` input labelled with its range and parsed on save, with an error
+  for text that is not a number or is out of range. `@Option` gains `step` (default 1 for integers;
+  a `double` without `step` is always a text input). Button presses go back to the server through metacraft-lib's existing
   `CodecMessageHandler` / `DialogHelper`.
 - **Saving**: the dialog submits every input at once. Decode as in Part 1 → `update`. On success the
   page reopens with "Saved"; on failure it reopens with the operator's values and the error at the top,
