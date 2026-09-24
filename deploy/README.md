@@ -1,0 +1,103 @@
+# Deploying mods to the servers
+
+Every server gets the mods on its list, each as its own jar. A push uploads only the jars that changed
+and deletes mods that were taken off the list. Changes take effect at the server's next restart.
+
+> Draft: this describes the pipeline as designed in
+> `docs/superpowers/specs/2026-09-24-split-deploy-design.md`. It becomes true when that lands.
+
+## Which branch goes where
+
+`deploy/servers.json` says which servers a branch deploys to:
+
+| Branch     | Servers          |
+|------------|------------------|
+| `dev`      | test             |
+| `prod`     | survival, test   |
+| `minigame` | event            |
+
+Pushing to any other branch, or opening a PR, builds and tests but deploys nothing. The workflow run
+still shows, per server, exactly what *would* be uploaded and removed.
+
+## Adding one of our mods to a server
+
+1. Open `deploy/<server>.txt` on the branch that deploys to it (for survival: `prod`).
+2. Add the mod's folder name from `mods/`, on its own line:
+   ```
+   faster-minecarts
+   ```
+3. Push. The next restart of that server loads it.
+
+You never list `metacraft-lib`, `metacraft-core` or `metacraft-zones`: anything a listed mod depends on
+is added for you. If a mod needs another of our mods that isn't on the list, the build fails and names
+both. Add the missing one, or take the first one off.
+
+A brand-new mod also needs its `include "mods:<name>"` line in `settings.gradle`, as today. Being in
+`settings.gradle` does *not* put a mod on any server; being on a list does.
+
+## Removing a mod from a server
+
+Delete its line from `deploy/<server>.txt` and push. The deploy tells the server to delete it. At the
+next restart it is gone, together with any other changes.
+
+## Adding a mod from outside the repo
+
+For jars built elsewhere (ovvar, metacraft-booklet, the PolyDecorations fork, a Modrinth mod):
+
+```
+external ovvar https://github.com/Froosty11/ovvar/releases/download/v1.4.0/ovvar-1.4.0.jar sha256:3f2a…
+```
+
+- `ovvar` is the jar's mod id (the `id` in its `fabric.mod.json`).
+- Use a URL that never changes: a release download, not "latest".
+- Get the hash with `shasum -a 256 ovvar-1.4.0.jar`. The build refuses a jar whose hash doesn't match,
+  so a changed or tampered download never reaches a server.
+- To update it, change the URL and hash in the same line.
+
+## Changing one of our mods
+
+Nothing to do beyond pushing the change: the deploy works out which jars differ from what the server
+has and uploads only those. Bump the mod's version in `gradle.properties` (e.g.
+`faster_minecarts_version`) so the server's mod list and bug reports show which build is running.
+
+## What a deploy did
+
+Every deploy run has a summary (the run's page on GitHub → Summary) with, per server:
+
+- **uploaded**: new or changed jars, with versions;
+- **removed**: mods deleted at the next restart;
+- **unchanged**: everything else.
+
+It also publishes a release, `deploy-<server>-<date>-<commit>`, with that server's exact jars. Releases
+are kept forever.
+
+## Rolling back
+
+To put a server back to an earlier state:
+
+1. Find the release: Releases → `deploy-<server>-…` from before the problem.
+2. Actions → the build workflow → **Run workflow**. Choose the `server` and paste the `release` tag.
+3. It uploads what differs from the server's current state and removes what that release didn't have.
+   Restart the server.
+
+A rollback builds nothing, so it works even when the branch doesn't build.
+
+## When a deploy refuses
+
+- **"update autodeploy.jar on <server> first"**: that server's autodeploy is too old to delete mods.
+  Put the current `autodeploy.jar` from METAcraft-KTH/FabricModsUpdate's releases on the server, in
+  place of the old one, and restart it once. The startup line stays the same. Nothing was uploaded, so
+  push again (or re-run the job) afterwards.
+- **"<mod> needs <other mod>, which is not on <server>'s list"**: add the other mod to the list, or take
+  the first one off.
+- **"unknown project <name>"**: a typo, or the mod isn't in `settings.gradle`.
+- **"sha256 mismatch for <url>"**: the external jar isn't the one you pinned. Check the URL, and update
+  the hash only if you meant to change the jar.
+- **"a list may not contain metacraft"**: that's the old all-in-one bundle. It is deleted on the first
+  deploy and is never listed.
+
+## What the pipeline doesn't touch
+
+Jars it didn't deploy stay as they are, for example Fabric API or Polymer put in `mods/` by hand. It
+keeps track of what it deployed in `mods/metacraft-deploy.json` on each server. Don't edit or delete
+that file; if it is lost, the next deploy uploads everything again, which is harmless.
