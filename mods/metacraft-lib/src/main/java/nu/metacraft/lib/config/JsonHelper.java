@@ -25,16 +25,16 @@ public class JsonHelper {
 		return load(configPath, codec, ops -> ops);
 	}
 
-	public static <T> void save(Path configPath, Codec<T> codec, T object) {
-		save(configPath, codec, object, ops -> ops);
+	public static <T> boolean save(Path configPath, Codec<T> codec, T object) {
+		return save(configPath, codec, object, ops -> ops);
 	}
 
 	public static <T> Optional<T> load(Path configPath, Codec<T> codec, HolderLookup.Provider lookup) {
 		return load(configPath, codec, lookup::createSerializationContext);
 	}
 
-	public static <T> void save(Path configPath, Codec<T> codec, T object, HolderLookup.Provider lookup) {
-		save(configPath, codec, object, lookup::createSerializationContext);
+	public static <T> boolean save(Path configPath, Codec<T> codec, T object, HolderLookup.Provider lookup) {
+		return save(configPath, codec, object, lookup::createSerializationContext);
 	}
 
 	public static <T> Optional<T> load(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
@@ -52,20 +52,16 @@ public class JsonHelper {
 	}
 
 	/**
-	 * The file read with {@code codec}: empty when there is no file, an error result (with the
-	 * message) when it exists but does not parse. A partial result counts as an error.
+	 * The file read with {@code codec}: empty when there is no file, otherwise the raw
+	 * {@link DataResult}. On error, the result may still carry a partial value (e.g. a map codec
+	 * keeping the entries that did parse); callers decide what to do with that.
 	 */
 	public static <T> Optional<DataResult<T>> read(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
 		File file = configPath.toFile();
 		if (!file.exists()) return Optional.empty();
 		try (var reader = new BufferedReader(new FileReader(file))) {
 			JsonElement element = JsonParser.parseReader(reader);
-			DataResult<T> result = codec.parse(opsFixer.apply(JsonOps.INSTANCE), element);
-			if (result.error().isPresent()) {
-				String message = result.error().get().message();
-				return Optional.of(DataResult.error(() -> message));
-			}
-			return Optional.of(result);
+			return Optional.of(codec.parse(opsFixer.apply(JsonOps.INSTANCE), element));
 		} catch (JsonParseException e) {
 			return Optional.of(DataResult.error(() -> "not valid JSON: " + e.getMessage()));
 		} catch (IOException e) {
@@ -73,24 +69,28 @@ public class JsonHelper {
 		}
 	}
 
-	public static <T> void save(Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
-		codec.encodeStart(opsFixer.apply(JsonOps.INSTANCE), object).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(data -> {
-			File file = configPath.toFile();
-			if (!file.exists()) {
-				try {
-					file.createNewFile();
-				} catch (IOException err) {
-					err.printStackTrace();
-				}
+	/** @return whether the file was written. */
+	public static <T> boolean save(Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
+		Optional<JsonElement> data = codec.encodeStart(opsFixer.apply(JsonOps.INSTANCE), object).resultOrPartial(METAcraftLib.LOGGER::error);
+		if (data.isEmpty()) return false;
+		File file = configPath.toFile();
+		if (!file.exists()) {
+			try {
+				file.createNewFile();
+			} catch (IOException err) {
+				err.printStackTrace();
+				return false;
 			}
-			//The BufferedWriter is to boost performance.
-			try (var writer = new JsonWriter(new BufferedWriter(new FileWriter(file)))) {
-				writer.setIndent("\t");
-				Streams.write(data, writer);
-			} catch (IOException error) {
-				error.printStackTrace();
-			}
-		});
+		}
+		//The BufferedWriter is to boost performance.
+		try (var writer = new JsonWriter(new BufferedWriter(new FileWriter(file)))) {
+			writer.setIndent("\t");
+			Streams.write(data.get(), writer);
+		} catch (IOException error) {
+			error.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 
 }

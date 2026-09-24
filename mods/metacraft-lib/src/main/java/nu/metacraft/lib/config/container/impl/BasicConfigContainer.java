@@ -86,13 +86,16 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 			return Optional.empty();
 		}
 		DataResult<T> result = read.get();
+		Optional<T> value = result.resultOrPartial();
 		if (result.error().isPresent()) {
 			loadError = result.error().get().message();
-			METAcraftLib.LOGGER.error("Unable to load {}, keeping the settings in use: {}", configPath, loadError);
-			return Optional.empty();
+			METAcraftLib.LOGGER.error(
+					"Unable to {} {}: {}", value.isPresent() ? "fully load" : "load", configPath, loadError
+			);
+		} else {
+			loadError = null;
 		}
-		loadError = null;
-		return result.result();
+		return value;
 	}
 
 	protected Optional<DataResult<T>> readFile() {
@@ -124,7 +127,8 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 				}
 				modifiers.clear();
 			}
-			if (modifiable.isModified()) {
+			// Never write over a file that failed to load; the modification stays queued in memory.
+			if (modifiable.isModified() && loadError == null) {
 				save();
 				modifiable.setModified(false);
 			}
@@ -169,7 +173,9 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	@Override
 	public void save() {
 		if (config == null) return;
-		JsonHelper.save(configPath, codec, config);
+		if (JsonHelper.save(configPath, codec, config)) {
+			loadError = null;
+		}
 	}
 
 	@Override
@@ -178,7 +184,6 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		this.config = newConfig;
 		if (old != newConfig) {
 			save();
-			loadError = null;
 		}
 		notifyChanged(old, newConfig);
 	}
@@ -195,7 +200,13 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 	private void notifyChanged(@Nullable T old, @Nullable T current) {
 		if (old == null || current == null || old.equals(current)) return;
-		for (BiConsumer<T, T> listener : changeListeners) listener.accept(old, current);
+		for (BiConsumer<T, T> listener : changeListeners) {
+			try {
+				listener.accept(old, current);
+			} catch (Throwable t) {
+				METAcraftLib.LOGGER.error("A config change listener for {} threw", configPath, t);
+			}
+		}
 	}
 
 	@Override
@@ -226,7 +237,9 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		@Override
 		public void save() {
 			if (config == null) return;
-			JsonHelper.save(configPath, codec, config, lookupSupplier.get());
+			if (JsonHelper.save(configPath, codec, config, lookupSupplier.get())) {
+				loadError = null;
+			}
 		}
 
 		@Override
