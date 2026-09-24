@@ -58,11 +58,32 @@ public class TestDescribedConfig {
 	public void restartOptionsArePendingUntilRestart(@TempDir Path dir) {
 		build(dir.resolve("sample.json"));
 		DescribedConfig<?> config = ConfigRegistry.find("sample").orElseThrow();
-		config.get();   // the value the server started with
-		assertEquals(List.of(), config.pendingRestart());
+		assertEquals(List.of(), config.pendingRestart());   // the listener/pendingRestart itself records the start value
 		config.apply(List.of(), Map.of("mode", "slow"), config.hash());
 		assertEquals(List.of("Mode."), config.pendingRestart());
 		config.apply(List.of(), Map.of("mode", "fast"), config.hash());
+		assertEquals(List.of(), config.pendingRestart());
+	}
+
+	@Test
+	public void aReloadBeforeTheScreenOpensStillLeavesARestartOptionPending(@TempDir Path dir) throws Exception {
+		var container = build(dir.resolve("sample.json"));
+		ConfigRegistry.serverStarted();   // what a real server does at startup, before /config is ever opened
+		DescribedConfig<?> config = ConfigRegistry.find("sample").orElseThrow();
+		Files.writeString(dir.resolve("sample.json"), "{\"mode\": \"slow\"}");   // edited by hand while the server was down
+		container.reload();
+		assertEquals(List.of("Mode."), config.pendingRestart());
+	}
+
+	@Test
+	public void afterAServerStopAndRestartNothingIsPending(@TempDir Path dir) {
+		build(dir.resolve("sample.json"));
+		DescribedConfig<?> config = ConfigRegistry.find("sample").orElseThrow();
+		ConfigRegistry.serverStarted();
+		config.apply(List.of(), Map.of("mode", "slow"), config.hash());
+		assertEquals(List.of("Mode."), config.pendingRestart());
+		ConfigRegistry.serverStopped();
+		ConfigRegistry.serverStarted();   // as if a new world/server starts, now running "slow"
 		assertEquals(List.of(), config.pendingRestart());
 	}
 
@@ -89,7 +110,14 @@ public class TestDescribedConfig {
 				com.mojang.serialization.Codec.STRING.fieldOf("url").forGetter(SampleSection::url),
 				com.mojang.serialization.Codec.INT.fieldOf("seconds").forGetter(SampleSection::interval)
 		).apply(i, SampleSection::new));
-		assertThrows(ConfigSpecException.class, () -> ConfigContainer.Builder.create(handWritten, () -> SampleSection.DEFAULT)
+		ConfigSpecException thrown = assertThrows(ConfigSpecException.class, () -> ConfigContainer.Builder.create(handWritten, () -> SampleSection.DEFAULT)
 				.describedBy(SampleSection.class).build(dir.resolve("s.json")));
+		assertTrue(thrown.getMessage().contains("interval"));
+	}
+
+	@Test
+	public void describingTheWrongRecordIsRefused(@TempDir Path dir) {
+		assertThrows(ConfigSpecException.class, () -> ConfigContainer.Builder.create(ConfigSpec.of(SampleSection.class).codec(), () -> SampleSection.DEFAULT)
+				.describedBy(Sample.class).build(dir.resolve("wrong.json")));
 	}
 }

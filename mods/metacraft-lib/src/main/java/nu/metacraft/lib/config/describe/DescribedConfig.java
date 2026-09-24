@@ -30,6 +30,11 @@ public final class DescribedConfig<R extends Record> {
 		this.spec = spec;
 		this.codec = codec;
 		this.access = new Access<>(container, part, withPart);
+		// A reload or an update that happens before the screen is ever opened still records
+		// what the server was running, instead of losing it to the first change.
+		container.addChangeListener((old, now) -> {
+			if (startValue == null) startValue = part.apply(old);
+		});
 	}
 
 	public String id() { return id; }
@@ -79,6 +84,11 @@ public final class DescribedConfig<R extends Record> {
 		List<String> pending = new ArrayList<>();
 		collectPending(spec, start, get(), pending);
 		return pending;
+	}
+
+	/** Forgets the value the server started with; {@link ConfigRegistry#serverStopped()} calls this on every config. */
+	void clearStart() {
+		startValue = null;
 	}
 
 	private static void collectPending(ConfigSpec<?> spec, Record start, Record now, List<String> into) {

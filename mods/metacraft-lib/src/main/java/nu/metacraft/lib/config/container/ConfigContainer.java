@@ -142,6 +142,11 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 */
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		protected <C> void register(Path configPath, ConfigContainer<C> container, Function<C, T> part, BiFunction<C, T, C> withPart) {
+			T sample = defaultConfigInitializer.get();
+			if (!described.isInstance(sample)) {
+				throw new ConfigSpecException(described.getSimpleName() + " was given to describedBy(), but the config's own record is "
+						+ sample.getClass().getSimpleName());
+			}
 			ConfigSpec spec = ConfigSpec.of((Class) described);
 			if (!(codec instanceof DescribedCodec)) spec.checkWrittenBy(codec.codec());
 			String id = configPath.getFileName().toString().replaceFirst("\\.json$", "");

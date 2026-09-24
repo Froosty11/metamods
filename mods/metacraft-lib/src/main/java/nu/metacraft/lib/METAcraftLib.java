@@ -2,6 +2,7 @@ package nu.metacraft.lib;
 
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
+import nu.metacraft.lib.config.describe.ConfigRegistry;
 import nu.metacraft.lib.scheduler.METAcraftScheduleTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +22,7 @@ public class METAcraftLib implements ModInitializer {
 		Commands.init();
 		Recipes.init();
 		METAcraftScheduleTypes.init();
+		ConfigRegistry.init();
 	}
 
 	public static Identifier getID(String id) {
