@@ -4,6 +4,8 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.core.HolderLookup;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.impl.BasicConfigContainer;
+import nu.metacraft.lib.config.describe.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.function.*;
@@ -42,6 +44,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		protected boolean reloadsBeforeServer = false;
 		protected boolean reloadsAfterServer = false;
 		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
+		protected @Nullable Class<? extends Record> described;
 
 		public static <T> Builder<T> create(MapCodec<T> codec, Supplier<T> defaultConfigInitializer) {
 			return new Builder<>(codec, defaultConfigInitializer);
@@ -90,11 +93,22 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		}
 
 		/**
+		 * Lists this config in the config screen, described by the annotations on {@code type}, which
+		 * must be the config's own record. Its id is the file name without {@code .json}.
+		 */
+		public Builder<T> describedBy(Class<? extends Record> type) {
+			this.described = type;
+			return this;
+		}
+
+		/**
 		 * Builds a normal config container.
 		 * @return The config container.
 		 */
 		public ConfigContainer<T> build(Path configPath) {
-			return new BasicConfigContainer<>(codec.codec(), configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader);
+			ConfigContainer<T> container = new BasicConfigContainer<>(codec.codec(), configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader);
+			if (described != null) register(configPath, container, t -> t, (whole, part) -> part);
+			return container;
 		}
 
 		/**
@@ -102,11 +116,13 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * @return The config container.
 		 */
 		public ConfigContainer<T> build(Path configPath, Supplier<HolderLookup.Provider> lookupSupplier) {
-			return new BasicConfigContainer.WithLookup<>(
+			ConfigContainer<T> container = new BasicConfigContainer.WithLookup<>(
 					codec.codec(), configPath,
 					defaultConfigInitializerWithLookup != null ? defaultConfigInitializerWithLookup : l -> defaultConfigInitializer.get(),
 					reloadsBeforeServer, reloadsAfterServer, reloader, lookupSupplier
 			);
+			if (described != null) register(configPath, container, t -> t, (whole, part) -> part);
+			return container;
 		}
 
 		/**
@@ -115,6 +131,21 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 */
 		public ConfigContainer<T> build(Path configPath, HolderLookup.Provider lookup) {
 			return build(configPath, () -> lookup);
+		}
+
+		/**
+		 * Registers a described config backed by part of the container's value.
+		 * @param configPath The file the container writes to; its name without {@code .json} is the id.
+		 * @param container The container holding the whole value {@code C}.
+		 * @param part Reads this described record {@code T} out of the whole value.
+		 * @param withPart Rebuilds the whole value with a new described record.
+		 */
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		protected <C> void register(Path configPath, ConfigContainer<C> container, Function<C, T> part, BiFunction<C, T, C> withPart) {
+			ConfigSpec spec = ConfigSpec.of((Class) described);
+			if (!(codec instanceof DescribedCodec)) spec.checkWrittenBy(codec.codec());
+			String id = configPath.getFileName().toString().replaceFirst("\\.json$", "");
+			ConfigRegistry.register(new DescribedConfig(id, spec, codec.codec(), container, part, withPart));
 		}
 
 		/**
@@ -130,24 +161,20 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 
 		public class RegistryAwareBuilder<S> {
 
-			private static final ServerAware.Parser<? extends ConfigContainer<ServerAware.ConfigPair<?, Object>>, Object> NON_RELOADABLE = (config, server) ->
-					config.get().serverAwareValues().parse(server.registryAccess());
-			private static final ServerAware.Parser<? extends ConfigContainer<ServerAware.ConfigPair<?, Object>>, Object> RELOADABLE = (config, server) ->
-					config.get().serverAwareValues().parse(server.reloadableRegistries().lookup());
-
 			private final MapCodec<S> serverAwareCodec;
-			private ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S> parser;
+			private @Nullable ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S> parser;
 			private boolean refreshOnReload = false;
 			private Supplier<ObjectStorage<S>> defaultRegistryAwareInitializer;
 			private ReloadFunction<S> cacheReloader = ReloadFunction.getDefault();
 
 			public RegistryAwareBuilder(MapCodec<S> codec) {
 				this.serverAwareCodec = codec;
-				//Super hacky hack. I just like having them be constant, we never reference the typeset variables in the default parser anyway.
-				//If you feel like rewriting this, beware that I check if parser is the same object as NON_RELOADABLE further down to know if it should switch to RELOADABLE or not,
-				//so any alternate implementation will need to cover that as well.
-				//noinspection unchecked
-				this.parser = (ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S>) (Object) NON_RELOADABLE;
+			}
+
+			/** As {@link Builder#describedBy}; describes the static part of the config. */
+			public RegistryAwareBuilder<S> describedBy(Class<? extends Record> type) {
+				Builder.this.described = type;
+				return this;
 			}
 
 			/**
@@ -215,12 +242,13 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			public RegistryAwareBuilder<S> refreshOnReload() {
 				if (defaultRegistryAwareInitializer != null) throw new IllegalStateException("Please run refreshOnReload before setInitializer!");
 				refreshOnReload = true;
-				if ((Object) parser == NON_RELOADABLE) {
-					//Super hacky hack. I just like having them be constant, we never reference the typeset variables in the default parser anyway.
-					//noinspection unchecked
-					parser = (ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S>) (Object) RELOADABLE;
-				}
 				return this;
+			}
+
+			/** Parses the registry-aware values with the server's registries (reloadable ones when refreshing on reload). */
+			private ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S> defaultParser(boolean reloadable) {
+				return (config, server) -> config.get().serverAwareValues().parse(
+						reloadable ? server.reloadableRegistries().lookup() : server.registryAccess());
 			}
 
 			/**
@@ -229,17 +257,19 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			 */
 			public ServerAware<ConfigContainer<ServerAware.ConfigPair<T, S>>, S> build(Path configPath) {
 				if (defaultRegistryAwareInitializer == null) throw new IllegalStateException("Please set the initializer first");
-				return ServerAware.wrap(
-						new BasicConfigContainer<>(
-								ServerAware.ConfigPair.createCodec(codec, serverAwareCodec, refreshOnReload),
-								configPath, () -> new ServerAware.ConfigPair<>(
-										defaultConfigInitializer.get(), defaultRegistryAwareInitializer.get()
-								),
-								reloadsBeforeServer, reloadsAfterServer,
-								ServerAware.wrapReload(reloader)
+				var inner = new BasicConfigContainer<>(
+						ServerAware.ConfigPair.createCodec(codec, serverAwareCodec, refreshOnReload),
+						configPath, () -> new ServerAware.ConfigPair<>(
+								defaultConfigInitializer.get(), defaultRegistryAwareInitializer.get()
 						),
-						parser, cacheReloader, defaultRegistryAwareInitializer
+						reloadsBeforeServer, reloadsAfterServer,
+						ServerAware.wrapReload(reloader)
 				);
+				if (described != null) {
+					register(configPath, inner, ServerAware.ConfigPair::staticValues,
+							(pair, part) -> new ServerAware.ConfigPair<>(part, pair.serverAwareValues()));
+				}
+				return ServerAware.wrap(inner, parser != null ? parser : defaultParser(refreshOnReload), cacheReloader, defaultRegistryAwareInitializer);
 			}
 		}
 	}
