@@ -78,6 +78,22 @@ public final class ConfigSpec<R extends Record> {
 		return codec;
 	}
 
+	/**
+	 * For a config with a hand-written codec: every described key must appear when {@code DEFAULT} is
+	 * written, or the description and the file have drifted apart.
+	 */
+	public void checkWrittenBy(com.mojang.serialization.Codec<R> written) {
+		var json = written.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, defaults).getOrThrow(
+				message -> new ConfigSpecException(name + ": DEFAULT cannot be written: " + message));
+		if (!json.isJsonObject()) throw new ConfigSpecException(name + ": the codec does not write an object");
+		for (OptionSpec option : options) {
+			boolean absentOptional = option.optional() && ((Optional<?>) option.read(defaults)).isEmpty();
+			if (!absentOptional && !json.getAsJsonObject().has(option.key())) {
+				throw new ConfigSpecException(option.name() + ": the codec writes no \"" + option.key() + "\"");
+			}
+		}
+	}
+
 	/** The record's own rule, and its sections' rules; empty when the value is fine. */
 	public Optional<String> validate(R value) {
 		for (OptionSpec option : options) {
