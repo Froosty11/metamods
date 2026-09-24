@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-@Config(name = "Faster Minecarts", description = "Minecarts that go faster, on the rails and blocks the server lists.")
+@Config(name = "Faster Minecarts", description = "Faster minecarts, with speed boosts from blocks the server lists.")
 public record FasterMinecartsConfig(
 		@Option(description = "Every minecart is fast, not only upgraded ones.") boolean globalFasterMinecarts,
 		@Option(description = "Top speed of a fast minecart, blocks per second.", min = 0) double maxMinecartSpeed,
