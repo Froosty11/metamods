@@ -30,7 +30,7 @@ public class TestBundleConfig {
 
 	@Test
 	public void theHandWrittenCodecWritesEveryDescribedKey() {
-		assertDoesNotThrow(() -> ConfigSpec.of(BundleConfig.class).checkWrittenBy(BundleConfig.CODEC.codec()));
+		assertDoesNotThrow(() -> ConfigSpec.of(BundleConfig.class).checkWrittenBy(BundleConfig.CODEC));
 	}
 
 	@Test

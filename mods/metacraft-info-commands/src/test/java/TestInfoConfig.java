@@ -30,7 +30,7 @@ public class TestInfoConfig {
 
 	@Test
 	public void theHandWrittenCodecWritesEveryDescribedKey() {
-		assertDoesNotThrow(() -> ConfigSpec.of(InfoConfig.class).checkWrittenBy(InfoConfig.CODEC.codec()));
+		assertDoesNotThrow(() -> ConfigSpec.of(InfoConfig.class).checkWrittenBy(InfoConfig.CODEC));
 	}
 
 	@Test

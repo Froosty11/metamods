@@ -29,7 +29,7 @@ public class TestRepairFixConfig {
 
 	@Test
 	public void theHandWrittenCodecWritesEveryDescribedKey() {
-		assertDoesNotThrow(() -> ConfigSpec.of(RepairFixConfig.class).checkWrittenBy(RepairFixConfig.CODEC.codec()));
+		assertDoesNotThrow(() -> ConfigSpec.of(RepairFixConfig.class).checkWrittenBy(RepairFixConfig.CODEC));
 	}
 
 	@Test

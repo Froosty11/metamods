@@ -29,7 +29,7 @@ public class TestRevivalConfig {
 
 	@Test
 	public void theHandWrittenCodecWritesEveryDescribedKey() {
-		assertDoesNotThrow(() -> ConfigSpec.of(RevivalConfig.class).checkWrittenBy(RevivalConfig.CODEC.codec()));
+		assertDoesNotThrow(() -> ConfigSpec.of(RevivalConfig.class).checkWrittenBy(RevivalConfig.CODEC));
 	}
 
 	@Test
