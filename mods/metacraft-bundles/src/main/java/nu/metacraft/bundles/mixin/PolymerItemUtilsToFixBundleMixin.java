@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
-import nu.metacraft.bundles.BundleConfig;
+import nu.metacraft.bundles.METAcraftBundles;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,7 +22,7 @@ public class PolymerItemUtilsToFixBundleMixin {
 	private static void isPolymerServerItem(
 			ItemInstance itemInstance, PacketContext context, CallbackInfoReturnable<Boolean> cir
 	) {
-		if (itemInstance.get(DataComponents.BUNDLE_CONTENTS) != null && BundleConfig.getInstance().bundleRendering()) {
+		if (itemInstance.get(DataComponents.BUNDLE_CONTENTS) != null && METAcraftBundles.bundleRenderingAtStartup()) {
 			cir.setReturnValue(true);
 		}
 	}

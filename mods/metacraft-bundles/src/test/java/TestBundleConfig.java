@@ -3,6 +3,7 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import nu.metacraft.bundles.BundleConfig;
+import nu.metacraft.bundles.METAcraftBundles;
 import nu.metacraft.lib.config.describe.ConfigSpec;
 import nu.metacraft.lib.config.describe.OptionSpec;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,6 +36,18 @@ public class TestBundleConfig {
 	@Test
 	public void bundleRenderingNeedsARestart() {
 		assertTrue(ConfigSpec.of(BundleConfig.class).option("enable_bundle_rendering").orElseThrow().restart());
+	}
+
+	/**
+	 * {@code onInitialize} reads {@code bundleRendering} once, to register the mod's resource pack
+	 * assets - a {@code /config} save can't retroactively add or remove that registration, so every
+	 * reader (including this accessor) must agree with the value read at startup, not a live one. The
+	 * JUnit environment doesn't dispatch Fabric entrypoints, so this calls {@code onInitialize} itself.
+	 */
+	@Test
+	public void bundleRenderingAtStartupMatchesTheConfigReadAtInit() {
+		new METAcraftBundles().onInitialize();
+		assertEquals(BundleConfig.getInstance().bundleRendering(), METAcraftBundles.bundleRenderingAtStartup());
 	}
 
 	@Test

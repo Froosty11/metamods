@@ -13,7 +13,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemLore;
 import nu.metacraft.bundles.BundleComponents;
-import nu.metacraft.bundles.BundleConfig;
 import nu.metacraft.bundles.METAcraftBundles;
 import nu.metacraft.bundles.extensions.BundlesComponentExtensions;
 import org.apache.commons.lang3.math.Fraction;
@@ -130,7 +129,7 @@ public class BundleHelper {
 
 	public static void init() {
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register((serverStack, clientStack, ctx)-> {
-			if (serverStack.has(DataComponents.BUNDLE_CONTENTS) && BundleConfig.getInstance().bundleRendering()) {
+			if (serverStack.has(DataComponents.BUNDLE_CONTENTS) && METAcraftBundles.bundleRenderingAtStartup()) {
 				var text = getOccupancyText(serverStack);
 				if (text == null) return clientStack;
 				var lore = clientStack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
