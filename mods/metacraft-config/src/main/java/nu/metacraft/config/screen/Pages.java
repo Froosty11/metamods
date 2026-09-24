@@ -37,6 +37,7 @@ public final class Pages {
 			buttons.add(button(Component.literal(source.name() + marks), Optional.of(Component.literal(source.description())),
 					OPEN, target(source.id(), List.of())));
 		}
+		if (buttons.isEmpty()) buttons.add(closeButton());   // MultiActionDialog's actions must not be empty
 		return new MultiActionDialog(common(Component.literal("Server config"), body, List.of()), buttons,
 				Optional.of(closeButton()), 2);
 	}

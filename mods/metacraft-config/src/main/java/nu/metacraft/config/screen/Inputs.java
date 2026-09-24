@@ -3,7 +3,6 @@ package nu.metacraft.config.screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.input.*;
 import nu.metacraft.config.source.Field;
-import nu.metacraft.lib.config.describe.OptionKind;
 
 import java.util.Optional;
 
@@ -24,7 +23,8 @@ public final class Inputs {
 			case WHOLE, DECIMAL -> field.slider()
 					? new NumberRangeInput(WIDTH, label, "options.generic_value",
 							new NumberRangeInput.RangeInfo((float) field.min(), (float) field.max(),
-									Optional.of(parse(value, (float) field.min())), Optional.of((float) field.step())))
+									Optional.of(clamp(parse(value, (float) field.min()), (float) field.min(), (float) field.max())),
+									Optional.of((float) field.step())))
 					: text(label, value, 64);
 			case CHOICE -> new SingleOptionInput(WIDTH, field.choices().stream()
 					.map(choice -> new SingleOptionInput.Entry(choice, Optional.empty(), choice.equals(value))).toList(), label, true);
@@ -44,5 +44,9 @@ public final class Inputs {
 		} catch (NumberFormatException e) {
 			return fallback;
 		}
+	}
+
+	private static float clamp(float value, float min, float max) {
+		return Math.max(min, Math.min(max, value));
 	}
 }

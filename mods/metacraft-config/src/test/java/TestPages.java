@@ -1,5 +1,10 @@
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.JsonOps;
 import fixtures.Demo;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.action.CustomAll;
 import net.minecraft.server.dialog.input.*;
@@ -29,6 +34,12 @@ public class TestPages {
 		ConfigContainer.Builder.create(ConfigSpec.of(Demo.class).codec(), () -> Demo.DEFAULT)
 				.describedBy(Demo.class).build(dir.resolve("demo.json"));
 		return Sources.find("demo").orElseThrow();
+	}
+
+	private static void assertEncodes(Dialog dialog) {
+		HolderLookup.Provider lookup = VanillaRegistries.createWorldLookup();
+		DataResult<?> result = Dialog.DIRECT_CODEC.encodeStart(RegistryOps.create(JsonOps.INSTANCE, lookup), dialog);
+		assertTrue(result.error().isEmpty(), () -> result.error().get().message());
 	}
 
 	@Test
@@ -77,5 +88,28 @@ public class TestPages {
 		ConfigSource source = demo(dir);
 		MultiActionDialog main = (MultiActionDialog) Pages.main(List.of(source));
 		assertEquals("Demo", main.actions().getFirst().button().label().getString());
+	}
+
+	@Test
+	public void emptyMainPageStillHasAButtonAndEncodes() {
+		MultiActionDialog main = (MultiActionDialog) Pages.main(List.of());
+		assertFalse(main.actions().isEmpty());
+		assertEncodes(main);
+	}
+
+	@Test
+	public void sliderClampsOutOfRangeInitial() {
+		Field field = new Field("stitches", "Stitches.", OptionKind.WHOLE, "999", 1, 16, 1, true, List.of(), false, true);
+		NumberRangeInput slider = assertInstanceOf(NumberRangeInput.class, Inputs.forField(field, "999"));
+		assertEquals(Optional.of(16f), slider.rangeInfo().initial());
+
+		Field belowRange = new Field("stitches", "Stitches.", OptionKind.WHOLE, "-5", 1, 16, 1, true, List.of(), false, true);
+		NumberRangeInput lowSlider = assertInstanceOf(NumberRangeInput.class, Inputs.forField(belowRange, "-5"));
+		assertEquals(Optional.of(1f), lowSlider.rangeInfo().initial());
+	}
+
+	@Test
+	public void configPageEncodesWithVanillaCodec(@TempDir Path dir) {
+		assertEncodes(Pages.config(demo(dir), List.of(), Optional.empty(), Map.of()));
 	}
 }
