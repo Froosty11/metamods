@@ -6,7 +6,7 @@ settings in game instead of editing JSON over SFTP. Requires permission `metacra
 
 The main page has a button per config, marked when it has a load error or changes waiting for a
 restart, plus a line listing what's pending. A config's page has one input per option — label is its
-description, with the range appended for numbers — and Save, Cancel, Back, and Reset to defaults
+description, with the range appended for numbers — and Save, Close, Back, and Reset to defaults
 (which asks first). Nested config records get their own page, opened by a button.
 
 Saving decodes the whole page through the config's codec, the same validation used when loading from
@@ -15,10 +15,13 @@ made against a config that changed since the page was opened — someone else sa
 refused, and the page reopens with the current values. Options marked `(restart)` are saved right away
 but only take effect after the server restarts; they're what shows up in the pending-restart list.
 
-If a config's file fails to load, the server keeps running on its last good values (or a partially read
-file, as far as it got) instead of overwriting the file with defaults. The error shows on that config's
-page and is sent to operators when they join. The file itself is left alone until someone saves from
-`/config`.
+If a config's file fails to load, the server keeps running on its last good values instead of
+overwriting the file with defaults. A described config's file is read key by key: a bad value (out of
+range, an unknown choice, the wrong type) is reported and replaced by its default, and every other key
+keeps the file's value, so the config's page shows what the file says apart from the bad keys. The
+error shows on that config's page and is sent to operators when they join. The file itself is left
+alone until someone saves from `/config`, which writes the page's values, defaults included, over it.
+An empty or whitespace-only file is a load error too; it is no longer reset to defaults.
 
 ## Joining a config
 
@@ -43,7 +46,9 @@ with `ConfigSpec.of(X.class).codec()`, and register with `.describedBy(X.class)`
 static part). An undescribed container behaves as before and isn't listed in `/config`.
 
 Numbers, `boolean`, `String`/`Identifier`, `StringRepresentable` enums, `Optional<T>` of those, and
-`List<String>`/`List<Identifier>` are supported; anything else shows up read-only. A number is a
+`List<String>`/`List<Identifier>` are supported. With a generated codec (`ConfigSpec.of(X.class).codec()`)
+any other type is refused at startup; only a config with a hand-written codec can have such an option,
+and it shows up read-only. A number is a
 **slider** only when it's not optional, both `min` and `max` are set, and the range has at most 50 steps
 (`@Option(step = …)`, default 1 for whole numbers) — everything else, including every `double` without a
 `step`, is a typed field parsed on save. See `mods/faster-minecarts` for a worked example, and
