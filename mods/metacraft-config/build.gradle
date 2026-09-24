@@ -1,2 +1,20 @@
 // metacraft-config — /config: every described config the server runs, edited in a vanilla dialog.
 version = project.metacraft_config_version
+
+// Client screenshot test: a vanilla client opens /config and photographs it. Source set src/gametest,
+// task runClientGameTest (needs a display).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "metacraft-config-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+dependencies {
+	// The screen's first real config.
+	gametestRuntimeOnly(project(path: ":mods:faster-minecarts"))
+}
