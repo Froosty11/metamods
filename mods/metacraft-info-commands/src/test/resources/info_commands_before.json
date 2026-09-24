@@ -1,0 +1,26 @@
+{
+	"commands": {
+		"example2": {
+			"text": "And it supports JSON text! ",
+			"extra": [{"text": "Cool right?", "obfuscated": true}],
+			"color": "#CCFFFF",
+			"bold": true,
+			"italic": true
+		},
+		"example1": {
+			"message": "Test",
+			"subCommands": {
+				"example3": "Look",
+				"example4": {
+					"message": {"text": "It's ", "extra": ["recursive."]},
+					"subCommands": {"example5": "Without limits"}
+				}
+			}
+		}
+	},
+	"resendCommandTreeOnReload": true,
+	"enableResendCommandTreeCommand": false,
+	"infoMessageIntervalTicks": 18000,
+	"infoMessagePrefix": {"text": " 🛈 ", "color": "aqua"},
+	"infoMessages": [{"id": "example", "message": "Did you know? You can use /example1 to see information!"}]
+}
