@@ -22,7 +22,7 @@ public class TestDescribedSource {
 	}
 
 	private static ConfigContainer<Demo> demo(Path dir) {
-		return ConfigContainer.Builder.create(ConfigSpec.of(Demo.class).codec(), () -> Demo.DEFAULT)
+		return ConfigContainer.Builder.create(Demo.CODEC, () -> Demo.DEFAULT)
 				.describedBy(Demo.class).build(dir.resolve("demo.json"));
 	}
 

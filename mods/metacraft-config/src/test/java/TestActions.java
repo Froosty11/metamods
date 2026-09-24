@@ -6,7 +6,6 @@ import nu.metacraft.config.source.ConfigSource;
 import nu.metacraft.config.source.Sources;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.describe.ConfigRegistry;
-import nu.metacraft.lib.config.describe.ConfigSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +31,7 @@ public class TestActions {
 	}
 
 	private static ConfigSource demo(Path dir) {
-		ConfigContainer.Builder.create(ConfigSpec.of(Demo.class).codec(), () -> Demo.DEFAULT)
+		ConfigContainer.Builder.create(Demo.CODEC, () -> Demo.DEFAULT)
 				.describedBy(Demo.class).build(dir.resolve("demo.json"));
 		return Sources.find("demo").orElseThrow();
 	}

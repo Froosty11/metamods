@@ -34,7 +34,10 @@ public final class ConfigScreenshots implements FabricClientGameTest {
 				shoot(ctx, server, conn, "execute as Tester run config faster_minecarts", "config_faster_minecarts");
 				server.runOnServer(mc -> {
 					try {
-						Files.writeString(FabricLoader.getInstance().getConfigDir().resolve("faster_minecarts.json"), "{ \"max_minecart_speed\": -5 }");
+						// Every key the codec needs, one of them out of range.
+						Files.writeString(FabricLoader.getInstance().getConfigDir().resolve("faster_minecarts.json"), """
+								{"global_faster_minecarts": false, "max_minecart_speed": -5, "max_minecart_speed_underwater": 45,
+								"damage_factor": 43.2, "experimental_minecart_mode": "experimental"}""");
 					} catch (Exception e) {
 						throw new AssertionError(e);
 					}

@@ -6,7 +6,6 @@ import com.mojang.serialization.RecordBuilder;
 import fixtures.*;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.describe.ConfigRegistry;
-import nu.metacraft.lib.config.describe.ConfigSpec;
 import nu.metacraft.lib.config.extensions.Modifiable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TestContainerLoading {
 
 	private static ConfigContainer<SampleSection> container(Path file) {
-		return ConfigContainer.Builder.create(ConfigSpec.of(SampleSection.class).codec(), () -> SampleSection.DEFAULT).build(file);
+		return ConfigContainer.Builder.create(SampleSection.CODEC, () -> SampleSection.DEFAULT).build(file);
 	}
 
 	@Test
@@ -108,7 +107,7 @@ public class TestContainerLoading {
 		container.get();
 		List<Integer> seen = new ArrayList<>();
 		container.addChangeListener((old, current) -> seen.add(current.interval()));
-		Files.writeString(file, "{\"interval\": 7}");
+		Files.writeString(file, "{\"url\": \"\", \"interval\": 7}");
 		container.reload();
 		assertEquals(List.of(7), seen);
 	}
@@ -186,24 +185,33 @@ public class TestContainerLoading {
 		assertTrue(Files.readString(file).contains("42"));
 	}
 
+	/**
+	 * RecordCodecBuilder gives no partial value when one field fails, so a described config with one
+	 * bad key reads nothing from the file: defaults on first load, the last good value on a reload.
+	 */
 	@Test
-	public void aDescribedConfigWithOneBadKeyKeepsTheRestAndTheFile(@TempDir Path dir) throws Exception {
+	public void aDescribedConfigWithOneBadKeyKeepsTheFileAndReadsNoneOfIt(@TempDir Path dir) throws Exception {
 		Path file = dir.resolve("d.json");
-		String content = "{\"url\": \"db://kept\", \"interval\": 999}";
+		String content = "{\"url\": \"db://ignored\", \"interval\": 999}";
 		Files.writeString(file, content);
 		ConfigRegistry.clearForTests();
-		var container = ConfigContainer.Builder.create(ConfigSpec.of(SampleSection.class).codec(), () -> SampleSection.DEFAULT)
+		var container = ConfigContainer.Builder.create(SampleSection.CODEC, () -> SampleSection.DEFAULT)
 				.describedBy(SampleSection.class).build(file);
 
-		SampleSection read = container.get();
-
-		assertEquals("db://kept", read.url());
-		assertEquals(SampleSection.DEFAULT.interval(), read.interval());
-		assertTrue(container.loadError().orElseThrow().startsWith("interval: 999 is not in"), container.loadError().get());
+		assertEquals(SampleSection.DEFAULT, container.get());
+		assertEquals("Value 999 outside of range [1:60]", container.loadError().orElseThrow());
 		assertEquals(content, Files.readString(file));
 		try (var files = Files.list(dir)) {
 			assertEquals(1, files.count());
 		}
+
+		Files.writeString(file, "{\"url\": \"db://good\", \"interval\": 20}");
+		container.reload();
+		assertEquals(new SampleSection("db://good", 20), container.get());
+		Files.writeString(file, content);
+		container.reload();
+		assertEquals(new SampleSection("db://good", 20), container.get());   // the last good value
+		assertTrue(container.loadError().isPresent());
 	}
 
 	@Test
@@ -269,7 +277,7 @@ public class TestContainerLoading {
 	}
 
 	/**
-	 * A record with a hand-written codec that, unlike the generated {@code @Config} codecs, keeps
+	 * A record with a hand-written codec that, unlike RecordCodecBuilder, keeps
 	 * a partial value (the fields that did parse) alongside the error, exercising the
 	 * {@code resultOrPartial} path in {@code BasicConfigContainer}.
 	 */

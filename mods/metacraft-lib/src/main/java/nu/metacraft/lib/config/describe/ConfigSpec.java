@@ -1,5 +1,7 @@
 package nu.metacraft.lib.config.describe;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
@@ -23,7 +25,6 @@ public final class ConfigSpec<R extends Record> {
 	private final R defaults;
 	private final @Nullable Method validator;
 	private final Constructor<R> constructor;
-	private @Nullable DescribedCodec<R> codec;
 
 	@SuppressWarnings("unchecked")
 	public static <R extends Record> ConfigSpec<R> of(Class<R> type) {
@@ -72,25 +73,75 @@ public final class ConfigSpec<R extends Record> {
 		return options.stream().filter(o -> o.key().equals(key)).findFirst();
 	}
 
-	/** The file format generated from the options. Throws if a component has a type it cannot write. */
-	public DescribedCodec<R> codec() {
-		if (codec == null) codec = new DescribedCodec<>(this);
-		return codec;
+	/**
+	 * Every described key must be one the config's codec reads and writes, or the description and the
+	 * file have drifted apart. Run for every described config at registration. The codec's declared
+	 * keys are used, so a key left out when it holds its default still counts; a custom codec that
+	 * declares no keys is checked by writing {@code DEFAULT} instead. Sections have codecs of their
+	 * own, so each one written for {@code DEFAULT} must be an object holding its described keys.
+	 */
+	public void checkWrittenBy(com.mojang.serialization.MapCodec<R> written) {
+		var ops = com.mojang.serialization.JsonOps.INSTANCE;
+		Set<String> declared = new HashSet<>();
+		written.keys(ops).forEach(key -> declared.add(key.getAsString()));
+		JsonObject json = encodeDefaults(written.codec());
+		if (declared.isEmpty()) {
+			checkKeys(this, defaults, json, "");
+		} else {
+			for (OptionSpec option : options) {
+				if (!declared.contains(option.key())) {
+					throw new ConfigSpecException(option.name() + ": the codec writes no \"" + option.key() + "\"");
+				}
+			}
+		}
+		checkSections(this, defaults, json, "");
 	}
 
-	/**
-	 * For a config with a hand-written codec: every described key must appear when {@code DEFAULT} is
-	 * written, or the description and the file have drifted apart.
-	 */
-	public void checkWrittenBy(com.mojang.serialization.Codec<R> written) {
+	private JsonObject encodeDefaults(com.mojang.serialization.Codec<R> written) {
 		var json = written.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, defaults).getOrThrow(
 				message -> new ConfigSpecException(name + ": DEFAULT cannot be written: " + message));
 		if (!json.isJsonObject()) throw new ConfigSpecException(name + ": the codec does not write an object");
-		for (OptionSpec option : options) {
-			boolean absentOptional = option.optional() && ((Optional<?>) option.read(defaults)).isEmpty();
-			if (!absentOptional && !json.getAsJsonObject().has(option.key())) {
-				throw new ConfigSpecException(option.name() + ": the codec writes no \"" + option.key() + "\"");
+		return json.getAsJsonObject();
+	}
+
+	/** Every option of {@code spec} is in {@code json}, apart from an empty {@code Optional}. */
+	private static void checkKeys(ConfigSpec<?> spec, Record value, JsonObject json, String path) {
+		for (OptionSpec option : spec.options) {
+			boolean absentOptional = option.optional() && ((Optional<?>) option.read(value)).isEmpty();
+			if (!absentOptional && !json.has(option.key())) {
+				throw new ConfigSpecException(option.name() + ": the codec writes no \"" + path + option.key() + "\"");
 			}
+		}
+	}
+
+	/**
+	 * Each section written into {@code json} is an object with its keys, and so on down. A key or a
+	 * section may be left out only while its value equals the one in its record's {@code DEFAULT}:
+	 * what {@code optionalFieldOf(key, default)} does.
+	 */
+	private static void checkSections(ConfigSpec<?> spec, Record value, JsonObject json, String path) {
+		for (OptionSpec option : spec.options) {
+			if (option.kind() != OptionKind.SECTION) continue;
+			String at = path + option.key();
+			JsonElement written = json.get(option.key());
+			Record section = (Record) option.read(value);
+			if (written == null) {
+				if (section.equals(option.section().defaults())) continue;
+				throw new ConfigSpecException(option.name() + ": the codec writes no \"" + at + "\"");
+			}
+			if (!written.isJsonObject()) {
+				throw new ConfigSpecException(option.name() + ": the codec does not write \"" + at + "\" as an object");
+			}
+			JsonObject object = written.getAsJsonObject();
+			for (OptionSpec inner : option.section().options) {
+				Object innerValue = inner.read(section);
+				boolean absentOptional = inner.optional() && ((Optional<?>) innerValue).isEmpty();
+				boolean atDefault = Objects.equals(innerValue, inner.read(option.section().defaults()));
+				if (!absentOptional && !atDefault && !object.has(inner.key())) {
+					throw new ConfigSpecException(inner.name() + ": the codec writes no \"" + at + "." + inner.key() + "\"");
+				}
+			}
+			checkSections(option.section(), section, object, at + ".");
 		}
 	}
 
