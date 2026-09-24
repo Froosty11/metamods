@@ -1,0 +1,8 @@
+{
+	"global_faster_minecarts": false,
+	"max_minecart_speed": 60.0,
+	"max_minecart_speed_underwater": 45.0,
+	"dangerous_minecart_speed": 0.4166666666666667,
+	"damage_factor": 43.2,
+	"experimental_minecart_mode": "experimental"
+}

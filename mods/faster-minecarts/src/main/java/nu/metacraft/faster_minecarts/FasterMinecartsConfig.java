@@ -20,6 +20,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
+import nu.metacraft.lib.config.describe.Config;
+import nu.metacraft.lib.config.describe.ConfigSpec;
+import nu.metacraft.lib.config.describe.Option;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -27,32 +30,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class FasterMinecartsConfig {
-
+@Config(name = "Faster Minecarts", description = "Minecarts that go faster, on the rails and blocks the server lists.")
+public record FasterMinecartsConfig(
+		@Option(description = "Every minecart is fast, not only upgraded ones.") boolean globalFasterMinecarts,
+		@Option(description = "Top speed of a fast minecart, blocks per second.", min = 0) double maxMinecartSpeed,
+		@Option(description = "Top speed under water, blocks per second.", min = 0) double maxMinecartSpeedUnderwater,
+		@Option(description = "Above this speed (blocks per tick) a minecart hurts what it hits; empty for never.", min = 0) Optional<Double> dangerousMinecartSpeed,
+		@Option(description = "Damage per block per tick above the dangerous speed.", min = 0) double damageFactor,
+		@Option(description = "Use vanilla's experimental minecart physics.", restart = true) ExperimentalMinecartMode experimentalMinecartMode
+) {
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(FasterMinecarts.NAMESPACE + ".json");
 
-	public static final MapCodec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.mapCodec(
-			instance -> instance.group(
-					Codec.BOOL.fieldOf("global_faster_minecarts").forGetter(c -> c.globalFasterMinecarts),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed").forGetter(c -> c.maxMinecartSpeed),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed_underwater").forGetter(c -> c.maxMinecartSpeedUnderwater),
-					Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("dangerous_minecart_speed").forGetter(c -> c.dangerousMinecartSpeed),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("damage_factor").forGetter(c -> c.damageFactor),
-					ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode").forGetter(c -> c.experimentalMinecartMode)
-			).apply(instance, FasterMinecartsConfig::new)
+	public static final FasterMinecartsConfig DEFAULT = new FasterMinecartsConfig(
+			false, 60, 45, Optional.of(30 / 3.6 / 20), 2.16 * 20, ExperimentalMinecartMode.EXPERIMENTAL
 	);
 
-	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, FasterMinecartsConfig::createDefault
-	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(configPath);
+	public static final MapCodec<FasterMinecartsConfig> CODEC = ConfigSpec.of(FasterMinecartsConfig.class).codec();
 
-	private static FasterMinecartsConfig createDefault() {
-		return new FasterMinecartsConfig(
-				false, 60, 45,
-				Optional.of(30 / 3.6 / 20), 2.16 * 20,
-				ExperimentalMinecartMode.EXPERIMENTAL
-		);
-	}
+	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
+			CODEC, () -> DEFAULT
+	).reloadAfterServer().makeRegistryAware(Loaded.CODEC).describedBy(FasterMinecartsConfig.class).setInitializer(Loaded::createDefault).build(configPath);
 
 	public static FasterMinecartsConfig getConfig() {
 		return CONTAINER.getContainer().get().staticValues();
@@ -60,55 +57,6 @@ public class FasterMinecartsConfig {
 
 	public static FasterMinecartsConfig.Loaded getConfig(MinecraftServer server) {
 		return CONTAINER.get(server);
-	}
-
-	private final boolean globalFasterMinecarts;
-
-	private final double maxMinecartSpeed;
-
-	private final double maxMinecartSpeedUnderwater;
-
-	private final Optional<Double> dangerousMinecartSpeed;
-
-	private final double damageFactor;
-
-	private final ExperimentalMinecartMode experimentalMinecartMode;
-
-	public FasterMinecartsConfig(
-			boolean globalFasterMinecarts, double maxMinecartSpeed,
-			double maxMinecartSpeedUnderwater, Optional<Double> dangerousMinecartSpeed,
-			double damageFactor, ExperimentalMinecartMode experimentalMinecartMode
-	) {
-		this.globalFasterMinecarts = globalFasterMinecarts;
-		this.maxMinecartSpeed = maxMinecartSpeed;
-		this.maxMinecartSpeedUnderwater = maxMinecartSpeedUnderwater;
-		this.dangerousMinecartSpeed = dangerousMinecartSpeed;
-		this.damageFactor = damageFactor;
-		this.experimentalMinecartMode = experimentalMinecartMode;
-	}
-
-	public boolean globalFasterMinecarts() {
-		return globalFasterMinecarts;
-	}
-
-	public double maxMinecartSpeed() {
-		return maxMinecartSpeed;
-	}
-
-	public double maxMinecartSpeedUnderwater() {
-		return maxMinecartSpeedUnderwater;
-	}
-
-	public ExperimentalMinecartMode experimentalMinecartMode() {
-		return experimentalMinecartMode;
-	}
-
-	public Optional<Double> dangerousMinecartSpeed() {
-		return dangerousMinecartSpeed;
-	}
-
-	public double damageFactor() {
-		return damageFactor;
 	}
 
 	public record MinecartModifier(EntityPredicate minecartPredicate, Optional<Double> topSpeedFactor, Optional<Double> poweredRailAccelerationFactor) {
