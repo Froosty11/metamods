@@ -18,8 +18,21 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 	 * Modifies the config
 	 * @param modifier A function that modifies the config. If it returns true, the change will be saved, otherwise it will not.
 	 * @throws IllegalStateException If config is not modifiable.
+	 * @deprecated Needs a mutable config and applies later; use {@link #update}.
 	 */
+	@Deprecated
 	void modify(Predicate<T> modifier);
+
+	/** Replaces the config with {@code newConfig}, saves, and notifies listeners if it changed. */
+	void replace(T newConfig);
+
+	/** Replaces the config with {@code change} applied to it, saves, and notifies listeners if it changed. */
+	default void update(UnaryOperator<T> change) {
+		replace(change.apply(get()));
+	}
+
+	/** Called with the old and new value after an update, or a reload that changed the value. */
+	void addChangeListener(BiConsumer<T, T> listener);
 
 	class Builder<T> {
 

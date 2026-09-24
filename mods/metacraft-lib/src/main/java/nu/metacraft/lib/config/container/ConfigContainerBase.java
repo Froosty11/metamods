@@ -1,5 +1,6 @@
 package nu.metacraft.lib.config.container;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface ConfigContainerBase<T> {
@@ -27,5 +28,10 @@ public interface ConfigContainerBase<T> {
 
 
 	void addReloadHandler(Consumer<ReloadCause> handler);
+
+	/** Why the file could not be read, while the last good value (or the default) is in use. */
+	default Optional<String> loadError() {
+		return Optional.empty();
+	}
 
 }

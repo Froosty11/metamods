@@ -2,11 +2,13 @@ package nu.metacraft.lib.config;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import nu.metacraft.lib.METAcraftLib;
@@ -47,6 +49,28 @@ public class JsonHelper {
 			METAcraftLib.LOGGER.error(e);
 		}
 		return Optional.empty();
+	}
+
+	/**
+	 * The file read with {@code codec}: empty when there is no file, an error result (with the
+	 * message) when it exists but does not parse. A partial result counts as an error.
+	 */
+	public static <T> Optional<DataResult<T>> read(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
+		File file = configPath.toFile();
+		if (!file.exists()) return Optional.empty();
+		try (var reader = new BufferedReader(new FileReader(file))) {
+			JsonElement element = JsonParser.parseReader(reader);
+			DataResult<T> result = codec.parse(opsFixer.apply(JsonOps.INSTANCE), element);
+			if (result.error().isPresent()) {
+				String message = result.error().get().message();
+				return Optional.of(DataResult.error(() -> message));
+			}
+			return Optional.of(result);
+		} catch (JsonParseException e) {
+			return Optional.of(DataResult.error(() -> "not valid JSON: " + e.getMessage()));
+		} catch (IOException e) {
+			return Optional.of(DataResult.error(() -> "cannot read the file: " + e.getMessage()));
+		}
 	}
 
 	public static <T> void save(Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
