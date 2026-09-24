@@ -28,14 +28,21 @@ public final class Inputs {
 					: text(label, value, 64);
 			case CHOICE -> new SingleOptionInput(WIDTH, field.choices().stream()
 					.map(choice -> new SingleOptionInput.Entry(choice, Optional.empty(), choice.equals(value))).toList(), label, true);
-			case TEXT_LIST, IDENTIFIER_LIST -> new TextInput(LIST_WIDTH, label, true, value, 8192,
+			case TEXT_LIST, IDENTIFIER_LIST -> new TextInput(LIST_WIDTH, label, true, truncate(value, 8192), 8192,
 					Optional.of(new TextInput.MultilineOptions(Optional.of(8), Optional.empty())));
 			default -> text(label, value, 1024);
 		};
 	}
 
 	private static TextInput text(Component label, String value, int maxLength) {
-		return new TextInput(WIDTH, label, true, value, maxLength, Optional.empty());
+		return new TextInput(WIDTH, label, true, truncate(value, maxLength), maxLength, Optional.empty());
+	}
+
+	// A refused save, or a value edited outside the screen, can be longer than the box that
+	// shows it. The vanilla codec rejects an initial text longer than maxLength even on encode,
+	// which would fail to send the dialog packet at all; truncate instead of failing to open.
+	private static String truncate(String value, int maxLength) {
+		return value.length() > maxLength ? value.substring(0, maxLength) : value;
 	}
 
 	private static float parse(String value, float fallback) {

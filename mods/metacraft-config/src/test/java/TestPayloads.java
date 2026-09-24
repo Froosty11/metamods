@@ -45,6 +45,16 @@ public class TestPayloads {
 	}
 
 	@Test
+	public void nonFiniteNumbersAreNeverParsedAsAValidNumber() {
+		CompoundTag tag = new CompoundTag();
+		tag.putFloat("o1", Float.NaN);           // count: WHOLE
+		tag.putDouble("o2", Double.POSITIVE_INFINITY);   // share: DECIMAL
+		Map<String, String> values = Payloads.values(PAGE, tag);
+		assertThrows(NumberFormatException.class, () -> Long.parseLong(values.get("count")));
+		assertTrue(Double.isInfinite(Double.parseDouble(values.get("share"))));
+	}
+
+	@Test
 	public void readsThePath() {
 		CompoundTag tag = new CompoundTag();
 		tag.putString("page", "designs/store");

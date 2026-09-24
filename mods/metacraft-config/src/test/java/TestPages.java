@@ -112,4 +112,9 @@ public class TestPages {
 	public void configPageEncodesWithVanillaCodec(@TempDir Path dir) {
 		assertEncodes(Pages.config(demo(dir), List.of(), Optional.empty(), Map.of()));
 	}
+
+	@Test
+	public void overlongTypedValueIsTruncatedSoThePageStillEncodes(@TempDir Path dir) {
+		assertEncodes(Pages.config(demo(dir), List.of(), Optional.empty(), Map.of("speed", "x".repeat(5000))));
+	}
 }

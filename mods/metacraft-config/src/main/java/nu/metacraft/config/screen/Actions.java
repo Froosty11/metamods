@@ -7,6 +7,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.config.source.*;
 import nu.metacraft.lib.custom_message.CustomMessageHandler;
@@ -87,7 +88,7 @@ public final class Actions {
 		withSource(player, payload.getStringOr("source", ""), source -> {
 			List<String> path = Payloads.path(payload);
 			if (!payload.getBooleanOr("confirm", false)) {
-				player.openDialog(Holder.direct(Pages.confirmReset(source, path)));
+				player.openDialog(Holder.direct(resetConfirmDialog(source, path)));
 				return;
 			}
 			EditOutcome outcome = source.reset(path, payload.getIntOr("hash", 0));
@@ -101,10 +102,28 @@ public final class Actions {
 	}
 
 	private static void show(ServerPlayer player, ConfigSource source, List<String> path, Optional<Component> message, Map<String, String> typed) {
+		player.openDialog(Holder.direct(configDialog(source, path, message, typed)));
+	}
+
+	/**
+	 * {@link Pages#config}, falling back to the main page for a path the source does not have — a
+	 * modified client can send any string as the page. Exposed (not called through a
+	 * {@link ServerPlayer}) so a unit test can reach the guard directly.
+	 */
+	public static Dialog configDialog(ConfigSource source, List<String> path, Optional<Component> message, Map<String, String> typed) {
 		try {
-			player.openDialog(Holder.direct(Pages.config(source, path, message, typed)));
+			return Pages.config(source, path, message, typed);
 		} catch (IllegalArgumentException e) {
-			openMain(player);
+			return Pages.main(Sources.all());
+		}
+	}
+
+	/** {@link Pages#confirmReset}, with the same fallback as {@link #configDialog}. */
+	public static Dialog resetConfirmDialog(ConfigSource source, List<String> path) {
+		try {
+			return Pages.confirmReset(source, path);
+		} catch (IllegalArgumentException e) {
+			return Pages.main(Sources.all());
 		}
 	}
 
