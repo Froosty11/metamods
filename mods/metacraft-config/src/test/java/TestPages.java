@@ -3,10 +3,12 @@ import com.mojang.serialization.JsonOps;
 import fixtures.Demo;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.registries.VanillaRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.action.CustomAll;
+import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.dialog.input.*;
 import nu.metacraft.config.screen.*;
 import nu.metacraft.config.source.*;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -55,6 +58,37 @@ public class TestPages {
 		TextInput speed = assertInstanceOf(TextInput.class, inputs.get(2).control());
 		assertEquals("2.5", speed.initial());
 		assertInstanceOf(TextInput.class, inputs.get(3).control());   // optional: typed, blank = none
+	}
+
+	@Test
+	public void aFileWithOneBadKeyShowsItsOtherValuesAndTheError(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("demo.json");
+		String content = "{\"stitches\": 40, \"speed\": 9}";
+		Files.writeString(file, content);
+		MultiActionDialog page = (MultiActionDialog) Pages.config(demo(dir), List.of(), Optional.empty(), Map.of());
+		assertEquals("9", ((TextInput) page.common().inputs().get(2).control()).initial());   // the file's value, not the default
+		NumberRangeInput stitches = (NumberRangeInput) page.common().inputs().get(1).control();
+		assertEquals(Optional.of(6f), stitches.rangeInfo().initial());   // the bad key is at its default
+		String body = page.common().body().stream().map(b -> ((PlainMessage) b).contents().getString()).reduce("", String::concat);
+		assertTrue(body.contains("stitches: 40 is not in (1 – 16)"), body);
+		assertTrue(body.contains("left at its default"), body);
+		assertEquals(content, Files.readString(file));
+	}
+
+	@Test
+	public void aValueTooLongForItsInputIsReadOnlyAndNotSent(@TempDir Path dir) throws Exception {
+		String name = "n".repeat(2000);
+		Files.writeString(dir.resolve("demo.json"), "{\"inner\": {\"name\": \"" + name + "\"}}");
+		ConfigSource source = demo(dir);
+		MultiActionDialog page = (MultiActionDialog) Pages.config(source, List.of("inner"), Optional.empty(), Map.of());
+		assertTrue(page.common().inputs().isEmpty());
+		String body = page.common().body().stream().map(b -> ((PlainMessage) b).contents().getString()).reduce("", String::concat);
+		assertTrue(body.contains("Name.: too long to edit here; edit in the file"), body);
+		assertEncodes(page);
+
+		CompoundTag payload = new CompoundTag();
+		payload.putString(Inputs.key(0), "short");   // a modified client sends it anyway
+		assertEquals(Map.of(), Payloads.values(source.page(List.of("inner")), payload));
 	}
 
 	@Test

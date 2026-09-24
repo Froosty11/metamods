@@ -44,6 +44,7 @@ public final class PolyDecorationsSource implements ConfigSource {
 	private static Map<String, Boolean> features(JsonObject json) {
 		Map<String, Boolean> features = new LinkedHashMap<>();
 		for (var entry : json.getAsJsonObject("features").entrySet()) {
+			if (entry.getKey().isEmpty()) continue;   // nothing to label, and no feature has no name
 			if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isBoolean()) {
 				features.put(entry.getKey(), entry.getValue().getAsBoolean());
 			}

@@ -17,7 +17,7 @@ public final class Payloads {
 		for (int i = 0; i < page.fields().size(); i++) {
 			Field field = page.fields().get(i);
 			Tag tag = payload.get(Inputs.key(i));
-			if (tag == null || !field.editable()) continue;
+			if (tag == null || !field.editable() || !Inputs.fits(field)) continue;
 			values.put(field.key(), text(field, tag));
 		}
 		return values;

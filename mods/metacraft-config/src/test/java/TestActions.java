@@ -57,4 +57,10 @@ public class TestActions {
 		Dialog dialog = Actions.configDialog(source, List.of(), Optional.empty(), Map.of());
 		assertEquals(Pages.config(source, List.of(), Optional.empty(), Map.of()), dialog);
 	}
+
+	@Test
+	public void anErrorWithoutAMessageIsNamedByItsClass() {
+		assertEquals("java.lang.NullPointerException", Actions.describe(new NullPointerException()));
+		assertEquals("boom", Actions.describe(new IllegalStateException("boom")));
+	}
 }

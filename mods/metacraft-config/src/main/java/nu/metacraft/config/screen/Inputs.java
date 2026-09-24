@@ -10,11 +10,30 @@ import java.util.Optional;
 /** The dialog input for a field. Keys are positional ({@code o0}, {@code o1}, …): option keys may hold characters inputs cannot. */
 public final class Inputs {
 	private static final int WIDTH = 256, LIST_WIDTH = 300;
+	private static final int NUMBER_LENGTH = 64, TEXT_LENGTH = 1024, LIST_LENGTH = 8192;
 
 	private Inputs() {}
 
 	public static String key(int index) {
 		return "o" + index;
+	}
+
+	/** The most characters the field's input holds; {@link Integer#MAX_VALUE} for inputs that are not typed. */
+	public static int maxLength(Field field) {
+		return switch (field.kind()) {
+			case BOOLEAN, CHOICE -> Integer.MAX_VALUE;
+			case WHOLE, DECIMAL -> field.slider() ? Integer.MAX_VALUE : NUMBER_LENGTH;
+			case TEXT_LIST, IDENTIFIER_LIST -> LIST_LENGTH;
+			default -> TEXT_LENGTH;
+		};
+	}
+
+	/**
+	 * Whether the field's current value fits its input. One that does not is shown read-only: the
+	 * dialog sends every input, so a shortened value would be written back on an unrelated save.
+	 */
+	public static boolean fits(Field field) {
+		return field.value().length() <= maxLength(field);
 	}
 
 	public static InputControl forField(Field field, String value) {
@@ -27,12 +46,12 @@ public final class Inputs {
 							new NumberRangeInput.RangeInfo((float) field.min(), (float) field.max(),
 									Optional.of(clamp(parse(value, (float) field.min()), (float) field.min(), (float) field.max())),
 									Optional.of((float) field.step())))
-					: text(label, value, 64);
+					: text(label, value, NUMBER_LENGTH);
 			case CHOICE -> new SingleOptionInput(choiceWidth(label, field.choices()), field.choices().stream()
 					.map(choice -> new SingleOptionInput.Entry(choice, Optional.empty(), choice.equals(value))).toList(), label, true);
-			case TEXT_LIST, IDENTIFIER_LIST -> new TextInput(LIST_WIDTH, label, true, truncate(value, 8192), 8192,
+			case TEXT_LIST, IDENTIFIER_LIST -> new TextInput(LIST_WIDTH, label, true, truncate(value, LIST_LENGTH), LIST_LENGTH,
 					Optional.of(new TextInput.MultilineOptions(Optional.of(8), Optional.empty())));
-			default -> text(label, value, 1024);
+			default -> text(label, value, TEXT_LENGTH);
 		};
 	}
 
@@ -50,9 +69,10 @@ public final class Inputs {
 		return new TextInput(WIDTH, label, true, truncate(value, maxLength), maxLength, Optional.empty());
 	}
 
-	// A refused save, or a value edited outside the screen, can be longer than the box that
-	// shows it. The vanilla codec rejects an initial text longer than maxLength even on encode,
-	// which would fail to send the dialog packet at all; truncate instead of failing to open.
+	// A refused save's typed text can be longer than the box that shows it. The vanilla codec
+	// rejects an initial text longer than maxLength even on encode, which would fail to send the
+	// dialog packet at all; truncate instead of failing to open. (A stored value that is too long
+	// never gets here: see fits.)
 	private static String truncate(String value, int maxLength) {
 		return value.length() > maxLength ? value.substring(0, maxLength) : value;
 	}

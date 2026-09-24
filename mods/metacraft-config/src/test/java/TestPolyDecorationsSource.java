@@ -45,6 +45,16 @@ public class TestPolyDecorationsSource {
 	}
 
 	@Test
+	public void anEmptyFeatureKeyIsSkipped(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("polydecorations.json");
+		Files.writeString(file, "{\"features\": {\"\": true, \"canvas\": false}}");
+		ConfigSource source = PolyDecorationsSource.detect(file).orElseThrow();
+		assertEquals(List.of("canvas"), source.page(List.of()).fields().stream().map(Field::key).toList());
+		Files.writeString(file, "{\"features\": {\"\": false, \"canvas\": true}}");
+		assertEquals(List.of("Canvas on"), source.pendingRestart());
+	}
+
+	@Test
 	public void writesBackKeepingOtherKeys(@TempDir Path dir) throws Exception {
 		Path file = dir.resolve("polydecorations.json");
 		Files.writeString(file, FORK_FILE);

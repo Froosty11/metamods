@@ -48,12 +48,17 @@ public final class Pages {
 		List<DialogBody> body = new ArrayList<>();
 		message.ifPresent(m -> body.add(message(m)));
 		source.loadError().ifPresent(error -> body.add(message(Component.literal(
-				"The file does not load, so the server uses the values below: " + error + ". Saving writes them.").withStyle(ChatFormatting.RED))));
+				"The file does not load cleanly: " + error + ". The server uses the values below; whatever it could not read "
+						+ "is left at its default (or its last loaded value). Saving writes them over the file.").withStyle(ChatFormatting.RED))));
 		List<Input> inputs = new ArrayList<>();
 		for (int i = 0; i < page.fields().size(); i++) {
 			Field field = page.fields().get(i);
 			if (!field.editable()) {
 				body.add(message(Component.literal(field.label() + ": " + field.value() + " (edit in the file)").withStyle(ChatFormatting.GRAY)));
+				continue;
+			}
+			if (!Inputs.fits(field)) {
+				body.add(message(Component.literal(field.label() + ": too long to edit here; edit in the file").withStyle(ChatFormatting.GRAY)));
 				continue;
 			}
 			inputs.add(new Input(Inputs.key(i), Inputs.forField(field, typed.getOrDefault(field.key(), field.value()))));

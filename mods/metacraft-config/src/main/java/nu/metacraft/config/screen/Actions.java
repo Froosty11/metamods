@@ -80,7 +80,7 @@ public final class Actions {
 				// Adapters are third-party-shaped code; a bug there should not take the packet handler
 				// down with it.
 				MetacraftConfig.LOGGER.error("{} failed to save", source.id(), e);
-				show(player, source, path, Optional.of(Component.literal("Could not save: " + e.getMessage()).withStyle(ChatFormatting.RED)), values);
+				show(player, source, path, Optional.of(Component.literal("Could not save: " + describe(e)).withStyle(ChatFormatting.RED)), values);
 				return;
 			}
 			switch (outcome) {
@@ -107,7 +107,7 @@ public final class Actions {
 				outcome = source.reset(path, payload.getIntOr("hash", 0));
 			} catch (RuntimeException e) {
 				MetacraftConfig.LOGGER.error("{} failed to reset", source.id(), e);
-				show(player, source, path, Optional.of(Component.literal("Could not reset: " + e.getMessage()).withStyle(ChatFormatting.RED)), Map.of());
+				show(player, source, path, Optional.of(Component.literal("Could not reset: " + describe(e)).withStyle(ChatFormatting.RED)), Map.of());
 				return;
 			}
 			Component message = switch (outcome) {
@@ -117,6 +117,11 @@ public final class Actions {
 			};
 			show(player, source, path, Optional.of(message), Map.of());
 		});
+	}
+
+	/** The exception's message, or its class name when it has none. */
+	public static String describe(Throwable e) {
+		return e.getMessage() != null ? e.getMessage() : e.getClass().getName();
 	}
 
 	private static void show(ServerPlayer player, ConfigSource source, List<String> path, Optional<Component> message, Map<String, String> typed) {
