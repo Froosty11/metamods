@@ -48,8 +48,8 @@ public final class Pages {
 		List<DialogBody> body = new ArrayList<>();
 		message.ifPresent(m -> body.add(message(m)));
 		source.loadError().ifPresent(error -> body.add(message(Component.literal(
-				"The file does not load cleanly: " + error + ". The server uses the values below; whatever it could not read "
-						+ "is left at its default (or its last loaded value). Saving writes them over the file.").withStyle(ChatFormatting.RED))));
+				"The file does not load cleanly: " + error + ". The server keeps the values it could read; the rest are "
+						+ "defaults or the last good values. Those are shown below; saving writes them over the file.").withStyle(ChatFormatting.RED))));
 		List<Input> inputs = new ArrayList<>();
 		for (int i = 0; i < page.fields().size(); i++) {
 			Field field = page.fields().get(i);

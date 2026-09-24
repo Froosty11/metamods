@@ -33,9 +33,22 @@ public class TestFasterMinecartsConfig {
 	@Test
 	public void readsTheFileWrittenBeforeTheChange() throws Exception {
 		try (var in = new InputStreamReader(Objects.requireNonNull(getClass().getResourceAsStream("/faster_minecarts_before.json")))) {
-			var read = ConfigSpec.of(FasterMinecartsConfig.class).codec().codec().parse(JsonOps.INSTANCE, JsonParser.parseReader(in)).getOrThrow();
+			var read = FasterMinecartsConfig.CODEC.codec().parse(JsonOps.INSTANCE, JsonParser.parseReader(in)).getOrThrow();
 			assertEquals(FasterMinecartsConfig.DEFAULT, read);
 		}
+	}
+
+	@Test
+	public void theCodecWritesEveryDescribedKey() {
+		assertDoesNotThrow(() -> ConfigSpec.of(FasterMinecartsConfig.class).checkWrittenBy(FasterMinecartsConfig.CODEC));
+	}
+
+	@Test
+	public void theCodecKeepsItsRanges() {
+		var result = FasterMinecartsConfig.CODEC.codec().parse(JsonOps.INSTANCE, JsonParser.parseString("""
+				{"global_faster_minecarts": false, "max_minecart_speed": -5, "max_minecart_speed_underwater": 45,
+				"damage_factor": 43.2, "experimental_minecart_mode": "experimental"}"""));
+		assertTrue(result.error().isPresent());
 	}
 
 	@Test

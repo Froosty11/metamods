@@ -148,7 +148,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 						+ sample.getClass().getSimpleName());
 			}
 			ConfigSpec spec = ConfigSpec.of((Class) described);
-			if (!(codec instanceof DescribedCodec)) spec.checkWrittenBy(codec.codec());
+			spec.checkWrittenBy(codec);
 			if (container instanceof BasicConfigContainer<?> basic) basic.keepBrokenFiles();
 			String id = configPath.getFileName().toString().replaceFirst("\\.json$", "");
 			ConfigRegistry.register(new DescribedConfig(id, spec, codec.codec(), container, part, withPart));

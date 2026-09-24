@@ -34,7 +34,7 @@ public class TestPages {
 	}
 
 	private static ConfigSource demo(Path dir) {
-		ConfigContainer.Builder.create(ConfigSpec.of(Demo.class).codec(), () -> Demo.DEFAULT)
+		ConfigContainer.Builder.create(Demo.CODEC, () -> Demo.DEFAULT)
 				.describedBy(Demo.class).build(dir.resolve("demo.json"));
 		return Sources.find("demo").orElseThrow();
 	}
@@ -60,25 +60,30 @@ public class TestPages {
 		assertInstanceOf(TextInput.class, inputs.get(3).control());   // optional: typed, blank = none
 	}
 
+	private static String written(Demo value) {
+		return Demo.CODEC.codec().encodeStart(JsonOps.INSTANCE, value).getOrThrow().toString();
+	}
+
 	@Test
-	public void aFileWithOneBadKeyShowsItsOtherValuesAndTheError(@TempDir Path dir) throws Exception {
+	public void aFileThatDoesNotLoadShowsWhatTheServerUsesAndTheError(@TempDir Path dir) throws Exception {
 		Path file = dir.resolve("demo.json");
-		String content = "{\"stitches\": 40, \"speed\": 9}";
+		String content = written(new Demo(true, 6, 9, Optional.empty(), false, Demo.Inner.DEFAULT)).replace("\"stitches\":6", "\"stitches\":40");
 		Files.writeString(file, content);
 		MultiActionDialog page = (MultiActionDialog) Pages.config(demo(dir), List.of(), Optional.empty(), Map.of());
-		assertEquals("9", ((TextInput) page.common().inputs().get(2).control()).initial());   // the file's value, not the default
+		// RecordCodecBuilder gives nothing back when one field fails, so every value is the default.
+		assertEquals("2.5", ((TextInput) page.common().inputs().get(2).control()).initial());
 		NumberRangeInput stitches = (NumberRangeInput) page.common().inputs().get(1).control();
-		assertEquals(Optional.of(6f), stitches.rangeInfo().initial());   // the bad key is at its default
+		assertEquals(Optional.of(6f), stitches.rangeInfo().initial());
 		String body = page.common().body().stream().map(b -> ((PlainMessage) b).contents().getString()).reduce("", String::concat);
-		assertTrue(body.contains("stitches: 40 is not in (1 – 16)"), body);
-		assertTrue(body.contains("left at its default"), body);
+		assertTrue(body.contains("Value 40 outside of range [1:16]"), body);
+		assertTrue(body.contains("keeps the values it could read; the rest are defaults or the last good values"), body);
 		assertEquals(content, Files.readString(file));
 	}
 
 	@Test
 	public void aValueTooLongForItsInputIsReadOnlyAndNotSent(@TempDir Path dir) throws Exception {
 		String name = "n".repeat(2000);
-		Files.writeString(dir.resolve("demo.json"), "{\"inner\": {\"name\": \"" + name + "\"}}");
+		Files.writeString(dir.resolve("demo.json"), written(new Demo(true, 6, 2.5, Optional.empty(), false, new Demo.Inner(name))));
 		ConfigSource source = demo(dir);
 		MultiActionDialog page = (MultiActionDialog) Pages.config(source, List.of("inner"), Optional.empty(), Map.of());
 		assertTrue(page.common().inputs().isEmpty());

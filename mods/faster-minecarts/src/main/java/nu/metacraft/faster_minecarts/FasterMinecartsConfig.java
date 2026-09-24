@@ -21,7 +21,6 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
 import nu.metacraft.lib.config.describe.Config;
-import nu.metacraft.lib.config.describe.ConfigSpec;
 import nu.metacraft.lib.config.describe.Option;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,7 +44,16 @@ public record FasterMinecartsConfig(
 			false, 60, 45, Optional.of(30 / 3.6 / 20), 2.16 * 20, ExperimentalMinecartMode.EXPERIMENTAL
 	);
 
-	public static final MapCodec<FasterMinecartsConfig> CODEC = ConfigSpec.of(FasterMinecartsConfig.class).codec();
+	public static final MapCodec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+					Codec.BOOL.fieldOf("global_faster_minecarts").forGetter(FasterMinecartsConfig::globalFasterMinecarts),
+					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed").forGetter(FasterMinecartsConfig::maxMinecartSpeed),
+					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed_underwater").forGetter(FasterMinecartsConfig::maxMinecartSpeedUnderwater),
+					Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("dangerous_minecart_speed").forGetter(FasterMinecartsConfig::dangerousMinecartSpeed),
+					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("damage_factor").forGetter(FasterMinecartsConfig::damageFactor),
+					ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode").forGetter(FasterMinecartsConfig::experimentalMinecartMode)
+			).apply(instance, FasterMinecartsConfig::new)
+	);
 
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, () -> DEFAULT
