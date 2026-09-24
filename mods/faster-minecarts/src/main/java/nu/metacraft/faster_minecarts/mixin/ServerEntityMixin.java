@@ -48,7 +48,7 @@ public abstract class ServerEntityMixin {
 	)
 	public MinecartBehavior makeControllerNull(MinecartBehavior controller) {
 		if (
-				FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled() &&
+				FasterMinecartsConfig.startupMode().isEnabled() &&
 				controller instanceof OldMinecartBehavior
 		) {
 			return null;

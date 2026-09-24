@@ -59,7 +59,7 @@ public class FasterMinecartsHelper {
 	}
 
 	public static boolean areMinecartExperimentsEnabledForCart(boolean worldSetting, boolean superSpeed) {
-		if (FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled() && superSpeed) {
+		if (FasterMinecartsConfig.startupMode().isEnabled() && superSpeed) {
 			return true;
 		}
 		return worldSetting;

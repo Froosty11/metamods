@@ -3,6 +3,7 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import nu.metacraft.faster_minecarts.FasterMinecartsConfig;
+import nu.metacraft.faster_minecarts.StartupValue;
 import nu.metacraft.lib.config.describe.ConfigSpec;
 import nu.metacraft.lib.config.describe.OptionSpec;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,5 +41,15 @@ public class TestFasterMinecartsConfig {
 	@Test
 	public void experimentalModeNeedsARestart() {
 		assertTrue(ConfigSpec.of(FasterMinecartsConfig.class).option("experimental_minecart_mode").orElseThrow().restart());
+	}
+
+	@Test
+	public void theStartupModeKeepsTheFirstValueRead() {
+		AtomicReference<FasterMinecartsConfig.ExperimentalMinecartMode> inConfig =
+				new AtomicReference<>(FasterMinecartsConfig.ExperimentalMinecartMode.EXPERIMENTAL);
+		StartupValue<FasterMinecartsConfig.ExperimentalMinecartMode> mode = new StartupValue<>(inConfig::get);
+		assertEquals(FasterMinecartsConfig.ExperimentalMinecartMode.EXPERIMENTAL, mode.get());
+		inConfig.set(FasterMinecartsConfig.ExperimentalMinecartMode.LEGACY);   // a reload or a /config save
+		assertEquals(FasterMinecartsConfig.ExperimentalMinecartMode.EXPERIMENTAL, mode.get());
 	}
 }

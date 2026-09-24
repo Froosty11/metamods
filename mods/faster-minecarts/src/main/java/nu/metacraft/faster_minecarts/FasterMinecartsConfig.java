@@ -55,6 +55,16 @@ public record FasterMinecartsConfig(
 		return CONTAINER.getContainer().get().staticValues();
 	}
 
+	private static final StartupValue<ExperimentalMinecartMode> STARTUP_MODE = new StartupValue<>(() -> getConfig().experimentalMinecartMode());
+
+	/**
+	 * {@code experimental_minecart_mode} as it was when first read. It needs a restart (feature
+	 * flags are fixed at startup), so every reader uses this and not {@link #getConfig()}.
+	 */
+	public static ExperimentalMinecartMode startupMode() {
+		return STARTUP_MODE.get();
+	}
+
 	public static FasterMinecartsConfig.Loaded getConfig(MinecraftServer server) {
 		return CONTAINER.get(server);
 	}
