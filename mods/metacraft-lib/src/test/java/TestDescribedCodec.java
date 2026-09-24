@@ -1,4 +1,3 @@
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
@@ -56,6 +55,28 @@ public class TestDescribedCodec {
 		var result = CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"count\": 40}"));
 		assertTrue(result.error().isPresent());
 		assertTrue(result.error().get().message().contains("count"), result.error().get().message());
+	}
+
+	@Test
+	public void aBadKeyFallsBackToItsDefaultAndKeepsTheRest() {
+		var result = CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"count\": 40, \"title\": \"kept\", \"speed\": 7}"));
+		assertEquals("count: 40 is not in (1 – 16)", result.error().orElseThrow().message());
+		Sample partial = result.resultOrPartial().orElseThrow();
+		assertEquals(Sample.DEFAULT.count(), partial.count());
+		assertEquals("kept", partial.title());
+		assertEquals(7, partial.speed());
+	}
+
+	@Test
+	public void everyBadKeyIsReportedInOrder() {
+		var result = CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
+				"{\"count\": 40, \"mode\": \"warp\", \"store\": {\"url\": \"db://kept\", \"interval\": 999}}"));
+		String message = result.error().orElseThrow().message();
+		assertTrue(message.startsWith("count: 40 is not in (1 – 16); mode: "), message);
+		assertTrue(message.contains("; store: interval: 999 is not in"), message);
+		Sample partial = result.resultOrPartial().orElseThrow();
+		assertEquals(Sample.Mode.FAST, partial.mode());
+		assertEquals(new SampleSection("db://kept", 10), partial.store());   // a section keeps its good keys
 	}
 
 	@Test

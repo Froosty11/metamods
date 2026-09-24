@@ -37,9 +37,14 @@ public final class DescribedCodec<R extends Record> extends MapCodec<R> {
 		return Stream.concat(Stream.of(HELP), spec.options().stream().map(OptionSpec::key)).map(ops::createString);
 	}
 
+	/**
+	 * Reads every key. A bad key is reported and falls back to its value in {@code DEFAULT}, so an
+	 * error still carries the file's other values as a partial result.
+	 */
 	@Override
 	public <T> DataResult<R> decode(DynamicOps<T> ops, MapLike<T> input) {
 		Object[] values = new Object[spec.options().size()];
+		List<String> errors = new ArrayList<>();
 		for (int i = 0; i < values.length; i++) {
 			OptionSpec option = spec.options().get(i);
 			T raw = input.get(option.key());
@@ -49,17 +54,29 @@ public final class DescribedCodec<R extends Record> extends MapCodec<R> {
 			}
 			DataResult<Object> read = codecs.get(i).parse(ops, raw);
 			if (read.error().isPresent()) {
-				String message = read.error().get().message();
-				return DataResult.error(() -> option.key() + ": " + message);
+				errors.add(option.key() + ": " + read.error().get().message());
+				// A section keeps what did read in it; anything else takes the default.
+				Optional<Object> partial = option.kind() == OptionKind.SECTION ? read.resultOrPartial() : Optional.empty();
+				if (partial.isEmpty()) {
+					values[i] = option.read(spec.defaults());
+					continue;
+				}
+				values[i] = option.optional() ? Optional.of(partial.get()) : partial.get();
+				continue;
 			}
 			Object value = read.getOrThrow();
 			values[i] = option.optional() ? Optional.of(value) : value;
 		}
+		R value;
 		try {
-			return DataResult.success(spec.construct(values));
+			value = spec.construct(values);
 		} catch (IllegalArgumentException e) {
-			return DataResult.error(() -> spec.name() + ": " + e.getMessage());
+			String message = spec.name() + ": " + e.getMessage();
+			return DataResult.error(() -> errors.isEmpty() ? message : String.join("; ", errors) + "; " + message);
 		}
+		if (errors.isEmpty()) return DataResult.success(value);
+		String message = String.join("; ", errors);
+		return DataResult.error(() -> message, value);
 	}
 
 	@Override

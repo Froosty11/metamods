@@ -1,12 +1,11 @@
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import fixtures.*;
 import nu.metacraft.lib.config.container.ConfigContainer;
+import nu.metacraft.lib.config.describe.ConfigRegistry;
 import nu.metacraft.lib.config.describe.ConfigSpec;
 import nu.metacraft.lib.config.extensions.Modifiable;
 import org.junit.jupiter.api.Test;
@@ -46,6 +45,18 @@ public class TestContainerLoading {
 		assertTrue(container.loadError().orElseThrow().contains("interval"));
 		try (var files = Files.list(dir)) {
 			assertEquals(1, files.count());   // no .bak
+		}
+	}
+
+	@Test
+	public void anEmptyOrBlankFileIsALoadErrorAndIsKept(@TempDir Path dir) throws Exception {
+		for (String content : new String[] {"", "  \n\t"}) {
+			Path file = dir.resolve("blank" + content.length() + ".json");
+			Files.writeString(file, content);
+			var container = container(file);
+			assertEquals(SampleSection.DEFAULT, container.get());
+			assertTrue(container.loadError().isPresent());
+			assertEquals(content, Files.readString(file));
 		}
 	}
 
@@ -103,7 +114,7 @@ public class TestContainerLoading {
 	}
 
 	@Test
-	public void modifyNeverSavesOverABrokenFile(@TempDir Path dir) throws Exception {
+	public void modifyNeverSavesOverAFileThatDidNotLoad(@TempDir Path dir) throws Exception {
 		Path file = dir.resolve("m.json");
 		String broken = "not json";
 		Files.writeString(file, broken);
@@ -119,6 +130,80 @@ public class TestContainerLoading {
 
 		assertEquals(broken, Files.readString(file));
 		assertTrue(container.loadError().isPresent());
+		try (var files = Files.list(dir)) {
+			assertEquals(1, files.count());   // no .bak
+		}
+	}
+
+	@Test
+	public void modifyBacksUpAPartlyReadFileThenSaves(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("m.json");
+		String partial = "{\"url\": \"kept\", \"interval\": \"soon\"}";
+		Files.writeString(file, partial);
+		Files.writeString(dir.resolve("m.bak.json"), "older backup");
+		var container = ConfigContainer.Builder.create(MutableSection.CODEC, () -> new MutableSection("", 10)).build(file);
+
+		//noinspection deprecation
+		container.modify(s -> {
+			s.interval = 42;
+			return true;
+		});
+		container.get();   // loads the partial value
+		assertTrue(container.loadError().isPresent());
+		container.get();   // applies the modifier and saves, after a backup
+
+		assertEquals(partial, Files.readString(dir.resolve("m.bak1.json")));
+		assertEquals("older backup", Files.readString(dir.resolve("m.bak.json")));
+		String saved = Files.readString(file);
+		assertTrue(saved.contains("kept") && saved.contains("42"), saved);
+		assertTrue(container.loadError().isEmpty());
+
+		//noinspection deprecation
+		container.modify(s -> {
+			s.interval = 43;
+			return true;
+		});
+		container.get();
+		try (var files = Files.list(dir)) {
+			assertEquals(3, files.count());   // backed up once only
+		}
+	}
+
+	@Test
+	public void modifyWritesTheFirstBackupToBakJson(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("m.json");
+		String partial = "{\"url\": \"kept\", \"interval\": \"soon\"}";
+		Files.writeString(file, partial);
+		var container = ConfigContainer.Builder.create(MutableSection.CODEC, () -> new MutableSection("", 10)).build(file);
+		//noinspection deprecation
+		container.modify(s -> {
+			s.interval = 42;
+			return true;
+		});
+		container.get();
+		container.get();
+		assertEquals(partial, Files.readString(dir.resolve("m.bak.json")));
+		assertTrue(Files.readString(file).contains("42"));
+	}
+
+	@Test
+	public void aDescribedConfigWithOneBadKeyKeepsTheRestAndTheFile(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("d.json");
+		String content = "{\"url\": \"db://kept\", \"interval\": 999}";
+		Files.writeString(file, content);
+		ConfigRegistry.clearForTests();
+		var container = ConfigContainer.Builder.create(ConfigSpec.of(SampleSection.class).codec(), () -> SampleSection.DEFAULT)
+				.describedBy(SampleSection.class).build(file);
+
+		SampleSection read = container.get();
+
+		assertEquals("db://kept", read.url());
+		assertEquals(SampleSection.DEFAULT.interval(), read.interval());
+		assertTrue(container.loadError().orElseThrow().startsWith("interval: 999 is not in"), container.loadError().get());
+		assertEquals(content, Files.readString(file));
+		try (var files = Files.list(dir)) {
+			assertEquals(1, files.count());
+		}
 	}
 
 	@Test
@@ -156,10 +241,31 @@ public class TestContainerLoading {
 			return modified;
 		}
 
-		static final MapCodec<MutableSection> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-				Codec.STRING.fieldOf("url").forGetter(s -> s.url),
-				Codec.INT.fieldOf("interval").forGetter(s -> s.interval)
-		).apply(instance, MutableSection::new));
+		/** Keeps {@code url} when {@code interval} is not a number: a partial read. */
+		static final MapCodec<MutableSection> CODEC = new MapCodec<>() {
+			@Override
+			public <T> Stream<T> keys(DynamicOps<T> ops) {
+				return Stream.of(ops.createString("url"), ops.createString("interval"));
+			}
+
+			@Override
+			public <T> DataResult<MutableSection> decode(DynamicOps<T> ops, MapLike<T> input) {
+				T urlRaw = input.get("url");
+				String url = urlRaw != null ? ops.getStringValue(urlRaw).result().orElse("") : "";
+				T intervalRaw = input.get("interval");
+				if (intervalRaw == null) return DataResult.success(new MutableSection(url, 10));
+				Optional<Number> parsed = ops.getNumberValue(intervalRaw).result();
+				if (parsed.isEmpty()) return DataResult.error(() -> "interval: not a number", new MutableSection(url, 10));
+				return DataResult.success(new MutableSection(url, parsed.get().intValue()));
+			}
+
+			@Override
+			public <T> RecordBuilder<T> encode(MutableSection input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+				prefix.add("url", ops.createString(input.url));
+				prefix.add("interval", ops.createNumeric(input.interval));
+				return prefix;
+			}
+		};
 	}
 
 	/**

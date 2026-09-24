@@ -15,7 +15,10 @@ import nu.metacraft.lib.config.extensions.LoadAware;
 import nu.metacraft.lib.config.extensions.ReloadAware;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -59,6 +62,10 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	protected final List<Predicate<T>> modifiers = new ArrayList<>();
 
 	protected @Nullable String loadError;
+	/** Whether the failed read still gave a value (a partial read); meaningless without {@link #loadError}. */
+	protected boolean partialLoad;
+	/** Set for described configs, whose broken files are never written over, even by {@code modify}. */
+	protected boolean keepBrokenFiles;
 	protected final List<BiConsumer<T, T>> changeListeners = new ArrayList<>();
 
 	public BasicConfigContainer(
@@ -83,10 +90,12 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		Optional<DataResult<T>> read = readFile();
 		if (read.isEmpty()) {
 			loadError = null;
+			partialLoad = false;
 			return Optional.empty();
 		}
 		DataResult<T> result = read.get();
 		Optional<T> value = result.resultOrPartial();
+		partialLoad = value.isPresent();
 		if (result.error().isPresent()) {
 			loadError = result.error().get().message();
 			METAcraftLib.LOGGER.error(
@@ -127,13 +136,40 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 				}
 				modifiers.clear();
 			}
-			// Never write over a file that failed to load; the modification stays queued in memory.
-			if (modifiable.isModified() && loadError == null) {
+			// A file that did not load at all, or a described config's broken file, is never written
+			// over; the modification stays in memory. A partly read file is backed up, then saved.
+			if (modifiable.isModified() && mayModifyOverTheFile()) {
+				if (loadError != null) backUpFile();
 				save();
 				modifiable.setModified(false);
 			}
 		}
 		return config;
+	}
+
+	private boolean mayModifyOverTheFile() {
+		return loadError == null || (partialLoad && !keepBrokenFiles);
+	}
+
+	/** Copies the file to {@code <name>.bak.json}, or {@code .bak1.json} and on if that is taken. */
+	private void backUpFile() {
+		if (!Files.exists(configPath)) return;
+		String name = configPath.getFileName().toString().replaceFirst("\\.json$", "");
+		Path target = configPath.resolveSibling(name + ".bak.json");
+		for (int num = 1; Files.exists(target) && num <= 10; num++) {
+			target = configPath.resolveSibling(name + ".bak" + num + ".json");
+		}
+		try {
+			Files.copy(configPath, target, StandardCopyOption.REPLACE_EXISTING);
+			METAcraftLib.LOGGER.warn("Backed up {} to {} before saving over it", configPath, target);
+		} catch (IOException e) {
+			METAcraftLib.LOGGER.error("Unable to back up {}", configPath, e);
+		}
+	}
+
+	/** Marks the config as described: a file that fails to load is never written over by {@code modify}. */
+	public void keepBrokenFiles() {
+		this.keepBrokenFiles = true;
 	}
 
 	private void triggerLoad(Optional<ReloadCause> cause) {
