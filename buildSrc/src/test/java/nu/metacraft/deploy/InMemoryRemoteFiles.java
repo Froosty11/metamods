@@ -1,5 +1,6 @@
 package nu.metacraft.deploy;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,10 +10,14 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-/** A server's files in memory; {@link #writes} records every write in order. */
+/**
+ * A server's files in memory; {@link #writes} records every write in order. Set
+ * {@link #failOnWrite} to n to make the n-th write from then on fail, as a connection that drops would.
+ */
 final class InMemoryRemoteFiles implements RemoteFiles {
     final SortedMap<String, byte[]> files = new TreeMap<>();
     final List<String> writes = new ArrayList<>();
+    int failOnWrite;
 
     @Override
     public Optional<byte[]> read(String path) {
@@ -20,7 +25,10 @@ final class InMemoryRemoteFiles implements RemoteFiles {
     }
 
     @Override
-    public void write(String path, byte[] data) {
+    public void write(String path, byte[] data) throws IOException {
+        if (failOnWrite > 0 && --failOnWrite == 0) {
+            throw new IOException("connection lost writing " + path);
+        }
         files.put(path, data.clone());
         writes.add(path);
     }
