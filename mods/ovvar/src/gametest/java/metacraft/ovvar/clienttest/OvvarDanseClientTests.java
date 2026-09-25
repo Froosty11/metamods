@@ -36,7 +36,8 @@ import java.util.Properties;
  * armour on that stand-in itself, out of the <em>server-side</em> stack. An ovve carries nothing
  * useful there: the asset, the dye colour and the trim are all added on the way out to a client. So
  * without the compat layer the stand-in wears no ovve at all, and with it the stand-in wears the
- * whole thing, patches and all.
+ * whole thing, patches and all — drawn through our Danse fork's body layers from the pack's own
+ * textures, at their full resolution.
  *
  * <p>That is exactly what this test photographs. It runs twice from the same build:
  * <pre>
@@ -204,17 +205,16 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 
 				BufferedImage gesturing = read(mid);
 				Region box = Region.frame(gesturing);
-				// Two colours that cannot come from the cerise garment, so their presence proves the
-				// patches reached the stand-in — which, without the compat layer, wears no ovve at all.
-				// ITK's green is the plain client test's probe too. The plain test's other probe, IT's
-				// lilac, is deliberately not used here: on the 12×12 art it is a one-pixel diagonal, and
-				// Danse draws one pixel per skin texel (two art pixels), so the downsample averages that
-				// line into its dark-purple and white neighbours and no lilac survives. Data's yellow is a
-				// flat 2×2-or-bigger region and comes through the average exactly.
+				// Colours that cannot come from the cerise garment. IT's lilac is the one that matters: on
+				// the 12×12 art it is a one-pixel diagonal, which the old compat's downsample to Danse's
+				// one-square-per-texel grid averaged away. Body layers draw the ovve's own texture, so it
+				// must be there now — that is the resolution fix, in one assertion.
 				assertPresent(gesturing, box, "itk (green) on the stand-in",
 						(r, g, b) -> g > 100 && g > r + 60 && b < 140, 20);
 				assertPresent(gesturing, box, "data (yellow) on the stand-in",
 						(r, g, b) -> r > 150 && g > 130 && b < 60 && r > b + 100, 20);
+				assertPresent(gesturing, box, "it (lilac rim) on the stand-in",
+						(r, g, b) -> b > 150 && b > r + 25 && r > g + 20, 20);
 
 				// And once the gesture is over the wearer is dressed again — including the leg patches
 				// that ride in the boots channel, which Danse's own end-of-gesture resend loses.

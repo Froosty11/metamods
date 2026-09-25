@@ -738,101 +738,47 @@ inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings'
 
 ## Danse gestures
 
-[Danse](https://github.com/tomalbrc/danse) plays a gesture by hiding the real player — an empty
-equipment packet to every watcher and the invisible flag — and animating a stand-in built of item
-displays, one display per body part and one *pixel* per skin texel, the colours carried in
-`custom_model_data`. It draws the armour on that stand-in itself, from the **server-side** stack.
+[Danse](https://github.com/tomalbrc/danse) plays gestures (`/gesture wave`, …) by hiding the real
+player and animating a stand-in built of item displays. We run **our fork**
+([Froosty11/danse](https://github.com/Froosty11/danse), branch `metacraft`, AGPL-3.0; the jar and
+its notice are in `libs/danse/`), which adds *body layers*: any mod can put an ordinary textured
+item model on each part of the stand-in, just inside Danse's armour.
 
-An ovve carries nothing useful there. The per-combination asset, the dye colour that ranks the
-newest patches, the trim that carries one more, the companion top's look and the virtual cuffs are
-all added on the way out to a client, in `getPolymerItemStack`; the raw stack Danse reads has only
-the chapter's base asset. And our layer textures are 256×128 (`Spot.DETAIL` = 4 texture pixels per
-skin texel), so sampling them on Danse's 64×32 grid would read a quarter of the top-left corner of
-the garment. So the stand-in wore no ovve at all.
+Upstream Danse draws skin and armour as one tinted square per skin texel. Ovvar's layer textures
+have four pixels per texel, so the old compat layer had to average each 4×4 block into one square
+and patches blurred (IT's one-pixel lilac line vanished). Now `metacraft.ovvar.compat.danse`
+draws the ovve as body layers instead:
 
-`metacraft.ovvar.compat.danse` composites the pixels itself and hands them over
-(`DansePixels`, a mixin at the head of Danse's `TextureCache.armorCustomModelData`). The layers are
-the very list the equipment definition is built from (`EquipmentJson.layerTextures`), so the puppet
-and a real client can never disagree about where a patch goes or what order the patches stack in;
-the result is downsampled 4×4, alpha-weighted, onto Danse's grid. The dyeable preview layer and the
-trim are deliberately not drawn: they exist only to smuggle patches past a vanilla renderer that can
-be told nothing else per item, and here we have the whole placement list to hand.
+- `DanseModels` writes one item definition per piece and part (`ovvar:danse/top/body`, …) into the
+  pack: the base cloth chosen by `custom_model_data` string 0, then one `select` per cell on the
+  part, patch chosen by string `1 + Spot.cells(piece).indexOf(cell)`. Every model is a
+  `BodyLayerModels.shell` over ovvar's own equipment texture, reached through an `items` atlas
+  source, so it is the same 256×128 art a real client's armour shows.
+- `DanseLayers` answers Danse per part and pass (bottom = inner, body and legs; top = outer, body
+  and arms, including under a real chestplate) and tells Danse not to draw its own pixels for an ovve.
+- `DanseHooks` and `GestureControllerMixin` keep ovvar from re-dressing a player mid-gesture and
+  put the cuffs back afterwards.
 
-**Left limbs come out right for free, except the cloth.** Danse's armour path always samples through
-`MinecraftSkinParser.NOTCH_TEXTURE_MAP`, whose `LEFT_ARM` and `LEFT_LEG` entries are the *right*
-limb's rectangles with a negative width — each 4-texel face read backwards, exactly what the armour
-model does. So everything we already pre-mirror for that model un-mirrors correctly through Danse: a
-`_l` placement texture sits on the right limb's rectangle with its art flipped, and reading it
-backwards flips it back. The one thing that does not come free is the base garment, whose asymmetric
-left-side art a real client reaches through the shader ("one strip up", skin rows 0–16); Danse has no
-shader, so that strip is copied down onto the limb's own rectangle before the placements go on.
+Ovvar never depends on Danse: the package is reached only behind `isModLoaded("danse")`, and
+`-Dovvar.danse.compat=false` switches it off. Players can find the fork's source with
+`/gesture source`.
 
-A chestplate worn over an ovve keeps Danse's own chestplate pixels and shows the top through wherever
-they are not drawn — the open arms and neck — which is what the composite equipment asset does for a
-client that is not gesturing. The boots channel draws nothing of ours: it is a packet trick, and the
-legs are drawn from the ovve directly.
+| Compat off | Compat on | After the gesture |
+|---|---|---|
+| ![](docs/danse/before.png) | ![](docs/danse/after.png) | ![](docs/danse/after_gesture_end.png) |
 
-**Etiquette.** Ovvar re-sends equipment on a schedule of its own (`Combos.packLoaded` after a pack
-load, `OvveFeet.sendCuffs` when a viewer's cuff dye changes); both skip a gesturing wearer, since
-re-dressing the invisible player would undo the stand-in. Danse ends a gesture by re-sending the
-player's *raw* equipment — an empty feet slot — so a mixin at the tail of `GestureController.onStop`
-forgets the wearer's cuff cache and re-sends their ovve to every tracker, or the leg patches riding
-in the boots channel would stay dark.
+Clips: [zombie](docs/danse/gesture.mp4), [helicopter](docs/danse/helicopter.mp4),
+[handstand](docs/danse/handstand.mp4). `OVVAR_DANSE_FILM=1` makes the client test photograph every
+other tick instead of once, and ffmpeg stitches the frames at 7 fps. The in-process server runs in
+real time while each screenshot holds the client up, so the gesture ends about halfway through the
+frames; a clip is the frames that still show the stand-in. Other gestures:
+`OVVAR_DANSE_GESTURE=helicopter OVVAR_DANSE_GESTURE_TICKS=228`, `handstand` / `140`; the pixel
+assertions only run on the default gesture (`zombie`).
 
-Danse is never a `depends`: it is `compileOnly` + `runtimeOnly` in this module's dev/test runtime
-only, the mixins live in their own config (`ovvar-danse.mixins.json`) behind a plugin that applies
-them only when Danse is loaded, and `metacraft.ovvar.compat.danse` is the one package that names a
-Danse type. `-Dovvar.danse.compat=false` turns the whole layer off — hooks, mixins and all — which is
-how the "before" picture below is taken from the same build. There is no published 2.6.0/26.3 build
-of Danse (Modrinth stops at 2.5.4+26.1), so `libs/` holds one built from upstream commit `8af91e51`;
-see `libs/danse-LICENSE-NOTICE.txt` for how and why.
-
-`DansePixelsTests` holds the pixels themselves — a front patch on the body's front face and not its
-back, a left sleeve's patch on the left arm and not the right, an ovve answering only the leggings
-pass, and the downsample keeping one cell's patch near its cell. Those run with the rest of the game
-tests on a dedicated server (`Run Tests.command`), which is where Danse works.
-
-**The screenshots.** `OvvarDanseClientTests` (`./gradlew :mods:ovvar:runClientGameTest`, and again
-under `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false` for the "before" frame) dresses the Tester in a
-Data ovve with four chest patches, one per sleeve and one per leg, starts Danse's `zombie` gesture —
-both arms straight out for most of its five seconds, so the frame is unmistakably a gesture and the
-sleeves are in full view — and photographs the stand-in three seconds in, then the player again once
-it has ended. `docs/danse/before.png` is the
-stand-in with the compat layer off — bare, black, no ovve at all — `after.png` the same stand-in with
-it on, and `after_gesture_end.png` the player dressed again afterwards, leg patches included. The
-frames prove it with ITK's green and Data's yellow, not IT's lilac: that lilac is a one-pixel
-diagonal on the 12×12 art, and one Danse pixel is two art pixels, so the downsample averages it into
-its neighbours — the limit of drawing a patch on a 64×32 grid, and the same on a real dedicated server.
-
-`docs/danse/gesture.mp4` (and `.gif`) is the whole gesture in motion: `OVVAR_DANSE_FILM=1` makes the
-test photograph every other tick instead of once, and ffmpeg stitches the frames. The in-process server
-runs in real time while each screenshot holds the client up, so the gesture ends about halfway through
-the frames; the clip is the frames that still show the stand-in, at 7 fps. `helicopter.mp4` (a spin with
-the arms out, every side of the ovve) and `handstand.mp4` (upside down, walking on the hands) are the
-same with `OVVAR_DANSE_GESTURE=helicopter OVVAR_DANSE_GESTURE_TICKS=228` and `handstand` / `140`;
-the pixel assertions only run on the default gesture.
-
-It only photographs anything because the dev jar is patched. Upstream Danse lists
-`LivingEntityAccessor` and its four siblings in the **`"server"`** section of `danse.mixins.json`,
-so on a client those mixins are never applied — while `GesturePlayerModelEntity.setup` casts the
-player to that accessor to read their equipment, and Mixin then refuses the classload:
-
-    IllegalClassLoadError: Illegal classload request for de.tomalbrc.danse.mixin.LivingEntityAccessor.
-    Mixin is defined in danse.mixins.json and cannot be referenced directly
-
-The Fabric client game test harness runs its "dedicated" server *inside the client's own JVM*, so
-that is the environment, and no gesture can start there at all — with or without ovvar. The fix is
-one line (those five entries under `"mixins"`), which is the one change made to `libs/danse-2.6.0+26.3.jar`
-(`libs/danse-LICENSE-NOTICE.txt` says how); on a dedicated server the two spellings behave the same.
-With an unpatched Danse the test prints why it is skipping instead of failing.
-
-**The gesture test runs first**, before `OvvarClientTests`, and the order in the test mod's
-`fabric.mod.json` is load-bearing. Danse animates through bil (blockbench-import-library), whose bone
-updates run on a JVM-wide executor that bil shuts down on `SERVER_STOPPING`; a real server is one
-server per JVM so it never matters, but the client test harness starts one in-process server per
-test, and any server after the first gets a stand-in that spawns, dresses and holds still for the
-whole gesture — which is what the first round of screenshots showed. First in the list, the gesture
-test has the executor to itself.
+Tests: `DanseShellParityTests` (a shell shows each texel where Danse's pixels do),
+`DanseModelsTests`, `DanseLayersTests`, and the client test `OvvarDanseClientTests`
+(`./gradlew :mods:ovvar:runClientGameTest`; with `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false`
+for the "before" frame).
 
 ## The guidebook
 
