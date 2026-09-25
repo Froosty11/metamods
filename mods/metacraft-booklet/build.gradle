@@ -29,7 +29,7 @@ dependencies {
 	// Dev/test runtime only: the mods the book has chapters for, so the chapters load and their
 	// item icons resolve. None of them is a dependency of the shipped mod.
 	runtimeOnly(project(path: ":mods:ovvar"))
-	runtimeOnly("maven.modrinth:polydecorations:${project.polydecorations_version}")
+	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
 	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
 	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
 }
@@ -39,7 +39,7 @@ dependencies {
 dependencies {
 	gametestCompileOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
 	gametestRuntimeOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
-	gametestCompileOnly("maven.modrinth:polydecorations:${project.polydecorations_version}")
+	gametestCompileOnly("Froosty11:polydecorations:${project.polydecorations_version}")
 	gametestCompileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
 	// PolyDecorations' blocks, which the scenes place, are built on these
 	gametestCompileOnly("eu.pb4:factorytools:0.12.1+26.3")
@@ -54,6 +54,22 @@ loom {
 	runs {
 		server {
 			runDir = project.findProperty('runDir') ?: 'run'
+		}
+	}
+}
+
+// Dev runs switch PolyDecorations' features the way Season 6's server does: server-config/ holds the
+// file that goes in the server's config folder, and it is copied into each run's before it starts.
+def runConfigDirs = [
+	runServer: "${project.findProperty('runDir') ?: 'run'}/config",
+	runClientGameTest: "build/run/clientGameTest/config",
+]
+tasks.matching { it.name in runConfigDirs.keySet() }.configureEach { task ->
+	def configDir = file(runConfigDirs[task.name])
+	task.doFirst {
+		project.copy {
+			from "server-config/polydecorations.json"
+			into configDir
 		}
 	}
 }

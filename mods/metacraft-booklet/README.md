@@ -67,13 +67,17 @@ METAcraft keeps the PolyDecorations things that look like vanilla: the canvas, m
 posts, the hammer and the trowel, and its changes to vanilla blocks (lanterns on walls, leads from fence
 to fence, lanterns and hanging signs under rope). The furniture, statues and the rest are out.
 
-Upstream PolyDecorations has no config to switch features off, so `polydecorations_s6` overrides every
-other recipe and recipe advancement with a file whose only content is a `fabric:false` load condition,
-which removes it. The files were generated from PolyDecorations 0.13.1+26.3-rc-1;
+The server runs our PolyDecorations fork
+([Froosty11/PolyDecorations](https://github.com/Froosty11/PolyDecorations/releases), 0.13.1+26.3-rc-1.metacraft.1),
+which can switch features off completely: no blocks, items, Polymer block states or resource-pack assets.
+`server-config/polydecorations.json` is the file that goes in the server's `config/` folder; the dev runs
+copy it into theirs before starting, so they match the server.
+
+With upstream PolyDecorations, which has no such config, `polydecorations_s6` still hides the rest: it
+overrides every other recipe and recipe advancement with a file whose only content is a `fabric:false`
+load condition, which removes it. The files were generated from PolyDecorations 0.13.1+26.3-rc-1;
 `polyDecorationsHasOnlyTheRecipesWeKeep` fails, naming them, if a newer version adds recipes. The pack
-is enabled by default and can be turned off with `/datapack disable`. The other blocks stay registered
-(an operator can still give them) and keep their Polymer block states and resource-pack models; switching
-them off completely takes a PolyDecorations with a feature config.
+is enabled by default and can be turned off with `/datapack disable`.
 
 ## The question mark
 
@@ -86,7 +90,8 @@ question mark in the same style. It applies to every server dialog, not only the
     JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:metacraft-booklet:runServer -PrunDir=/tmp/mcb
     ./gradlew :mods:metacraft-booklet:runClientGameTest
 
-The dev runtime loads ovvar (run its `runDatagen` first) and PolyDecorations, so every chapter is on.
+The dev runtime loads ovvar (run its `runDatagen` first) and the PolyDecorations fork with Season 6's
+features, so every chapter is on.
 `GuideTests` checks every page loads with a title, description and icon, is reachable from the index,
 and names only pages and items that exist, and that PolyDecorations is down to the recipes we keep.
 `GuideClientTests` opens every page on a vanilla client in a 1080p window and photographs it, and again
