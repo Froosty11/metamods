@@ -8,13 +8,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
  * Deploys a set to a server: checks autodeploy can delete, uploads what differs from the
  * server's manifest, lists removals in remove.txt, and writes the manifest last so an
- * interrupted deploy is retried in full.
+ * interrupted deploy is retried in full. Before its first change it rewrites the server's
+ * manifest without the mods it is about to upload or remove, so that after an interrupted
+ * deploy (and maybe a restart that installed part of it) the next deploy sends those again.
  */
 public final class Deployer {
     /** The first FabricModsUpdate version that handles remove.txt. */
@@ -36,6 +40,8 @@ public final class Deployer {
         checkLocalJars(deployDir, now);
 
         Optional<byte[]> oldBytes = remote.read(REMOTE_MANIFEST);
+        // First means no manifest on the server at all. The interim manifest below is only written
+        // over an existing one, so it never turns a first deploy into a later one or back.
         boolean first = oldBytes.isEmpty();
         Manifest old = first ? Manifest.empty() : parseServerManifest(server, oldBytes.get());
         ManifestDiff diff = ManifestDiff.of(old, now);
@@ -67,15 +73,27 @@ public final class Deployer {
         SortedSet<String> unchanged = new TreeSet<>(diff.unchanged());
         unchanged.removeAll(upload);
 
-        // Removals still pending from deploys the server has not restarted for stay listed.
+        // Removals still pending from deploys the server has not restarted for stay listed. The
+        // bundle is always listed: an old workflow may have uploaded it again since the first deploy.
+        SortedSet<String> pendingRemovals = remote.read(REMOVE_FILE).map(Deployer::ids).orElseGet(TreeSet::new);
         SortedSet<String> remove = new TreeSet<>(diff.remove());
-        remote.read(REMOVE_FILE).ifPresent(bytes -> remove.addAll(ids(bytes)));
-        if (first) {
-            remove.add(DeployList.BUNDLE_ID);
-        }
+        remove.addAll(pendingRemovals);
+        remove.add(DeployList.BUNDLE_ID);
         remove.removeAll(now.entries().keySet());
 
+        // The server's manifest records what was sent, and a restart installs whatever an
+        // interrupted deploy got as far as sending (jar names don't change between builds). So
+        // until this deploy is complete the server's manifest must not vouch for any mod it
+        // touches: a mod it doesn't name is sent again by the next deploy.
+        SortedMap<String, Manifest.Entry> interim = new TreeMap<>(old.entries());
+        interim.keySet().removeAll(upload);
+        interim.keySet().removeAll(remove);
+        interim.keySet().removeAll(pendingRemovals);
+
         if (!dryRun) {
+            if (!interim.equals(old.entries())) {
+                remote.write(REMOTE_MANIFEST, new Manifest(interim).toJson().getBytes(StandardCharsets.UTF_8));
+            }
             for (String jar : staleJars) {
                 remote.delete(UPDATE_DIR + "/" + jar);
             }
@@ -83,15 +101,16 @@ public final class Deployer {
                 String file = now.entries().get(id).file();
                 remote.upload(UPDATE_DIR + "/" + file, deployDir.resolve(file));
             }
-            if (remove.isEmpty()) {
-                remote.delete(REMOVE_FILE);
-            } else {
-                remote.write(REMOVE_FILE, (String.join("\n", remove) + "\n").getBytes(StandardCharsets.UTF_8));
-            }
+            remote.write(REMOVE_FILE, (String.join("\n", remove) + "\n").getBytes(StandardCharsets.UTF_8));
             remote.write(REMOTE_MANIFEST, now.toJson().getBytes(StandardCharsets.UTF_8));
         }
+        // The summary names the bundle only on the first deploy; later it is just a precaution.
+        SortedSet<String> reportRemoved = new TreeSet<>(remove);
+        if (!first) {
+            reportRemoved.remove(DeployList.BUNDLE_ID);
+        }
         return new Report(server, first, dryRun, Collections.unmodifiableSortedSet(upload),
-                Collections.unmodifiableSortedSet(remove), Collections.unmodifiableSortedSet(unchanged), now);
+                Collections.unmodifiableSortedSet(reportRemoved), Collections.unmodifiableSortedSet(unchanged), now);
     }
 
     private static void checkAutodeploy(String server, RemoteFiles remote) throws IOException {
