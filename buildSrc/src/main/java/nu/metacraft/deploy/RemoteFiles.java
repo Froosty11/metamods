@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 /** The file operations a deploy needs on a server; paths are relative to the SFTP home. */
@@ -20,4 +21,7 @@ public interface RemoteFiles extends Closeable {
 
     /** Deletes the file; false if it did not exist. */
     boolean delete(String path) throws IOException;
+
+    /** The plain file names directly under {@code dir}, or empty if {@code dir} does not exist. */
+    List<String> list(String dir) throws IOException;
 }

@@ -153,6 +153,35 @@ class DeployerTest {
     }
 
     @Test
+    void interruptedDeployThenDifferentSetLeavesNoOrphans() throws IOException {
+        // Deploy 2 (b-2, plus a new c-1) uploaded its jars then died before writing the manifest,
+        // so the server is still on M1 (b-1) with b-2.jar and c-1.jar sitting in mods/update.
+        alreadyDeployed(set("m1", mods("b", "1")));
+        remote.put(UPDATE_DIR + "/b-2.jar", "left by an interrupted deploy");
+        remote.put(UPDATE_DIR + "/c-1.jar", "left by an interrupted deploy");
+        Deployer.deploy("test", set("m3", mods("b", "3")), remote, false);
+        assertEquals(Set.of("b-3.jar"), remote.jarsIn(UPDATE_DIR));
+    }
+
+    @Test
+    void pendingJarOfTheSameSetIsReuploaded() throws IOException {
+        Path set = set("s", mods("a", "1", "b", "1"));
+        alreadyDeployed(set);
+        remote.put(UPDATE_DIR + "/b-1.jar", "leftover from an earlier attempt, server manifest agrees");
+        Deployer.Report report = Deployer.deploy("test", set, remote, false);
+        assertEquals(Set.of("b"), report.uploaded());
+        assertEquals(Set.of("a"), report.unchanged());
+    }
+
+    @Test
+    void aJarNotFromTheManifestInUpdateIsDeleted() throws IOException {
+        Path set = set("s", mods("a", "1"));
+        remote.put(UPDATE_DIR + "/orphan-1.jar", "not in any manifest");
+        Deployer.deploy("test", set, remote, false);
+        assertEquals(Set.of("a-1.jar"), remote.jarsIn(UPDATE_DIR));
+    }
+
+    @Test
     void refusesWhenALocalJarDoesNotMatchTheManifest() throws IOException {
         Path set = set("s", mods("a", "1"));
         TestJars.modJar(set.resolve("a-1.jar"), "a", "tampered");

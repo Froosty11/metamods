@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
@@ -39,6 +40,33 @@ public final class Deployer {
         Manifest old = first ? Manifest.empty() : parseServerManifest(server, oldBytes.get());
         ManifestDiff diff = ManifestDiff.of(old, now);
 
+        // mods/update is the source of truth for what's pending, not the (possibly never-written)
+        // old manifest: an interrupted deploy can leave jars there that no manifest ever named.
+        Map<String, String> fileToId = new HashMap<>();
+        now.entries().forEach((id, entry) -> fileToId.put(entry.file(), id));
+        SortedSet<String> jarsInUpdateDir = new TreeSet<>();
+        for (String name : remote.list(UPDATE_DIR)) {
+            if (name.endsWith(".jar")) {
+                jarsInUpdateDir.add(name);
+            }
+        }
+
+        SortedSet<String> upload = new TreeSet<>(diff.upload());
+        SortedSet<String> staleJars = new TreeSet<>();
+        for (String jar : jarsInUpdateDir) {
+            String id = fileToId.get(jar);
+            if (id != null) {
+                // Already sitting there with the right bytes (or about to be re-checked by
+                // checkLocalJars against manifest.json), but the server's manifest may never have
+                // recorded it, so upload again to be sure.
+                upload.add(id);
+            } else {
+                staleJars.add(jar);
+            }
+        }
+        SortedSet<String> unchanged = new TreeSet<>(diff.unchanged());
+        unchanged.removeAll(upload);
+
         // Removals still pending from deploys the server has not restarted for stay listed.
         SortedSet<String> remove = new TreeSet<>(diff.remove());
         remote.read(REMOVE_FILE).ifPresent(bytes -> remove.addAll(ids(bytes)));
@@ -48,8 +76,10 @@ public final class Deployer {
         remove.removeAll(now.entries().keySet());
 
         if (!dryRun) {
-            deleteStaleUploads(remote, old, now);
-            for (String id : diff.upload()) {
+            for (String jar : staleJars) {
+                remote.delete(UPDATE_DIR + "/" + jar);
+            }
+            for (String id : upload) {
                 String file = now.entries().get(id).file();
                 remote.upload(UPDATE_DIR + "/" + file, deployDir.resolve(file));
             }
@@ -60,8 +90,8 @@ public final class Deployer {
             }
             remote.write(REMOTE_MANIFEST, now.toJson().getBytes(StandardCharsets.UTF_8));
         }
-        return new Report(server, first, dryRun, diff.upload(), Collections.unmodifiableSortedSet(remove),
-                diff.unchanged(), now);
+        return new Report(server, first, dryRun, Collections.unmodifiableSortedSet(upload),
+                Collections.unmodifiableSortedSet(remove), Collections.unmodifiableSortedSet(unchanged), now);
     }
 
     private static void checkAutodeploy(String server, RemoteFiles remote) throws IOException {
@@ -88,16 +118,6 @@ public final class Deployer {
         } catch (DeployException e) {
             throw new DeployException(REMOTE_MANIFEST + " on " + server + " is unreadable (" + e.getMessage()
                     + "); delete it to redeploy everything; nothing was uploaded", e);
-        }
-    }
-
-    /** Jars an earlier deploy put in mods/update that this deploy replaces under another name or removes. */
-    private static void deleteStaleUploads(RemoteFiles remote, Manifest old, Manifest now) throws IOException {
-        for (Map.Entry<String, Manifest.Entry> e : old.entries().entrySet()) {
-            Manifest.Entry next = now.entries().get(e.getKey());
-            if (next == null || !next.file().equals(e.getValue().file())) {
-                remote.delete(UPDATE_DIR + "/" + e.getValue().file());
-            }
         }
     }
 

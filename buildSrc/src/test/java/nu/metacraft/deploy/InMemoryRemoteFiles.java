@@ -31,6 +31,18 @@ final class InMemoryRemoteFiles implements RemoteFiles {
     }
 
     @Override
+    public List<String> list(String dir) {
+        List<String> names = new ArrayList<>();
+        for (String path : files.keySet()) {
+            String rest = path.startsWith(dir + "/") ? path.substring(dir.length() + 1) : null;
+            if (rest != null && !rest.contains("/")) {
+                names.add(rest);
+            }
+        }
+        return names;
+    }
+
+    @Override
     public void close() {
     }
 
