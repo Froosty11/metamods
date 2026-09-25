@@ -21,6 +21,16 @@ idea.project.settings {
 	}
 }
 
+// Reproducible archives: a rebuild of unchanged source gives the same bytes, so a deploy
+// uploads only the jars that really changed (deploy/README.md). Loom's jar-in-jar nesting
+// writes its entries with a fixed timestamp and has no setting of its own.
+allprojects {
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+}
+
 // For all modules that are fabric mods (all mods and dist)
 subprojects {
     if (nonModSubProjects.contains(it.name)) {
