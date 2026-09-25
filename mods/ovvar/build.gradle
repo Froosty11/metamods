@@ -42,7 +42,7 @@ dependencies {
 	// its mixins behind DanseMixinPlugin.
 	// (This Loom auto-remaps plain configurations and the jar already carries Mojang names, so
 	// compileOnly/runtimeOnly are the `modCompileOnly`/`modLocalRuntime` of the spec.)
-	def danseJar = rootProject.files("libs/danse/danse-2.6.0-metacraft.1+26.3.jar")
+	def danseJar = rootProject.files("libs/danse/danse-2.6.0-metacraft.2+26.3.jar")
 	compileOnly danseJar
 	runtimeOnly danseJar
 	// Danse's one Polymer module ovvar does not already have. It bundles bil, DialogUtils, sgui,
