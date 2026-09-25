@@ -178,8 +178,10 @@ jobs:
           path: build/deploy
       - name: is this push still the branch's newest
         # The concurrency group runs deploys one at a time but not in order: an older push that
-        # gets its turn after a newer one must not deploy over it.
+        # gets its turn after a newer one must not deploy over it. `shell: bash` adds pipefail, so a
+        # failing ls-remote fails the job instead of reading as "not the newest".
         id: head
+        shell: bash
         run: |
           head=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
           if [ "$head" = "$GITHUB_SHA" ]; then
