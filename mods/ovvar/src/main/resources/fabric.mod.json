@@ -20,6 +20,7 @@
 		],
 		"fabric-gametest": [
 			"metacraft.ovvar.gametest.DanseShellParityTests",
+			"metacraft.ovvar.gametest.DanseModelsTests",
 			"metacraft.ovvar.gametest.DansePixelsTests",
 			"metacraft.ovvar.gametest.OvvarGameTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
