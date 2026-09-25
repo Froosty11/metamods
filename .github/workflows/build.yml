@@ -104,6 +104,11 @@ jobs:
           name: deploy-sets
           path: build/deploy
       - name: autodeploy.jar
+        id: autodeploy
+        env:
+          # FabricModsUpdate is private: cloning it needs a token that can read it. Without one
+          # (forks, pull requests from forks) the test is skipped with a notice.
+          AUTODEPLOY_REPO_TOKEN: ${{ secrets.AUTODEPLOY_REPO_TOKEN }}
         run: |
           if [ -n "$AUTODEPLOY_JAR_URL" ]; then
             curl -fsSL -o build/e2e-autodeploy.jar "$AUTODEPLOY_JAR_URL"
@@ -111,11 +116,23 @@ jobs:
             # Outside this checkout: FabricModsUpdate has no settings.gradle, so inside it Gradle
             # would take this repository's settings.gradle and fail.
             src="$RUNNER_TEMP/autodeploy-src"
-            git clone --depth 1 --branch "$AUTODEPLOY_REF" "https://github.com/$AUTODEPLOY_REPO.git" "$src"
+            url="https://github.com/$AUTODEPLOY_REPO.git"
+            if [ -n "$AUTODEPLOY_REPO_TOKEN" ]; then
+              url="https://x-access-token:$AUTODEPLOY_REPO_TOKEN@github.com/$AUTODEPLOY_REPO.git"
+            fi
+            if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 --branch "$AUTODEPLOY_REF" "$url" "$src"; then
+              if [ -z "$AUTODEPLOY_REPO_TOKEN" ]; then
+                echo "::notice::e2e skipped: $AUTODEPLOY_REPO is not readable without the AUTODEPLOY_REPO_TOKEN secret"
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              exit 1
+            fi
             (cd "$src" && JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew --no-daemon --quiet shadowJar)
             cp "$src/build/libs/autodeploy.jar" build/e2e-autodeploy.jar
           fi
-      - run: .github/scripts/e2e.sh build/e2e-autodeploy.jar
+      - if: steps.autodeploy.outputs.skip != 'true'
+        run: .github/scripts/e2e.sh build/e2e-autodeploy.jar
 
   preview:
     # What a merge would upload and remove, read from the real servers without writing.
