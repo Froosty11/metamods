@@ -101,8 +101,8 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	 *
 	 * The Fabric client game test harness runs its "dedicated" server <em>in the client's own
 	 * JVM</em>, so that is the environment here and a gesture cannot be started. On a real
-	 * dedicated server — where ovvar actually runs, and where {@code DansePixelsTests} exercises the
-	 * same pixels — the section applies and gestures work.
+	 * dedicated server — where ovvar actually runs, and where {@code DanseLayersTests} exercises the
+	 * same layers — the section applies and gestures work.
 	 *
 	 * <p>The fix is one line — those five entries under {@code "mixins"} instead of {@code "server"}
 	 * — and the dev jar in {@code libs/} carries it (see {@code libs/danse-LICENSE-NOTICE.txt}), so
@@ -125,7 +125,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 		if (!danseCanGestureHere()) {
 			System.out.println("[ovvar-danse-clienttest] skipped: Danse's server-side mixins are not applied in a "
 					+ "client JVM, so GesturePlayerModelEntity.setup cannot read the player's equipment. "
-					+ "See danseCanGestureHere(). The pixels themselves are covered by DansePixelsTests.");
+					+ "See danseCanGestureHere(). The layers themselves are covered by DanseLayersTests.");
 			return;
 		}
 		boolean compat = DanseHooks.active();

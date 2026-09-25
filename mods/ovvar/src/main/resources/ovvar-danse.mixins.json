@@ -4,8 +4,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"plugin": "metacraft.ovvar.compat.danse.DanseMixinPlugin",
 	"mixins": [
-		"GestureControllerMixin",
-		"TextureCacheMixin"
+		"GestureControllerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
