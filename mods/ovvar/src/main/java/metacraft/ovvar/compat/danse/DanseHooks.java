@@ -16,11 +16,14 @@ import net.minecraft.world.entity.LivingEntity;
  * and either of those would re-dress the invisible player in the middle of the gesture. So both
  * ask here first.
  *
- * <p><b>This is the whole of ovvar's Danse coupling outside the mixins.</b> Danse types are named
- * only inside {@link Impl}, a class that is not loaded until {@link #active()} has already said
- * Danse is here, so a server without Danse never verifies a class that mentions it. The system
- * property {@code ovvar.danse.compat=false} turns the whole layer off (this and
- * {@link DanseMixinPlugin} read the same flag), which is how the "before" screenshot is taken.
+ * <p>It is also the gate for the rest of the package. Danse types are named only here (inside
+ * {@link Impl}), in {@link DanseCompat}, {@link DanseLayers} and {@link DanseModels}, none of which
+ * load until {@link #active()} has said Danse is here, so a server without Danse never verifies a
+ * class that mentions it. The body layers need <em>our fork</em> of Danse
+ * ({@code libs/danse/NOTICE.txt}); upstream Danse has the same mod id but not the API, and gets the
+ * etiquette only ({@link #mode}). The system property {@code ovvar.danse.compat=false} turns the
+ * whole layer off (this and {@link DanseMixinPlugin} read the same flag), which is how the "before"
+ * screenshot is taken.
  */
 public final class DanseHooks {
 	private DanseHooks() {}
@@ -28,13 +31,39 @@ public final class DanseHooks {
 	/** {@code -Dovvar.danse.compat=false} disables the compat layer: hooks and mixins alike. */
 	public static final String PROPERTY = "ovvar.danse.compat";
 
-	private static final boolean ACTIVE =
-			!"false".equalsIgnoreCase(System.getProperty(PROPERTY, "true"))
-					&& FabricLoader.getInstance().isModLoaded("danse");
+	/** How much of the compat layer runs. */
+	public enum Mode {
+		/** No Danse, or switched off. */
+		OFF,
+		/** Danse without our fork's body-layer API: hold still during gestures, draw nothing. */
+		ETIQUETTE,
+		/** Our fork: the etiquette, and the ovve drawn on the stand-in as body layers. */
+		LAYERS
+	}
+
+	/** The body-layer API our fork adds; looked up as a resource so nothing is loaded to ask. */
+	private static final String BODY_LAYERS = "de/tomalbrc/danse/api/BodyLayers.class";
+
+	private static final Mode MODE = mode(
+			!"false".equalsIgnoreCase(System.getProperty(PROPERTY, "true")),
+			FabricLoader.getInstance().isModLoaded("danse"),
+			DanseHooks.class.getClassLoader().getResource(BODY_LAYERS) != null);
+
+	private static final boolean ACTIVE = MODE != Mode.OFF;
+
+	public static Mode mode(boolean enabled, boolean danseLoaded, boolean bodyLayers) {
+		if (!enabled || !danseLoaded) return Mode.OFF;
+		return bodyLayers ? Mode.LAYERS : Mode.ETIQUETTE;
+	}
 
 	/** Is Danse loaded and the compat layer switched on? */
 	public static boolean active() {
 		return ACTIVE;
+	}
+
+	/** Is it our fork, so the ovve can be drawn on the stand-in? */
+	public static boolean layers() {
+		return MODE == Mode.LAYERS;
 	}
 
 	/**
@@ -63,7 +92,7 @@ public final class DanseHooks {
 		Combos.resendEquipment(player);
 	}
 
-	/** The only class in ovvar that names a Danse type; loaded lazily, behind {@link #ACTIVE}. */
+	/** Danse's gesture registry; loaded lazily, behind {@link #ACTIVE}. */
 	private static final class Impl {
 		private Impl() {}
 

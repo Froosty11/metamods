@@ -1,6 +1,7 @@
 package metacraft.ovvar.gametest;
 
 import de.tomalbrc.danse.util.MinecraftSkinParser.BodyPart;
+import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.compat.danse.DanseLayers;
 import metacraft.ovvar.compat.danse.DanseModels;
 import metacraft.ovvar.content.*;
@@ -98,6 +99,21 @@ public final class DanseLayersTests {
 		}
 		check(helper, !DanseLayers.INSTANCE.replacesArmor(new ItemStack(Items.IRON_LEGGINGS)), "iron leggings blanked");
 		check(helper, DanseLayers.INSTANCE.replacesArmor(ovve(Chapter.DATA, true)), "the ovve's server-side pixels not blanked");
+		helper.succeed();
+	}
+
+	/**
+	 * Upstream Danse has the same mod id as our fork but no body-layer API: ovvar must keep its
+	 * gesture etiquette and leave the layers off, rather than crash reaching for a class that isn't there.
+	 */
+	@GameTest
+	public void upstreamDanseGetsEtiquetteButNoLayers(GameTestHelper helper) {
+		check(helper, DanseHooks.mode(true, true, true) == DanseHooks.Mode.LAYERS, "the fork: layers");
+		check(helper, DanseHooks.mode(true, true, false) == DanseHooks.Mode.ETIQUETTE, "upstream Danse: etiquette only");
+		check(helper, DanseHooks.mode(true, false, false) == DanseHooks.Mode.OFF, "no Danse: off");
+		check(helper, DanseHooks.mode(false, true, true) == DanseHooks.Mode.OFF, "switched off by property: off");
+		// and the lookup itself finds our fork's API here, where the fork is on the classpath
+		check(helper, !danse() || DanseHooks.layers(), "our fork is loaded but DanseHooks did not find its body-layer API");
 		helper.succeed();
 	}
 
