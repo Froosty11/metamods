@@ -38,6 +38,8 @@ A brand-new mod also needs its `include "mods:<name>"` line in `settings.gradle`
 Delete its line from `deploy/<server>.txt` and push. The deploy tells the server to delete it. At the
 next restart it is gone, together with any other changes.
 
+Taking a mod off a list deletes that mod id from the server even if its jar was put there by hand.
+
 ## Adding a mod from outside the repo
 
 For jars built elsewhere (ovvar, metacraft-booklet, the PolyDecorations fork, a Modrinth mod):
@@ -70,7 +72,9 @@ It also publishes a release, `deploy-<server>-<date>-<commit>`, with that server
 are kept forever.
 
 Deploys to one server run one at a time. If several pushes queue up for the same server, the newest one
-wins: a queued deploy or rollback that a newer one replaces is cancelled.
+wins: a queued deploy or rollback that a newer one replaces is cancelled, and a push that is no longer
+its branch's newest commit when its turn comes deploys nothing (its run says so). If the newest push
+fails to build, nothing is deployed until a later push builds.
 
 ## Rolling back
 
@@ -82,7 +86,8 @@ To put a server back to an earlier state:
 3. It uploads what differs from the server's current state and removes what that release didn't have.
    Restart the server.
 
-A rollback builds nothing, so it works even when the branch doesn't build.
+A rollback compiles no mods, so it works even when a mod doesn't compile. It still needs `dev`'s
+Gradle build to configure.
 
 ## When a deploy refuses
 
@@ -95,8 +100,8 @@ A rollback builds nothing, so it works even when the branch doesn't build.
 - **"unknown project <name>"**: a typo, or the mod isn't in `settings.gradle`.
 - **"sha256 mismatch for <url>"**: the external jar isn't the one you pinned. Check the URL, and update
   the hash only if you meant to change the jar.
-- **"a list may not contain metacraft"**: that's the old all-in-one bundle. It is deleted on the first
-  deploy and is never listed.
+- **"a list may not contain metacraft"**: that's the old all-in-one bundle. Every deploy deletes it,
+  and it is never listed.
 
 ## What the pipeline doesn't touch
 
