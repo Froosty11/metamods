@@ -31,4 +31,4 @@ metacraft-mob-modifiers
 metacraft-player-trading
 portal-opening
 # Danse gestures, our AGPL fork (github.com/Froosty11/danse); needs polymer-resource-pack-extras on the server
-external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.1/danse-2.6.0-metacraft.1+26.3.jar sha256:84307876bda6c6c936b3de22e8de8f3a270f820e5fbb3eca0d0513ad3ef43a56
+external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.2/danse-2.6.0-metacraft.2+26.3.jar sha256:b7d9f6fdeb992e036af85d03cd3b80476d5783ebf04fb015954dabd95ff94f34
