@@ -3,9 +3,6 @@
 Every server gets the mods on its list, each as its own jar. A push uploads only the jars that changed
 and deletes mods that were taken off the list. Changes take effect at the server's next restart.
 
-> Draft: this describes the pipeline as designed in
-> `docs/superpowers/specs/2026-09-24-split-deploy-design.md`. It becomes true when that lands.
-
 ## Which branch goes where
 
 `deploy/servers.json` says which servers a branch deploys to:
@@ -16,8 +13,9 @@ and deletes mods that were taken off the list. Changes take effect at the server
 | `prod`     | survival, test   |
 | `minigame` | event            |
 
-Pushing to any other branch, or opening a PR, builds and tests but deploys nothing. The workflow run
-still shows, per server, exactly what *would* be uploaded and removed.
+Pushing to any other branch, or opening a PR, builds and tests but deploys nothing. Every run keeps
+the built sets as the `deploy-sets` artifact, and a PR's run shows (job **preview**) exactly what
+merging it *would* upload to and remove from each server of the target branch.
 
 ## Adding one of our mods to a server
 
@@ -71,12 +69,16 @@ Every deploy run has a summary (the run's page on GitHub → Summary) with, per 
 It also publishes a release, `deploy-<server>-<date>-<commit>`, with that server's exact jars. Releases
 are kept forever.
 
+Deploys to one server run one at a time. If several pushes queue up for the same server, the newest one
+wins: a queued deploy or rollback that a newer one replaces is cancelled.
+
 ## Rolling back
 
 To put a server back to an earlier state:
 
 1. Find the release: Releases → `deploy-<server>-…` from before the problem.
-2. Actions → the build workflow → **Run workflow**. Choose the `server` and paste the `release` tag.
+2. Actions → the build workflow → **Run workflow**, on `dev` (rollback only runs from the default
+   branch; you still choose any server there). Choose the `server` and paste the `release` tag.
 3. It uploads what differs from the server's current state and removes what that release didn't have.
    Restart the server.
 
@@ -85,7 +87,7 @@ A rollback builds nothing, so it works even when the branch doesn't build.
 ## When a deploy refuses
 
 - **"update autodeploy.jar on <server> first"**: that server's autodeploy is too old to delete mods.
-  Put the current `autodeploy.jar` from METAcraft-KTH/FabricModsUpdate's releases on the server, in
+  Put `autodeploy.jar` from METAcraft-KTH/FabricModsUpdate's releases (v1.1 or later) on the server, in
   place of the old one, and restart it once. The startup line stays the same. Nothing was uploaded, so
   push again (or re-run the job) afterwards.
 - **"<mod> needs <other mod>, which is not on <server>'s list"**: add the other mod to the list, or take
@@ -101,3 +103,7 @@ A rollback builds nothing, so it works even when the branch doesn't build.
 Jars it didn't deploy stay as they are, for example Fabric API or Polymer put in `mods/` by hand. It
 keeps track of what it deployed in `mods/metacraft-deploy.json` on each server. Don't edit or delete
 that file; if it is lost, the next deploy uploads everything again, which is harmless.
+
+The deploy owns `mods/update`: it is a staging folder, not a place to put jars by hand. Any jar found
+there that isn't part of the deploy is deleted by the next deploy. Jars put in `mods/` itself by hand
+are still left alone.
