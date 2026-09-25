@@ -1,0 +1,18 @@
+danse-2.6.0-metacraft.1+26.3.jar
+================================
+
+danse — player gestures for Fabric servers, by tomalbrc, Drex and ExtraJuiceMan.
+  Upstream: https://github.com/tomalbrc/danse
+  Licence: GNU Affero General Public License v3.0 (LICENSE_danse inside the jar). Upstream's
+  fabric.mod.json says LGPL-3.0-and-later while its LICENSE file is AGPL-3.0; we follow the AGPL.
+
+This jar is built from Metacraft's fork, which is public:
+  https://github.com/Froosty11/danse   branch metacraft   commit 86ae3622e550ff8d0ac0eeb5fe3b02c22561d31b
+with
+  git clone https://github.com/Froosty11/danse && cd danse && git checkout 86ae3622e550ff8d0ac0eeb5fe3b02c22561d31b
+  JAVA_HOME=<a JDK 25> ./gradlew build
+
+Changes from upstream v2.6.0+26.3: mixins listed as common, a body-layer API
+(de.tomalbrc.danse.api) and /gesture source, which tells players where this source is.
+
+It is its own jar: nothing in METAmods includes or relicenses it. Ovvar only calls its API.

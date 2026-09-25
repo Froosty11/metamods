@@ -36,21 +36,21 @@ dependencies {
 	// so the server has it wherever ovvar goes; the other mods' guide pages join the same book.
 	implementation(include("eu.pb4:booklet:${project.booklet_version}"))
 
-	// Danse (gestures) — compat only, and only in this module's dev/test runtime. Never a `depends`:
-	// metacraft.ovvar.compat.danse is the one package that names Danse types and it is reached only
-	// behind FabricLoader.isModLoaded("danse"), its mixins behind DanseMixinPlugin. There is no
-	// published 2.6.0/26.3 build (Modrinth stops at 2.5.4+26.1), so libs/ holds one built from
-	// upstream commit 8af91e51 — see libs/danse-LICENSE-NOTICE.txt.
+	// Danse (gestures) — our AGPL fork, as its own jar (libs/danse/NOTICE.txt). Compat only, and only
+	// in this module's dev/test runtime. Never a `depends`: metacraft.ovvar.compat.danse is the one
+	// package that names Danse types and it is reached only behind FabricLoader.isModLoaded("danse"),
+	// its mixins behind DanseMixinPlugin.
 	// (This Loom auto-remaps plain configurations and the jar already carries Mojang names, so
 	// compileOnly/runtimeOnly are the `modCompileOnly`/`modLocalRuntime` of the spec.)
-	compileOnly files("libs/danse-2.6.0+26.3.jar")
-	runtimeOnly files("libs/danse-2.6.0+26.3.jar")
+	def danseJar = rootProject.files("libs/danse/danse-2.6.0-metacraft.1+26.3.jar")
+	compileOnly danseJar
+	runtimeOnly danseJar
 	// Danse's one Polymer module ovvar does not already have. It bundles bil, DialogUtils, sgui,
 	// placeholder-api and map-canvas-api as nested jars, but depends on this one without including it.
 	runtimeOnly("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
 	// The client gesture test starts a gesture through Danse's own controller rather than its
 	// command, so a failure inside Danse surfaces as a stack trace instead of a swallowed chat line.
-	gametestCompileOnly files("libs/danse-2.6.0+26.3.jar")
+	gametestCompileOnly danseJar
 }
 
 // The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from
