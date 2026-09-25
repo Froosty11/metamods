@@ -300,12 +300,35 @@ class DeployerTest {
     }
 
     @Test
-    void interimManifestForgetsWhatTheDeployChanges() throws IOException {
-        alreadyDeployed(set("old", mods("a", "1", "b", "1", "c", "1")));
+    void interimManifestNeverMatchesARealJar() throws IOException {
+        Path old = set("old", mods("a", "1", "b", "1", "c", "1", "d", "1"));
+        alreadyDeployed(old);
         remote.put(REMOVE_FILE, "d\n");
         remote.failOnWrite = 2; // only the interim manifest gets through
-        assertThrows(IOException.class, () -> Deployer.deploy("test", set("new", mods("a", "1", "b", "2")), remote, false));
-        assertEquals(Set.of("a"), Manifest.parse(remote.text(REMOTE_MANIFEST)).entries().keySet());
+        assertThrows(IOException.class, () -> Deployer.deploy("test", set("new", mods("a", "1", "b", "2", "e", "1")), remote, false));
+        Map<String, Manifest.Entry> before = Manifest.read(old.resolve("manifest.json")).entries();
+        Map<String, Manifest.Entry> interim = Manifest.parse(remote.text(REMOTE_MANIFEST)).entries();
+        assertEquals(Set.of("a", "b", "c", "d"), interim.keySet(), "touched mods stay named; the new e needs no entry");
+        assertEquals(before.get("a"), interim.get("a"), "an untouched mod keeps its entry");
+        for (String touched : List.of("b", "c", "d")) {
+            assertEquals("0".repeat(64), interim.get(touched).sha256());
+            assertEquals(before.get(touched).file(), interim.get(touched).file());
+        }
+    }
+
+    @Test
+    void interruptedUploadAndRemovalThenRerunStillRemoves() throws IOException {
+        Path m1 = sameNamesSet("m1", mods("a", "1", "b", "1"));
+        installed(m1);
+        Path m2 = sameNamesSet("m2", mods("a", "1", "c", "1"));
+        remote.failOnWrite = remote.writes.size() + 2; // the interim manifest, then c.jar
+        assertThrows(IOException.class, () -> Deployer.deploy("test", m2, remote, false));
+        assertFalse(remote.files.containsKey(REMOVE_FILE), "interrupted before remove.txt");
+
+        Deployer.Report report = Deployer.deploy("test", m2, remote, false);
+        assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE));
+        assertEquals(Set.of("b"), report.removed());
+        assertEquals(Set.of("c"), report.uploaded());
     }
 
     @Test

@@ -17,8 +17,9 @@ import java.util.TreeSet;
  * Deploys a set to a server: checks autodeploy can delete, uploads what differs from the
  * server's manifest, lists removals in remove.txt, and writes the manifest last so an
  * interrupted deploy is retried in full. Before its first change it rewrites the server's
- * manifest without the mods it is about to upload or remove, so that after an interrupted
- * deploy (and maybe a restart that installed part of it) the next deploy sends those again.
+ * manifest with an unknown sha256 for the mods it is about to upload or remove, so that after an
+ * interrupted deploy (and maybe a restart that installed part of it) the next deploy sends or
+ * removes those again.
  */
 public final class Deployer {
     /** The first FabricModsUpdate version that handles remove.txt. */
@@ -27,6 +28,8 @@ public final class Deployer {
     public static final String MARKER = UPDATE_DIR + "/.autodeploy-version";
     public static final String REMOVE_FILE = UPDATE_DIR + "/remove.txt";
     public static final String REMOTE_MANIFEST = "mods/metacraft-deploy.json";
+    /** The sha256 the interim manifest gives mods a deploy is changing: valid, but no jar's. */
+    static final String UNKNOWN_SHA256 = "0".repeat(64);
 
     public record Report(String server, boolean firstDeploy, boolean dryRun, SortedSet<String> uploaded,
                          SortedSet<String> removed, SortedSet<String> unchanged, Manifest manifest) {}
@@ -83,12 +86,17 @@ public final class Deployer {
 
         // The server's manifest records what was sent, and a restart installs whatever an
         // interrupted deploy got as far as sending (jar names don't change between builds). So
-        // until this deploy is complete the server's manifest must not vouch for any mod it
-        // touches: a mod it doesn't name is sent again by the next deploy.
+        // until this deploy is complete the server's manifest must not vouch for the bytes of any
+        // mod it touches, yet must keep naming it: an entry whose sha256 matches no jar is uploaded
+        // again by the next deploy if still listed, and removed if not. Ids new in this deploy get
+        // no entry: they aren't in the old manifest either, so the next deploy uploads them anyway.
         SortedMap<String, Manifest.Entry> interim = new TreeMap<>(old.entries());
-        interim.keySet().removeAll(upload);
-        interim.keySet().removeAll(remove);
-        interim.keySet().removeAll(pendingRemovals);
+        SortedSet<String> touched = new TreeSet<>(upload);
+        touched.addAll(remove);
+        touched.addAll(pendingRemovals);
+        for (String id : touched) {
+            interim.computeIfPresent(id, (i, e) -> new Manifest.Entry(e.file(), UNKNOWN_SHA256, e.version(), e.source()));
+        }
 
         if (!dryRun) {
             if (!interim.equals(old.entries())) {
