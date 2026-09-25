@@ -108,9 +108,12 @@ jobs:
           if [ -n "$AUTODEPLOY_JAR_URL" ]; then
             curl -fsSL -o build/e2e-autodeploy.jar "$AUTODEPLOY_JAR_URL"
           else
-            git clone --depth 1 --branch "$AUTODEPLOY_REF" "https://github.com/$AUTODEPLOY_REPO.git" build/autodeploy-src
-            (cd build/autodeploy-src && JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew --no-daemon --quiet shadowJar)
-            cp build/autodeploy-src/build/libs/autodeploy.jar build/e2e-autodeploy.jar
+            # Outside this checkout: FabricModsUpdate has no settings.gradle, so inside it Gradle
+            # would take this repository's settings.gradle and fail.
+            src="$RUNNER_TEMP/autodeploy-src"
+            git clone --depth 1 --branch "$AUTODEPLOY_REF" "https://github.com/$AUTODEPLOY_REPO.git" "$src"
+            (cd "$src" && JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew --no-daemon --quiet shadowJar)
+            cp "$src/build/libs/autodeploy.jar" build/e2e-autodeploy.jar
           fi
       - run: .github/scripts/e2e.sh build/e2e-autodeploy.jar
 
