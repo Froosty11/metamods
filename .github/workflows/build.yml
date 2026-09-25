@@ -148,7 +148,10 @@ jobs:
 
   deploy:
     needs: [build, e2e]
-    if: github.event_name == 'push' && needs.build.outputs.servers != '[]'
+    if: >-
+      github.event_name == 'push'
+      && github.ref_type == 'branch'
+      && needs.build.outputs.servers != '[]'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -170,12 +173,26 @@ jobs:
         with:
           name: deploy-sets
           path: build/deploy
+      - name: is this push still the branch's newest
+        # The concurrency group runs deploys one at a time but not in order: an older push that
+        # gets its turn after a newer one must not deploy over it.
+        id: head
+        run: |
+          head=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "newest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$GITHUB_REF_NAME is now at ${head:-nothing}, not $GITHUB_SHA; not deploying this older push"
+            echo "newest=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: deploy to ${{ matrix.server }}
+        if: steps.head.outputs.newest == 'true'
         env:
           AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}
           SERVER: ${{ matrix.server }}
         run: ./gradlew deployServer -Pserver="$SERVER" -PdeployDir="build/deploy/$SERVER"
       - name: publish the release
+        if: steps.head.outputs.newest == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
