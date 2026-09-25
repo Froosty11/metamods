@@ -273,3 +273,15 @@ gradle.projectsEvaluated {
         }
     }
 }
+
+tasks.register('deployServer', nu.metacraft.deploy.DeployServerTask) {
+    group = 'deploy'
+    description = 'Uploads build/deploy/<server>/ to <server> (deploy/servers.json) over SFTP. Needs -Pserver=<name> and AUTODEPLOY_PASSWORD.'
+    def serverName = providers.gradleProperty('server')
+    server = serverName
+    deployDir = layout.projectDirectory.dir(providers.gradleProperty('deployDir')
+            .orElse(serverName.map { "build/deploy/${it}".toString() }))
+    serversFile = layout.projectDirectory.file(providers.gradleProperty('serversFile').orElse('deploy/servers.json'))
+    dryRun = providers.gradleProperty('dryRun').map { it.toBoolean() }.orElse(false)
+    summaryFile = layout.buildDirectory.file(serverName.map { "deploy/${it}.summary.md".toString() })
+}
