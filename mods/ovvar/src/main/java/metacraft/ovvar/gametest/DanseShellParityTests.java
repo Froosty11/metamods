@@ -88,6 +88,51 @@ public final class DanseShellParityTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A shell over a texture cropped to the part's own rectangle ({@code BodyLayerModels.region})
+	 * shows exactly what the full-layout shell shows: the crop is what keeps a pack of many patch
+	 * layers from filling the items atlas with transparent 256×128 sheets.
+	 */
+	@GameTest
+	public void aCroppedShellShowsWhatTheFullShellShows(GameTestHelper helper) {
+		if (!danse()) { helper.succeed(); return; }
+		BufferedImage full = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
+		for (int y = 0; y < 32; y++) for (int x = 0; x < 64; x++) full.setRGB(x, y, 0xFF000000 | (x << 8) | y);
+		for (BodyPart part : PARTS) {
+			for (int vShift : isLeft(part) ? new int[]{0, -16} : new int[]{0}) {
+				int[] r = BodyLayerModels.region(part, vShift);
+				BufferedImage crop = full.getSubimage(r[0], r[1], r[2], r[3]);
+				JsonObject whole = faces(BodyLayerModels.shell(part, Identifier.parse("ovvar:test"), vShift, 0f));
+				JsonObject cropped = faces(BodyLayerModels.shell(part, Identifier.parse("ovvar:test"), vShift, 0f, r));
+				for (Direction face : MODEL_FACES) {
+					// off texel edges: a face is 3 to 12 texels wide, and none of these land on a boundary
+					for (double s : new double[]{0.13, 0.52, 0.87}) {
+						for (double t : new double[]{0.13, 0.52, 0.87}) {
+							int a = sample(full, uv(whole, face), s, t), b = sample(crop, uv(cropped, face), s, t);
+							if (a != b) {
+								helper.fail(part + " vShift " + vShift + " " + face + " at (" + s + "," + t + "): full shell "
+										+ Integer.toHexString(a) + ", cropped shell " + Integer.toHexString(b));
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/** The texel a face shows at fraction (s, t) from its u1/v1 corner; UVs are 0–16 over the whole image. */
+	private static int sample(BufferedImage image, float[] uv, double s, double t) {
+		int col = (int) Math.floor((uv[0] + s * (uv[2] - uv[0])) / 16 * image.getWidth());
+		int row = (int) Math.floor((uv[1] + t * (uv[3] - uv[1])) / 16 * image.getHeight());
+		return image.getRGB(col, row) & 0xFFFFFF;
+	}
+
+	private static boolean isLeft(BodyPart part) {
+		return part == BodyPart.LEFT_ARM || part == BodyPart.LEFT_LEG;
+	}
+
 	@GameTest
 	public void vShiftMovesEveryFaceUpByThatManyTexels(GameTestHelper helper) {
 		if (!danse()) { helper.succeed(); return; }

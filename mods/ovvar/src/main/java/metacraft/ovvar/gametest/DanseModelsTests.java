@@ -29,7 +29,6 @@ public final class DanseModelsTests {
 	public void everyReferencedModelAndTextureExists(GameTestHelper helper) {
 		if (!danse()) { helper.succeed(); return; }
 		Map<String, String> files = pack();
-		if (!files.containsKey("assets/minecraft/atlases/items.json")) { helper.fail("no items atlas source"); return; }
 		int definitions = 0;
 		for (var e : files.entrySet()) {
 			if (!e.getKey().startsWith("assets/ovvar/items/danse/")) continue;
@@ -39,8 +38,8 @@ public final class DanseModelsTests {
 				String json = files.get(path);
 				if (json == null) { helper.fail(e.getKey() + " names " + model + ", which is not in the pack"); return; }
 				String texture = JsonParser.parseString(json).getAsJsonObject().getAsJsonObject("textures").get("t").getAsString();
-				String png = "/assets/ovvar/textures/" + texture.substring("ovvar:".length()) + ".png";
-				if (DanseModels.class.getResource(png) == null) { helper.fail(path + " uses " + texture + ", which datagen did not make"); return; }
+				String png = "assets/ovvar/textures/" + texture.substring("ovvar:".length()) + ".png";
+				if (!files.containsKey(png)) { helper.fail(path + " uses " + texture + ", which is not in the pack"); return; }
 			}
 		}
 		if (definitions != 6) { helper.fail(definitions + " item definitions, expected 6 (3 parts × 2 pieces)"); return; }
@@ -80,6 +79,37 @@ public final class DanseModelsTests {
 			helper.fail("draws(piece, part) disagrees with the top = body+arms, bottom = body+legs rule");
 			return;
 		}
+		helper.succeed();
+	}
+
+	/**
+	 * Every texture is a crop of one part's rectangle (at most 24×16 skin texels, the body's strip),
+	 * under {@code item/} where the vanilla items atlas already looks — no atlas source of our own,
+	 * so no full 256×128 layer sheets stitched into every player's atlas.
+	 */
+	@GameTest
+	public void texturesAreCroppedToTheirPartAndNeedNoAtlasSource(GameTestHelper helper) {
+		if (!danse()) { helper.succeed(); return; }
+		Map<String, byte[]> files = new TreeMap<>();
+		DanseModels.write(files::put);
+		if (files.keySet().stream().anyMatch(p -> p.contains("/atlases/"))) { helper.fail("an atlas file in the pack"); return; }
+		int pngs = 0;
+		for (var e : files.entrySet()) {
+			if (!e.getKey().endsWith(".png")) continue;
+			pngs++;
+			if (!e.getKey().startsWith("assets/ovvar/textures/item/danse/")) { helper.fail(e.getKey() + " is outside item/danse/"); return; }
+			try {
+				java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(e.getValue()));
+				if (image.getWidth() > 24 * Spot.DETAIL || image.getHeight() > 16 * Spot.DETAIL) {
+					helper.fail(e.getKey() + " is " + image.getWidth() + "×" + image.getHeight() + ", bigger than a part's strip");
+					return;
+				}
+			} catch (java.io.IOException ex) {
+				helper.fail(e.getKey() + " does not read as a PNG: " + ex.getMessage());
+				return;
+			}
+		}
+		if (pngs == 0) { helper.fail("no textures in the pack"); return; }
 		helper.succeed();
 	}
 

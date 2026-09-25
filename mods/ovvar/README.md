@@ -752,15 +752,18 @@ draws the ovve as body layers instead:
 - `DanseModels` writes one item definition per piece and part (`ovvar:danse/top/body`, …) into the
   pack: the base cloth chosen by `custom_model_data` string 0, then one `select` per cell on the
   part, patch chosen by string `1 + Spot.cells(piece).indexOf(cell)`. Every model is a
-  `BodyLayerModels.shell` over ovvar's own equipment texture, reached through an `items` atlas
-  source, so it is the same 256×128 art a real client's armour shows.
+  `BodyLayerModels.shell` over ovvar's own equipment texture, the same 256×128 art a real client's
+  armour shows, cropped at pack build to the one part it draws on and put under `item/danse/`,
+  where the vanilla items atlas already looks. Full sheets would grow every player's items atlas
+  to 8192×4096; the crops keep it at 2048×2048, and a crop with nothing on it is left out.
 - `DanseLayers` answers Danse per part and pass (bottom = inner, body and legs; top = outer, body
   and arms, including under a real chestplate) and tells Danse not to draw its own pixels for an ovve.
 - `DanseHooks` and `GestureControllerMixin` keep ovvar from re-dressing a player mid-gesture and
   put the cuffs back afterwards.
 
 Ovvar never depends on Danse: the package is reached only behind `isModLoaded("danse")`, and
-`-Dovvar.danse.compat=false` switches it off. Players can find the fork's source with
+`-Dovvar.danse.compat=false` switches it off. With upstream Danse (no body-layer API) ovvar still
+holds still during gestures, but the stand-in wears no ovve, and the log says so. Players can find the fork's source with
 `/gesture source`.
 
 | Compat off | Compat on | After the gesture |
