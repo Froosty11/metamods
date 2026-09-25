@@ -764,7 +764,7 @@ draws the ovve as body layers instead:
 Ovvar never depends on Danse: the package is reached only behind `isModLoaded("danse")`, and
 `-Dovvar.danse.compat=false` switches it off. With upstream Danse (no body-layer API) ovvar still
 holds still during gestures, but the stand-in wears no ovve, and the log says so. Players can find the fork's source with
-`/gesture source`.
+`/danse source`.
 
 | Compat off | Compat on | After the gesture |
 |---|---|---|

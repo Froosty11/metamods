@@ -22,6 +22,7 @@
 			"metacraft.ovvar.gametest.DanseShellParityTests",
 			"metacraft.ovvar.gametest.DanseModelsTests",
 			"metacraft.ovvar.gametest.DanseLayersTests",
+			"metacraft.ovvar.gametest.DanseForkTests",
 			"metacraft.ovvar.gametest.OvvarGameTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
 			"metacraft.ovvar.gametest.BlockbenchManifestTests",
