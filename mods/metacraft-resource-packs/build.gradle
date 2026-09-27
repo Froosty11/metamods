@@ -1,6 +1,7 @@
 version = project.resource_packs_version
 
 addPolymerDependency()
+addConfigDependency()
 
 dependencies {
 	compileOnly("eu.pb4:polymer-autohost:${project.polymer_version}")

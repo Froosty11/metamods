@@ -8,3 +8,4 @@ addPolymerDependency()
 
 addProjectDependency(":mods:metacraft-zones")
 addProjectDependency(":mods:portal-blocker")
+addConfigDependency()

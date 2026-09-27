@@ -9,9 +9,9 @@ import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.EntityTypes;
-import nu.metacraft.lib.config.container.ConfigContainer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.portalopening.raid.MobEntry;
 import se.metacraft.portalopening.raid.Wave;
 
@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 public class PortalOpening implements ModInitializer {
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("portal-opening.json");
 
 	private static final ConfigContainer<Config> config = ConfigContainer.Builder.create(
 			Config.CODEC, () -> {
@@ -47,7 +46,7 @@ public class PortalOpening implements ModInitializer {
 				).build(), UniformInt.of(5, 10), 0.75, Optional.of(UniformInt.of(1, 2)))));
 				return config;
 			}
-	).build(configPath);
+	).build("portal-opening");
 
 	public static final Logger LOGGER = LogManager.getLogger("portal-opening");
 

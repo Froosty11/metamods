@@ -6,7 +6,8 @@ import net.minecraft.world.level.storage.LevelResource;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
 import nu.metacraft.cutscenes.extension.MinecraftServerExtension;
 import nu.metacraft.cutscenes.util.DefaultCutscenes;
-import nu.metacraft.lib.config.JsonHelper;
+import nu.metacraft.lib.util.helper.JsonHelper;
+
 
 import java.util.Collection;
 import java.util.HashMap;

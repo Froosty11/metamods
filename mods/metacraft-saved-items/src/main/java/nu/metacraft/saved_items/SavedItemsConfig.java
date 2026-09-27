@@ -26,10 +26,9 @@ import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.util.valueproviders.UniformFloat;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.item.Items;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.container.ServerAware;
-import nu.metacraft.lib.config.extensions.Modifiable;
 import nu.metacraft.saved_items.item_saving.SavedItemsData;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.container.ServerAware;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -37,9 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class SavedItemsConfig implements Modifiable {
-
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(SavedItems.MODID + ".json");
+public class SavedItemsConfig {
 
 	public static final MapCodec<SavedItemsConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(SavingType.CODEC, SavingType.CODEC.listOf()).fieldOf("groups").forGetter(
@@ -98,12 +95,10 @@ public class SavedItemsConfig implements Modifiable {
 				));
 				return new Loaded(map);
 			}
-	).build(configPath);
+	).build(SavedItems.MODID);
 
 	private final Multimap<SavingType, SavingType> groups;
 	private final Multimap<SavingType, SavingType> reverseGroupLookup;
-
-	private boolean isModified = false;
 
 	private static <K, V> Multimap<K, V> createMultimap() {
 		return MultimapBuilder.hashKeys().arrayListValues().build();
@@ -172,16 +167,6 @@ public class SavedItemsConfig implements Modifiable {
 		return StreamSupport.stream(
 				((Iterable<SavingType>) () -> new SavingTypeIterator(start, server, reverse)).spliterator(), false
 		);
-	}
-
-	@Override
-	public void setModified(boolean modified) {
-		isModified = modified;
-	}
-
-	@Override
-	public boolean isModified() {
-		return isModified;
 	}
 
 	public class SavingTypeIterator implements Iterator<SavingType> {
