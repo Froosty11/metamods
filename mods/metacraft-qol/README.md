@@ -40,7 +40,7 @@ The `void_anchor` section of `config/metacraft-qol.json`:
 | `rift_depth` | `6.0` | how far below the player the rift opens |
 | `descent_speed` | `0.3` | blocks per tick while sinking into the rift |
 | `rift_ticks` | `30` | the longest a player sinks before the rift takes them |
-| `rift_size` | `3.0` | the rift's width in blocks |
+| `rift_size` | `4.0` | the rift's width in blocks |
 
 ### The rift shader
 

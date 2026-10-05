@@ -1,5 +1,6 @@
 // Vanilla 26.3 item.vsh with one addition (metacraft-qol, the void anchor): a vertex tinted exactly
-// #FEFEFD belongs to a void-anchor rift, and gets a flag plus its corner's place on the quad.
+// #FEFEFD belongs to a void-anchor rift, and gets a flag, a corner index for its place on the quad,
+// and its view-space position (for the rift's depth).
 // Re-diff against vanilla on every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
@@ -36,6 +37,7 @@ layout(location = 4) out vec4 overlayColor;
 layout(location = 5) out vec2 texCoord0;
 layout(location = 7) out vec2 riftUv;
 layout(location = 8) out float riftFlag;
+layout(location = 9) out vec3 riftPos;
 #ifdef GLINT
 layout(location = 6) out vec2 texCoordGlint;
 #endif
@@ -64,6 +66,7 @@ void main() {
         riftFlag = 0.0;
         riftUv = vec2(0.0);
     }
+    riftPos = (ModelViewMat * vec4(Position, 1.0)).xyz;
     #ifdef GLINT
     #ifdef GLINT_SPECIAL
     texCoordGlint = (TextureMat * vec4(UV3, 0.0, 1.0)).xy;
