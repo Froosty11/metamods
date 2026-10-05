@@ -180,11 +180,25 @@ public class METACodecs {
 		);
 	}
 
-	public static <K, V, C extends PMap<K, V>> Codec<C> createPMapCodec(
+	public static <K, V> Codec<PMap<K, V>> createPMapCodec(
+		Codec<K> keyCodec, Codec<V> valueCodec, PMap<K, V> emptyCollection
+	) {
+		return createTypedPMapCodec(keyCodec, valueCodec, emptyCollection);
+	}
+
+	public static <K, V, C extends PMap<K, V>> Codec<C> createTypedPMapCodec(
 		Codec<K> keyCodec, Codec<V> valueCodec, C emptyCollection
 	) {
+		return wrapTypedPMapCodec(Codec.unboundedMap(keyCodec, valueCodec), emptyCollection);
+	}
+
+	public static <K, V> Codec<PMap<K, V>> wrapPMapCodec(Codec<Map<K, V>> codec, PMap<K, V> emptyCollection) {
+		return wrapTypedPMapCodec(codec, emptyCollection);
+	}
+
+	public static <K, V, C extends PMap<K, V>> Codec<C> wrapTypedPMapCodec(Codec<Map<K, V>> codec, C emptyCollection) {
 		//noinspection unchecked
-		return Codec.unboundedMap(keyCodec, valueCodec).xmap(
+		return codec.xmap(
 			map -> map.entrySet().stream().reduce(
 				emptyCollection,
 				(lhs, rhs) -> (C) lhs.plus(rhs.getKey(), rhs.getValue()),

@@ -18,9 +18,9 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.container.ServerAware;
 import org.jetbrains.annotations.NotNull;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.container.ServerAware;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -28,8 +28,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class FasterMinecartsConfig {
-
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(FasterMinecarts.NAMESPACE + ".json");
 
 	public static final MapCodec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -44,7 +42,7 @@ public class FasterMinecartsConfig {
 
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, FasterMinecartsConfig::createDefault
-	).makeRegistryAware(Loaded.CODEC).delayServerAwareInitializer().setInitializer(Loaded::createDefault).build(configPath);
+	).makeRegistryAware(Loaded.CODEC).delayServerAwareInitializer().setInitializer(Loaded::createDefault).build(FasterMinecarts.NAMESPACE);
 
 	private static FasterMinecartsConfig createDefault() {
 		return new FasterMinecartsConfig(

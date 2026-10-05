@@ -4,8 +4,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import nu.metacraft.lib.config.CommentCodec;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.util.CommentCodec;
 
 public record BundleConfig(boolean bundleRendering) {
 
@@ -21,7 +21,7 @@ public record BundleConfig(boolean bundleRendering) {
 
 	private static final ConfigContainer<BundleConfig> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, () -> new BundleConfig(true)
-	).build(FabricLoader.getInstance().getConfigDir().resolve("metacraft-bundles.json"));
+	).build("metacraft-bundles");
 
 
 	public static BundleConfig getInstance() {

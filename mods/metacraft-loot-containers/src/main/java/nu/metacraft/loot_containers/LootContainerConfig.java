@@ -4,71 +4,78 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.loot_containers.containers.events.LootContainerEvent;
 import nu.metacraft.loot_containers.containers.events.LootContainerEventRegistry;
 import nu.metacraft.loot_containers.containers.events.LootContainerEventType;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.extensions.Modifiable;
 import nu.metacraft.loot_containers.containers.LootContainer;
 import nu.metacraft.loot_containers.containers.LootContainerRegistry;
 import nu.metacraft.loot_containers.containers.LootContainerType;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
+import se.metacraft.config.container.ConfigContainer;
 
 import java.nio.file.Path;
 import java.util.*;
 
-public class LootContainerConfig implements Modifiable {
-
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(METAcraftLootContainers.MODID + ".json");
+public class LootContainerConfig {
 
 	//Lazy-initialized because otherwise LootContainerRegistry attempts to access config too early, resulting in null pointer exception (because the initConfig event applies while code is in static block).
 	public static final MapCodec<LootContainerConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.lazyInitialized(
-					() -> Codec.<LootContainerType<?>, LootContainer>dispatchedMap(
+					() -> METACodecs.wrapPMapCodec(
+						Codec.<LootContainerType<?>, LootContainer>dispatchedMap(
 							LootContainerRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+						),
+						HashTreePMap.empty()
 					)
 			).fieldOf("defaultContainerData").forGetter(config -> config.defaultContainerData),
 			Codec.lazyInitialized(
-					() -> Codec.<LootContainerEventType<?>, LootContainerEvent>dispatchedMap(
+					() -> METACodecs.wrapPMapCodec(
+						Codec.<LootContainerEventType<?>, LootContainerEvent>dispatchedMap(
 							LootContainerEventRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+						),
+						HashTreePMap.empty()
 					)
 			).fieldOf("defaultEventData").forGetter(config -> config.defaultEventData)
 	).apply(instance, LootContainerConfig::new));
 
 	private static final ConfigContainer<LootContainerConfig> config = ConfigContainer.Builder.create(
 			CODEC, LootContainerConfig::new
-	).reloadAfterServer().build(configPath);
+	).reloadAfterServer().build(METAcraftLootContainers.MODID);
 
-	private final Map<LootContainerType<?>, LootContainer> defaultContainerData;
-	private final Map<LootContainerEventType<?>, LootContainerEvent> defaultEventData;
-
-	private boolean isModified = false;
+	private final PMap<LootContainerType<?>, LootContainer> defaultContainerData;
+	private final PMap<LootContainerEventType<?>, LootContainerEvent> defaultEventData;
 
 	public LootContainerConfig(
-			Map<LootContainerType<?>, LootContainer> defaultContainerData,
-			Map<LootContainerEventType<?>, LootContainerEvent> defaultEventData
+			PMap<LootContainerType<?>, LootContainer> defaultContainerData,
+			PMap<LootContainerEventType<?>, LootContainerEvent> defaultEventData
 	) {
-		this.defaultContainerData = defaultContainerData instanceof HashMap<
-					LootContainerType<?>, LootContainer
-				> ? defaultContainerData : new HashMap<>(defaultContainerData);
-		this.defaultEventData = defaultEventData instanceof HashMap<
-				LootContainerEventType<?>, LootContainerEvent
-				> ? defaultEventData : new HashMap<>(defaultEventData);
+		this.defaultContainerData = defaultContainerData;
+		this.defaultEventData = defaultEventData;
 
 	}
 
 	public LootContainerConfig() {
-		this(new HashMap<>(), new HashMap<>());
+		this(HashTreePMap.empty(), HashTreePMap.empty());
 	}
 
 	public LootContainer getDefaultContainer(LootContainerType<?> key) {
 		return defaultContainerData.get(key);
 	}
 
+	public LootContainerConfig withContainers(PMap<LootContainerType<?>, LootContainer> defaultContainerData) {
+		return new LootContainerConfig(defaultContainerData, defaultEventData);
+	}
+
+	public LootContainerConfig withEvents(PMap<LootContainerEventType<?>, LootContainerEvent> defaultEventData) {
+		return new LootContainerConfig(defaultContainerData, defaultEventData);
+	}
+
 	public static void putDefaultContainer(LootContainerType<?> key, LootContainer defaultContainer) {
 		config.modify(config -> {
-			if (config.defaultContainerData.containsKey(key)) return false;
-			config.defaultContainerData.put(key, defaultContainer);
-			return true;
+			if (config.defaultContainerData.containsKey(key)) return config;
+			return config.withContainers(config.defaultContainerData.plus(key, defaultContainer));
 		});
 	}
 
@@ -78,20 +85,9 @@ public class LootContainerConfig implements Modifiable {
 
 	public static void putDefaultEvent(LootContainerEventType<?> key, LootContainerEvent defaultEvent) {
 		config.modify(config -> {
-			if (config.defaultEventData.containsKey(key)) return false;
-			config.defaultEventData.put(key, defaultEvent);
-			return true;
+			if (config.defaultEventData.containsKey(key)) return config;
+			return config.withEvents(config.defaultEventData.plus(key, defaultEvent));
 		});
-	}
-
-	@Override
-	public void setModified(boolean modified) {
-		isModified = modified;
-	}
-
-	@Override
-	public boolean isModified() {
-		return isModified;
 	}
 
 	/**

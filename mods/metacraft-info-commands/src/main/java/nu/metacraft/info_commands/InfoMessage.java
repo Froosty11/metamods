@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 
 public record InfoMessage(String id, Component message) {
 	public static final Codec<InfoMessage> CODEC = RecordCodecBuilder.create(instance -> instance.group(

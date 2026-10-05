@@ -63,6 +63,10 @@ subprojects {
         }
     }
 
+	ext.addConfigDependency = {dep ->
+		addProjectDependency(":mods:metacraft-config")
+	}
+
     ext.addLeukocyteDependency = { ->
         dependencies {
             //It is slow to update so we usually want it set to compileOnly.

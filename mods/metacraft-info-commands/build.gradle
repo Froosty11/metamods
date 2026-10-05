@@ -1,1 +1,2 @@
 version = project.info_commands_version
+addConfigDependency()

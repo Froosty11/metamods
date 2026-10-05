@@ -1,0 +1,33 @@
+{
+	"required": true,
+	"package": "se.metacraft.config.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"codec.CodecMixin",
+		"codec.EitherMapCodecAccessor",
+		"codec.KeyDispatchCodecAccessor",
+		"codec.MapCodecMixin",
+		"codec.MappedCodecAccessor",
+		"codec.MappedDecoderAccessor",
+		"codec.MappedMapCodecAccessor",
+		"codec.MappedMapDecoderAccessor",
+		"codec.OptionalFieldCodecAccessor",
+		"codec.OrCompressedCodecAccessor",
+		"codec.PairMapCodecAccessor",
+		"codec.RecordCodecBuilderAccessor",
+		"codec.RecordCodecBuilderAccessor$MapCodec",
+		"codec.RecordCodecBuilderMixin",
+		"codec.RecordCodecBuilderMixin$Instance",
+		"codec.RecursiveCodecAccessor",
+		"codec.RecursiveMapCodecAccessor",
+		"codec.RegistryFileCodecAccessor",
+		"codec.RegistryFixedCodecAccessor",
+		"codec.SimpleCodecAccessor",
+		"codec.SimpleMapCodecAccessor",
+		"codec.StringRepresentableCodecAccessor",
+		"codec.UnitCodecAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
