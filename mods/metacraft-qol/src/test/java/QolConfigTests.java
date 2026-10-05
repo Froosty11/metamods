@@ -16,7 +16,7 @@ public class QolConfigTests {
 
 	@BeforeAll
 	public static void init() {
-		VoidAnchorTests.init();
+		QolTests.init();
 	}
 
 	@Test

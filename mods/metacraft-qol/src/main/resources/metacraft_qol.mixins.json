@@ -4,7 +4,9 @@
 	"package": "nu.metacraft.qol.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
-		"DispenserBlockMixin"
+		"ConcretePowderBlockAccessor",
+		"DispenserBlockMixin",
+		"LayeredCauldronBlockMixin"
 	],
 	"client": [
 	],

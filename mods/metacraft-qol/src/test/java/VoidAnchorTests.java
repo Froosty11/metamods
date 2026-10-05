@@ -1,12 +1,6 @@
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.serialization.JsonOps;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,21 +18,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.core.METAcraftCore;
-import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.qol.Qol;
-import nu.metacraft.qol.QolConfig;
-import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import nu.metacraft.qol.void_anchor.AnchorBinding;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.rift.RiftTracker;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -111,260 +95,220 @@ public class VoidAnchorTests {
 		return player.getY() < 0;
 	}
 
-	/**
-	 * {@code qoltest void_anchor <true|false>}: switches the void anchor on or off through the real
-	 * config file and a reload. The "off" tests run in their own environment (a batch of their own),
-	 * whose setup and teardown functions call this, so the other tests never see it off.
-	 */
-	static void registerTestCommands() {
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
-				Commands.literal("qoltest").then(Commands.literal("void_anchor").then(
-						Commands.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
-							var current = QolConfig.getInstance().voidAnchor();
-							var changed = new QolConfig(new VoidAnchorConfig(
-									BoolArgumentType.getBool(ctx, "enabled"), current.fuelItem(), current.triggerYOffset(),
-									current.riftDepth(), current.descentSpeed(), current.riftTicks(), current.riftSize()
-							));
-							var json = QolConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, changed).getOrThrow();
-							try {
-								Files.writeString(QolConfig.PATH, json.toString());
-							} catch (IOException e) {
-								throw new UncheckedIOException(e);
-							}
-							QolConfig.reload();
-							return 1;
-						})
-				))
-		));
-	}
-
 	static void register(String name, Consumer<GameTestHelper> test) {
-		Registry.register(BuiltInRegistries.TEST_FUNCTION, Qol.getID("void_anchor/" + name), test);
+		QolTests.register("void_anchor/" + name, test);
 	}
 
 	// ---- tests ----
 
-	private static boolean initialised = false;
-
-	/** Both test classes share one JVM and registries freeze on first init, so every class goes through here. */
-	@BeforeAll
-	public static synchronized void init() {
-		if (initialised) {
-			return;
-		}
-		initialised = true;
-		TestHelper.init(
-				() -> {
-					registerTestCommands();
-					register("off_no_rescue", ctx -> {
-						var pos = endAnchor(ctx, 400, 2);
-						var player = fallingPlayer(ctx, pos, "off");
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened while void anchors are off"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(stillFalling(player), "moved to " + player.position());
-							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent while void anchors are off");
-							ctx.succeed();
-						});
-					});
-					register("off_use_does_nothing", ctx -> {
-						var end = end(ctx);
-						var pos = endAnchor(ctx, 420, 0);
-						var player = survivalPlayer(ctx);
-						moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
-						var crystals = new ItemStack(Items.END_CRYSTAL, 2);
-						use(player, end, pos, crystals);
-						use(player, end, pos, ItemStack.EMPTY);
-						ctx.assertTrue(charge(end, pos) == 0, "charged to " + charge(end, pos) + " while void anchors are off");
-						ctx.assertTrue(crystals.getCount() == 2, "an end crystal was used up while void anchors are off");
-						ctx.assertTrue(AnchorBinding.get(player) == null, "bound while void anchors are off");
-						ctx.succeed();
-					});
-					register("charge_to_four", ctx -> {
-						var level = ctx.getLevel();
-						var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
-						level.setBlockAndUpdate(pos, anchor(0));
-						var player = survivalPlayer(ctx);
-						var crystals = new ItemStack(Items.END_CRYSTAL, 6);
-						for (int i = 0; i < 5; i++) {
-							use(player, level, pos, crystals);
-						}
-						ctx.assertTrue(charge(level, pos) == 4, "charge is " + charge(level, pos) + ", expected 4");
-						ctx.assertTrue(crystals.getCount() == 2, crystals.getCount() + " end crystals left, expected 2");
-						ctx.succeed();
-					});
-					register("wrong_item_does_not_charge", ctx -> {
-						var level = ctx.getLevel();
-						var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
-						level.setBlockAndUpdate(pos, anchor(0));
-						var player = survivalPlayer(ctx);
-						var glowstone = new ItemStack(Items.GLOWSTONE, 4);
-						use(player, level, pos, glowstone);
-						ctx.assertTrue(charge(level, pos) == 0, "glowstone charged the anchor to " + charge(level, pos));
-						ctx.assertTrue(glowstone.getCount() == 4, "glowstone was used up");
-						var shards = new ItemStack(Items.ECHO_SHARD, 4);
-						use(player, level, pos, shards);
-						ctx.assertTrue(charge(level, pos) == 0, "an echo shard charged the anchor to " + charge(level, pos));
-						ctx.assertTrue(shards.getCount() == 4, "the echo shard was used up");
-						ctx.succeed();
-					});
-					register("no_explode_outside_end", ctx -> {
-						var level = ctx.getLevel();
-						var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
-						level.setBlockAndUpdate(pos, anchor(2));
-						var player = survivalPlayer(ctx);
-						use(player, level, pos, ItemStack.EMPTY);
-						use(player, level, pos, new ItemStack(Items.GLOWSTONE, 4));
-						ctx.assertTrue(charge(level, pos) == 2, "the anchor is gone or changed: charge " + charge(level, pos));
-						ctx.assertTrue(player.getRespawnConfig() == null, "using the anchor set the player's spawn");
-						ctx.assertTrue(AnchorBinding.get(player) == null, "the anchor bound outside the End");
-						ctx.succeed();
-					});
-					register("bind_in_end", ctx -> {
-						var end = end(ctx);
-						var pos = endAnchor(ctx, 100, 0);
-						var player = survivalPlayer(ctx);
-						moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
-						use(player, end, pos, ItemStack.EMPTY);
-						ctx.assertTrue(
-								GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)),
-								"bound to " + AnchorBinding.get(player)
-						);
-						ctx.succeed();
-					});
-					register("resolve_states", ctx -> {
-						var end = end(ctx);
-						var pos = endAnchor(ctx, 120, 0);
-						var player = survivalPlayer(ctx);
-						ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Unbound, "not Unbound");
-						AnchorBinding.bind(player, GlobalPos.of(Level.END, pos));
-						ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Empty, "not Empty");
-						end.setBlockAndUpdate(pos, anchor(1));
-						if (!(AnchorBinding.resolve(player) instanceof AnchorBinding.Ready ready)) {
-							throw ctx.assertionException("not Ready: " + AnchorBinding.resolve(player));
-						}
-						ctx.assertTrue(ready.standUp().distanceTo(Vec3.atCenterOf(pos)) < 2.5, "stands up at " + ready.standUp());
-						end.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-						ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Gone, "not Gone");
-						for (int dx = -1; dx <= 1; dx++) {
-							for (int dz = -1; dz <= 1; dz++) {
-								for (int dy = -1; dy <= 3; dy++) {
-									end.setBlockAndUpdate(pos.offset(dx, dy, dz), Blocks.OBSIDIAN.defaultBlockState());
-								}
-							}
-						}
-						end.setBlockAndUpdate(pos, anchor(1));
-						ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Blocked, "not Blocked: " + AnchorBinding.resolve(player));
-						ctx.succeed();
-					});
-					register("rescue", ctx -> {
-						var pos = endAnchor(ctx, 200, 2);
-						var player = fallingPlayer(ctx, pos, "rescue");
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
-							ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
-							ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
-							ctx.succeed();
-						});
-					});
-					register("empty_anchor", ctx -> {
-						var pos = endAnchor(ctx, 220, 0);
-						var player = fallingPlayer(ctx, pos, "empty");
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an empty anchor"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(stillFalling(player), "moved to " + player.position());
-							ctx.succeed();
-						});
-					});
-					register("unbound_player", ctx -> {
-						var player = survivalPlayer(ctx);
-						moveTo(player, end(ctx), new Vec3(240.5, -2, 30.5));
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an unbound player"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(stillFalling(player), "moved to " + player.position());
-							ctx.succeed();
-						});
-					});
-					register("flying_player_ignored", ctx -> {
-						var pos = endAnchor(ctx, 260, 2);
-						var player = fallingPlayer(ctx, pos, "flying");
-						player.getAbilities().mayfly = true;
-						player.getAbilities().flying = true;
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a flying player"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent");
-							ctx.succeed();
-						});
-					});
-					register("disconnect_mid_rift", ctx -> {
-						var pos = endAnchor(ctx, 280, 2);
-						var player = fallingPlayer(ctx, pos, "leaver");
-						ctx.runAtTickTime(5, () -> {
-							ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
-							ctx.getLevel().getServer().getPlayerList().remove(player);
-						});
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift outlived its player");
-							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who left");
-							ctx.succeed();
-						});
-					});
-					register("anchor_broken_mid_rift", ctx -> {
-						var pos = endAnchor(ctx, 300, 2);
-						var player = fallingPlayer(ctx, pos, "broken");
-						ctx.runAtTickTime(5, () -> {
-							ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
-							end(ctx).setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-						});
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
-							ctx.assertTrue(stillFalling(player), "taken to a broken anchor: " + player.position());
-							ctx.succeed();
-						});
-					});
-					register("shared_last_charge", ctx -> {
-						var pos = endAnchor(ctx, 320, 1);
-						var first = fallingPlayer(ctx, pos, "first");
-						var second = fallingPlayer(ctx, pos, "second");
-						ctx.runAtTickTime(45, () -> {
-							int saved = (rescued(first, pos) ? 1 : 0) + (rescued(second, pos) ? 1 : 0);
-							ctx.assertTrue(saved == 1, saved + " players rescued by one charge");
-							ctx.assertTrue(stillFalling(first) || stillFalling(second), "nobody was left falling");
-							ctx.assertTrue(charge(end(ctx), pos) == 0, "charge " + charge(end(ctx), pos) + ", expected 0");
-							ctx.succeed();
-						});
-					});
-					register("saved_mid_rift", ctx -> {
-						var pos = endAnchor(ctx, 340, 2);
-						var player = fallingPlayer(ctx, pos, "saved");
-						ctx.runAtTickTime(5, () -> {
-							ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
-							// An ender pearl back up onto an island.
-							moveTo(player, end(ctx), new Vec3(pos.getX() + 0.5, 70, 30.5));
-						});
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift kept a player who saved themselves");
-							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who saved themselves");
-							ctx.assertTrue(!rescued(player, pos), "taken to the anchor after saving themselves");
-							ctx.succeed();
-						});
-					});
-					register("creative_player_ignored", ctx -> {
-						var pos = endAnchor(ctx, 360, 2);
-						var player = fallingPlayer(ctx, pos, "creative");
-						player.setGameMode(GameType.CREATIVE);
-						player.getAbilities().flying = false;
-						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a creative player"));
-						ctx.runAtTickTime(45, () -> {
-							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a creative player");
-							ctx.succeed();
-						});
-					});
-					register("dispenser_refill", ctx -> dispenserTest(ctx, 0, 1, 1));
-					register("dispenser_full_anchor", ctx -> dispenserTest(ctx, 4, 4, 2));
-				},
-				METAcraftLib::new, METAcraftCore::new, Qol::new
-		);
+	/** Registers the void anchor's game tests; {@link QolTests} runs them with every other feature's. */
+	static void registerTests() {
+		register("off_no_rescue", ctx -> {
+			var pos = endAnchor(ctx, 400, 2);
+			var player = fallingPlayer(ctx, pos, "off");
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened while void anchors are off"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent while void anchors are off");
+				ctx.succeed();
+			});
+		});
+		register("off_use_does_nothing", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 420, 0);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			var crystals = new ItemStack(Items.END_CRYSTAL, 2);
+			use(player, end, pos, crystals);
+			use(player, end, pos, ItemStack.EMPTY);
+			ctx.assertTrue(charge(end, pos) == 0, "charged to " + charge(end, pos) + " while void anchors are off");
+			ctx.assertTrue(crystals.getCount() == 2, "an end crystal was used up while void anchors are off");
+			ctx.assertTrue(AnchorBinding.get(player) == null, "bound while void anchors are off");
+			ctx.succeed();
+		});
+		register("charge_to_four", ctx -> {
+			var level = ctx.getLevel();
+			var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
+			level.setBlockAndUpdate(pos, anchor(0));
+			var player = survivalPlayer(ctx);
+			var crystals = new ItemStack(Items.END_CRYSTAL, 6);
+			for (int i = 0; i < 5; i++) {
+				use(player, level, pos, crystals);
+			}
+			ctx.assertTrue(charge(level, pos) == 4, "charge is " + charge(level, pos) + ", expected 4");
+			ctx.assertTrue(crystals.getCount() == 2, crystals.getCount() + " end crystals left, expected 2");
+			ctx.succeed();
+		});
+		register("wrong_item_does_not_charge", ctx -> {
+			var level = ctx.getLevel();
+			var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
+			level.setBlockAndUpdate(pos, anchor(0));
+			var player = survivalPlayer(ctx);
+			var glowstone = new ItemStack(Items.GLOWSTONE, 4);
+			use(player, level, pos, glowstone);
+			ctx.assertTrue(charge(level, pos) == 0, "glowstone charged the anchor to " + charge(level, pos));
+			ctx.assertTrue(glowstone.getCount() == 4, "glowstone was used up");
+			var shards = new ItemStack(Items.ECHO_SHARD, 4);
+			use(player, level, pos, shards);
+			ctx.assertTrue(charge(level, pos) == 0, "an echo shard charged the anchor to " + charge(level, pos));
+			ctx.assertTrue(shards.getCount() == 4, "the echo shard was used up");
+			ctx.succeed();
+		});
+		register("no_explode_outside_end", ctx -> {
+			var level = ctx.getLevel();
+			var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
+			level.setBlockAndUpdate(pos, anchor(2));
+			var player = survivalPlayer(ctx);
+			use(player, level, pos, ItemStack.EMPTY);
+			use(player, level, pos, new ItemStack(Items.GLOWSTONE, 4));
+			ctx.assertTrue(charge(level, pos) == 2, "the anchor is gone or changed: charge " + charge(level, pos));
+			ctx.assertTrue(player.getRespawnConfig() == null, "using the anchor set the player's spawn");
+			ctx.assertTrue(AnchorBinding.get(player) == null, "the anchor bound outside the End");
+			ctx.succeed();
+		});
+		register("bind_in_end", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 100, 0);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			use(player, end, pos, ItemStack.EMPTY);
+			ctx.assertTrue(
+					GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)),
+					"bound to " + AnchorBinding.get(player)
+			);
+			ctx.succeed();
+		});
+		register("resolve_states", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 120, 0);
+			var player = survivalPlayer(ctx);
+			ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Unbound, "not Unbound");
+			AnchorBinding.bind(player, GlobalPos.of(Level.END, pos));
+			ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Empty, "not Empty");
+			end.setBlockAndUpdate(pos, anchor(1));
+			if (!(AnchorBinding.resolve(player) instanceof AnchorBinding.Ready ready)) {
+				throw ctx.assertionException("not Ready: " + AnchorBinding.resolve(player));
+			}
+			ctx.assertTrue(ready.standUp().distanceTo(Vec3.atCenterOf(pos)) < 2.5, "stands up at " + ready.standUp());
+			end.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+			ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Gone, "not Gone");
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					for (int dy = -1; dy <= 3; dy++) {
+						end.setBlockAndUpdate(pos.offset(dx, dy, dz), Blocks.OBSIDIAN.defaultBlockState());
+					}
+				}
+			}
+			end.setBlockAndUpdate(pos, anchor(1));
+			ctx.assertTrue(AnchorBinding.resolve(player) instanceof AnchorBinding.Blocked, "not Blocked: " + AnchorBinding.resolve(player));
+			ctx.succeed();
+		});
+		register("rescue", ctx -> {
+			var pos = endAnchor(ctx, 200, 2);
+			var player = fallingPlayer(ctx, pos, "rescue");
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
+				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
+				ctx.succeed();
+			});
+		});
+		register("empty_anchor", ctx -> {
+			var pos = endAnchor(ctx, 220, 0);
+			var player = fallingPlayer(ctx, pos, "empty");
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an empty anchor"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
+				ctx.succeed();
+			});
+		});
+		register("unbound_player", ctx -> {
+			var player = survivalPlayer(ctx);
+			moveTo(player, end(ctx), new Vec3(240.5, -2, 30.5));
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an unbound player"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
+				ctx.succeed();
+			});
+		});
+		register("flying_player_ignored", ctx -> {
+			var pos = endAnchor(ctx, 260, 2);
+			var player = fallingPlayer(ctx, pos, "flying");
+			player.getAbilities().mayfly = true;
+			player.getAbilities().flying = true;
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a flying player"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent");
+				ctx.succeed();
+			});
+		});
+		register("disconnect_mid_rift", ctx -> {
+			var pos = endAnchor(ctx, 280, 2);
+			var player = fallingPlayer(ctx, pos, "leaver");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
+				ctx.getLevel().getServer().getPlayerList().remove(player);
+			});
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift outlived its player");
+				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who left");
+				ctx.succeed();
+			});
+		});
+		register("anchor_broken_mid_rift", ctx -> {
+			var pos = endAnchor(ctx, 300, 2);
+			var player = fallingPlayer(ctx, pos, "broken");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
+				end(ctx).setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+			});
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
+				ctx.assertTrue(stillFalling(player), "taken to a broken anchor: " + player.position());
+				ctx.succeed();
+			});
+		});
+		register("shared_last_charge", ctx -> {
+			var pos = endAnchor(ctx, 320, 1);
+			var first = fallingPlayer(ctx, pos, "first");
+			var second = fallingPlayer(ctx, pos, "second");
+			ctx.runAtTickTime(45, () -> {
+				int saved = (rescued(first, pos) ? 1 : 0) + (rescued(second, pos) ? 1 : 0);
+				ctx.assertTrue(saved == 1, saved + " players rescued by one charge");
+				ctx.assertTrue(stillFalling(first) || stillFalling(second), "nobody was left falling");
+				ctx.assertTrue(charge(end(ctx), pos) == 0, "charge " + charge(end(ctx), pos) + ", expected 0");
+				ctx.succeed();
+			});
+		});
+		register("saved_mid_rift", ctx -> {
+			var pos = endAnchor(ctx, 340, 2);
+			var player = fallingPlayer(ctx, pos, "saved");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
+				// An ender pearl back up onto an island.
+				moveTo(player, end(ctx), new Vec3(pos.getX() + 0.5, 70, 30.5));
+			});
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift kept a player who saved themselves");
+				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who saved themselves");
+				ctx.assertTrue(!rescued(player, pos), "taken to the anchor after saving themselves");
+				ctx.succeed();
+			});
+		});
+		register("creative_player_ignored", ctx -> {
+			var pos = endAnchor(ctx, 360, 2);
+			var player = fallingPlayer(ctx, pos, "creative");
+			player.setGameMode(GameType.CREATIVE);
+			player.getAbilities().flying = false;
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a creative player"));
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a creative player");
+				ctx.succeed();
+			});
+		});
+		register("dispenser_refill", ctx -> dispenserTest(ctx, 0, 1, 1));
+		register("dispenser_full_anchor", ctx -> dispenserTest(ctx, 4, 4, 2));
 	}
 
 	/** A dispenser holding two end crystals faces an anchor; a redstone block fires it once. */
@@ -385,9 +329,5 @@ public class VoidAnchorTests {
 		});
 	}
 
-	@Test
-	public void voidAnchor() throws Exception {
-		TestHelper.runTestServer("metacraft", "void_anchor/*");
-	}
 
 }

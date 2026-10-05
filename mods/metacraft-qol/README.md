@@ -6,6 +6,7 @@ Small quality-of-life features for Metacraft. Each lives in its own package
 breaks an existing file.
 
 - [Void anchor](#void-anchor): catches you when you fall into the End void.
+- [Concrete cauldron](#concrete-cauldron): throw concrete powder into a water cauldron to make concrete.
 
 ## Void anchor
 
@@ -56,13 +57,27 @@ swirl repeats every quarter turn: a shifted corner order turns it by 90° and no
 Block and rift textures are placeholders drawn by `tools/gen_textures.py`; replace them with real art
 whenever.
 
+## Concrete cauldron
+
+Throw concrete powder into a water cauldron and the whole dropped stack turns into the matching
+concrete, for one level of water: 64 powder thrown as one stack costs the same as a single one, so
+throw full stacks. From the last level the cauldron is left empty; rain or dripstone refill it.
+Only water cauldrons do this (not empty, lava or powder-snow ones). The concrete stays where it
+landed, so a hopper under the cauldron collects it, as hoppers do with any item in a cauldron.
+
+Every colour works: the concrete is whichever one vanilla hardens that powder into.
+
+Config: the `concrete_cauldron` section of `config/metacraft-qol.json` has just `enabled`.
+
 ## Tests
 
-- `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs the
-  game tests (charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
-  disconnecting, saved-themselves and shared anchors). The "switched off" tests run in their own
-  test environment, `metacraft:qol_void_anchor_off`, whose setup and teardown flip the config
-  through a test-only `/qoltest` command, so no other test sees the feature off.
+- `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs every feature's
+  game tests on one test server. Void anchor: charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
+  disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
+  last level, colours, other items and dry cauldrons. Each feature's "switched off" tests run in
+  their own test environment (`metacraft:qol_<feature>_off`), whose setup and teardown flip the
+  config through a test-only `/qoltest <feature> <true|false>` command, so no other test sees the
+  feature off.
 - `./gradlew :mods:metacraft-qol:runClientGameTest` opens a window: a vanilla client joins
   an in-process server, looks down at a rift, and checks that the shader ran, the rift moves, and
   it looks the same turned a quarter (see above).
