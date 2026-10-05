@@ -1,6 +1,8 @@
+import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
+import nu.metacraft.qol.QolConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -10,7 +12,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class VoidAnchorConfigTests {
+public class QolConfigTests {
 
 	@BeforeAll
 	public static void init() {
@@ -19,10 +21,17 @@ public class VoidAnchorConfigTests {
 
 	@Test
 	public void defaultsRoundTrip() {
-		var json = VoidAnchorConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, VoidAnchorConfig.DEFAULT).getOrThrow();
-		var back = VoidAnchorConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow();
-		assertEquals(VoidAnchorConfig.DEFAULT, back);
-		assertEquals("minecraft:end_crystal", json.getAsJsonObject().get("fuel_item").getAsString());
+		var json = QolConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, QolConfig.DEFAULT).getOrThrow();
+		assertEquals(QolConfig.DEFAULT, QolConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow());
+		var voidAnchor = json.getAsJsonObject().getAsJsonObject("void_anchor");
+		assertTrue(voidAnchor.get("enabled").getAsBoolean());
+		assertEquals("minecraft:end_crystal", voidAnchor.get("fuel_item").getAsString());
+	}
+
+	@Test
+	public void missingSectionsTakeTheirDefaults() {
+		// A file written before a feature existed has no section for it; that must not break loading.
+		assertEquals(QolConfig.DEFAULT, QolConfig.CODEC.codec().parse(JsonOps.INSTANCE, new JsonObject()).getOrThrow());
 	}
 
 	// Item stacks only get their components once a server has loaded, so the stack-level check
@@ -34,7 +43,7 @@ public class VoidAnchorConfigTests {
 
 	@Test
 	public void unknownFuelItem() {
-		var config = new VoidAnchorConfig(Identifier.fromNamespaceAndPath("nope", "missing"), 0, 6, 0.3, 30, 3);
+		var config = new VoidAnchorConfig(true, Identifier.fromNamespaceAndPath("nope", "missing"), 0, 6, 0.3, 30, 3);
 		assertEquals(Optional.empty(), config.fuel());
 		// A second look neither throws nor warns again.
 		assertEquals(Optional.empty(), config.fuel());

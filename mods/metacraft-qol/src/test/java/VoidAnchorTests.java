@@ -1,3 +1,7 @@
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.serialization.JsonOps;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
@@ -24,12 +28,17 @@ import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.TestHelper;
 import nu.metacraft.qol.Qol;
+import nu.metacraft.qol.QolConfig;
+import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import nu.metacraft.qol.void_anchor.AnchorBinding;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.rift.RiftTracker;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -102,6 +111,33 @@ public class VoidAnchorTests {
 		return player.getY() < 0;
 	}
 
+	/**
+	 * {@code qoltest void_anchor <true|false>}: switches the void anchor on or off through the real
+	 * config file and a reload. The "off" tests run in their own environment (a batch of their own),
+	 * whose setup and teardown functions call this, so the other tests never see it off.
+	 */
+	static void registerTestCommands() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+				Commands.literal("qoltest").then(Commands.literal("void_anchor").then(
+						Commands.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
+							var current = QolConfig.getInstance().voidAnchor();
+							var changed = new QolConfig(new VoidAnchorConfig(
+									BoolArgumentType.getBool(ctx, "enabled"), current.fuelItem(), current.triggerYOffset(),
+									current.riftDepth(), current.descentSpeed(), current.riftTicks(), current.riftSize()
+							));
+							var json = QolConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, changed).getOrThrow();
+							try {
+								Files.writeString(QolConfig.PATH, json.toString());
+							} catch (IOException e) {
+								throw new UncheckedIOException(e);
+							}
+							QolConfig.reload();
+							return 1;
+						})
+				))
+		));
+	}
+
 	static void register(String name, Consumer<GameTestHelper> test) {
 		Registry.register(BuiltInRegistries.TEST_FUNCTION, Qol.getID("void_anchor/" + name), test);
 	}
@@ -119,6 +155,30 @@ public class VoidAnchorTests {
 		initialised = true;
 		TestHelper.init(
 				() -> {
+					registerTestCommands();
+					register("off_no_rescue", ctx -> {
+						var pos = endAnchor(ctx, 400, 2);
+						var player = fallingPlayer(ctx, pos, "off");
+						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened while void anchors are off"));
+						ctx.runAtTickTime(45, () -> {
+							ctx.assertTrue(stillFalling(player), "moved to " + player.position());
+							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent while void anchors are off");
+							ctx.succeed();
+						});
+					});
+					register("off_use_does_nothing", ctx -> {
+						var end = end(ctx);
+						var pos = endAnchor(ctx, 420, 0);
+						var player = survivalPlayer(ctx);
+						moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+						var crystals = new ItemStack(Items.END_CRYSTAL, 2);
+						use(player, end, pos, crystals);
+						use(player, end, pos, ItemStack.EMPTY);
+						ctx.assertTrue(charge(end, pos) == 0, "charged to " + charge(end, pos) + " while void anchors are off");
+						ctx.assertTrue(crystals.getCount() == 2, "an end crystal was used up while void anchors are off");
+						ctx.assertTrue(AnchorBinding.get(player) == null, "bound while void anchors are off");
+						ctx.succeed();
+					});
 					register("charge_to_four", ctx -> {
 						var level = ctx.getLevel();
 						var pos = ctx.absolutePos(new BlockPos(2, 1, 2));

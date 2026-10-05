@@ -1,0 +1,54 @@
+package nu.metacraft.qol;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.fabricmc.loader.api.FabricLoader;
+import nu.metacraft.lib.config.CommentCodec;
+import nu.metacraft.lib.config.container.ConfigContainer;
+import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
+
+import java.nio.file.Path;
+import java.util.Optional;
+
+/**
+ * {@code config/metacraft-qol.json}: one section per feature. A missing section takes its
+ * defaults, so a file written before a feature existed still loads.
+ */
+public record QolConfig(VoidAnchorConfig voidAnchor) {
+
+	public static final QolConfig DEFAULT = new QolConfig(VoidAnchorConfig.DEFAULT);
+
+	public static final MapCodec<QolConfig> CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+					CommentCodec.comment(
+							section("void_anchor", VoidAnchorConfig.CODEC.codec(), VoidAnchorConfig.DEFAULT),
+							"The void anchor: a respawn anchor that catches you when you fall into the End void."
+					).forGetter(QolConfig::voidAnchor)
+			).apply(instance, QolConfig::new)
+	);
+
+	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("metacraft-qol.json");
+
+	private static final ConfigContainer<QolConfig> CONTAINER = ConfigContainer.Builder.create(
+			CODEC, () -> DEFAULT
+	).build(PATH);
+
+	/**
+	 * A feature's section: read as its defaults when missing, but always written out, so admins
+	 * see every setting. (optionalFieldOf with a default would leave a section at its defaults out.)
+	 */
+	private static <T> MapCodec<T> section(String name, Codec<T> codec, T defaults) {
+		return codec.optionalFieldOf(name).xmap(present -> present.orElse(defaults), Optional::of);
+	}
+
+	public static QolConfig getInstance() {
+		return CONTAINER.get();
+	}
+
+	/** Reads the file again the next time the config is asked for. */
+	public static void reload() {
+		CONTAINER.reload();
+	}
+
+}

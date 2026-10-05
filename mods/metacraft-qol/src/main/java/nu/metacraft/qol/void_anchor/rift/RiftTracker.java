@@ -74,7 +74,7 @@ public final class RiftTracker {
 		});
 		for (var player : end.players()) {
 			var id = player.getUUID();
-			if (player.getY() >= trigger || SESSIONS.containsKey(id) || HANDLED.contains(id)) {
+			if (!config.enabled() || player.getY() >= trigger || SESSIONS.containsKey(id) || HANDLED.contains(id)) {
 				continue;
 			}
 			// Creative players can fly out and shouldn't drain an anchor others may share.

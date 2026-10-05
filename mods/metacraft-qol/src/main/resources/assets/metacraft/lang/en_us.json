@@ -4,5 +4,6 @@
 	"block.metacraft.void_anchor.not_in_end": "Void anchors only work in the End",
 	"block.metacraft.void_anchor.hint.empty": "Your void anchor is empty",
 	"block.metacraft.void_anchor.hint.gone": "Your void anchor is gone",
-	"block.metacraft.void_anchor.hint.blocked": "Your void anchor is blocked"
+	"block.metacraft.void_anchor.hint.blocked": "Your void anchor is blocked",
+	"block.metacraft.void_anchor.disabled": "Void anchors are turned off on this server"
 }

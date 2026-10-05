@@ -4,28 +4,32 @@ import nu.metacraft.qol.Qol;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import nu.metacraft.lib.config.CommentCodec;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import nu.metacraft.qol.QolConfig;
 
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/** The void anchor's section of {@code metacraft-qol.json}. */
 public record VoidAnchorConfig(
-		Identifier fuelItem, int triggerYOffset, double riftDepth, double descentSpeed, int riftTicks, float riftSize
+		boolean enabled, Identifier fuelItem, int triggerYOffset, double riftDepth, double descentSpeed, int riftTicks, float riftSize
 ) {
 
 	public static final VoidAnchorConfig DEFAULT = new VoidAnchorConfig(
-			Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.3, 30, 3.0f
+			true, Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.3, 30, 3.0f
 	);
 
 	public static final MapCodec<VoidAnchorConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
+					CommentCodec.comment(
+							Codec.BOOL.fieldOf("enabled"),
+							"Whether void anchors rescue anyone. Off, the block stays, but using it only says void anchors are off."
+					).forGetter(VoidAnchorConfig::enabled),
 					CommentCodec.comment(
 							Identifier.CODEC.fieldOf("fuel_item"),
 							"The item that adds one charge to a void anchor.",
@@ -54,14 +58,10 @@ public record VoidAnchorConfig(
 			).apply(instance, VoidAnchorConfig::new)
 	);
 
-	private static final ConfigContainer<VoidAnchorConfig> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, () -> DEFAULT
-	).build(FabricLoader.getInstance().getConfigDir().resolve("metacraft-void-anchor.json"));
-
 	private static final Set<Identifier> WARNED = ConcurrentHashMap.newKeySet();
 
 	public static VoidAnchorConfig getInstance() {
-		return CONTAINER.get();
+		return QolConfig.getInstance().voidAnchor();
 	}
 
 	/** The configured fuel item; empty (and logged once) when the id names no item. */

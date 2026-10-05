@@ -1,7 +1,9 @@
 # METAcraft-QoL
 
 Small quality-of-life features for Metacraft. Each lives in its own package
-(`nu.metacraft.qol.<feature>`) and its own section of the config.
+(`nu.metacraft.qol.<feature>`) and its own section of `config/metacraft-qol.json`, with an
+`enabled` switch. A section missing from the file takes its defaults, so adding a feature never
+breaks an existing file.
 
 - [Void anchor](#void-anchor): catches you when you fall into the End void.
 
@@ -26,10 +28,11 @@ looks, for checking how it renders.
 
 ### Config
 
-`config/metacraft-void-anchor.json`:
+The `void_anchor` section of `config/metacraft-qol.json`:
 
 | Key | Default | |
 |---|---|---|
+| `enabled` | `true` | off: no rescues; the block stays, but using it only says void anchors are off |
 | `fuel_item` | `minecraft:end_crystal` | the item that adds one charge |
 | `trigger_y_offset` | `0` | the rift opens below the End's lowest Y plus this |
 | `rift_depth` | `6.0` | how far below the player the rift opens |
@@ -57,7 +60,9 @@ whenever.
 
 - `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs the
   game tests (charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
-  disconnecting, saved-themselves and shared anchors).
+  disconnecting, saved-themselves and shared anchors). The "switched off" tests run in their own
+  test environment, `metacraft:qol_void_anchor_off`, whose setup and teardown flip the config
+  through a test-only `/qoltest` command, so no other test sees the feature off.
 - `./gradlew :mods:metacraft-qol:runClientGameTest` opens a window: a vanilla client joins
   an in-process server, looks down at a rift, and checks that the shader ran, the rift moves, and
   it looks the same turned a quarter (see above).

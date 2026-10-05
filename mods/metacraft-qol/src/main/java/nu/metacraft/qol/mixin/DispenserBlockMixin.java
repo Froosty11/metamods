@@ -28,6 +28,7 @@ public class DispenserBlockMixin {
 		var target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
 		if (
 				source.level().getBlockState(target).getBlock() instanceof VoidAnchorBlock
+						&& VoidAnchorConfig.getInstance().enabled()
 						&& VoidAnchorConfig.getInstance().isFuel(stack)
 		) {
 			return new VoidAnchorRefillBehaviour();

@@ -56,6 +56,9 @@ public class VoidAnchorBlock extends RespawnAnchorBlock implements PolymerTextur
 			ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
 	) {
 		var config = VoidAnchorConfig.getInstance();
+		if (!config.enabled()) {
+			return InteractionResult.TRY_WITH_EMPTY_HAND;
+		}
 		if (config.isFuel(stack) && canCharge(state)) {
 			charge(player, level, pos, state);
 			stack.consume(1, player);
@@ -72,6 +75,12 @@ public class VoidAnchorBlock extends RespawnAnchorBlock implements PolymerTextur
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
 		if (!(player instanceof ServerPlayer serverPlayer)) {
 			return InteractionResult.SUCCESS;
+		}
+		if (!VoidAnchorConfig.getInstance().enabled()) {
+			player.sendOverlayMessage(Component.translatableWithFallback(
+					"block.metacraft.void_anchor.disabled", "Void anchors are turned off on this server"
+			).withStyle(ChatFormatting.RED));
+			return InteractionResult.SUCCESS_SERVER;
 		}
 		if (level.dimension() != Level.END) {
 			player.sendOverlayMessage(Component.translatableWithFallback(
