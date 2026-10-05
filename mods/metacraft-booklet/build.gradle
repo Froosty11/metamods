@@ -29,6 +29,7 @@ dependencies {
 	// Dev/test runtime only: the mods the book has chapters for, so the chapters load and their
 	// item icons resolve. None of them is a dependency of the shipped mod.
 	runtimeOnly(project(path: ":mods:ovvar"))
+	runtimeOnly(project(path: ":mods:metacraft-qol"))
 	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
 	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
 	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
@@ -46,6 +47,7 @@ dependencies {
 	gametestCompileOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	gametestCompileOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
 	gametestCompileOnly(project(path: ":mods:ovvar"))
+	gametestCompileOnly(project(path: ":mods:metacraft-qol"))
 }
 
 // The game tests run inside a server: JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew

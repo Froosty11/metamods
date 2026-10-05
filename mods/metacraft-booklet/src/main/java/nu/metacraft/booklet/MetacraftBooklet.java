@@ -56,7 +56,8 @@ public final class MetacraftBooklet implements ModInitializer {
 	public static final List<Hook> HOOKS = List.of(
 			new Hook("ovvar", "ovvar", false),
 			new Hook("polydecorations", "decorating", false),
-			new Hook("polydecorations", "polydecorations_s6", true));
+			new Hook("polydecorations", "polydecorations_s6", true),
+			new Hook("metacraft-qol", "qol", false));
 
 	@Override
 	public void onInitialize() {

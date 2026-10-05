@@ -76,6 +76,16 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
+import net.minecraft.world.level.block.RespawnAnchorBlock;
+import net.minecraft.world.phys.Vec3;
+import nu.metacraft.qol.silence_mobs.SilenceMobs;
+import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
+import nu.metacraft.qol.void_anchor.rift.Rift;
 
 /**
  * The guidebook's page images, the way Patbox makes PolyFactory's: each scene is built in a flat
@@ -224,6 +234,9 @@ public final class BookletRenders implements FabricClientGameTest {
 		RECIPES.put("rope", List.of("", "string", "", "string", "wheat", "string", "", "string", ""));
 		RECIPES.put("hammer", List.of("", "", "", "iron_nugget", "iron_ingot", "", "", "stick", ""));
 		RECIPES.put("trowel", List.of("", "", "", "iron_nugget", "iron_ingot", "", "stick", "iron_nugget", ""));
+		RECIPES.put("void_anchor", List.of("crying_obsidian", "crying_obsidian", "crying_obsidian",
+				"ender_eye", "ender_eye", "ender_eye", "crying_obsidian", "crying_obsidian", "crying_obsidian"));
+		RECIPES.put("muffler", List.of("", "", "", "white_wool", "amethyst_shard", "string", "", "", ""));
 	}
 
 	/**
@@ -276,7 +289,11 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 90),
 			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 80),
 			new Scene("decorating/lead", new BlockPos(72, -60, 20), new BlockPos(76, -59, 20), 70),
-			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70));
+			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70),
+			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
+			new Scene("qol/rift", new BlockPos(105, -59, 19), new BlockPos(108, -56, 22), 70),
+			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
+			new Scene("qol/muffler", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -395,6 +412,49 @@ public final class BookletRenders implements FabricClientGameTest {
 		wallLantern(level, new BlockPos(86, -59, 21), Blocks.LANTERN);
 		mailboxOnPost(level, new BlockPos(88, -60, 21), Direction.SOUTH);
 		signPost(level, new BlockPos(89, -60, 21), "Spawn", "Mensa");
+
+		// ---- quality of life (metacraft-qol)
+		// a charged void anchor on a pad of end stone
+		for (int px = 99; px <= 101; px++) for (int pz = 19; pz <= 21; pz++) {
+			level.setBlockAndUpdate(new BlockPos(px, -61, pz), Blocks.END_STONE.defaultBlockState());
+		}
+		level.setBlockAndUpdate(new BlockPos(100, -60, 20),
+				VoidAnchorBlocks.VOID_ANCHOR.value().defaultBlockState().setValue(RespawnAnchorBlock.CHARGE, 3));
+
+		// an open rift in the air, someone sinking into it (opened here, not by command: it stays open)
+		Rift.open(level, new Vec3(106.5, -58.6, 20.5), 2.6f);
+		Mannequin sinking = new Mannequin(EntityTypes.MANNEQUIN, level);
+		sinking.setPos(106.5, -57.9, 20.5);
+		sinking.setNoGravity(true);
+		sinking.setYRot(30); sinking.setYBodyRot(30); sinking.setYHeadRot(30);
+		sinking.setXRot(40);
+		level.addFreshEntity(sinking);
+
+		// a cauldron of water, powder about to drop in, the concrete it made beside it
+		level.setBlockAndUpdate(new BlockPos(112, -60, 20), Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
+		level.setBlockAndUpdate(new BlockPos(113, -60, 20), Blocks.CONCRETE_POWDER.lightBlue().defaultBlockState());
+		level.setBlockAndUpdate(new BlockPos(113, -60, 21), Blocks.CONCRETE.lightBlue().defaultBlockState());
+		ItemEntity powder = new ItemEntity(level, 112.5, -58.85, 20.5, new ItemStack(Items.CONCRETE_POWDER.lightBlue(), 64), 0, 0, 0);
+		powder.setNoGravity(true);
+		powder.setNeverPickUp();
+		level.addFreshEntity(powder);
+		ItemEntity made = new ItemEntity(level, 111.5, -60, 20.6, new ItemStack(Items.CONCRETE.lightBlue(), 64), 0, 0, 0);
+		made.setNeverPickUp();
+		level.addFreshEntity(made);
+
+		// a muffler swung at a cow
+		Cow cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+		cow.snapTo(117.8, -60, 20.5, -90, 0);
+		cow.setYHeadRot(-90); cow.setYBodyRot(-90);
+		cow.setNoAi(true);
+		level.addFreshEntity(cow);
+		Mannequin muffling = new Mannequin(EntityTypes.MANNEQUIN, level);
+		muffling.setPos(120.0, -60, 20.5);
+		muffling.setYRot(90); muffling.setYBodyRot(90); muffling.setYHeadRot(90);
+		muffling.setXRot(20);
+		muffling.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(SilenceMobs.MUFFLER));
+		level.addFreshEntity(muffling);
+		MID_SWING.add(muffling.getUUID());
 	}
 
 	private static void mailboxOnPost(ServerLevel level, BlockPos post, Direction facing) {

@@ -15,10 +15,11 @@ has no ovvar chapter, and no ovvar item icons to resolve.
 | `ovvar` | ovvar | "How to ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `decorating` | polydecorations | "Decorating": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |
 | `polydecorations_s6` | polydecorations | turns off every PolyDecorations recipe except those of the things above |
+| `qol` | metacraft-qol | "Quality of life": the void anchor, the concrete cauldron, and silencing mobs with the muffler |
 
 A new chapter: a folder under `resourcepacks/` with a `pack.mcmeta` (data format 121 for 26.3) and its
 pages in `data/metacraft/booklet/pages/en_us/`, then one line in `HOOKS`. The chapter's main page goes in
-`category=booklet:main_page` with an `order=` (ovvar 10, decorating 20); its sub-pages in a category of its
+`category=booklet:main_page` with an `order=` (ovvar 10, decorating 20, quality of life 30); its sub-pages in a category of its
 own that the main page lists with `### Category Entries:`. See Booklet's
 [USAGE.md](https://github.com/Patbox/booklet/blob/master/USAGE.md) for the page format. Two gotchas: `-`
 lines are lists and numbered lines are not, and `<anything>` in angle brackets is parsed as a tag.
