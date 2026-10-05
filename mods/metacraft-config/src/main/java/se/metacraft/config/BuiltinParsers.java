@@ -7,7 +7,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.codec.RegistryFileCodec;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import nu.metacraft.lib.METAcraftLib;
 import se.metacraft.config.comments.codecs.MapCodecWithComments;
@@ -29,7 +28,8 @@ import se.metacraft.config.util.event.EventWithPhases;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 import se.metacraft.config.util.helper.CodecParsingHelper;
 
-import java.util.List;
+import java.lang.reflect.Modifier;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -440,6 +440,29 @@ public class BuiltinParsers {
 			list.getLast() instanceof Number rhs
 		) {
 			metadata = metadata.plus(Range.range(lhs, rhs));
+		}
+
+		for (var param : parameters) {
+			for (var field : param.getClass().getDeclaredFields()) {
+				if (Map.class.isAssignableFrom(field.getType())) {
+					field.setAccessible(true);
+					try {
+						var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
+						var entries = Entries.from(
+							map.entrySet().stream().filter(
+								e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
+							).map(
+								e -> new Entries.Entry((String) e.getKey(), e.getValue())
+							)
+						);
+						if (!entries.isEmpty()) {
+							metadata = metadata.plus(entries);
+						}
+					} catch (IllegalAccessException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
 		}
 
 		var entries = underlying.metadata(MetadataKey.ENTRIES);
