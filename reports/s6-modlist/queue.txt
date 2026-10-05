@@ -38,7 +38,21 @@ mes minecraft:the_end 1 2200 --keep
 scalablelux minecraft:overworld 1 1000 --keep
 structure-layout-optimizer minecraft:overworld 1 1000 --keep
 zfastnoise minecraft:overworld 1 1000 --keep
-# PACKS (LEAN/BALANCED/PRETTY x3) inserted here
+LEAN minecraft:overworld 1 1000 --keep
+LEAN minecraft:overworld 2 1000
+LEAN minecraft:overworld 3 1000
+BALANCED minecraft:overworld 1 1000 --keep
+BALANCED minecraft:overworld 2 1000
+BALANCED minecraft:overworld 3 1000
+PRETTY minecraft:overworld 1 1000 --keep
+PRETTY minecraft:overworld 2 1000
+PRETTY minecraft:overworld 3 1000
+LEAN minecraft:the_nether 1 1200 --keep
+LEAN minecraft:the_end 1 2200 --keep
+BALANCED minecraft:the_nether 1 1200 --keep
+BALANCED minecraft:the_end 1 2200 --keep
+PRETTY minecraft:the_nether 1 1200 --keep
+PRETTY minecraft:the_end 1 2200 --keep
 dungeons-and-taverns minecraft:overworld 1 1000 --keep
 structory minecraft:overworld 1 1000 --keep
 structory-towers minecraft:overworld 1 1000 --keep
