@@ -542,6 +542,14 @@ public class CodecDialog {
 		var parsed = CodecParser.parse(codec, lookup);
 		for (var element : CodecInternalsHelper.getNamedElements(parsed)) {
 			var name = element.nestedMetadata(MetadataKey.NAMED_FIELD).map(NamedField::name).orElse(null);
+			if (name == null) {
+				var dispatchedEither = element.getContainer(ContainerType.DISPATCHED_EITHER);
+				if (dispatchedEither.isPresent()) {
+					name = dispatchedEither.get().components().getFirst().nestedMetadata(
+						MetadataKey.NAMED_FIELD
+					).map(NamedField::name).orElse(null);
+				}
+			}
 			if (name != null) {
 				types = types.plus(name, Type.from(element));
 			}

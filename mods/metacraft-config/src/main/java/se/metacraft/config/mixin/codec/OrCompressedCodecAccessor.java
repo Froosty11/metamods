@@ -7,6 +7,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(targets = "net/minecraft/util/ExtraCodecs$2")
 public interface OrCompressedCodecAccessor {
 
+	@Accessor("val$normal")
+	Codec<?> getNormal();
+
 	@Accessor("val$compressed")
 	Codec<?> getCompressed();
 

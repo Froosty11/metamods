@@ -303,6 +303,14 @@ public class BuiltinParsers {
 				codec, Metadata.metadataMap(new Entries(entries)), TreePVector.empty())
 			);
 		}
+		if (codec instanceof OrCompressedCodecAccessor orCompressed) {
+			return Optional.of(
+				CodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(orCompressed.getCompressed()))),
+					CodecParser.parse(orCompressed.getNormal(), lookup)
+				)
+			);
+		}
 		if (codec instanceof RegistryFixedCodecAccessor fixed) {
 			var registry = lookup.lookup(fixed.getRegistryKey());
 			if (registry.isPresent()) {
@@ -341,6 +349,26 @@ public class BuiltinParsers {
 		return Optional.empty();
 	};
 
+	private static final CodecParseEvents.ParseMapCodec MINECRAFT_MAP_CODECS = (codec, lookup) -> {
+		if (codec instanceof OrCompressedMapCodecAccessor orCompressed) {
+			return Optional.of(
+				MapCodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(orCompressed.getCompressed()))),
+					CodecParser.parse(orCompressed.getNormal(), lookup)
+				)
+			);
+		}
+		if (codec instanceof StrictEitherAccessor strictEither) {
+			return Optional.of(
+				MapCodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(strictEither.getFuzzy()))),
+					CodecParser.parse(strictEither.getTyped(), lookup)
+				)
+			);
+		}
+		return Optional.empty();
+	};
+
 	private static final CodecParseEvents.ParseMapCodec CUSTOM = (codec, lookup) -> {
 		if (codec instanceof MapCodecWithComments<?> comments) {
 			return Optional.of(
@@ -360,7 +388,7 @@ public class BuiltinParsers {
 	);
 
 	public static final CodecParseEvents.ParseMapCodec ALL_MAP_CODECS = (codec, lookup) -> EventWithPhases.getOptionalResult(
-		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, CUSTOM},
+		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, MINECRAFT_MAP_CODECS, CUSTOM},
 		p -> p.parse(codec, lookup)
 	);
 
