@@ -2223,5 +2223,57 @@
     "fabric"
    ]
   }
+ },
+ "clifftree": {
+  "slug": "clifftree",
+  "title": "CliffTree",
+  "client_side": "optional",
+  "server_side": "required",
+  "note": "no 26.3 build; 26.2 build tested off-version",
+  "v263": null,
+  "offversion": {
+   "loader": "fabric",
+   "version_number": "3.3-fabric-26.2",
+   "game_versions": [
+    "26.2"
+   ],
+   "file": "clifftree-3.3-fabric-26.2.jar",
+   "url": "https://cdn.modrinth.com/data/59ypHk8x/versions/IjSX8Uet/clifftree-3.3-fabric-26.2.jar",
+   "sha1": "7a2846cd7049e1c31f56701137aaa0c9655f9c28",
+   "deps": [
+    [
+     "XaDC71GB",
+     "required"
+    ],
+    [
+     "mOgUt4GM",
+     "optional"
+    ]
+   ]
+  }
+ },
+ "clifftree-datapack": {
+  "slug": "clifftree-datapack",
+  "title": "CliffTree",
+  "client_side": "optional",
+  "server_side": "required",
+  "note": "no 26.3 build; 26.2 build tested off-version",
+  "v263": null,
+  "offversion": {
+   "loader": "datapack",
+   "version_number": "3.3-datapack-26.2",
+   "game_versions": [
+    "26.2"
+   ],
+   "file": "clifftree-3.3-datapack-26.2.zip",
+   "url": "https://cdn.modrinth.com/data/59ypHk8x/versions/7dJz6Ueu/clifftree-3.3-datapack-26.2.zip",
+   "sha1": "212c2868621a66772cee347b8e1d41dd02fc725a",
+   "deps": [
+    [
+     "XaDC71GB",
+     "optional"
+    ]
+   ]
+  }
  }
 }

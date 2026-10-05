@@ -1,3 +1,11 @@
+V0 minecraft:overworld 1 1000 --keep
+V0 minecraft:overworld 2 1000
+V0 minecraft:overworld 3 1000
+V0+C2ME minecraft:overworld 1 1000
+V0+C2ME minecraft:overworld 2 1000
+V0+DH minecraft:overworld 1 1000
+V0+DH minecraft:overworld 2 1000
+clifftree minecraft:overworld 1 1000 --keep
 B0 minecraft:overworld 1 1000 --keep
 B0 minecraft:overworld 2 1000
 B0 minecraft:overworld 3 1000

@@ -492,5 +492,64 @@
   "dims": [
    "minecraft:overworld"
   ]
+ },
+ "V0": {
+  "type": "baseline",
+  "base": [
+   "fabric-api",
+   "chunky",
+   "spark"
+  ],
+  "mods": [],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "V0+C2ME": {
+  "type": "baseline",
+  "base": [
+   "fabric-api",
+   "chunky",
+   "spark"
+  ],
+  "mods": [
+   "c2me-fabric"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "V0+DH": {
+  "type": "baseline",
+  "base": [
+   "fabric-api",
+   "chunky",
+   "spark"
+  ],
+  "mods": [
+   "distanthorizons"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "clifftree": {
+  "type": "terrain",
+  "mods": [
+   "lithostitched"
+  ],
+  "datapacks": [
+   "clifftree-datapack"
+  ],
+  "verify": [
+   "locate biome clifftree:bog"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ],
+  "note": "CliffTree 3.3 datapack built for 26.2 (pack format 107.1); no 26.3 build exists. Off-version test."
  }
 }

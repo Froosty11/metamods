@@ -14,7 +14,7 @@ JVM=["-Xms6G","-Xmx6G","-XX:+UseG1GC","-XX:+ParallelRefProcEnabled","-XX:MaxGCPa
 cfg,dim,idx,R=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4]); keep="--keep" in sys.argv
 CONF=json.load(open(os.path.join(HERE,"configs.json")))[cfg]
 B0=["fabric-api","c2me-fabric","distanthorizons","spark","chunky"]
-mods=B0+CONF["mods"]
+mods=CONF.get("base",B0)+CONF["mods"]
 run=f"/srv/mc/runs/{cfg}/{dim}/r{idx}"
 import socket
 def port_free(port):
@@ -31,11 +31,15 @@ else:
               open(f"{OUT}/{cfg}__{dim.split(':')[1]}__r{idx}.json","w"),indent=1)
     print("port busy, not starting"); sys.exit(2)
 make(run,mods,SEED)
+for dp in CONF.get("datapacks",[]):  # datapack zips go into world/datapacks before the world is created
+    m=glob.glob(f"/srv/mc/cache/{dp}__*"); os.makedirs(run+"/world/datapacks",exist_ok=True)
+    shutil.copy(m[0],run+"/world/datapacks/"+os.path.basename(m[0]).split("__",1)[1])
+res_datapacks=CONF.get("datapacks",[])
 log=open(run+"/out.log","w")
 t_launch=time.time()
 p=subprocess.Popen([JAVA]+JVM+["-jar","fabric-server-launch.jar","nogui"],cwd=run,stdout=log,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
 def L(): return open(run+"/out.log",errors="replace").read()
-res={"config":cfg,"dimension":dim,"run":idx,"seed":SEED,"radius":R,"mods":mods,"jvm":JVM,"status":"error"}
+res={"datapacks":res_datapacks,"config":cfg,"dimension":dim,"run":idx,"seed":SEED,"radius":R,"mods":mods,"jvm":JVM,"status":"error"}
 def finish(status):
     res["status"]=status
     os.makedirs(OUT,exist_ok=True)
@@ -51,7 +55,7 @@ try:
     res["startup_s"]=round(time.time()-t_launch,1)
     m=re.search(r"Loading (\d+) mods:\n((?:\t.*\n)+)",L()); res["mods_loaded"]=m.group(2).split("\n") if m else []
     r=Rcon()
-    r.cmd("gamerule doDaylightCycle false"); r.cmd("gamerule doWeatherCycle false")
+    res["datapack_list"]=r.cmd("datapack list")[:600]
     r.cmd("spark profiler start --thread *"); time.sleep(3)
     for c in [f"chunky world {dim}","chunky center 0 0",f"chunky radius {R}","chunky shape square","chunky quiet 30"]: r.cmd(c)
     pid=p.pid; clk=os.sysconf("SC_CLK_TCK")
