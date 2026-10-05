@@ -1,0 +1,2 @@
+B0 minecraft:the_nether 1 1000
+B0 minecraft:the_end 1 1000

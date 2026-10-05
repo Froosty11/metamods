@@ -1,0 +1,496 @@
+{
+ "B0": {
+  "type": "baseline",
+  "mods": [],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld",
+   "minecraft:the_nether",
+   "minecraft:the_end"
+  ]
+ },
+ "terralith": {
+  "type": "terrain",
+  "mods": [
+   "terralith",
+   "lithostitched"
+  ],
+  "verify": [
+   "locate biome terralith:alpine_grove",
+   "locate structure terralith:fortified_village"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "tectonic": {
+  "type": "terrain",
+  "mods": [
+   "tectonic",
+   "lithostitched"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "geophilic": {
+  "type": "terrain",
+  "mods": [
+   "geophilic"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "wwoo": {
+  "type": "terrain",
+  "mods": [
+   "wwoo",
+   "cristel-lib",
+   "cloth-config"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "continents": {
+  "type": "terrain",
+  "mods": [
+   "continents"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "hybrid-beta": {
+  "type": "terrain",
+  "mods": [
+   "hybrid-beta"
+  ],
+  "verify": [
+   "locate biome hybrid_beta:seasonal_forest"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "geophilic+tectonic": {
+  "type": "terrain",
+  "mods": [
+   "geophilic",
+   "tectonic",
+   "lithostitched"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "geophilic+terralith": {
+  "type": "terrain",
+  "mods": [
+   "geophilic",
+   "terralith",
+   "lithostitched"
+  ],
+  "verify": [
+   "locate biome terralith:alpine_grove"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "tectonic+terralith": {
+  "type": "terrain",
+  "mods": [
+   "tectonic",
+   "terralith",
+   "lithostitched"
+  ],
+  "verify": [
+   "locate biome terralith:alpine_grove"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "incendium": {
+  "type": "nether",
+  "mods": [
+   "incendium"
+  ],
+  "verify": [
+   "locate biome incendium:volcanic_deltas",
+   "locate structure incendium:piglin_village"
+  ],
+  "dims": [
+   "minecraft:the_nether"
+  ]
+ },
+ "amplified-nether": {
+  "type": "nether",
+  "mods": [
+   "amplified-nether"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:the_nether"
+  ]
+ },
+ "amethyst-nether": {
+  "type": "nether",
+  "mods": [
+   "amethyst-nether"
+  ],
+  "verify": [
+   "locate biome an:basalt_flows"
+  ],
+  "dims": [
+   "minecraft:the_nether"
+  ]
+ },
+ "formations-nether": {
+  "type": "nether",
+  "mods": [
+   "formations-nether",
+   "formations"
+  ],
+  "verify": [
+   "locate structure formationsnether:blackstone_castle"
+  ],
+  "dims": [
+   "minecraft:the_nether"
+  ]
+ },
+ "mns": {
+  "type": "nether",
+  "mods": [
+   "mns-moogs-nether-structures",
+   "moogs-structure-lib"
+  ],
+  "verify": [
+   "locate structure mns:medium_blackstone"
+  ],
+  "dims": [
+   "minecraft:the_nether"
+  ]
+ },
+ "nullscape": {
+  "type": "end",
+  "mods": [
+   "nullscape"
+  ],
+  "verify": [
+   "locate biome nullscape:void_barrens"
+  ],
+  "dims": [
+   "minecraft:the_end"
+  ]
+ },
+ "stellarity": {
+  "type": "end",
+  "mods": [
+   "stellarity"
+  ],
+  "verify": [
+   "locate biome stellarity:amethyst_forest"
+  ],
+  "dims": [
+   "minecraft:the_end"
+  ]
+ },
+ "endercon": {
+  "type": "end",
+  "mods": [
+   "endercon"
+  ],
+  "verify": [
+   "locate biome endercon:end_hallows"
+  ],
+  "dims": [
+   "minecraft:the_end"
+  ]
+ },
+ "mes": {
+  "type": "end",
+  "mods": [
+   "mes-moogs-end-structures",
+   "moogs-structure-lib"
+  ],
+  "verify": [
+   "locate structure mes:mega_ship_basic"
+  ],
+  "dims": [
+   "minecraft:the_end"
+  ]
+ },
+ "scalablelux": {
+  "type": "perf",
+  "mods": [
+   "scalablelux"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "structure-layout-optimizer": {
+  "type": "perf",
+  "mods": [
+   "structure-layout-optimizer",
+   "resourceful-config"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "zfastnoise": {
+  "type": "perf",
+  "mods": [
+   "zfastnoise",
+   "zconfig"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "dungeons-and-taverns": {
+  "type": "structures",
+  "mods": [
+   "dungeons-and-taverns"
+  ],
+  "verify": [
+   "locate structure nova_structures:bunker"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "structory": {
+  "type": "structures",
+  "mods": [
+   "structory"
+  ],
+  "verify": [
+   "locate structure structory:northern_ruin"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "structory-towers": {
+  "type": "structures",
+  "mods": [
+   "structory-towers"
+  ],
+  "verify": [
+   "locate structure structory_towers:engineer_tower"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "towns-and-towers": {
+  "type": "structures",
+  "mods": [
+   "towns-and-towers",
+   "cristel-lib",
+   "cloth-config"
+  ],
+  "verify": [
+   "locate structure towns_and_towers:pillager_outpost_beach"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "sparsestructures": {
+  "type": "structures",
+  "mods": [
+   "sparsestructures"
+  ],
+  "verify": [
+   "locate structure minecraft:village_plains"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "repurposed-structures": {
+  "type": "structures",
+  "mods": [
+   "repurposed-structures-fabric",
+   "midnightlib"
+  ],
+  "verify": [
+   "locate structure repurposed_structures:abandoned_camp_soul"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "mvs": {
+  "type": "structures",
+  "mods": [
+   "moogs-voyager-structures",
+   "moogs-structure-lib"
+  ],
+  "verify": [
+   "locate structure mvs:castle_ruins"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "formations-overworld": {
+  "type": "structures",
+  "mods": [
+   "formations-overworld",
+   "formations"
+  ],
+  "verify": [
+   "locate structure formationsoverworld:campsite"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "katters-structures": {
+  "type": "structures",
+  "mods": [
+   "katters-structures"
+  ],
+  "verify": [
+   "locate structure kattersstructures:armory"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "tidal-towns": {
+  "type": "structures",
+  "mods": [
+   "tidal-towns"
+  ],
+  "verify": [
+   "locate structure joshie:village_ocean"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "hopo-better-mineshaft": {
+  "type": "structures",
+  "mods": [
+   "hopo-better-mineshaft"
+  ],
+  "verify": [
+   "locate structure hopo:mineshaft/acacia_mineshaft"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "hopo-better-underwater-ruins": {
+  "type": "structures",
+  "mods": [
+   "hopo-better-underwater-ruins"
+  ],
+  "verify": [
+   "locate structure hopo:underwater/underwater_city"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "hopo-better-ruined-portals": {
+  "type": "structures",
+  "mods": [
+   "hopo-better-ruined-portals"
+  ],
+  "verify": [
+   "locate structure hopo:portal/overworld/portal_lush"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "ati-structures": {
+  "type": "structures",
+  "mods": [
+   "ati-structures-vanilla-edition"
+  ],
+  "verify": [
+   "locate structure ati_structures:ancient_temple"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "villages-and-pillages": {
+  "type": "structures",
+  "mods": [
+   "villages-and-pillages"
+  ],
+  "verify": [
+   "locate structure villagesandpillages:village_witch"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "vanilla-structure-update": {
+  "type": "structures",
+  "mods": [
+   "vanilla-structure-update"
+  ],
+  "verify": [
+   "locate structure vsrevamped:village_cherry"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "epic-structures-villages": {
+  "type": "structures",
+  "mods": [
+   "epic-structures-villages"
+  ],
+  "verify": [
+   "locate structure minecraft:village_plains"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "mss": {
+  "type": "structures",
+  "mods": [
+   "mss-moogs-soaring-structures",
+   "moogs-structure-lib"
+  ],
+  "verify": [
+   "locate structure mss:diorite_house"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ },
+ "snow-under-trees": {
+  "type": "features",
+  "mods": [
+   "snow-under-trees-remastered",
+   "mru"
+  ],
+  "verify": [],
+  "dims": [
+   "minecraft:overworld"
+  ]
+ }
+}

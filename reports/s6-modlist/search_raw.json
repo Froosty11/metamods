@@ -1,0 +1,2346 @@
+{
+ "terrablender": {
+  "slug": "terrablender",
+  "title": "TerraBlender",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 40480552,
+  "follows": 2397,
+  "categories": [
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A library mod for adding biomes in a simple and compatible manner!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "biomes-o-plenty": {
+  "slug": "biomes-o-plenty",
+  "title": "Biomes O' Plenty",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 37360752,
+  "follows": 5422,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Adds 50+ unique biomes to enhance your world, with new trees, flowers, and more!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "natures-compass": {
+  "slug": "natures-compass",
+  "title": "Nature's Compass",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 26179492,
+  "follows": 2921,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "technology",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Allows you to locate biomes anywhere in the world.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "waystones": {
+  "slug": "waystones",
+  "title": "Waystones",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 26074612,
+  "follows": 5651,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "magic",
+   "neoforge",
+   "social",
+   "transportation",
+   "worldgen"
+  ],
+  "description": "Teleport from waystone to waystone or craft magical scrolls to warp.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "terralith": {
+  "slug": "terralith",
+  "title": "Terralith",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 23648507,
+  "follows": 8719,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Explore almost 100 new biomes consisting of both realism and light fantasy, using just Vanilla blocks. Complete with several immersive structures to compliment the overhauled terrain.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "lithostitched": {
+  "slug": "lithostitched",
+  "title": "Lithostitched",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 23640339,
+  "follows": 1576,
+  "categories": [
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Library mod with new configurability and compatibility enhancements for worldgen",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "dungeons-and-taverns": {
+  "slug": "dungeons-and-taverns",
+  "title": "Dungeons and Taverns",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 21550850,
+  "follows": 8871,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "mobs",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "A Structure Datapack adding dungeons, taverns and other structures to find while you explore the world.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "yeetus-experimentus": {
+  "slug": "yeetus-experimentus",
+  "title": "Yeetus Experimentus",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "unsupported",
+  "downloads": 19066809,
+  "follows": 422,
+  "categories": [
+   "fabric",
+   "forge",
+   "neoforge",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Disable's the Experimental Settings popup, which appears when you create or load world.",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "chunky": {
+  "slug": "chunky",
+  "title": "Chunky",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "optional",
+  "downloads": 18663107,
+  "follows": 6382,
+  "categories": [
+   "bukkit",
+   "fabric",
+   "folia",
+   "forge",
+   "neoforge",
+   "optimization",
+   "paper",
+   "spigot",
+   "sponge",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Pre-generates chunks, quickly and efficiently",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "cristel-lib": {
+  "slug": "cristel-lib",
+  "title": "Cristel Lib",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 18233051,
+  "follows": 1135,
+  "categories": [
+   "cursed",
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A Library mod for easy structure config and runtime datapacks.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "towns-and-towers": {
+  "slug": "towns-and-towers",
+  "title": "Towns and Towers",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 17985073,
+  "follows": 4952,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Spice up your world with new villages, pillager outposts, and even new ships!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "tectonic": {
+  "slug": "tectonic",
+  "title": "Tectonic",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 16737108,
+  "follows": 7380,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Terrain shaping brought to new heights, grander and more varied than ever before!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "repurposed-structures-fabric": {
+  "slug": "repurposed-structures-fabric",
+  "title": "Repurposed Structures - Fabric",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 14292043,
+  "follows": 1163,
+  "categories": [
+   "fabric",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds more variations of vanilla structures and features such as a Jungle Fortress!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "explorers-compass": {
+  "slug": "explorers-compass",
+  "title": "Explorer's Compass",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 11801788,
+  "follows": 1442,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "technology",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Allows you to locate structures anywhere in the world.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "naturalist": {
+  "slug": "naturalist",
+  "title": "Naturalist",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 11281051,
+  "follows": 4029,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Adds 47 animals *(and 66 variants)* to your world with immersive behaviors and drops.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "geophilic": {
+  "slug": "geophilic",
+  "title": "Geophilic",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 10630401,
+  "follows": 3829,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A subtle-ish overhaul of vanilla Overworld biomes! Reworked!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "mes-moogs-end-structures": {
+  "slug": "mes-moogs-end-structures",
+  "title": "MES - Moog's End Structures",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 10588168,
+  "follows": 1209,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Lots of Vanilla styled structrues to fill up the end dimension with life!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "incendium": {
+  "slug": "incendium",
+  "title": "Incendium Legacy",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 10258035,
+  "follows": 3076,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A nether biome overhaul combined with challenging structures to conquer, unique weapons to obtain, and tricky mobs to defeat.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "structory-towers": {
+  "slug": "structory-towers",
+  "title": "Structory: Towers",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 9125518,
+  "follows": 916,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds immersive biome-themed towers to the world, as a standalone option or add-on to Structory",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "villages-and-pillages": {
+  "slug": "villages-and-pillages",
+  "title": "Villages&Pillages",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 8733491,
+  "follows": 877,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Structure mod that brings an exciting twist to Minecraft by introducing hostile and unfriendly pillages, providing a thrilling contrast to the peaceful villages.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "structory": {
+  "slug": "structory",
+  "title": "Structory",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 8687361,
+  "follows": 1883,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A seasonally updated and atmospheric structure mod with light lore",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "moogs-voyager-structures": {
+  "slug": "moogs-voyager-structures",
+  "title": "MVS - Moog's Voyager Structures",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 8501636,
+  "follows": 1583,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "adds 130+ vanilla style structures to your world to bring it alive, using vanilla blocks. Includes dungeons and enemies to fight!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "ksyxis": {
+  "slug": "ksyxis",
+  "title": "Ksyxis",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 8363889,
+  "follows": 1227,
+  "categories": [
+   "fabric",
+   "forge",
+   "legacy-fabric",
+   "management",
+   "neoforge",
+   "optimization",
+   "ornithe",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Speed up your world loading by removing unneeded chunks.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "sparsestructures": {
+  "slug": "sparsestructures",
+  "title": "Sparse Structures",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 8112107,
+  "follows": 1019,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "management",
+   "neoforge",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A simple and configurable mod that makes all (even datapacks and modded) structures more spread out (or more common!), essentially making them rarer/easier to find. Useful in big modpacks with a lot of structures mods to encourage exploration",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "structure-layout-optimizer": {
+  "slug": "structure-layout-optimizer",
+  "title": "Structure Layout Optimizer",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 7785271,
+  "follows": 384,
+  "categories": [
+   "fabric",
+   "forge",
+   "neoforge",
+   "optimization",
+   "worldgen"
+  ],
+  "description": "Attempts to optimize the generation of Jigsaw Structures and NBT pieces",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "zfastnoise": {
+  "slug": "zfastnoise",
+  "title": "Fast Noise",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "optional",
+  "downloads": 7637537,
+  "follows": 512,
+  "categories": [
+   "fabric",
+   "forge",
+   "neoforge",
+   "optimization",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Vanilla Worldgen optimization mod",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "oh-the-trees-youll-grow": {
+  "slug": "oh-the-trees-youll-grow",
+  "title": "Oh The Trees You'll Grow",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 7630486,
+  "follows": 260,
+  "categories": [
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Tree library used by popular mods such as Oh The Biomes You'll Go.",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "formations": {
+  "slug": "formations",
+  "title": "Formations (Structure Library)",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 6923629,
+  "follows": 258,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Formations adds utilities for structure datapacks!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "formations-nether": {
+  "slug": "formations-nether",
+  "title": "Formations Nether",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 6392929,
+  "follows": 529,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Formations Nether adds plenty of new structures to the nether!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "formations-overworld": {
+  "slug": "formations-overworld",
+  "title": "Formations Overworld",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 6018798,
+  "follows": 476,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Formations Overworld adds plenty of new structures to the overworld!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "nullscape": {
+  "slug": "nullscape",
+  "title": "Nullscape",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 5720813,
+  "follows": 2764,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Transforms the boring Vanilla end into an alien dimension with the most surreal terrain imaginable. Topped with a couple of new biomes to add to the experience, whilst keeping the end desolate.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "ecologics": {
+  "slug": "ecologics",
+  "title": "Ecologics",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 5629625,
+  "follows": 1053,
+  "categories": [
+   "fabric",
+   "food",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Simple vanilla biome updates, with fun mobs, blocks, and more!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "biome-replacer": {
+  "slug": "biome-replacer",
+  "title": "Biome Replacer",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 5620094,
+  "follows": 377,
+  "categories": [
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A quick way to get rid of a biome. Useful for tweaking datapack-based generators (like Terralith) that don't have a convenient configuration",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "wizards": {
+  "slug": "wizards",
+  "title": "Wizards (RPG Series)",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 5432774,
+  "follows": 1536,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "\ud83e\uddd9\ud83c\udffb\u200d\u2642\ufe0f Destroy your enemies with Arcane, Fire and Frost magic",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "repurposed-structures-forge": {
+  "slug": "repurposed-structures-forge",
+  "title": "Repurposed Structures - Neoforge/Forge",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 5313695,
+  "follows": 282,
+  "categories": [
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Adds more variations of vanilla structures and features such as a Jungle Fortress!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "structure-pool-api": {
+  "slug": "structure-pool-api",
+  "title": "Structure Pool API",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 4784553,
+  "follows": 156,
+  "categories": [
+   "fabric",
+   "forge",
+   "library",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "\ud83d\udcda API to inject structures into structure pools.",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "moogs-structure-lib": {
+  "slug": "moogs-structure-lib",
+  "title": "Moog's Structure Lib (moogs_structures)",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 4776386,
+  "follows": 268,
+  "categories": [
+   "fabric",
+   "forge",
+   "neoforge",
+   "utility",
+   "worldgen"
+  ],
+  "description": "This is a library mod for the Moogs Structure series",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "jewelry": {
+  "slug": "jewelry",
+  "title": "Jewelry (RPG Series)",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 4570383,
+  "follows": 1103,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "magic",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "\ud83d\udc8d Find precious gems deep down, and craft them into powerful jewelry!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "snow-under-trees-remastered": {
+  "slug": "snow-under-trees-remastered",
+  "title": "Snow Under Trees (Fabric)",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 4514768,
+  "follows": 825,
+  "categories": [
+   "decoration",
+   "fabric",
+   "worldgen"
+  ],
+  "description": "Adds snow under trees in snowy biomes, making the biomes more immersive.",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "mns-moogs-nether-structures": {
+  "slug": "mns-moogs-nether-structures",
+  "title": "MNS - Moog's Nether Structures",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 4405847,
+  "follows": 551,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "loads of structures made with vanilla blocks and entities bringing life to your world! Discover loot, enemies, & more along the way!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "dungeons-and-taverns-ancient-city-overhaul": {
+  "slug": "dungeons-and-taverns-ancient-city-overhaul",
+  "title": "Dungeons and Taverns Ancient City Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 4344369,
+  "follows": 954,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Standalone Splinter version of Dungeons and Taverns Ancient City Overhaul",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "tidal-towns": {
+  "slug": "tidal-towns",
+  "title": "Tidal Towns",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 3978364,
+  "follows": 1730,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Several pieces of driftwood have been gathered to form a village that floats on the waves.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "ati-structures-vanilla-edition": {
+  "slug": "ati-structures-vanilla-edition",
+  "title": "ATi Structures - Vanilla Edition",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 3825784,
+  "follows": 484,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A collection of custom structures and dungeons!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads"
+  ]
+ },
+ "ubes-delight": {
+  "slug": "ubes-delight",
+  "title": "Ube's Delight",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 3780172,
+  "follows": 401,
+  "categories": [
+   "decoration",
+   "fabric",
+   "food",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "A Farmer\u2019s Delight addon that adds Filipino inspired crops and food.",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "mss-moogs-soaring-structures": {
+  "slug": "mss-moogs-soaring-structures",
+  "title": "MSS - Moog's Soaring Structures",
+  "project_type": "mod",
+  "client_side": "unsupported",
+  "server_side": "required",
+  "downloads": 3550458,
+  "follows": 504,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Lots of awesome vanilla style floating islands full of loot, mobs and dungeons for you to explore!",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "chunks-fade-in": {
+  "slug": "chunks-fade-in",
+  "title": "Chunks fade in",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "unsupported",
+  "downloads": 3514456,
+  "follows": 1966,
+  "categories": [
+   "cursed",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A simple mod that adds different animations for chunks!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "paladins-and-priests": {
+  "slug": "paladins-and-priests",
+  "title": "Paladins & Priests (RPG Series)",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 3372265,
+  "follows": 1002,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "\u2728 Protect and heal your friends as a Paladin or a Priest",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "archers": {
+  "slug": "archers",
+  "title": "Archers (RPG Series)",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 3172000,
+  "follows": 1087,
+  "categories": [
+   "adventure",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "\ud83c\udff9 Draw, Release, Conquer - Master the art of Archery!",
+  "found_by": [
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "structurify": {
+  "slug": "structurify",
+  "title": "Structurify - Structure Control",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 3134028,
+  "follows": 533,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "management",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A structure configuration mod that eliminates the need for datapacks. Spread out structures, prevent overlap, enforce flat terrain, customize size and biomes.",
+  "found_by": [
+   "mod/downloads"
+  ]
+ },
+ "dungeons-and-taverns-stronghold-overhaul": {
+  "slug": "dungeons-and-taverns-stronghold-overhaul",
+  "title": "Dungeons and Taverns Stronghold Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 3021859,
+  "follows": 1176,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "This Datapack, the Standalone version of Dungeons and Taverns Overhaul of the Stronghold, Overhauls the Stronghold from the ground up With 417 Different rooms and 5 sub stronghold types\nFair warning, your world will Freeze Upon first Structure generation.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/downloads",
+   "mod/follows"
+  ]
+ },
+ "wilder-wild": {
+  "slug": "wilder-wild",
+  "title": "Wilder Wild",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 1164833,
+  "follows": 1904,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "food",
+   "game-mechanics",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "storage",
+   "worldgen"
+  ],
+  "description": "A massive overhaul that improves biomes, adds new mobs, trees, and more!",
+  "found_by": [
+   "mod/follows"
+  ]
+ },
+ "stellarity": {
+  "slug": "stellarity",
+  "title": "Stellarity",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1002788,
+  "follows": 1851,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "food",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Extreme rehaul of The End in a unique fantasy style, combined with biome and structure overhauls, new items, weapons and plenty of other content to discover.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "continents": {
+  "slug": "continents",
+  "title": "Continents",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1307602,
+  "follows": 1755,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Reshapes the world to consist of continents, separated by large oceans and small islands.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "wwoo": {
+  "slug": "wwoo",
+  "title": "William Wythers' Overhauled Overworld",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 2058303,
+  "follows": 1365,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "This mod overhauls all vanilla biomes, with different sub biomes!",
+  "found_by": [
+   "mod/follows"
+  ]
+ },
+ "more-mobs": {
+  "slug": "more-mobs",
+  "title": "More Mobs",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 981436,
+  "follows": 1268,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Humanoid mobs get new variants through over 85 custom player heads or unused vanilla mobs! No Resource Pack needed!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "amplified-nether": {
+  "slug": "amplified-nether",
+  "title": "Amplified Nether",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 2293694,
+  "follows": 1250,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "The nether explorer's simple dream: doubled height and amplified terrain. What more is needed?",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "hopo-better-underwater-ruins": {
+  "slug": "hopo-better-underwater-ruins",
+  "title": "Hopo Better Underwater Ruins",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 2654316,
+  "follows": 1073,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Explore new ocean ruins to your world",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "hopo-better-mineshaft": {
+  "slug": "hopo-better-mineshaft",
+  "title": "Hopo Better Mineshaft",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 2381627,
+  "follows": 1045,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "More and better mineshafts to explore",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "dungeons-and-taverns-pillager-outpost-overhaul": {
+  "slug": "dungeons-and-taverns-pillager-outpost-overhaul",
+  "title": "Dungeons and Taverns Pillager Outpost Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 2596868,
+  "follows": 862,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Standalone split version of the Pillager Outpost Overhaul from Dungeons and Taverns",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "hopo-better-ruined-portals": {
+  "slug": "hopo-better-ruined-portals",
+  "title": "Hopo Better Ruined Portals",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1822864,
+  "follows": 851,
+  "categories": [
+   "adventure",
+   "cursed",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Improve how the portals look in your world",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "variants-and-ventures": {
+  "slug": "variants-and-ventures",
+  "title": "Variants&Ventures",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 1688992,
+  "follows": 836,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds multiple new mob variants seamlessly integrated into your Minecraft world.",
+  "found_by": [
+   "mod/follows"
+  ]
+ },
+ "decubed-dungeons": {
+  "slug": "decubed-dungeons",
+  "title": "DeCubed Dungeons (Formerly Dungeons+)",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1654594,
+  "follows": 806,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Brand new vanilla dungeons remade with biome specific designs and new mob spawner types",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "rustic-delight": {
+  "slug": "rustic-delight",
+  "title": "Rustic Delight",
+  "project_type": "mod",
+  "client_side": "required",
+  "server_side": "required",
+  "downloads": 2871981,
+  "follows": 806,
+  "categories": [
+   "adventure",
+   "decoration",
+   "fabric",
+   "food",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "An add-on for Farmer's Delight that adds Pancakes, Cotton, Coffee, Bell Peppers, fried foods and more!",
+  "found_by": [
+   "mod/follows"
+  ]
+ },
+ "streams-reflowing": {
+  "slug": "streams-reflowing",
+  "title": "Streams Reflowing",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 368714,
+  "follows": 799,
+  "categories": [
+   "adventure",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Adds beautiful flowing streams to your world.",
+  "found_by": [
+   "mod/follows"
+  ]
+ },
+ "ati-structures-fabricforge": {
+  "slug": "ati-structures-fabricforge",
+  "title": "ATi Structures",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1683019,
+  "follows": 788,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "equipment",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Custom vanilla dungeons and structures for both Fabric and Forge",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "hybrid-beta": {
+  "slug": "hybrid-beta",
+  "title": "Cascades",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 182681,
+  "follows": 767,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Make Minecraft more inspiring!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows",
+   "mod/follows"
+  ]
+ },
+ "qraftys-jungle-villages": {
+  "slug": "qraftys-jungle-villages",
+  "title": "qrafty's Jungle Villages",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1664265,
+  "follows": 168,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "This pack adds random generating jungle villages in the game to honor the forgotten jungle villagers! \ud83c\udf39\ud83c\udf49",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "dungeons-and-taverns-woodland-mansion-overhaul": {
+  "slug": "dungeons-and-taverns-woodland-mansion-overhaul",
+  "title": "Dungeons and Taverns Woodland Mansion Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1629195,
+  "follows": 628,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "This Mod Overhauls the Woodland Mansion with 184 different rooms and 8 type of rooms. adding a basement layer and a road leading away from the woodland mansion",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dungeons-and-taverns-swamp-hut-overhaul": {
+  "slug": "dungeons-and-taverns-swamp-hut-overhaul",
+  "title": "Dungeons and Taverns Swamp Hut Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1543813,
+  "follows": 568,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "This Splinter Standalone version of Dungeons and Tavern adds the Swamp Hut rework. Adding 2 variants, an loot chest, an brewing stand and an bed",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "grim-kingdoms-lost-structures-ruins-vanilla-edition": {
+  "slug": "grim-kingdoms-lost-structures-ruins-vanilla-edition",
+  "title": "Grim kingdoms: Lost structures & ruins Vanilla Edition",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 1313592,
+  "follows": 107,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Vanilla version REMOVES  hidden unique vanilla items",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "dungeons-and-taverns-ocean-monument-overhaul": {
+  "slug": "dungeons-and-taverns-ocean-monument-overhaul",
+  "title": "Dungeons and Taverns Ocean Monument Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 972602,
+  "follows": 543,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "This Mod/Datapack Overhauls the Ocean Monument, turning it into a jigsaw structure, every room has randomized walls and floors, and some loot chests are scattered around",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dungeons-and-taverns-jungle-temple-overhaul": {
+  "slug": "dungeons-and-taverns-jungle-temple-overhaul",
+  "title": "Dungeons and Taverns Jungle Temple Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 941196,
+  "follows": 489,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Overhauls Jungle Temples with 4 Variants using new loot tables alongside the Vanilla Loot Table and can have archeology elements inside as well as new puzzles",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dungeons-and-taverns-desert-temple-overhaul": {
+  "slug": "dungeons-and-taverns-desert-temple-overhaul",
+  "title": "Dungeons and Taverns Desert Temple Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 842669,
+  "follows": 534,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "Overhauls Desert Temples with 4 Variants using new loot tables alongside the Vanilla Loot Tables. The chests at the TNT trap can now turn into exits leading into underground buried rooms for archeology",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "x_ray": {
+  "slug": "x_ray",
+  "title": "X Ray (no cheats)",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 826793,
+  "follows": 214,
+  "categories": [
+   "adventure",
+   "cursed",
+   "datapack",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Find ores in mines faster and easier.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dungeons-and-taverns-nether-fortress-overhaul": {
+  "slug": "dungeons-and-taverns-nether-fortress-overhaul",
+  "title": "Dungeons and Taverns Nether Fortress Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 804035,
+  "follows": 583,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "This Mod Overhauls the Nether Fortress with 1 guaranteed spawner, the fortress inside hallways having decoration and blaze spawners found in and outside the fortress",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dynamic-torches": {
+  "slug": "dynamic-torches",
+  "title": "Dynamic Lights",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 773732,
+  "follows": 633,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "neoforge",
+   "quilt",
+   "technology",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Adds dynamic lights for players, items, mobs, etc.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "katters-structures": {
+  "slug": "katters-structures",
+  "title": "Katters Structures",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 761443,
+  "follows": 837,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds 30+ brand new vanilla like structures to the game",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "2032-world-height": {
+  "slug": "2032-world-height",
+  "title": "2032 World Height",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 701792,
+  "follows": 361,
+  "categories": [
+   "adventure",
+   "cursed",
+   "datapack",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Increase your build limit to Y=2031 in all dimensions.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "qraftyfied": {
+  "slug": "qraftyfied",
+  "title": "qraftyfied: STRUCTURES",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 554395,
+  "follows": 631,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "This pack adds many well built and lore-friendly STRUCTURES to your minecraft world that invite you to explore them. Now with TERRALITH support! \ud83e\uded0",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "mes-biomes-o-plenty-compat-pack": {
+  "slug": "mes-biomes-o-plenty-compat-pack",
+  "title": "MES - Biomes O' Plenty Compat Pack",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 288391,
+  "follows": 35,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "worldgen"
+  ],
+  "description": "Switches out the style of MES structures to use blocks from BOP, creating a more cohesive and immersive experience when both mods are installed.",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "skyblock-infinite": {
+  "slug": "skyblock-infinite",
+  "title": "Skyblock Infinite",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 283231,
+  "follows": 258,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Skyblock for any seed with Infinite void generation.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "epic-structures-villages": {
+  "slug": "epic-structures-villages",
+  "title": "Epic Structures: Villages",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 261930,
+  "follows": 507,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "equipment",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "This mod completely replaces and overhauls Minecraft villages with sprawling cities and towns based on medieval architecture.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "william-wythers-overhauled-overworld-(datapack)": {
+  "slug": "william-wythers-overhauled-overworld-(datapack)",
+  "title": "William Wythers' Overhauled Overworld (Datapack)",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 258670,
+  "follows": 434,
+  "categories": [
+   "adventure",
+   "datapack",
+   "worldgen"
+  ],
+  "description": "In Overhauled Overworld I seek to re-create the vanilla overworld in a way that makes a more realistic, cohesive and atmospheric world.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "grim-kingdoms-lost-structures-ruins": {
+  "slug": "grim-kingdoms-lost-structures-ruins",
+  "title": "Grim kingdoms: Lost structures & ruins",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 228408,
+  "follows": 363,
+  "categories": [
+   "adventure",
+   "cursed",
+   "datapack",
+   "decoration",
+   "equipment",
+   "fabric",
+   "food",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds forts, citadels, castles, with unique vanilla mobs/ hidden items",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "epic-structures-witch-huts": {
+  "slug": "epic-structures-witch-huts",
+  "title": "Epic Structures: Witch Huts",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 224999,
+  "follows": 216,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Replaces Witch Huts and makes them beautiful",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "endercon": {
+  "slug": "endercon",
+  "title": "Endercon",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 173434,
+  "follows": 367,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Revamp of the end generation with an emphasis on level design, traversal and variety",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "structures-mod": {
+  "slug": "structures-mod",
+  "title": "Structures",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 150998,
+  "follows": 136,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "An extensive mod that adds new structures to your game.",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "epic-structures-dungeons": {
+  "slug": "epic-structures-dungeons",
+  "title": "Epic Structures: Dungeons",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 141105,
+  "follows": 225,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds dungeons of various rarities and sizes",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "new-in-town": {
+  "slug": "new-in-town",
+  "title": "New in Town | The Settler's Experience Data Pack",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 138154,
+  "follows": 630,
+  "categories": [
+   "adventure",
+   "datapack",
+   "economy",
+   "game-mechanics",
+   "management",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A multi-stage, story-driven, settler's experience, where you are tasked with founding, building up, and defending a modular settlement from the forces of the Nether, then taking the fight to them as you construct your own Nether Fortress!",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "dungeons-and-taverns-mineshaft-overhaul": {
+  "slug": "dungeons-and-taverns-mineshaft-overhaul",
+  "title": "Dungeons and Taverns Mineshaft Overhaul",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 114673,
+  "follows": 134,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "A Structure Datapack Overhauling and Replacing the Vanilla Mineshaft, Mesa Mineshaft and adding 4 New rare Mineshafts to your world",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "vanilla-structure-update": {
+  "slug": "vanilla-structure-update",
+  "title": "Vanilla Structure Update",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 108506,
+  "follows": 505,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "A mod that reworks most of the vanilla structures while staying true to the vanilla feel.",
+  "found_by": [
+   "datapack/downloads",
+   "datapack/follows"
+  ]
+ },
+ "katters-structures-only-ambient": {
+  "slug": "katters-structures-only-ambient",
+  "title": "Katters Structures - Ambient",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 102613,
+  "follows": 89,
+  "categories": [
+   "adventure",
+   "datapack",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Sub-project of \"Katters Structures\" with only the Ambient Structures",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "chunk-pregenerator": {
+  "slug": "chunk-pregenerator",
+  "title": "Chunk Pregenerator",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 97467,
+  "follows": 41,
+  "categories": [
+   "datapack",
+   "fabric",
+   "forge",
+   "management",
+   "neoforge",
+   "optimization",
+   "quilt",
+   "technology",
+   "utility",
+   "worldgen"
+  ],
+  "description": "No more lag while exploring!\nLoad chunks beforehand so you can enjoy exploration.",
+  "found_by": [
+   "datapack/downloads"
+  ]
+ },
+ "villages-revamped": {
+  "slug": "villages-revamped",
+  "title": "Villages Revamped",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 89332,
+  "follows": 298,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "worldgen"
+  ],
+  "description": "A datapack that reworks vanilla minecraft villages.",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "myriad": {
+  "slug": "myriad",
+  "title": "Myriad",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 46826,
+  "follows": 290,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "equipment",
+   "fabric",
+   "food",
+   "forge",
+   "magic",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "Enhance your vanilla Minecraft experience with a myriad of new features.",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "deadly-deadly-dungeon": {
+  "slug": "deadly-deadly-dungeon",
+  "title": "Deadly Deadly Dungeon",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 89108,
+  "follows": 267,
+  "categories": [
+   "adventure",
+   "cursed",
+   "datapack",
+   "fabric",
+   "forge",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Deadly Deadly Dungeon add new sprawling randomly generated dungeons with multiple levels of difficulty, loot and bosses. The datapack is ideal if you want an adventure or a real challenge. Can you beat the dungeon?",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "survivors-elegy": {
+  "slug": "survivors-elegy",
+  "title": "Survivor's Elegy",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 28109,
+  "follows": 215,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "food",
+   "forge",
+   "game-mechanics",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "utility",
+   "worldgen"
+  ],
+  "description": "A vanilla expansion datapack which adds plenty of items, mechanics and reworks some already existing mechanics. \nDesigned to add cohesiveness and interesting features to the game.",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "mingen": {
+  "slug": "mingen",
+  "title": "Minimal Structures (Mingen)",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 64673,
+  "follows": 211,
+  "categories": [
+   "adventure",
+   "datapack",
+   "decoration",
+   "fabric",
+   "forge",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Adds new structures to your world",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "trims-overhaul": {
+  "slug": "trims-overhaul",
+  "title": "Trims Overhaul [Limitless]",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 78468,
+  "follows": 195,
+  "categories": [
+   "adventure",
+   "datapack",
+   "economy",
+   "equipment",
+   "fabric",
+   "forge",
+   "game-mechanics",
+   "magic",
+   "minecraft",
+   "minigame",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Grants every trim a unique set of powers, optionally through quests.",
+  "found_by": [
+   "datapack/follows"
+  ]
+ },
+ "amethyst-nether": {
+  "slug": "amethyst-nether",
+  "title": "Amethyst Nether",
+  "project_type": "mod",
+  "client_side": "optional",
+  "server_side": "required",
+  "downloads": 55045,
+  "follows": 183,
+  "categories": [
+   "adventure",
+   "datapack",
+   "equipment",
+   "fabric",
+   "food",
+   "forge",
+   "game-mechanics",
+   "mobs",
+   "neoforge",
+   "quilt",
+   "worldgen"
+  ],
+  "description": "Amethyst Nether is a datapack and mod that transforms the Nether with new content.",
+  "found_by": [
+   "datapack/follows"
+  ]
+ }
+}

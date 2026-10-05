@@ -1,0 +1,669 @@
+{
+ "amethyst-nether": {
+  "functions": 55,
+  "structures": 171,
+  "worldgen": 372,
+  "biomes": 19,
+  "modid": "mr_amethyst_nether",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "amplified-nether": {
+  "worldgen": 121,
+  "functions": 1,
+  "modid": "amplified_nether",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "ati-structures-vanilla-edition": {
+  "structures": 133,
+  "worldgen": 67,
+  "modid": "mr_ati_structuresvanillaedition",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "biomes-o-plenty": {
+  "classes": 296,
+  "blockstates": 493,
+  "item_models": 677,
+  "lang": 26,
+  "textures": 676,
+  "entity_tex": 40,
+  "worldgen": 657,
+  "biomes": 69,
+  "modid": "biomesoplenty",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/core-3.6.7.jar",
+   "META-INF/jars/jsr305-3.0.2.jar",
+   "META-INF/jars/toml-3.6.7.jar",
+   "META-INF/jars/typetools-0.6.3.jar"
+  ]
+ },
+ "bluemap": {
+  "classes": 2704,
+  "modid": "bluemap",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/bluenbt-3.5.1.jar",
+   "META-INF/jars/fabric-permissions-api-0.7.0.jar",
+   "META-INF/jars/flow-math-1.0.3.jar"
+  ]
+ },
+ "c2me-fabric": {
+  "classes": 2,
+  "modid": "c2me",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/asyncutil-0.1.0.jar",
+   "META-INF/jars/c2me-fabric-base-mc26.3-0.4.2-alpha.0.89-all.jar",
+   "META-INF/jars/c2me-fabric-client-uncapvd-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-fixes-chunkio-threading-issues-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-fixes-general-threading-issues-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-fixes-worldgen-threading-issues-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-fixes-worldgen-vanilla-bugs-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-notickvd-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-allocs-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-chunkio-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-math-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-natives-math-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-scheduling-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-worldgen-general-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-opts-worldgen-vanilla-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-rewrites-chunk-serializer-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-rewrites-chunk-system-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-rewrites-chunkio-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-server-utils-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/c2me-fabric-threading-lighting-mc26.3-0.4.2-alpha.0.89.jar",
+   "META-INF/jars/caffeine-3.2.1.jar",
+   "META-INF/jars/core-3.6.5.jar",
+   "META-INF/jars/exp4j-0.4.8.jar",
+   "META-INF/jars/jctools-core-4.0.5.jar",
+   "META-INF/jars/mixinsquared-fabric-0.3.7-beta.1.jar",
+   "META-INF/jars/reactive-streams-1.0.4.jar",
+   "META-INF/jars/rxjava-3.1.12.jar",
+   "META-INF/jars/toml-3.6.5.jar"
+  ]
+ },
+ "chunky": {
+  "classes": 137,
+  "modid": "chunky",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "cloth-config": {
+  "classes": 625,
+  "lang": 24,
+  "textures": 5,
+  "modid": "cloth-config",
+  "env": "*",
+  "client_entry": true,
+  "nested": [
+   "META-INF/jars/basic-math-0.6.1.jar"
+  ]
+ },
+ "continents": {
+  "functions": 1,
+  "worldgen": 63,
+  "modid": "continents",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "cristel-lib": {
+  "classes": 97,
+  "lang": 4,
+  "modid": "cristellib",
+  "env": "*",
+  "client_entry": true,
+  "nested": [
+   "META-INF/jars/jankson-1.2.3.jar"
+  ]
+ },
+ "distanthorizons": {
+  "classes": 1651,
+  "lang": 3,
+  "textures": 7,
+  "modid": "distanthorizons",
+  "env": "*",
+  "client_entry": true,
+  "nested": [
+   "META-INF/jars/fabric-api-0.160.5+26.3.jar",
+   "META-INF/jars/fabric-transfer-api-v1-8.0.25+fcdff87f02.jar",
+   "META-INF/jars/fabric-api-lookup-api-v1-2.0.24+3434d6d902.jar",
+   "META-INF/jars/fabric-block-api-v1-3.1.0+0ae6f91102.jar",
+   "META-INF/jars/fabric-command-api-v2-3.1.2+fcdff87f02.jar",
+   "META-INF/jars/fabric-content-registries-v0-15.0.3+74ed1ea502.jar",
+   "META-INF/jars/fabric-data-generation-api-v1-27.2.1+6317c5a702.jar",
+   "META-INF/jars/fabric-convention-tags-v2-4.10.2+5a4e5fc602.jar",
+   "META-INF/jars/fabric-creative-tab-api-v1-5.0.21+fcdff87f02.jar",
+   "META-INF/jars/fabric-data-attachment-api-v1-2.2.30+3434d6d902.jar",
+   "META-INF/jars/fabric-debug-api-v1-1.0.4+3434d6d902.jar",
+   "META-INF/jars/fabric-dimensions-v1-5.1.19+47f74c9802.jar",
+   "META-INF/jars/fabric-entity-events-v1-6.0.4+3434d6d902.jar",
+   "META-INF/jars/fabric-events-interaction-v0-5.3.6+3434d6d902.jar",
+   "META-INF/jars/fabric-game-rule-api-v1-4.0.10+3434d6d902.jar",
+   "META-INF/jars/fabric-item-api-v1-14.6.2+fcdff87f02.jar",
+   "META-INF/jars/fabric-recipe-api-v1-10.0.8+fcdff87f02.jar",
+   "META-INF/jars/fabric-model-loading-api-v1-8.0.34+fcdff87f02.jar",
+   "META-INF/jars/fabric-renderer-indigo-9.1.22+b9d63e3302.jar",
+   "META-INF/jars/fabric-renderer-api-v1-17.0.14+2ce735b802.jar",
+   "META-INF/jars/fabric-rendering-v1-27.0.14+901a437c02.jar",
+   "META-INF/jars/fabric-lifecycle-events-v1-4.1.9+ffef5f6702.jar",
+   "META-INF/jars/fabric-loot-api-v3-4.0.7+b108b08b02.jar",
+   "META-INF/jars/fabric-menu-api-v1-2.0.26+3434d6d902.jar",
+   "META-INF/jars/fabric-message-api-v1-7.0.10+3434d6d902.jar",
+   "META-INF/jars/fabric-client-gametest-api-v1-6.0.7+4be74c3f02.jar",
+   "META-INF/jars/fabric-particles-v1-5.0.24+3434d6d902.jar",
+   "META-INF/jars/fabric-object-builder-api-v1-24.1.9+3434d6d902.jar",
+   "META-INF/jars/fabric-registry-sync-v0-8.0.1+fcdff87f02.jar",
+   "META-INF/jars/fabric-networking-api-v1-6.3.8+fcdff87f02.jar",
+   "META-INF/jars/fabric-permission-api-v1-1.0.8+fcdff87f02.jar",
+   "META-INF/jars/fabric-rendering-fluids-v1-6.0.6+3434d6d902.jar",
+   "META-INF/jars/fabric-tag-api-v1-2.1.10+fcdff87f02.jar",
+   "META-INF/jars/fabric-resource-loader-v0-3.3.26+4fc5413f02.jar",
+   "META-INF/jars/fabric-resource-loader-v1-3.0.4+fcdff87f02.jar",
+   "META-INF/jars/fabric-screen-api-v1-5.2.3+1087e13e02.jar",
+   "META-INF/jars/fabric-api-base-2.0.6+fcdff87f02.jar",
+   "META-INF/jars/fabric-biome-api-v1-20.0.9+74ed1ea502.jar",
+   "META-INF/jars/fabric-block-getter-api-v2-2.0.9+3434d6d902.jar",
+   "META-INF/jars/fabric-crash-report-info-v1-1.0.7+fcdff87f02.jar",
+   "META-INF/jars/fabric-key-mapping-api-v1-2.0.8+3434d6d902.jar",
+   "META-INF/jars/fabric-resource-conditions-api-v1-6.1.5+3434d6d902.jar",
+   "META-INF/jars/fabric-serialization-api-v1-2.0.7+74ed1ea502.jar",
+   "META-INF/jars/fabric-sound-api-v1-2.0.7+3434d6d902.jar",
+   "META-INF/jars/fabric-transitive-access-wideners-v1-8.1.16+52268a0e02.jar"
+  ]
+ },
+ "dungeons-and-taverns": {
+  "lang": 28,
+  "item_models": 33,
+  "textures": 31,
+  "structures": 5766,
+  "worldgen": 1003,
+  "functions": 65,
+  "modid": "mr_dungeons_andtaverns",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "endercon": {
+  "worldgen": 83,
+  "biomes": 11,
+  "modid": "mr_endercon",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "epic-structures-villages": {
+  "structures": 544,
+  "modid": "mr_epic_structuresvillages",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "fabric-api": {
+  "modid": "fabric-api",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/fabric-advancement-api-v1-1.0.0+38c7a2d55d.jar",
+   "META-INF/jars/fabric-api-base-2.0.6+fcdff87f5d.jar",
+   "META-INF/jars/fabric-api-lookup-api-v1-2.0.24+3434d6d95d.jar",
+   "META-INF/jars/fabric-biome-api-v1-20.0.9+74ed1ea55d.jar",
+   "META-INF/jars/fabric-block-api-v1-3.1.0+0ae6f9115d.jar",
+   "META-INF/jars/fabric-block-getter-api-v2-2.0.9+3434d6d95d.jar",
+   "META-INF/jars/fabric-command-api-v2-3.1.2+fcdff87f5d.jar",
+   "META-INF/jars/fabric-content-registries-v0-15.0.4+74ed1ea55d.jar",
+   "META-INF/jars/fabric-convention-tags-v2-4.10.3+6b5b47fd5d.jar",
+   "META-INF/jars/fabric-crash-report-info-v1-1.0.7+fcdff87f5d.jar",
+   "META-INF/jars/fabric-creative-tab-api-v1-5.0.21+fcdff87f5d.jar",
+   "META-INF/jars/fabric-data-attachment-api-v1-2.2.30+3434d6d95d.jar",
+   "META-INF/jars/fabric-data-generation-api-v1-27.2.4+427eab975d.jar",
+   "META-INF/jars/fabric-debug-api-v1-1.0.4+3434d6d95d.jar",
+   "META-INF/jars/fabric-dimensions-v1-5.1.19+47f74c985d.jar",
+   "META-INF/jars/fabric-entity-events-v1-6.0.4+3434d6d95d.jar",
+   "META-INF/jars/fabric-events-interaction-v0-5.3.6+3434d6d95d.jar",
+   "META-INF/jars/fabric-game-rule-api-v1-4.0.10+3434d6d95d.jar",
+   "META-INF/jars/fabric-item-api-v1-14.7.0+cf6bc2db5d.jar",
+   "META-INF/jars/fabric-key-mapping-api-v1-2.0.8+3434d6d95d.jar",
+   "META-INF/jars/fabric-lifecycle-events-v1-4.1.9+ffef5f675d.jar",
+   "META-INF/jars/fabric-loot-api-v3-4.0.8+4068fd645d.jar",
+   "META-INF/jars/fabric-menu-api-v1-2.0.27+ed66f0a35d.jar",
+   "META-INF/jars/fabric-message-api-v1-7.0.10+3434d6d95d.jar",
+   "META-INF/jars/fabric-model-loading-api-v1-8.0.35+fcdff87f5d.jar",
+   "META-INF/jars/fabric-networking-api-v1-6.3.8+fcdff87f5d.jar",
+   "META-INF/jars/fabric-object-builder-api-v1-24.1.9+3434d6d95d.jar",
+   "META-INF/jars/fabric-particles-v1-5.0.24+3434d6d95d.jar",
+   "META-INF/jars/fabric-permission-api-v1-1.0.8+fcdff87f5d.jar",
+   "META-INF/jars/fabric-recipe-api-v1-10.0.8+fcdff87f5d.jar",
+   "META-INF/jars/fabric-registry-sync-v0-8.0.1+fcdff87f5d.jar",
+   "META-INF/jars/fabric-renderer-api-v1-17.0.15+79385d0b5d.jar",
+   "META-INF/jars/fabric-renderer-indigo-9.1.23+b9d63e335d.jar",
+   "META-INF/jars/fabric-rendering-fluids-v1-6.0.6+3434d6d95d.jar",
+   "META-INF/jars/fabric-rendering-v1-27.0.14+901a437c5d.jar",
+   "META-INF/jars/fabric-resource-conditions-api-v1-6.1.5+3434d6d95d.jar",
+   "META-INF/jars/fabric-resource-loader-v0-3.3.26+4fc5413f5d.jar",
+   "META-INF/jars/fabric-resource-loader-v1-3.0.4+fcdff87f5d.jar",
+   "META-INF/jars/fabric-screen-api-v1-5.2.4+48607d035d.jar",
+   "META-INF/jars/fabric-serialization-api-v1-2.0.7+74ed1ea55d.jar",
+   "META-INF/jars/fabric-sound-api-v1-2.0.7+3434d6d95d.jar",
+   "META-INF/jars/fabric-tag-api-v1-2.1.10+fcdff87f5d.jar",
+   "META-INF/jars/fabric-transfer-api-v1-8.0.25+fcdff87f5d.jar",
+   "META-INF/jars/fabric-transitive-access-wideners-v1-8.1.16+52268a0e5d.jar"
+  ]
+ },
+ "formations-nether": {
+  "classes": 23,
+  "structures": 59,
+  "worldgen": 27,
+  "modid": "formationsnether",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "formations-overworld": {
+  "classes": 32,
+  "structures": 117,
+  "worldgen": 38,
+  "modid": "formationsoverworld",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "formations": {
+  "classes": 73,
+  "lang": 2,
+  "item_models": 1,
+  "textures": 11,
+  "modid": "formations",
+  "env": "*",
+  "client_entry": true,
+  "nested": []
+ },
+ "geophilic": {
+  "worldgen": 372,
+  "biomes": 30,
+  "modid": "geophilic",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "hopo-better-mineshaft": {
+  "functions": 2,
+  "structures": 1794,
+  "worldgen": 379,
+  "modid": "hopobettermineshaft",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "hopo-better-ruined-portals": {
+  "structures": 128,
+  "worldgen": 36,
+  "modid": "hopobetterruinedportal",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "hopo-better-underwater-ruins": {
+  "structures": 212,
+  "worldgen": 36,
+  "modid": "hopobetterunderwaterruins",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "hybrid-beta": {
+  "lang": 3,
+  "biomes": 55,
+  "worldgen": 85,
+  "structures": 5,
+  "modid": "mr_hybrid_beta",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "incendium": {
+  "functions": 2314,
+  "worldgen": 496,
+  "structures": 440,
+  "biomes": 15,
+  "modid": "incendium",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "katters-structures": {
+  "item_models": 8,
+  "lang": 31,
+  "textures": 4,
+  "functions": 392,
+  "structures": 1421,
+  "biomes": 3,
+  "worldgen": 386,
+  "modid": "mr_katters_structures",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "ksyxis": {
+  "classes": 13,
+  "lang": 9,
+  "modid": "ksyxis",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "lithostitched": {
+  "classes": 333,
+  "worldgen": 41,
+  "modid": "lithostitched",
+  "env": "*",
+  "client_entry": true,
+  "nested": [
+   "META-INF/jars/apollib-1.2.4-fabric-26.3.jar"
+  ]
+ },
+ "mes-moogs-end-structures": {
+  "structures": 159,
+  "worldgen": 98,
+  "lang": 2,
+  "modid": "mes",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "mns-moogs-nether-structures": {
+  "structures": 611,
+  "worldgen": 251,
+  "lang": 2,
+  "modid": "mns",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "moogs-structure-lib": {
+  "classes": 161,
+  "lang": 2,
+  "textures": 7,
+  "structures": 5,
+  "worldgen": 9,
+  "modid": "moogs_structures",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/mixinextras-fabric-0.5.3.jar"
+  ]
+ },
+ "moogs-voyager-structures": {
+  "lang": 2,
+  "structures": 542,
+  "worldgen": 407,
+  "modid": "mvs",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "mss-moogs-soaring-structures": {
+  "structures": 179,
+  "worldgen": 163,
+  "lang": 2,
+  "modid": "mss",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "nullscape": {
+  "worldgen": 301,
+  "biomes": 11,
+  "functions": 9,
+  "structures": 38,
+  "modid": "nullscape",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "repurposed-structures-fabric": {
+  "classes": 212,
+  "lang": 12,
+  "structures": 4015,
+  "worldgen": 2180,
+  "modid": "repurposed_structures",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "resourceful-config": {
+  "classes": 241,
+  "lang": 7,
+  "textures": 40,
+  "modid": "resourcefulconfig",
+  "env": "*",
+  "client_entry": true,
+  "nested": []
+ },
+ "scalablelux": {
+  "classes": 79,
+  "modid": "scalablelux",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "snow-under-trees-remastered": {
+  "classes": 11,
+  "lang": 9,
+  "textures": 5,
+  "worldgen": 6,
+  "modid": "snowundertrees",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/yet-another-config-lib-3.9.6+26.3-fabric.jar"
+  ]
+ },
+ "spark": {
+  "classes": 1633,
+  "modid": "spark",
+  "env": "*",
+  "client_entry": true,
+  "nested": [
+   "META-INF/jars/fabric-permissions-api-0.7.0.jar"
+  ]
+ },
+ "sparsestructures": {
+  "classes": 14,
+  "lang": 3,
+  "modid": "sparsestructures",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "squaremap": {
+  "classes": 3818,
+  "modid": "squaremap",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/adventure-platform-fabric-7.2.0.jar",
+   "META-INF/jars/cloud-fabric-2.1.0.jar",
+   "META-INF/jars/cloud-minecraft-extras-2.0.1.jar",
+   "META-INF/jars/cloud-processors-common-1.0.0-rc.1.jar",
+   "META-INF/jars/cloud-processors-confirmation-1.0.0-rc.1.jar",
+   "META-INF/jars/fabric-permissions-api-0.7.0.jar"
+  ]
+ },
+ "stellarity": {
+  "functions": 1975,
+  "structures": 400,
+  "worldgen": 667,
+  "biomes": 30,
+  "blockstates": 3,
+  "item_models": 530,
+  "textures": 434,
+  "entity_tex": 55,
+  "lang": 19,
+  "modid": "stellarity",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "structory-towers": {
+  "worldgen": 43,
+  "functions": 3,
+  "structures": 57,
+  "modid": "structory_towers",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "structory": {
+  "worldgen": 102,
+  "functions": 1,
+  "structures": 296,
+  "modid": "structory",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "structure-layout-optimizer": {
+  "classes": 20,
+  "lang": 2,
+  "modid": "structure_layout_optimizer",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "structure-pool-api": {
+  "classes": 12,
+  "modid": "structure_pool_api",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "tectonic": {
+  "classes": 55,
+  "lang": 2,
+  "modid": "tectonic",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/apollib-1.2.4-fabric-26.3.jar"
+  ]
+ },
+ "terrablender": {
+  "classes": 79,
+  "lang": 9,
+  "worldgen": 1,
+  "biomes": 2,
+  "modid": "terrablender",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/core-3.6.7.jar",
+   "META-INF/jars/toml-3.6.7.jar"
+  ]
+ },
+ "terralith": {
+  "lang": 25,
+  "worldgen": 1821,
+  "biomes": 137,
+  "functions": 4,
+  "structures": 260,
+  "classes": 11,
+  "modid": "terralith",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "tidal-towns": {
+  "structures": 86,
+  "worldgen": 12,
+  "modid": "mr_tidal_towns",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "towns-and-towers": {
+  "structures": 1094,
+  "worldgen": 319,
+  "modid": "t_and_t",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "vanilla-structure-update": {
+  "structures": 472,
+  "worldgen": 99,
+  "modid": "mr_vanilla_structureupdate",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "villages-and-pillages": {
+  "classes": 27,
+  "structures": 41,
+  "worldgen": 16,
+  "modid": "villagesandpillages",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "wilder-wild": {
+  "classes": 774,
+  "lang": 24,
+  "blockstates": 301,
+  "textures": 960,
+  "entity_tex": 141,
+  "item_models": 431,
+  "structures": 28,
+  "worldgen": 1415,
+  "biomes": 31,
+  "modid": "wilderwild",
+  "env": "*",
+  "client_entry": true,
+  "nested": []
+ },
+ "william-wythers-overhauled-overworld-(datapack)": {
+  "worldgen": 1198,
+  "biomes": 57,
+  "structures": 283,
+  "modid": null,
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "wwoo": {
+  "classes": 8,
+  "modid": "wwoo",
+  "env": "*",
+  "client_entry": false,
+  "nested": []
+ },
+ "zconfig": {
+  "classes": 11,
+  "modid": "zconfig",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/core-3.8.3.jar",
+   "META-INF/jars/toml-3.8.3.jar"
+  ]
+ },
+ "zfastnoise": {
+  "classes": 19,
+  "modid": "zfastnoise",
+  "env": "*",
+  "client_entry": false,
+  "nested": [
+   "META-INF/jars/zfastnoise-ocl-1.0.0-beta.1+26.3.jar"
+  ]
+ }
+}
