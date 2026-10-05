@@ -105,65 +105,65 @@ Built from Modrinth search (worldgen, 26.3, mod+datapack, server_side required/o
 
 Chunks/s = Chunky chunks ÷ wall time from `chunky start` to Chunky's 'Task finished' line. Δ is relative to B0 in the same dimension. Spread = min–max over runs. mspt = mean of vanilla `/tick query` 100-tick averages sampled every 5 s; TPS = mean of spark `tps` 5 s values; CPU = process CPU time ÷ wall ÷ 4 cores. Post-CPU = process CPU in the 20 s after Chunky finished (DH LOD backlog).
 
-| config | type | dim | runs | chunks/s (mean, min–max) | wall s | Δ vs B0 | mspt | TPS | CPU % | peak heap MB | post-CPU % | verify | spark (health / profile, run 1) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| B0 | baseline | Overworld | 3 | 67.6 (65.6–68.6) | 239 | — | 0.51 | 20.00 | 96 | 3985 | 2 |  | [h](https://spark.lucko.me/qRcRhmITIT) / [p](https://spark.lucko.me/9hAjma7VdM) |
-| V0 | baseline | Overworld | 3 | 82.5 (81.0–83.3) | 196 | +22.0% | 1.20 | 20.00 | 70 | 4520 | 1 |  | [h](https://spark.lucko.me/RPHXrjBunc) / [p](https://spark.lucko.me/0llzrSxpaT) |
-| V0+C2ME | baseline | Overworld | 2 | 98.4 (98.2–98.5) | 164 | +45.5% | 0.55 | 20.00 | 85 | 3912 | 1 |  | [h](https://spark.lucko.me/j564I9pQ3q) / [p](https://spark.lucko.me/i343kqj6BL) |
-| continents | terrain | Overworld | 1 | 72.8 (72.8–72.8) | 222 | +7.7% | 0.54 | 19.99 | 96 | 3870 | 2 |  | [h](https://spark.lucko.me/Sede9rKThY) / [p](https://spark.lucko.me/UWSvdGBSIM) |
-| geophilic | terrain | Overworld | 1 | 68.8 (68.8–68.8) | 234 | +1.8% | 0.35 | 20.00 | 95 | 3791 | 2 |  | [h](https://spark.lucko.me/t1BORE0xIE) / [p](https://spark.lucko.me/AutXBxBbQw) |
-| geophilic+tectonic | terrain | Overworld | 1 | 51.3 (51.3–51.3) | 315 | -24.2% | 0.46 | 20.00 | 96 | 4153 | 3 |  | [h](https://spark.lucko.me/l4Cgol34Bq) / [p](https://spark.lucko.me/w9bCY4xZhf) |
-| geophilic+terralith | terrain | Overworld | 1 | 49.4 (49.4–49.4) | 327 | -26.9% | 0.62 | 20.00 | 96 | 4139 | 3 |  | [h](https://spark.lucko.me/Xa9prqyQGT) / [p](https://spark.lucko.me/5iIEfi7mAU) |
-| hybrid-beta | terrain | Overworld | 1 | 57.1 (57.1–57.1) | 282 | -15.5% | 0.43 | 20.00 | 96 | 3786 | 3 |  | [h](https://spark.lucko.me/CxNuBxL8yC) / [p](https://spark.lucko.me/Hz6lxfC9Qc) |
-| tectonic | terrain | Overworld | 1 | 55.0 (55.0–55.0) | 293 | -18.7% | 0.52 | 19.99 | 96 | 4138 | 5 |  | [h](https://spark.lucko.me/Zg3b5XxTWI) / [p](https://spark.lucko.me/dsIsmkjVMw) |
-| tectonic+terralith | terrain | Overworld | 1 | 44.4 (44.4–44.4) | 363 | -34.3% | 0.61 | 20.00 | 96 | 4327 | 4 |  | [h](https://spark.lucko.me/G9x3HRl9yI) / [p](https://spark.lucko.me/HCvhrbTHH7) |
-| terralith | terrain | Overworld | 2 | 54.5 (54.0–55.0) | 296 | -19.4% | 0.53 | 20.00 | 96 | 4140 | 4 |  | [h](https://spark.lucko.me/SeJu6LdfJN) / [p](https://spark.lucko.me/OOlgszmUz7) |
-| wwoo | terrain | Overworld | 1 | 36.7 (36.7–36.7) | 439 | -45.7% | 0.43 | 20.00 | 96 | 4156 | 3 |  | [h](https://spark.lucko.me/eMR6J8vtaA) / [p](https://spark.lucko.me/H4yZVowWHw) |
-| scalablelux | perf | Overworld | 1 | 68.0 (68.0–68.0) | 237 | +0.6% | 0.61 | 19.89 | 96 | 3849 | 5 |  | [h](https://spark.lucko.me/EZhlxIh8w4) / [p](https://spark.lucko.me/fHzUI3075D) |
-| structure-layout-optimizer | perf | Overworld | 1 | 64.6 (64.6–64.6) | 250 | -4.4% | 0.54 | 20.00 | 96 | 3861 | 2 |  | [h](https://spark.lucko.me/cRqNpkZ67s) / [p](https://spark.lucko.me/Rx27GA3PKu) |
-| zfastnoise | perf | Overworld | 1 | 69.4 (69.4–69.4) | 232 | +2.6% | 0.59 | 20.00 | 96 | 3879 | 3 |  | [h](https://spark.lucko.me/vGjz4dJMO4) / [p](https://spark.lucko.me/F2Vq48AG8e) |
-| ati-structures | structures | Overworld | 1 | 57.4 (57.4–57.4) | 281 | -15.0% | 0.64 | 20.00 | 94 | 4401 | 4 |  | [h](https://spark.lucko.me/VevJlgPZIZ) / [p](https://spark.lucko.me/G0y9SLMm4r) |
-| dungeons-and-taverns | structures | Overworld | 1 | 61.7 (61.7–61.7) | 261 | -8.7% | 0.64 | 20.00 | 96 | 4439 | 3 |  | [h](https://spark.lucko.me/TSIocf3vS3) / [p](https://spark.lucko.me/DlPtWsNMT1) |
-| epic-structures-villages | structures | Overworld | 1 | 65.2 (65.2–65.2) | 247 | -3.5% | 0.45 | 20.00 | 95 | 4435 | 2 |  | [h](https://spark.lucko.me/3tDgfx9Bd2) / [p](https://spark.lucko.me/olk99bap3B) |
-| formations-overworld | structures | Overworld | 1 | 66.0 (66.0–66.0) | 244 | -2.4% | 0.46 | 20.00 | 97 | 4169 | 3 |  | [h](https://spark.lucko.me/hrFAQ1jtjS) / [p](https://spark.lucko.me/aVGoQjpPlU) |
-| hopo-better-mineshaft | structures | Overworld | 1 | 65.0 (65.0–65.0) | 248 | -3.8% | 0.56 | 20.00 | 96 | 4234 | 2 |  | [h](https://spark.lucko.me/ywIeT5hBJu) / [p](https://spark.lucko.me/4qY4AWY2ij) |
-| hopo-better-ruined-portals | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.55 | 20.00 | 96 | 4092 | 2 |  | [h](https://spark.lucko.me/Aa2Y6fRuC9) / [p](https://spark.lucko.me/HWZ0LFA2JY) |
-| hopo-better-underwater-ruins | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.37 | 20.00 | 96 | 4146 | 2 |  | [h](https://spark.lucko.me/CsJB1qQHWe) / [p](https://spark.lucko.me/5U2NymAVmf) |
-| katters-structures | structures | Overworld | 1 | 64.8 (64.8–64.8) | 249 | -4.1% | 0.88 | 20.00 | 97 | 4174 | 4 |  | [h](https://spark.lucko.me/r2PREG6voD) / [p](https://spark.lucko.me/FevQKzSH9r) |
-| mss | structures | Overworld | 1 | 66.6 (66.6–66.6) | 242 | -1.5% | 0.46 | 20.00 | 97 | 4242 | 2 |  | [h](https://spark.lucko.me/AH9QHu5YsN) / [p](https://spark.lucko.me/YO9vjdmLWt) |
-| mvs | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -1.9% | 0.47 | 20.00 | 96 | 4033 | 2 |  | [h](https://spark.lucko.me/gIl1qCTkei) / [p](https://spark.lucko.me/gfwUjwx9kx) |
-| repurposed-structures | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -1.9% | 0.47 | 20.00 | 97 | 3932 | 3 |  | [h](https://spark.lucko.me/lofvalGrku) / [p](https://spark.lucko.me/lLjw7VALkF) |
-| sparsestructures | structures | Overworld | 1 | 68.1 (68.1–68.1) | 237 | +0.8% | 0.46 | 20.00 | 96 | 3913 | 2 |  | [h](https://spark.lucko.me/xDpuL2ZIJd) / [p](https://spark.lucko.me/qUpbWoC45G) |
-| structory | structures | Overworld | 1 | 67.7 (67.7–67.7) | 238 | +0.2% | 0.46 | 19.99 | 97 | 4221 | 2 |  | [h](https://spark.lucko.me/SlNfBUgi7h) / [p](https://spark.lucko.me/ZixUCryJwz) |
-| structory-towers | structures | Overworld | 1 | 64.8 (64.8–64.8) | 249 | -4.1% | 0.55 | 20.00 | 96 | 4170 | 3 |  | [h](https://spark.lucko.me/RqvEK6hl49) / [p](https://spark.lucko.me/BXGLennB3n) |
-| tidal-towns | structures | Overworld | 1 | 67.8 (67.8–67.8) | 238 | +0.3% | 0.61 | 20.00 | 96 | 4121 | 2 |  | [h](https://spark.lucko.me/yhW7U0IyBC) / [p](https://spark.lucko.me/s6YlAQUTvm) |
-| towns-and-towers | structures | Overworld | 1 | 63.2 (63.2–63.2) | 255 | -6.4% | 0.45 | 20.00 | 97 | 4295 | 4 |  | [h](https://spark.lucko.me/m7hW173hx6) / [p](https://spark.lucko.me/OCMeN4cVpd) |
-| vanilla-structure-update | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.47 | 19.99 | 96 | 4004 | 2 |  | [h](https://spark.lucko.me/F4frzzA7mI) / [p](https://spark.lucko.me/bZZkNvDfVA) |
-| villages-and-pillages | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -2.0% | 0.48 | 20.00 | 96 | 4304 | 3 |  | [h](https://spark.lucko.me/n6pUnKgKmq) / [p](https://spark.lucko.me/oWjAmoIqvZ) |
-| snow-under-trees | features | Overworld | 1 | 69.4 (69.4–69.4) | 232 | +2.7% | 0.47 | 20.00 | 97 | 3988 | 3 |  | [h](https://spark.lucko.me/4DrTxon0Ml) / [p](https://spark.lucko.me/cK34Mp9ts5) |
-| BALANCED | pack | Overworld | 3 | 52.2 (51.6–52.5) | 309 | -22.8% | 0.66 | 20.00 | 97 | 4272 | 5 |  | [h](https://spark.lucko.me/i3tgJqpsIW) / [p](https://spark.lucko.me/eR9xtVyjbH) |
-| BALANCED-G | pack | Overworld | 3 | 67.2 (65.1–68.2) | 240 | -0.6% | 0.54 | 20.00 | 96 | 4367 | 3 |  | [h](https://spark.lucko.me/mYWGHVhwaH) / [p](https://spark.lucko.me/9vVLrAcBYw) |
-| LEAN | pack | Overworld | 3 | 65.4 (64.9–66.4) | 247 | -3.2% | 0.49 | 20.00 | 96 | 4283 | 2 |  | [h](https://spark.lucko.me/5y7nBXvUPL) / [p](https://spark.lucko.me/mu1hADMFib) |
-| PRETTY | pack | Overworld | 3 | 44.4 (43.9–45.3) | 363 | -34.3% | 1.42 | 20.00 | 97 | 4524 | 4 |  | [h](https://spark.lucko.me/jXTPIUQnee) / [p](https://spark.lucko.me/tcCKrZ5O4E) |
-| B0 | baseline | Nether | 3 | 93.4 (88.9–98.0) | 244 | — | 0.65 | 20.00 | 96 | 4072 | 40 |  | [h](https://spark.lucko.me/q8lhvtkfv4) / [p](https://spark.lucko.me/ZAfewTjyCq) |
-| amethyst-nether | nether | Nether | 1 | 82.7 (82.7–82.7) | 276 | -11.5% | 0.53 | 19.99 | 96 | 4038 | 4 |  | [h](https://spark.lucko.me/Qx7Xsor13V) / [p](https://spark.lucko.me/7GNKAqB2Mh) |
-| amplified-nether | nether | Nether | 1 | 51.4 (51.4–51.4) | 444 | -45.0% | 0.41 | 20.00 | 96 | 3976 | 10 |  | [h](https://spark.lucko.me/MOEWaFUg22) / [p](https://spark.lucko.me/GUMLs0jA3L) |
-| formations-nether | nether | Nether | 1 | 85.4 (85.4–85.4) | 267 | -8.6% | 0.48 | 20.00 | 96 | 4323 | 39 |  | [h](https://spark.lucko.me/0t9f3YUnfs) / [p](https://spark.lucko.me/unTpKg2kJu) |
-| incendium | nether | Nether | 1 | 37.7 (37.7–37.7) | 604 | -59.6% | 0.77 | 20.00 | 96 | 5551 | 2 |  | [h](https://spark.lucko.me/alv645aM4I) / [p](https://spark.lucko.me/vuAghGQun4) |
-| mns | nether | Nether | 1 | 86.0 (86.0–86.0) | 265 | -8.0% | 0.46 | 20.00 | 96 | 4488 | 42 |  | [h](https://spark.lucko.me/yqgy1sfYKK) / [p](https://spark.lucko.me/XCHBohI32T) |
-| BALANCED | pack | Nether | 1 | 88.4 (88.4–88.4) | 258 | -5.4% | 0.55 | 19.99 | 97 | 4155 | 2 |  | [h](https://spark.lucko.me/fdzfp6avfD) / [p](https://spark.lucko.me/Lh0Chl9yyg) |
-| BALANCED-G | pack | Nether | 1 | 84.5 (84.5–84.5) | 270 | -9.5% | 0.55 | 20.00 | 95 | 4189 | 3 |  | [h](https://spark.lucko.me/bj4Gq0t0Mv) / [p](https://spark.lucko.me/ys48LnkdWL) |
-| LEAN | pack | Nether | 1 | 91.8 (91.8–91.8) | 248 | -1.8% | 0.62 | 20.00 | 96 | 4436 | 41 |  | [h](https://spark.lucko.me/W2I6ACXHSV) / [p](https://spark.lucko.me/pxxHTbS7BW) |
-| PRETTY | pack | Nether | 1 | 38.1 (38.1–38.1) | 598 | -59.2% | 1.23 | 20.00 | 96 | 4518 | 5 |  | [h](https://spark.lucko.me/JVtFXV9uec) / [p](https://spark.lucko.me/9bfuFBbtNX) |
-| B0 | baseline | End | 3 | 324.4 (317.1–332.7) | 237 | — | 0.49 | 20.00 | 95 | 3922 | 3 |  | [h](https://spark.lucko.me/WKn6cFutaE) / [p](https://spark.lucko.me/nq6a3cHmlB) |
-| endercon | end | End | 1 | 131.6 (131.6–131.6) | 583 | -59.4% | 0.33 | 20.00 | 95 | 4088 | 4 |  | [h](https://spark.lucko.me/MRpo8GQ3nE) / [p](https://spark.lucko.me/6hY08UfvMh) |
-| mes | end | End | 1 | 316.1 (316.1–316.1) | 243 | -2.5% | 0.54 | 20.00 | 95 | 4131 | 2 |  | [h](https://spark.lucko.me/88zgTXrUyh) / [p](https://spark.lucko.me/2lvhA6esWG) |
-| nullscape | end | End | 1 | 100.6 (100.6–100.6) | 763 | -69.0% | 0.71 | 20.00 | 96 | 4263 | 4 |  | [h](https://spark.lucko.me/0hBC7NMerr) / [p](https://spark.lucko.me/tvk9OrOKpx) |
-| stellarity | end | End | 1 | 135.2 (135.2–135.2) | 567 | -58.3% | 1.47 | 20.00 | 96 | 4674 | 4 |  | [h](https://spark.lucko.me/McpNZXTdfT) / [p](https://spark.lucko.me/bTWk11DLBb) |
-| BALANCED | pack | End | 1 | 103.7 (103.7–103.7) | 740 | -68.0% | 0.53 | 20.00 | 96 | 4303 | 4 |  | [h](https://spark.lucko.me/vUSMP2ZmYF) / [p](https://spark.lucko.me/d3gOHU0Vh9) |
-| BALANCED-G | pack | End | 1 | 101.5 (101.5–101.5) | 756 | -68.7% | 0.53 | 19.99 | 97 | 4553 | 4 |  | [h](https://spark.lucko.me/dsm9bXzGVw) / [p](https://spark.lucko.me/GCbCKohNLd) |
-| LEAN | pack | End | 1 | 332.2 (332.2–332.2) | 231 | +2.4% | 0.54 | 20.00 | 96 | 4195 | 2 |  | [h](https://spark.lucko.me/yhPC3rWiwe) / [p](https://spark.lucko.me/n45B5CnpJ4) |
-| PRETTY | pack | End | 1 | 100.7 (100.7–100.7) | 762 | -69.0% | 0.85 | 20.00 | 97 | 4423 | 19 |  | [h](https://spark.lucko.me/5zKnRsjlJa) / [p](https://spark.lucko.me/LQ8x5ixGBS) |
+| config | type | dim | runs | chunks/s (mean, min–max) | wall s | Δ vs B0 | mspt | TPS | CPU % | peak heap MB | post-CPU % | spark (health / profile, run 1) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B0 | baseline | Overworld | 3 | 67.6 (65.6–68.6) | 239 | — | 0.51 | 20.00 | 96 | 3985 | 2 | [h](https://spark.lucko.me/qRcRhmITIT) / [p](https://spark.lucko.me/9hAjma7VdM) |
+| V0 | baseline | Overworld | 3 | 82.5 (81.0–83.3) | 196 | +22.0% | 1.20 | 20.00 | 70 | 4520 | 1 | [h](https://spark.lucko.me/RPHXrjBunc) / [p](https://spark.lucko.me/0llzrSxpaT) |
+| V0+C2ME | baseline | Overworld | 2 | 98.4 (98.2–98.5) | 164 | +45.5% | 0.55 | 20.00 | 85 | 3912 | 1 | [h](https://spark.lucko.me/j564I9pQ3q) / [p](https://spark.lucko.me/i343kqj6BL) |
+| continents | terrain | Overworld | 1 | 72.8 (72.8–72.8) | 222 | +7.7% | 0.54 | 19.99 | 96 | 3870 | 2 | [h](https://spark.lucko.me/Sede9rKThY) / [p](https://spark.lucko.me/UWSvdGBSIM) |
+| geophilic | terrain | Overworld | 1 | 68.8 (68.8–68.8) | 234 | +1.8% | 0.35 | 20.00 | 95 | 3791 | 2 | [h](https://spark.lucko.me/t1BORE0xIE) / [p](https://spark.lucko.me/AutXBxBbQw) |
+| geophilic+tectonic | terrain | Overworld | 1 | 51.3 (51.3–51.3) | 315 | -24.2% | 0.46 | 20.00 | 96 | 4153 | 3 | [h](https://spark.lucko.me/l4Cgol34Bq) / [p](https://spark.lucko.me/w9bCY4xZhf) |
+| geophilic+terralith | terrain | Overworld | 1 | 49.4 (49.4–49.4) | 327 | -26.9% | 0.62 | 20.00 | 96 | 4139 | 3 | [h](https://spark.lucko.me/Xa9prqyQGT) / [p](https://spark.lucko.me/5iIEfi7mAU) |
+| hybrid-beta | terrain | Overworld | 1 | 57.1 (57.1–57.1) | 282 | -15.5% | 0.43 | 20.00 | 96 | 3786 | 3 | [h](https://spark.lucko.me/CxNuBxL8yC) / [p](https://spark.lucko.me/Hz6lxfC9Qc) |
+| tectonic | terrain | Overworld | 1 | 55.0 (55.0–55.0) | 293 | -18.7% | 0.52 | 19.99 | 96 | 4138 | 5 | [h](https://spark.lucko.me/Zg3b5XxTWI) / [p](https://spark.lucko.me/dsIsmkjVMw) |
+| tectonic+terralith | terrain | Overworld | 1 | 44.4 (44.4–44.4) | 363 | -34.3% | 0.61 | 20.00 | 96 | 4327 | 4 | [h](https://spark.lucko.me/G9x3HRl9yI) / [p](https://spark.lucko.me/HCvhrbTHH7) |
+| terralith | terrain | Overworld | 2 | 54.5 (54.0–55.0) | 296 | -19.4% | 0.53 | 20.00 | 96 | 4140 | 4 | [h](https://spark.lucko.me/SeJu6LdfJN) / [p](https://spark.lucko.me/OOlgszmUz7) |
+| wwoo | terrain | Overworld | 1 | 36.7 (36.7–36.7) | 439 | -45.7% | 0.43 | 20.00 | 96 | 4156 | 3 | [h](https://spark.lucko.me/eMR6J8vtaA) / [p](https://spark.lucko.me/H4yZVowWHw) |
+| scalablelux | perf | Overworld | 1 | 68.0 (68.0–68.0) | 237 | +0.6% | 0.61 | 19.89 | 96 | 3849 | 5 | [h](https://spark.lucko.me/EZhlxIh8w4) / [p](https://spark.lucko.me/fHzUI3075D) |
+| structure-layout-optimizer | perf | Overworld | 1 | 64.6 (64.6–64.6) | 250 | -4.4% | 0.54 | 20.00 | 96 | 3861 | 2 | [h](https://spark.lucko.me/cRqNpkZ67s) / [p](https://spark.lucko.me/Rx27GA3PKu) |
+| zfastnoise | perf | Overworld | 1 | 69.4 (69.4–69.4) | 232 | +2.6% | 0.59 | 20.00 | 96 | 3879 | 3 | [h](https://spark.lucko.me/vGjz4dJMO4) / [p](https://spark.lucko.me/F2Vq48AG8e) |
+| ati-structures | structures | Overworld | 1 | 57.4 (57.4–57.4) | 281 | -15.0% | 0.64 | 20.00 | 94 | 4401 | 4 | [h](https://spark.lucko.me/VevJlgPZIZ) / [p](https://spark.lucko.me/G0y9SLMm4r) |
+| dungeons-and-taverns | structures | Overworld | 1 | 61.7 (61.7–61.7) | 261 | -8.7% | 0.64 | 20.00 | 96 | 4439 | 3 | [h](https://spark.lucko.me/TSIocf3vS3) / [p](https://spark.lucko.me/DlPtWsNMT1) |
+| epic-structures-villages | structures | Overworld | 1 | 65.2 (65.2–65.2) | 247 | -3.5% | 0.45 | 20.00 | 95 | 4435 | 2 | [h](https://spark.lucko.me/3tDgfx9Bd2) / [p](https://spark.lucko.me/olk99bap3B) |
+| formations-overworld | structures | Overworld | 1 | 66.0 (66.0–66.0) | 244 | -2.4% | 0.46 | 20.00 | 97 | 4169 | 3 | [h](https://spark.lucko.me/hrFAQ1jtjS) / [p](https://spark.lucko.me/aVGoQjpPlU) |
+| hopo-better-mineshaft | structures | Overworld | 1 | 65.0 (65.0–65.0) | 248 | -3.8% | 0.56 | 20.00 | 96 | 4234 | 2 | [h](https://spark.lucko.me/ywIeT5hBJu) / [p](https://spark.lucko.me/4qY4AWY2ij) |
+| hopo-better-ruined-portals | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.55 | 20.00 | 96 | 4092 | 2 | [h](https://spark.lucko.me/Aa2Y6fRuC9) / [p](https://spark.lucko.me/HWZ0LFA2JY) |
+| hopo-better-underwater-ruins | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.37 | 20.00 | 96 | 4146 | 2 | [h](https://spark.lucko.me/CsJB1qQHWe) / [p](https://spark.lucko.me/5U2NymAVmf) |
+| katters-structures | structures | Overworld | 1 | 64.8 (64.8–64.8) | 249 | -4.1% | 0.88 | 20.00 | 97 | 4174 | 4 | [h](https://spark.lucko.me/r2PREG6voD) / [p](https://spark.lucko.me/FevQKzSH9r) |
+| mss | structures | Overworld | 1 | 66.6 (66.6–66.6) | 242 | -1.5% | 0.46 | 20.00 | 97 | 4242 | 2 | [h](https://spark.lucko.me/AH9QHu5YsN) / [p](https://spark.lucko.me/YO9vjdmLWt) |
+| mvs | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -1.9% | 0.47 | 20.00 | 96 | 4033 | 2 | [h](https://spark.lucko.me/gIl1qCTkei) / [p](https://spark.lucko.me/gfwUjwx9kx) |
+| repurposed-structures | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -1.9% | 0.47 | 20.00 | 97 | 3932 | 3 | [h](https://spark.lucko.me/lofvalGrku) / [p](https://spark.lucko.me/lLjw7VALkF) |
+| sparsestructures | structures | Overworld | 1 | 68.1 (68.1–68.1) | 237 | +0.8% | 0.46 | 20.00 | 96 | 3913 | 2 | [h](https://spark.lucko.me/xDpuL2ZIJd) / [p](https://spark.lucko.me/qUpbWoC45G) |
+| structory | structures | Overworld | 1 | 67.7 (67.7–67.7) | 238 | +0.2% | 0.46 | 19.99 | 97 | 4221 | 2 | [h](https://spark.lucko.me/SlNfBUgi7h) / [p](https://spark.lucko.me/ZixUCryJwz) |
+| structory-towers | structures | Overworld | 1 | 64.8 (64.8–64.8) | 249 | -4.1% | 0.55 | 20.00 | 96 | 4170 | 3 | [h](https://spark.lucko.me/RqvEK6hl49) / [p](https://spark.lucko.me/BXGLennB3n) |
+| tidal-towns | structures | Overworld | 1 | 67.8 (67.8–67.8) | 238 | +0.3% | 0.61 | 20.00 | 96 | 4121 | 2 | [h](https://spark.lucko.me/yhW7U0IyBC) / [p](https://spark.lucko.me/s6YlAQUTvm) |
+| towns-and-towers | structures | Overworld | 1 | 63.2 (63.2–63.2) | 255 | -6.4% | 0.45 | 20.00 | 97 | 4295 | 4 | [h](https://spark.lucko.me/m7hW173hx6) / [p](https://spark.lucko.me/OCMeN4cVpd) |
+| vanilla-structure-update | structures | Overworld | 1 | 66.2 (66.2–66.2) | 244 | -2.1% | 0.47 | 19.99 | 96 | 4004 | 2 | [h](https://spark.lucko.me/F4frzzA7mI) / [p](https://spark.lucko.me/bZZkNvDfVA) |
+| villages-and-pillages | structures | Overworld | 1 | 66.3 (66.3–66.3) | 243 | -2.0% | 0.48 | 20.00 | 96 | 4304 | 3 | [h](https://spark.lucko.me/n6pUnKgKmq) / [p](https://spark.lucko.me/oWjAmoIqvZ) |
+| snow-under-trees | features | Overworld | 1 | 69.4 (69.4–69.4) | 232 | +2.7% | 0.47 | 20.00 | 97 | 3988 | 3 | [h](https://spark.lucko.me/4DrTxon0Ml) / [p](https://spark.lucko.me/cK34Mp9ts5) |
+| BALANCED | pack | Overworld | 3 | 52.2 (51.6–52.5) | 309 | -22.8% | 0.66 | 20.00 | 97 | 4272 | 5 | [h](https://spark.lucko.me/i3tgJqpsIW) / [p](https://spark.lucko.me/eR9xtVyjbH) |
+| BALANCED-G | pack | Overworld | 3 | 67.2 (65.1–68.2) | 240 | -0.6% | 0.54 | 20.00 | 96 | 4367 | 3 | [h](https://spark.lucko.me/mYWGHVhwaH) / [p](https://spark.lucko.me/9vVLrAcBYw) |
+| LEAN | pack | Overworld | 3 | 65.4 (64.9–66.4) | 247 | -3.2% | 0.49 | 20.00 | 96 | 4283 | 2 | [h](https://spark.lucko.me/5y7nBXvUPL) / [p](https://spark.lucko.me/mu1hADMFib) |
+| PRETTY | pack | Overworld | 3 | 44.4 (43.9–45.3) | 363 | -34.3% | 1.42 | 20.00 | 97 | 4524 | 4 | [h](https://spark.lucko.me/jXTPIUQnee) / [p](https://spark.lucko.me/tcCKrZ5O4E) |
+| B0 | baseline | Nether | 3 | 93.4 (88.9–98.0) | 244 | — | 0.65 | 20.00 | 96 | 4072 | 40 | [h](https://spark.lucko.me/q8lhvtkfv4) / [p](https://spark.lucko.me/ZAfewTjyCq) |
+| amethyst-nether | nether | Nether | 1 | 82.7 (82.7–82.7) | 276 | -11.5% | 0.53 | 19.99 | 96 | 4038 | 4 | [h](https://spark.lucko.me/Qx7Xsor13V) / [p](https://spark.lucko.me/7GNKAqB2Mh) |
+| amplified-nether | nether | Nether | 1 | 51.4 (51.4–51.4) | 444 | -45.0% | 0.41 | 20.00 | 96 | 3976 | 10 | [h](https://spark.lucko.me/MOEWaFUg22) / [p](https://spark.lucko.me/GUMLs0jA3L) |
+| formations-nether | nether | Nether | 1 | 85.4 (85.4–85.4) | 267 | -8.6% | 0.48 | 20.00 | 96 | 4323 | 39 | [h](https://spark.lucko.me/0t9f3YUnfs) / [p](https://spark.lucko.me/unTpKg2kJu) |
+| incendium | nether | Nether | 1 | 37.7 (37.7–37.7) | 604 | -59.6% | 0.77 | 20.00 | 96 | 5551 | 2 | [h](https://spark.lucko.me/alv645aM4I) / [p](https://spark.lucko.me/vuAghGQun4) |
+| mns | nether | Nether | 1 | 86.0 (86.0–86.0) | 265 | -8.0% | 0.46 | 20.00 | 96 | 4488 | 42 | [h](https://spark.lucko.me/yqgy1sfYKK) / [p](https://spark.lucko.me/XCHBohI32T) |
+| BALANCED | pack | Nether | 1 | 88.4 (88.4–88.4) | 258 | -5.4% | 0.55 | 19.99 | 97 | 4155 | 2 | [h](https://spark.lucko.me/fdzfp6avfD) / [p](https://spark.lucko.me/Lh0Chl9yyg) |
+| BALANCED-G | pack | Nether | 1 | 84.5 (84.5–84.5) | 270 | -9.5% | 0.55 | 20.00 | 95 | 4189 | 3 | [h](https://spark.lucko.me/bj4Gq0t0Mv) / [p](https://spark.lucko.me/ys48LnkdWL) |
+| LEAN | pack | Nether | 1 | 91.8 (91.8–91.8) | 248 | -1.8% | 0.62 | 20.00 | 96 | 4436 | 41 | [h](https://spark.lucko.me/W2I6ACXHSV) / [p](https://spark.lucko.me/pxxHTbS7BW) |
+| PRETTY | pack | Nether | 1 | 38.1 (38.1–38.1) | 598 | -59.2% | 1.23 | 20.00 | 96 | 4518 | 5 | [h](https://spark.lucko.me/JVtFXV9uec) / [p](https://spark.lucko.me/9bfuFBbtNX) |
+| B0 | baseline | End | 3 | 324.4 (317.1–332.7) | 237 | — | 0.49 | 20.00 | 95 | 3922 | 3 | [h](https://spark.lucko.me/WKn6cFutaE) / [p](https://spark.lucko.me/nq6a3cHmlB) |
+| endercon | end | End | 1 | 131.6 (131.6–131.6) | 583 | -59.4% | 0.33 | 20.00 | 95 | 4088 | 4 | [h](https://spark.lucko.me/MRpo8GQ3nE) / [p](https://spark.lucko.me/6hY08UfvMh) |
+| mes | end | End | 1 | 316.1 (316.1–316.1) | 243 | -2.5% | 0.54 | 20.00 | 95 | 4131 | 2 | [h](https://spark.lucko.me/88zgTXrUyh) / [p](https://spark.lucko.me/2lvhA6esWG) |
+| nullscape | end | End | 1 | 100.6 (100.6–100.6) | 763 | -69.0% | 0.71 | 20.00 | 96 | 4263 | 4 | [h](https://spark.lucko.me/0hBC7NMerr) / [p](https://spark.lucko.me/tvk9OrOKpx) |
+| stellarity | end | End | 1 | 135.2 (135.2–135.2) | 567 | -58.3% | 1.47 | 20.00 | 96 | 4674 | 4 | [h](https://spark.lucko.me/McpNZXTdfT) / [p](https://spark.lucko.me/bTWk11DLBb) |
+| BALANCED | pack | End | 1 | 103.7 (103.7–103.7) | 740 | -68.0% | 0.53 | 20.00 | 96 | 4303 | 4 | [h](https://spark.lucko.me/vUSMP2ZmYF) / [p](https://spark.lucko.me/d3gOHU0Vh9) |
+| BALANCED-G | pack | End | 1 | 101.5 (101.5–101.5) | 756 | -68.7% | 0.53 | 19.99 | 97 | 4553 | 4 | [h](https://spark.lucko.me/dsm9bXzGVw) / [p](https://spark.lucko.me/GCbCKohNLd) |
+| LEAN | pack | End | 1 | 332.2 (332.2–332.2) | 231 | +2.4% | 0.54 | 20.00 | 96 | 4195 | 2 | [h](https://spark.lucko.me/yhPC3rWiwe) / [p](https://spark.lucko.me/n45B5CnpJ4) |
+| PRETTY | pack | End | 1 | 100.7 (100.7–100.7) | 762 | -69.0% | 0.85 | 20.00 | 97 | 4423 | 19 | [h](https://spark.lucko.me/5zKnRsjlJa) / [p](https://spark.lucko.me/LQ8x5ixGBS) |
 
 Failed runs (not in the table):
 
@@ -172,9 +172,9 @@ Failed runs (not in the table):
 - clifftree-nolitho Overworld run 1: start_failed — server failed to start
 - clifftree Overworld run 1: start_failed — server failed to start
 
-Radius: Overworld Overworld R=1000 blocks (16129 chunks), Nether R=1200 blocks (22801 chunks), End R=2200 blocks (76729 chunks). Seed: 20251006.
+Radius: Overworld R=1000 blocks (16129 chunks), Nether R=1200 blocks (22801 chunks), End R=2200 blocks (76729 chunks). Seed: 20251006.
 
-
+![chunks/s relative to B0](chart.svg)
 
 ## Screenshots
 
