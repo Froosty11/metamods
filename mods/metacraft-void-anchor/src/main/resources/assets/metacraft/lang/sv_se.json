@@ -1,0 +1,5 @@
+{
+	"block.metacraft.void_anchor": "Tomrumsankare",
+	"block.metacraft.void_anchor.bound": "Det här tomrumsankaret fångar dig om du faller",
+	"block.metacraft.void_anchor.not_in_end": "Tomrumsankare fungerar bara i End"
+}

@@ -1,0 +1,5 @@
+{
+	"block.metacraft.void_anchor": "Void Anchor",
+	"block.metacraft.void_anchor.bound": "This void anchor will catch you if you fall",
+	"block.metacraft.void_anchor.not_in_end": "Void anchors only work in the End"
+}

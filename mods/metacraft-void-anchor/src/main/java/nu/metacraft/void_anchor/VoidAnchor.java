@@ -15,6 +15,10 @@ public class VoidAnchor implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		VoidAnchorBlocks.init();
+		VoidAnchorItems.init();
+		AnchorBinding.init();
+
 		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();
 	}

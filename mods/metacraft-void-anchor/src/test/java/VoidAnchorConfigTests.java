@@ -1,8 +1,6 @@
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.helper.TestHelper;
 import nu.metacraft.void_anchor.VoidAnchorConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,7 +14,7 @@ public class VoidAnchorConfigTests {
 
 	@BeforeAll
 	public static void init() {
-		TestHelper.init(METAcraftLib::new);
+		VoidAnchorTests.init();
 	}
 
 	@Test
