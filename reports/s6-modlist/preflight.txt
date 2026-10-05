@@ -1,0 +1,34 @@
+# Preflight 2026-10-05T11:27:14Z
+## Host check (HTTP status, any response = reachable)
+piston-meta.mojang.com/mc/game/version_manifest_v2.json 200
+maven.fabricmc.net/ 200
+api.modrinth.com/v2/project/fabric-api 200
+cdn.modrinth.com/ 404
+github.com/ 400
+resources.download.minecraft.net/ 404
+api.adoptium.net/ 200
+## nproc
+4
+## free -g
+               total        used        free      shared  buff/cache   available
+Mem:              15           0          14           0           0          15
+Swap:              0           0           0
+## uname -a
+Linux vm 6.18.44-fc-v70 #1 SMP PREEMPT_DYNAMIC @0 x86_64 x86_64 x86_64 GNU/Linux
+## df -h
+Filesystem               Size  Used Avail Use% Mounted on
+tmpfs                     16G     0   16G   0% /dev/shm
+/dev/vda                 252G  8.8G   30G  23% /
+/dev/vdc                 262M  233M   24M  91% /opt/claude-code
+/dev/vdd                  47M   31M   16M  67% /opt/env-runner
+model_tools_unavailable  4.0K     0  4.0K   0% /mnt/sandboxing/model_tools_env/v1/python
+tmpfs                    7.9G     0  7.9G   0% /sys/fs/cgroup
+tmpfs                    1.0M     0  1.0M   0% /run/sandbox-telemetry
+## lscpu
+CPU(s):                                  4
+Model name:                              Intel(R) Xeon(R) Processor @ 2.10GHz
+Thread(s) per core:                      1
+## Java
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
