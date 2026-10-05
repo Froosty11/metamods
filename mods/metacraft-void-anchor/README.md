@@ -4,7 +4,7 @@ A respawn anchor for the End void. Elytra rockets are off on Metacraft, so nothi
 player who fell off an End island; a void anchor does.
 
 - **Craft** it like a respawn anchor: crying obsidian on the top and bottom rows, eyes of ender in the middle.
-- **Charge** it with the fuel item (ender pearls by default), up to four charges. A dispenser holding
+- **Charge** it with the fuel item (echo shards by default, the stuff recovery compasses are made of), up to four charges. A dispenser holding
   the fuel item tops up an anchor in front of it.
 - **Bind** it by using it with an empty hand. It only works in the End; elsewhere it refuses to bind
   (and, unlike a respawn anchor, never explodes or sets your spawn). One anchor per player; several
@@ -23,7 +23,7 @@ looks, for checking how it renders.
 
 | Key | Default | |
 |---|---|---|
-| `fuel_item` | `minecraft:ender_pearl` | the item that adds one charge |
+| `fuel_item` | `minecraft:echo_shard` | the item that adds one charge |
 | `trigger_y_offset` | `0` | the rift opens below the End's lowest Y plus this |
 | `rift_depth` | `6.0` | how far below the player the rift opens |
 | `descent_speed` | `0.3` | blocks per tick while sinking into the rift |

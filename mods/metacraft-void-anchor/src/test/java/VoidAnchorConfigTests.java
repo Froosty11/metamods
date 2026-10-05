@@ -22,14 +22,14 @@ public class VoidAnchorConfigTests {
 		var json = VoidAnchorConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, VoidAnchorConfig.DEFAULT).getOrThrow();
 		var back = VoidAnchorConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow();
 		assertEquals(VoidAnchorConfig.DEFAULT, back);
-		assertEquals("minecraft:ender_pearl", json.getAsJsonObject().get("fuel_item").getAsString());
+		assertEquals("minecraft:echo_shard", json.getAsJsonObject().get("fuel_item").getAsString());
 	}
 
 	// Item stacks only get their components once a server has loaded, so the stack-level check
 	// (isFuel) is exercised by the game tests; here the configured id resolves to an item.
 	@Test
 	public void fuelIsTheConfiguredItem() {
-		assertEquals(Optional.of(Items.ENDER_PEARL), VoidAnchorConfig.DEFAULT.fuel());
+		assertEquals(Optional.of(Items.ECHO_SHARD), VoidAnchorConfig.DEFAULT.fuel());
 	}
 
 	@Test
