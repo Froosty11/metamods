@@ -16,6 +16,7 @@ geophilic minecraft:overworld 1 1000 --keep
 wwoo minecraft:overworld 1 1000 --keep
 continents minecraft:overworld 1 1000 --keep
 hybrid-beta minecraft:overworld 1 1000 --keep
+clifftree-nolitho minecraft:overworld 1 1000 --keep
 geophilic+tectonic minecraft:overworld 1 1000 --keep
 geophilic+terralith minecraft:overworld 1 1000 --keep
 tectonic+terralith minecraft:overworld 1 1000 --keep

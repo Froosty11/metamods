@@ -551,5 +551,19 @@
    "minecraft:overworld"
   ],
   "note": "CliffTree 3.3 datapack built for 26.2 (pack format 107.1); no 26.3 build exists. Off-version test."
+ },
+ "clifftree-nolitho": {
+  "type": "terrain",
+  "mods": [],
+  "datapacks": [
+   "clifftree-datapack"
+  ],
+  "verify": [
+   "locate biome clifftree:bog"
+  ],
+  "dims": [
+   "minecraft:overworld"
+  ],
+  "note": "CliffTree 3.3 datapack (26.2) without Lithostitched; off-version test"
  }
 }
