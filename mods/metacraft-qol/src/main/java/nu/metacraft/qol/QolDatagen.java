@@ -14,8 +14,10 @@ import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
+import nu.metacraft.qol.silence_mobs.SilenceMobs;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.VoidAnchorItems;
 import org.jspecify.annotations.NonNull;
@@ -26,6 +28,10 @@ public class QolDatagen implements DataGeneratorEntrypoint {
 
 	public static final ResourceKey<Recipe<?>> VOID_ANCHOR_RECIPE = ResourceKey.create(
 			Registries.RECIPE, Qol.getID("void_anchor")
+	);
+
+	public static final ResourceKey<Recipe<?>> MUFFLER_RECIPE = ResourceKey.create(
+			Registries.RECIPE, Qol.getID("muffler")
 	);
 
 	@Override
@@ -81,6 +87,12 @@ public class QolDatagen implements DataGeneratorEntrypoint {
 							.pattern("CCC")
 							.unlockedBy("has_crying_obsidian", has(Items.CRYING_OBSIDIAN))
 							.save(output, VOID_ANCHOR_RECIPE);
+					shapeless(RecipeCategory.TOOLS, SilenceMobs.MUFFLER)
+							.requires(ItemTags.WOOL)
+							.requires(Items.AMETHYST_SHARD)
+							.requires(Items.STRING)
+							.unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
+							.save(output, MUFFLER_RECIPE);
 				}
 			};
 		}

@@ -94,6 +94,27 @@ def rift(frames=16, size=32):
 	return img
 
 
+def muffler():
+	"""A puff of grey-white wool bound with string, an amethyst shard tucked in it."""
+	img = Image.new("RGBA", (16, 16))
+	rng = random.Random(31)
+	wool = [(232, 232, 228), (214, 214, 210), (196, 196, 194), (244, 244, 240)]
+	for y in range(16):
+		for x in range(16):
+			d = ((x - 7.5) / 6.2) ** 2 + ((y - 8.5) / 5.4) ** 2
+			if d <= 1.0:
+				shade = rng.choice(wool)
+				if d > 0.7:
+					shade = (176, 176, 174)
+				img.putpixel((x, y), shade + (255,))
+	for x in range(2, 14):
+		img.putpixel((x, 9), (120, 96, 70, 255))
+	for (x, y), c in {(7, 4): (186, 128, 255), (8, 4): (150, 90, 230), (7, 5): (150, 90, 230), (8, 5): (110, 60, 190),
+			(8, 3): (220, 180, 255), (9, 4): (110, 60, 190)}.items():
+		img.putpixel((x, y), c + (255,))
+	return img
+
+
 def main():
 	BLOCK.mkdir(parents=True, exist_ok=True)
 	for charge in range(5):
@@ -102,6 +123,7 @@ def main():
 	obsidian(random.Random(5), crying=0.0).save(BLOCK / "void_anchor_bottom.png")
 	ITEM.mkdir(parents=True, exist_ok=True)
 	rift().save(ITEM / "rift.png")
+	muffler().save(ITEM / "muffler.png")
 
 
 if __name__ == "__main__":

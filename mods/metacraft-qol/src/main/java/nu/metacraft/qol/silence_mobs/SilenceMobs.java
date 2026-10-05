@@ -1,9 +1,14 @@
 package nu.metacraft.qol.silence_mobs;
 
+import eu.pb4.polymer.core.api.item.SimplePolymerItem;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -12,22 +17,42 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
+import nu.metacraft.qol.Qol;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 /**
- * Silence mobs: a name tag named "silence me" silences the mob it's used on, "unsilence me" undoes
- * it. Case, spaces and underscores don't matter. The mob keeps whatever name it had; the tag is
- * used up as naming would use it. The Vanilla Tweaks datapack this replaces left every silenced mob
+ * Silence mobs: the muffler toggles a mob silent and back and is never used up. A name tag named
+ * "silence me" silences the mob it's used on and "unsilence me" undoes it, for players used to the
+ * datapack; case, spaces and underscores don't matter, and the tag is used up as naming would use
+ * it. Either way the mob keeps whatever name it had. The Vanilla Tweaks datapack this replaces left every silenced mob
  * named "silenced" and silenced the nearest mob with the name, not the one clicked.
  */
 public final class SilenceMobs {
 
 	private static final int GLOW_TICKS = 60;
 
+	/** The muffler: right-click a mob to silence it, again to undo it. Never used up. */
+	public static final Item MUFFLER = register(
+			"muffler", properties -> new SimplePolymerItem(properties, Items.WOOL.white(), true),
+			new Item.Properties().stacksTo(1).component(DataComponents.LORE, new ItemLore(List.of(
+					Component.translatableWithFallback("item.metacraft.muffler.lore", "Use on a mob to silence it, again to undo it")
+							.withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GRAY))
+			)))
+	);
+
 	private SilenceMobs() {}
+
+	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties properties) {
+		var key = ResourceKey.create(Registries.ITEM, Qol.getID(id));
+		return Registry.register(BuiltInRegistries.ITEM, key, creator.apply(properties.setId(key)));
+	}
 
 	public static void init() {
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
@@ -38,6 +63,10 @@ public final class SilenceMobs {
 				return InteractionResult.PASS;
 			}
 			var stack = player.getItemInHand(hand);
+			if (stack.is(MUFFLER)) {
+				apply(serverPlayer, mob, !mob.isSilent());
+				return InteractionResult.SUCCESS_SERVER;
+			}
 			var silence = command(stack);
 			if (silence == null) {
 				return InteractionResult.PASS;

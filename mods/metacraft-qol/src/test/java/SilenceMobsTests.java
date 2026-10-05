@@ -14,7 +14,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import nu.metacraft.lib.util.helper.TestHelper;
+import nu.metacraft.qol.Qol;
+import nu.metacraft.qol.silence_mobs.SilenceMobs;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -113,6 +118,38 @@ public class SilenceMobsTests {
 			useOn(player(ctx, GameType.CREATIVE), cow, tag);
 			ctx.assertTrue(cow.isSilent(), "the cow isn't silent");
 			ctx.assertTrue(tag.getCount() == 1, "creative used up the name tag");
+			ctx.succeed();
+		});
+		register("muffler_toggles", ctx -> {
+			var cow = cow(ctx, null);
+			var player = player(ctx, GameType.SURVIVAL);
+			var muffler = new ItemStack(SilenceMobs.MUFFLER);
+			useOn(player, cow, muffler);
+			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
+			useOn(player, cow, muffler);
+			ctx.assertTrue(!cow.isSilent(), "a second use didn't unsilence the cow");
+			ctx.assertTrue(muffler.getCount() == 1, "the muffler was used up");
+			ctx.assertTrue(name(cow) == null, "the cow got named " + name(cow));
+			ctx.succeed();
+		});
+		register("muffler_keeps_name", ctx -> {
+			var cow = cow(ctx, "Bob");
+			useOn(player(ctx, GameType.SURVIVAL), cow, new ItemStack(SilenceMobs.MUFFLER));
+			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
+			ctx.assertTrue(Objects.equals(name(cow), "Bob"), "the cow is now called " + name(cow));
+			ctx.succeed();
+		});
+		register("muffler_recipe", ctx -> {
+			var key = ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(Qol.MODID, "muffler"));
+			ctx.assertTrue(ctx.getLevel().getServer().getRecipeManager().byKey(key).isPresent(), "there is no " + key.identifier() + " recipe");
+			ctx.succeed();
+		});
+		register("off_muffler_does_nothing", ctx -> {
+			var cow = cow(ctx, null);
+			var muffler = new ItemStack(SilenceMobs.MUFFLER);
+			useOn(player(ctx, GameType.SURVIVAL), cow, muffler);
+			ctx.assertTrue(!cow.isSilent(), "the muffler silenced the cow while silence mobs is off");
+			ctx.assertTrue(muffler.getCount() == 1, "the muffler was used up");
 			ctx.succeed();
 		});
 		register("off_names_normally", ctx -> {

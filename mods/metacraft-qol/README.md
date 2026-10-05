@@ -7,7 +7,7 @@ breaks an existing file.
 
 - [Void anchor](#void-anchor): catches you when you fall into the End void.
 - [Concrete cauldron](#concrete-cauldron): throw concrete powder into a water cauldron to make concrete.
-- [Silence mobs](#silence-mobs): a name tag named "silence me" silences a mob.
+- [Silence mobs](#silence-mobs): the muffler (or a "silence me" name tag) silences a mob.
 
 ## Void anchor
 
@@ -72,26 +72,32 @@ Config: the `concrete_cauldron` section of `config/metacraft-qol.json` has just 
 
 ## Silence mobs
 
-Use a name tag named `silence me` on a mob and it goes quiet; `unsilence me` undoes it. Case,
-spaces and underscores don't matter (`Silence_Me` works). The mob keeps the name it had, or stays
-unnamed; it glows for a moment, chimes, and the actionbar says "Silenced". The tag is used up as
-naming would use it (not in creative). Any other name is ordinary naming.
+**The muffler** (shapeless: any wool, an amethyst shard and string): right-click a mob to silence it,
+again to undo it. It's never used up. It works on mobs with a right-click of their own too
+(villagers, horses), because it acts before them.
+
+**Or a name tag**, for players used to the datapack: one named `silence me` silences the mob, one
+named `unsilence me` undoes it. Case, spaces and underscores don't matter (`Silence_Me` works), and
+the tag is used up as naming would use it (not in creative). Any other name is ordinary naming.
+
+Either way the mob keeps the name it had, or stays unnamed; it glows for a moment, chimes, and the
+actionbar says "Silenced".
 
 This replaces the Vanilla Tweaks "Silence Mobs" datapack, which on 26.3 left every silenced mob
 named "silenced" for good (its clean-up looks for the wrong tag and calls a function that isn't
 there), never ran its "hold an unsilence tag to see silenced mobs" highlight (a misspelt function),
 and silenced the nearest mob with the name within 16 blocks rather than the one clicked.
 
-Config: the `silence_mobs` section of `config/metacraft-qol.json` has just `enabled`; off, "silence
-me" is just a name.
+Config: the `silence_mobs` section of `config/metacraft-qol.json` has just `enabled`; off, the
+muffler does nothing and "silence me" is just a name.
 
 ## Tests
 
 - `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs every feature's
   game tests on one test server. Void anchor: charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
   disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
-  last level, colours, other items and dry cauldrons. Silence mobs: silencing and unsilencing through
-  a real interact packet, kept names, any case, other names, creative. Each feature's "switched off" tests run in
+  last level, colours, other items and dry cauldrons. Silence mobs: the muffler and the name tags through
+  a real interact packet, kept names, any case, other names, creative, the muffler's recipe. Each feature's "switched off" tests run in
   their own test environment (`metacraft:qol_<feature>_off`), whose setup and teardown flip the
   config through a test-only `/qoltest <feature> <true|false>` command, so no other test sees the
   feature off.

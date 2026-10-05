@@ -7,5 +7,7 @@
 	"block.metacraft.void_anchor.hint.blocked": "Your void anchor is blocked",
 	"block.metacraft.void_anchor.disabled": "Void anchors are turned off on this server",
 	"qol.metacraft.silence_mobs.silenced": "Silenced",
-	"qol.metacraft.silence_mobs.unsilenced": "Unsilenced"
+	"qol.metacraft.silence_mobs.unsilenced": "Unsilenced",
+	"item.metacraft.muffler": "Muffler",
+	"item.metacraft.muffler.lore": "Use on a mob to silence it, again to undo it"
 }

@@ -7,5 +7,7 @@
 	"block.metacraft.void_anchor.hint.blocked": "Ditt tomrumsankare är blockerat",
 	"block.metacraft.void_anchor.disabled": "Tomrumsankare är avstängda på den här servern",
 	"qol.metacraft.silence_mobs.silenced": "Tystad",
-	"qol.metacraft.silence_mobs.unsilenced": "Inte längre tystad"
+	"qol.metacraft.silence_mobs.unsilenced": "Inte längre tystad",
+	"item.metacraft.muffler": "Ljuddämpare",
+	"item.metacraft.muffler.lore": "Använd på ett djur eller monster för att tysta det, igen för att ångra"
 }
