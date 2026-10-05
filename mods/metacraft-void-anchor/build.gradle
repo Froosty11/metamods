@@ -1,0 +1,9 @@
+version = project.void_anchor_version
+
+addCoreDependencies()
+
+setupRunDatagen("metacraft-void-anchor")
+
+dependencies {
+	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+}

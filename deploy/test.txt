@@ -29,4 +29,5 @@ simple-custom-features
 # only on test
 metacraft-mob-modifiers
 metacraft-player-trading
+metacraft-void-anchor
 portal-opening
