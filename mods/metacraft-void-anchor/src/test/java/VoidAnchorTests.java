@@ -124,12 +124,12 @@ public class VoidAnchorTests {
 						var pos = ctx.absolutePos(new BlockPos(2, 1, 2));
 						level.setBlockAndUpdate(pos, anchor(0));
 						var player = survivalPlayer(ctx);
-						var shards = new ItemStack(Items.ECHO_SHARD, 6);
+						var crystals = new ItemStack(Items.END_CRYSTAL, 6);
 						for (int i = 0; i < 5; i++) {
-							use(player, level, pos, shards);
+							use(player, level, pos, crystals);
 						}
 						ctx.assertTrue(charge(level, pos) == 4, "charge is " + charge(level, pos) + ", expected 4");
-						ctx.assertTrue(shards.getCount() == 2, shards.getCount() + " echo shards left, expected 2");
+						ctx.assertTrue(crystals.getCount() == 2, crystals.getCount() + " end crystals left, expected 2");
 						ctx.succeed();
 					});
 					register("wrong_item_does_not_charge", ctx -> {
@@ -141,10 +141,10 @@ public class VoidAnchorTests {
 						use(player, level, pos, glowstone);
 						ctx.assertTrue(charge(level, pos) == 0, "glowstone charged the anchor to " + charge(level, pos));
 						ctx.assertTrue(glowstone.getCount() == 4, "glowstone was used up");
-						var pearls = new ItemStack(Items.ENDER_PEARL, 4);
-						use(player, level, pos, pearls);
-						ctx.assertTrue(charge(level, pos) == 0, "an ender pearl charged the anchor to " + charge(level, pos));
-						ctx.assertTrue(pearls.getCount() == 4, "the ender pearl was used up");
+						var shards = new ItemStack(Items.ECHO_SHARD, 4);
+						use(player, level, pos, shards);
+						ctx.assertTrue(charge(level, pos) == 0, "an echo shard charged the anchor to " + charge(level, pos));
+						ctx.assertTrue(shards.getCount() == 4, "the echo shard was used up");
 						ctx.succeed();
 					});
 					register("no_explode_outside_end", ctx -> {
@@ -307,20 +307,20 @@ public class VoidAnchorTests {
 		);
 	}
 
-	/** A dispenser holding two echo shards faces an anchor; a redstone block fires it once. */
-	static void dispenserTest(GameTestHelper ctx, int charges, int expectedCharge, int expectedShards) {
+	/** A dispenser holding two end crystals faces an anchor; a redstone block fires it once. */
+	static void dispenserTest(GameTestHelper ctx, int charges, int expectedCharge, int expectedCrystals) {
 		var level = ctx.getLevel();
 		var dispenserPos = ctx.absolutePos(new BlockPos(1, 1, 2));
 		var anchorPos = dispenserPos.east();
 		level.setBlockAndUpdate(dispenserPos, Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, Direction.EAST));
 		level.setBlockAndUpdate(anchorPos, anchor(charges));
 		var dispenser = (DispenserBlockEntity) level.getBlockEntity(dispenserPos);
-		dispenser.setItem(0, new ItemStack(Items.ECHO_SHARD, 2));
+		dispenser.setItem(0, new ItemStack(Items.END_CRYSTAL, 2));
 		ctx.runAtTickTime(2, () -> level.setBlockAndUpdate(dispenserPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState()));
 		ctx.runAtTickTime(12, () -> {
 			ctx.assertTrue(charge(level, anchorPos) == expectedCharge, "charge " + charge(level, anchorPos) + ", expected " + expectedCharge);
-			int shards = dispenser.getItem(0).getCount();
-			ctx.assertTrue(shards == expectedShards, shards + " echo shards left, expected " + expectedShards);
+			int crystals = dispenser.getItem(0).getCount();
+			ctx.assertTrue(crystals == expectedCrystals, crystals + " end crystals left, expected " + expectedCrystals);
 			ctx.succeed();
 		});
 	}
