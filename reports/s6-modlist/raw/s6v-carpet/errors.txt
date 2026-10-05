@@ -1,0 +1,2 @@
+442:[11:49:58] [Server thread/ERROR]: Failed to invoke chunk load event (world=ServerLevel[world], pos=[-8, -5], newChunk=true)
+443:java.lang.IllegalStateException: Chunky is not loaded.

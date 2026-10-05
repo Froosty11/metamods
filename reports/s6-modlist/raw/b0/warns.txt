@@ -1,0 +1,8 @@
+109:[11:47:03] [main/WARN]: Error loading class: ca/spottedleaf/starlight/common/integration/v0/ChunkSystemHooks (java.lang.ClassNotFoundException: ca/spottedleaf/starlight/common/integration/v0/ChunkSystemHooks)
+110:[11:47:03] [main/WARN]: @Mixin target ca/spottedleaf/starlight/common/integration/v0/ChunkSystemHooks was not found c2me-rewrites-chunk-system.mixins.json:scalablelux.MixinChunkSystemHooks from mod c2me-rewrites-chunk-system
+111:[11:47:03] [main/WARN]: Error loading class: ca/spottedleaf/starlight/common/thread/SchedulingUtil (java.lang.ClassNotFoundException: ca/spottedleaf/starlight/common/thread/SchedulingUtil)
+145:[11:47:12] [Server thread/WARN]: Distant Horizons: G1 Garbage collector detected.
+164:[11:47:13] [Server thread/WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+165:[11:47:13] [Server thread/WARN]: The server will make no attempt to authenticate usernames. Beware.
+166:[11:47:13] [Server thread/WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+167:[11:47:13] [Server thread/WARN]: To change this, set "online-mode" to "true" in the server.properties file.

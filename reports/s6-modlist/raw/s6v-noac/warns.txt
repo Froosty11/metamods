@@ -1,0 +1,8 @@
+5:[11:50:45] [ForkJoinPool-1-worker-3/WARN]: Mod fabrictailor uses the version ${version} which isn't compatible with Loader's extended semantic version format (Could not parse version number component '${version}'!), SemVer is recommended for reliably evaluating dependencies and prioritizing newer version
+348:[11:51:13] [main/WARN]: Recipe polydecorations:canvas_clone can't be placed due to empty ingredients and will be ignored
+355:[11:51:13] [Server thread/WARN]: Distant Horizons: G1 Garbage collector detected.
+410:[11:51:17] [Server thread/WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+411:[11:51:17] [Server thread/WARN]: The server will make no attempt to authenticate usernames. Beware.
+412:[11:51:17] [Server thread/WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+413:[11:51:17] [Server thread/WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+520:[11:51:21] [Server thread/WARN]: [voicechat] Running in offline mode - Voice chat encryption is not secure!

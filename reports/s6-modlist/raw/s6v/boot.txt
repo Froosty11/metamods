@@ -1,0 +1,3 @@
+boot_rc=0 wall=44s Done (3.669s)
+[11:47:32] [main/INFO]: Loading 197 mods:
+errors: 2 warn lines: 8

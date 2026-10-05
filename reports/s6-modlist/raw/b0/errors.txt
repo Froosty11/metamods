@@ -1,0 +1,4 @@
+109:[11:47:03] [main/WARN]: Error loading class: ca/spottedleaf/starlight/common/integration/v0/ChunkSystemHooks (java.lang.ClassNotFoundException: ca/spottedleaf/starlight/common/integration/v0/ChunkSystemHooks)
+111:[11:47:03] [main/WARN]: Error loading class: ca/spottedleaf/starlight/common/thread/SchedulingUtil (java.lang.ClassNotFoundException: ca/spottedleaf/starlight/common/thread/SchedulingUtil)
+190:[11:47:17] [Server thread/ERROR]: Failed to invoke chunk load event (world=ServerLevel[world], pos=[-8, -5], newChunk=true)
+191:java.lang.IllegalStateException: Chunky is not loaded.

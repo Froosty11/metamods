@@ -1,0 +1,555 @@
+{
+ "fabric-api": {
+  "version": "0.161.0+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "fabric-api-0.161.0+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/P7dR8mSH/versions/bNnaTiuM/fabric-api-0.161.0%2B26.3.jar",
+  "sha1": "53f9ee02c3702734d90520aa8c9719bf0e1c8d4f",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "c2me-fabric": {
+  "version": "0.4.2-alpha.0.89+26.3",
+  "loader": "fabric",
+  "type": "alpha",
+  "file": "c2me-fabric-mc26.3-0.4.2-alpha.0.89.jar",
+  "url": "https://cdn.modrinth.com/data/VSNURh3q/versions/FXjQDzq7/c2me-fabric-mc26.3-0.4.2-alpha.0.89.jar",
+  "sha1": "1aa0ea7893737a54f855b1c04ff93f2f68c1fa80",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "distanthorizons": {
+  "version": "3.3.4-26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "DistantHorizons-3.3.4-26.3-fabric-neoforge.jar",
+  "url": "https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9A/DistantHorizons-3.3.4-26.3-fabric-neoforge.jar",
+  "sha1": "310c0363068dfae18e91f799ed671a591b6ad49a",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "spark": {
+  "version": "1.10.187-fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "spark-1.10.187-fabric.jar",
+  "url": "https://cdn.modrinth.com/data/l6YH9Als/versions/e3hsPc1o/spark-1.10.187-fabric.jar",
+  "sha1": "0940b4089affdfca37d6b6d0ea5ecae4dbd8fe98",
+  "deps": [],
+  "game_versions": [
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "chunky": {
+  "version": "1.5.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "Chunky-Fabric-1.5.3.jar",
+  "url": "https://cdn.modrinth.com/data/fALzjamp/versions/4Eotm6ov/Chunky-Fabric-1.5.3.jar",
+  "sha1": "fc1f2f374c5c82117599071ed18b6ef9bba2c7fb",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "tectonic": {
+  "version": "3.0.31-fabric-26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "tectonic-3.0.31-fabric-26.3.jar",
+  "url": "https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar",
+  "sha1": "1e0725c00c974190d19babf7ba61f44397e30f4b",
+  "deps": [
+   [
+    "XaDC71GB",
+    "required"
+   ],
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "terralith": {
+  "version": "2.6.5+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "Terralith_26.3_v2.6.5+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/8oi3bsk5/versions/aGE3hYAA/Terralith_26.3_v2.6.5%2B26.3.jar",
+  "sha1": "725bd469bc72d6e366ecbf4818e0438524ca5741",
+  "deps": [
+   [
+    "XaDC71GB",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "scalablelux": {
+  "version": "0.3.0-alpha.0.6+26.3",
+  "loader": "fabric",
+  "type": "alpha",
+  "file": "ScalableLux-fabric-mc26.3-0.3.0-alpha.0.6-all.jar",
+  "url": "https://cdn.modrinth.com/data/Ps1zyz6x/versions/g4eqNSKd/ScalableLux-fabric-mc26.3-0.3.0-alpha.0.6-all.jar",
+  "sha1": "d51dcbe901452a1cb378139ca351009254e7ab0d",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "polymer": {
+  "version": "0.18.2+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "polymer-bundled-0.18.2+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/xGdtZczs/versions/REBDssAz/polymer-bundled-0.18.2%2B26.3.jar",
+  "sha1": "8571b8aaa1533e08739e75f01020836a76daa30d",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "alternate-current": {
+  "version": "mc26.3-1.9.0",
+  "loader": "fabric",
+  "type": "release",
+  "file": "alternate-current-mc26.3-1.9.0.jar",
+  "url": "https://cdn.modrinth.com/data/r0v8vy1s/versions/nSBWPz6x/alternate-current-mc26.3-1.9.0.jar",
+  "sha1": "1316efc4195fbf152f8521542bc2435bd588ddb6",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "lithium": {
+  "version": "mc26.3-0.26.2-fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "lithium-fabric-0.26.2+mc26.3.jar",
+  "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/xS0Q8LSi/lithium-fabric-0.26.2%2Bmc26.3.jar",
+  "sha1": "dd5a4ec2c68d7601d8bce9076f789c55a5f8bef3",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "ferrite-core": {
+  "version": "9.0.0-fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "ferritecore-9.0.0-fabric.jar",
+  "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar",
+  "sha1": "eac76ff0f3753422c61b2c44487d0d195d88d4bc",
+  "deps": [],
+  "game_versions": [
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "krypton": {
+  "version": "0.3.2",
+  "loader": "fabric",
+  "type": "release",
+  "file": "krypton-0.3.2.jar",
+  "url": "https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar",
+  "sha1": "21b21cb88e412f0bce73b6609de6dd6aca958d7d",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "no-chat-reports": {
+  "version": "Fabric-26.3-v2.21.0",
+  "loader": "fabric",
+  "type": "release",
+  "file": "NoChatReports-FABRIC-26.3-v2.21.0.jar",
+  "url": "https://cdn.modrinth.com/data/qQyHxfxd/versions/6g96avt2/NoChatReports-FABRIC-26.3-v2.21.0.jar",
+  "sha1": "ed49e6780f20fcad080a211f8163c9d130ebdd34",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ],
+   [
+    "9s6osm5g",
+    "optional"
+   ],
+   [
+    "mOgUt4GM",
+    "optional"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "ledger": {
+  "version": "1.3.25",
+  "loader": "fabric",
+  "type": "release",
+  "file": "ledger-1.3.25.jar",
+  "url": "https://cdn.modrinth.com/data/LVN9ygNV/versions/pxv5cN0d/ledger-1.3.25.jar",
+  "sha1": "14612f68fa374093808f9f2f7a699e13e5e07adb",
+  "deps": [
+   [
+    "MLYQ9VGP",
+    "incompatible"
+   ],
+   [
+    "P7dR8mSH",
+    "required"
+   ],
+   [
+    "Ha28R6CL",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "vanish": {
+  "version": "1.6.16+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "vanish-1.6.16+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/UL4bJFDY/versions/KgeCcJWw/vanish-1.6.16%2B26.3.jar",
+  "sha1": "6460d148857c4c0d36f2338ed639f3d53d6d0a16",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "luckperms": {
+  "version": "v5.5.85-fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "LuckPerms-Fabric-5.5.85.jar",
+  "url": "https://cdn.modrinth.com/data/Vebnzrzj/versions/DzQPkkXY/LuckPerms-Fabric-5.5.85.jar",
+  "sha1": "b3398b22215bcec18813a5cf764b3a8c153fe8ba",
+  "deps": [],
+  "game_versions": [
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "simple-voice-chat": {
+  "version": "fabric-2.6.24+26.3",
+  "loader": "fabric",
+  "type": "beta",
+  "file": "voicechat-fabric-2.6.24+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/9eGKb6K1/versions/OLnMVWXy/voicechat-fabric-2.6.24%2B26.3.jar",
+  "sha1": "2ac4bb844e3b23b6e0a729edcf521ba1198ec5d2",
+  "deps": [
+   [
+    "YlKdE5VK",
+    "optional"
+   ],
+   [
+    "9s6osm5g",
+    "optional"
+   ],
+   [
+    "mOgUt4GM",
+    "optional"
+   ],
+   [
+    "Vebnzrzj",
+    "optional"
+   ],
+   [
+    "qyVF9oeo",
+    "optional"
+   ],
+   [
+    "SRlzjEBS",
+    "optional"
+   ],
+   [
+    "UL4bJFDY",
+    "optional"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "squaremap": {
+  "version": "1.4.0",
+  "loader": "fabric",
+  "type": "release",
+  "file": "squaremap-fabric-mc26.3-1.4.0.jar",
+  "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/FJzk5i6o/squaremap-fabric-mc26.3-1.4.0.jar",
+  "sha1": "ae71bebf668f94c46dd45f88f59624544a165322",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "bluemap": {
+  "version": "5.28-fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "bluemap-5.28-fabric.jar",
+  "url": "https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluemap-5.28-fabric.jar",
+  "sha1": "0f4289092d6cd5e1e028ace14b4464f096e90595",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "worldedit": {
+  "version": "7.4.6-beta-02",
+  "loader": "fabric",
+  "type": "beta",
+  "file": "worldedit-mod-7.4.6-beta-02.jar",
+  "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/E7sbeRFx/worldedit-mod-7.4.6-beta-02.jar",
+  "sha1": "7b10411d204e7a26c39af7654ae914ea830cd89b",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "filament": {
+  "version": "1.8.4+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "filament-1.8.4+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/yANxwqSX/versions/SVcTiN6K/filament-1.8.4%2B26.3.jar",
+  "sha1": "59c19031214b19025121f98d1fc7ef00dda38d87",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "booklet": {
+  "version": "0.4.0+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "booklet-0.4.0+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/xxtIpapP/versions/j6cHYosK/booklet-0.4.0%2B26.3.jar",
+  "sha1": "a54843ef5cc1be86e8b18ceb654bf8da0230fea2",
+  "deps": [
+   [
+    "m5NB7FJE",
+    "optional"
+   ],
+   [
+    "xGdtZczs",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3-rc-1",
+   "26.3"
+  ]
+ },
+ "carpet": {
+  "version": "26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "fabric-carpet-26.3+v260915.jar",
+  "url": "https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-carpet-26.3%2Bv260915.jar",
+  "sha1": "564c46b80e3a98430f0265b0485833f335d94a8d",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "fabrictailor": {
+  "version": "2.11.0",
+  "loader": "fabric",
+  "type": "release",
+  "file": "fabrictailor-2.11.0.jar",
+  "url": "https://cdn.modrinth.com/data/g8w1NapE/versions/UfZLJmX7/fabrictailor-2.11.0.jar",
+  "sha1": "1111979a07fc3051892808f972354879b150d64b",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "forgiving-void": {
+  "version": "26.3.0.2+fabric-26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "forgivingvoid-fabric-26.3-26.3.0.2.jar",
+  "url": "https://cdn.modrinth.com/data/1vkzEZjE/versions/OOJw6DaH/forgivingvoid-fabric-26.3-26.3.0.2.jar",
+  "sha1": "9289b3a75aac58af09a996805935a2462ae5f35a",
+  "deps": [
+   [
+    "MBAkmtvl",
+    "required"
+   ],
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "noisium": null,
+ "leukocyte": null,
+ "squaremap-banners": {
+  "error": "HTTP Error 404: Not Found"
+ },
+ "antixray": {
+  "error": "HTTP Error 404: Not Found"
+ },
+ "meowanti-xray": {
+  "version": "1.7.0+mc26.3.fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "meowantixray-fabric-1.7.0.jar",
+  "url": "https://cdn.modrinth.com/data/8pl8obwY/versions/ErSXH1ew/meowantixray-fabric-1.7.0.jar",
+  "sha1": "05d96f2c280d63f4fcaa79621cba704019acd602",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ]
+  ],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "minertrack": {
+  "version": "2.1.2.0+fabric",
+  "loader": "fabric",
+  "type": "release",
+  "file": "MinerTrack-2.1.2.0+fabric.jar",
+  "url": "https://cdn.modrinth.com/data/O3VQnhG2/versions/1cXUtMXL/MinerTrack-2.1.2.0%2Bfabric.jar",
+  "sha1": "8f8fa104ecaab1fefe4f7c225d432268e5cdc1de",
+  "deps": [
+   [
+    "P7dR8mSH",
+    "required"
+   ],
+   [
+    "Vebnzrzj",
+    "optional"
+   ]
+  ],
+  "game_versions": [
+   "1.18",
+   "1.18.1",
+   "1.18.2",
+   "1.19",
+   "1.19.1",
+   "1.19.2",
+   "1.19.3",
+   "1.19.4",
+   "1.20",
+   "1.20.1",
+   "1.20.2",
+   "1.20.3",
+   "1.20.4",
+   "1.20.5",
+   "1.20.6",
+   "1.21",
+   "1.21.1",
+   "1.21.2",
+   "1.21.3",
+   "1.21.4",
+   "1.21.5",
+   "1.21.6",
+   "1.21.7",
+   "1.21.8",
+   "1.21.9",
+   "1.21.10",
+   "1.21.11",
+   "26.1",
+   "26.1.1",
+   "26.1.2",
+   "26.2",
+   "26.3"
+  ]
+ },
+ "dungeons-and-taverns": {
+  "version": "6.0.2+mod",
+  "loader": "fabric",
+  "type": "release",
+  "file": "dungeons-and-taverns-6.0.2.jar",
+  "url": "https://cdn.modrinth.com/data/tpehi7ww/versions/WilF7nqU/dungeons-and-taverns-6.0.2.jar",
+  "sha1": "172ba3915c8da4c46bdf63a24a8cff2b485b838d",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "incendium": {
+  "version": "5.5.3+26.3",
+  "loader": "fabric",
+  "type": "alpha",
+  "file": "Incendium_26.3_v5.5.3+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/ZVzW5oNS/versions/vMABj7fb/Incendium_26.3_v5.5.3%2B26.3.jar",
+  "sha1": "7c2019995f5b2603fb390f42eaf4cbac26af6e16",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ },
+ "nullscape": {
+  "version": "2.0.1+26.3",
+  "loader": "fabric",
+  "type": "release",
+  "file": "Nullscape_26.3_v2.0.1+26.3.jar",
+  "url": "https://cdn.modrinth.com/data/LPjGiSO4/versions/79OyFQtd/Nullscape_26.3_v2.0.1%2B26.3.jar",
+  "sha1": "51d81f5d986d81ea824c9fc94cc1509a5394beab",
+  "deps": [],
+  "game_versions": [
+   "26.3"
+  ]
+ }
+}
