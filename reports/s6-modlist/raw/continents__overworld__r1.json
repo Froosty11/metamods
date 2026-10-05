@@ -1,0 +1,26 @@
+{
+ "config": "continents",
+ "dimension": "minecraft:overworld",
+ "run": 1,
+ "seed": 20251006,
+ "radius": 1000,
+ "mods": [
+  "fabric-api",
+  "c2me-fabric",
+  "distanthorizons",
+  "spark",
+  "chunky",
+  "continents"
+ ],
+ "jvm": [
+  "-Xms6G",
+  "-Xmx6G",
+  "-XX:+UseG1GC",
+  "-XX:+ParallelRefProcEnabled",
+  "-XX:MaxGCPauseMillis=200",
+  "-XX:+AlwaysPreTouch"
+ ],
+ "status": "start_failed",
+ "error": "server failed to start",
+ "log_tail": "ed to use a concurrent garbage collector \nlike ZGC (Java 21+) or Shenandoah (Java 8 through 17) \nfor a smoother experience. \nThis warning can be disabled in the DH config.\n[12:01:03] [Server thread/INFO]: Explicit Garbage Collection: [Enabled]\n[12:01:03] [Server thread/INFO]: Running Delayed setup...\n[12:01:03] [Server thread/INFO]: Delayed setup complete, firing DhApiAfterDhInitEvent event...\n[12:01:03] [Server thread/INFO]: Checking for Distant Horizons [STABLE] update for MC [26.3]...\n[12:01:04] [Server thread/INFO]: Distant Horizons already up to date.\n[12:01:04] [Server thread/INFO]: Distant Horizons server Initialized at \n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: Uncaught exception thrown in thread spark-monitoring-2-thread-1\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: java.lang.NullPointerException: Cannot invoke \"net.minecraft.server.players.PlayerList.getPlayers()\" because the return value of \"net.minecraft.server.MinecraftServer.getPlayerList()\" is null\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat knot//me.lucko.spark.minecraft.MinecraftPlayerPingProvider.poll(MinecraftPlayerPingProvider.java:40)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat knot//me.lucko.spark.common.monitor.ping.PingStatistics.currentSummary(PingStatistics.java:100)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat knot//me.lucko.spark.common.monitor.ping.PingStatistics.run(PingStatistics.java:76)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:369)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)\n[12:01:04] [spark-monitoring-2-thread-1/INFO]: [STDERR]: \tat java.base/java.lang.Thread.run(Thread.java:1474)\n[12:01:04] [Server thread/INFO]: Starting background profiler...\n[12:01:04] [Server thread/INFO]: Started [DhServerWorld] of type [SERVER_ONLY].\n[12:01:04] [Server thread/INFO]: Starting minecraft server version 26.3\n[12:01:04] [Server thread/INFO]: Loading properties\n[12:01:04] [Server thread/INFO]: Default game type: SURVIVAL\n[12:01:04] [Server thread/INFO]: Generating keypair\n[12:01:04] [Server thread/INFO]: Starting Minecraft server on *:25565\n[12:01:04] [Server thread/WARN]: **** FAILED TO BIND TO PORT!\n[12:01:04] [Server thread/WARN]: The exception was: io.netty.channel.unix.Errors$NativeIoException: bind(..) failed with error(-98): Address already in use\n[12:01:04] [Server thread/WARN]: Perhaps a server is already running on that port?\n[12:01:04] [Server thread/ERROR]: Encountered an unexpected exception\njava.lang.IllegalStateException: Failed to initialize server\n\tat knot//net.minecraft.server.MinecraftServer.runServer(MinecraftServer.java:774)\n\tat knot//net.minecraft.server.MinecraftServer.lambda$spin$0(MinecraftServer.java:310)\n\tat java.base/java.lang.Thread.run(Thread.java:1474)\n[12:01:04] [Server thread/ERROR]: This crash report has been saved to: /srv/mc/runs/continents/minecraft:overworld/r1/crash-reports/crash-2026-10-05_12.01.04-server.txt\n[12:01:04] [Server thread/INFO]: Stopping server\n[12:01:04] [Server thread/INFO]: Saving worlds\n[12:01:04] [Server thread/INFO]: Closed DhWorld of type [SERVER_ONLY].\n[12:01:04] [Server thread/INFO]: Closed DhWorld of type [SERVER_ONLY].\n[12:01:04] [Server thread/INFO]: Shutting down PriorityTaskPicker thread pool...\n[12:01:04] [Server thread/INFO]: Closing all [0] databases...\n"
+}

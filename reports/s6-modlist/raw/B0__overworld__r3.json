@@ -1,0 +1,25 @@
+{
+ "config": "B0",
+ "dimension": "minecraft:overworld",
+ "run": 3,
+ "seed": 20251006,
+ "radius": 1000,
+ "mods": [
+  "fabric-api",
+  "c2me-fabric",
+  "distanthorizons",
+  "spark",
+  "chunky"
+ ],
+ "jvm": [
+  "-Xms6G",
+  "-Xmx6G",
+  "-XX:+UseG1GC",
+  "-XX:+ParallelRefProcEnabled",
+  "-XX:MaxGCPauseMillis=200",
+  "-XX:+AlwaysPreTouch"
+ ],
+ "status": "start_failed",
+ "error": "server failed to start",
+ "log_tail": ":41] [main/INFO]: Running library validation...\n[11:56:41] [main/INFO]: Distant Horizons, Version: 3.3.4\n[11:56:41] [main/INFO]: Registering Fabric Server Events\n[11:56:41] [main/INFO]: Skipping mod compatibility accessor for: [starlight]\n[11:56:41] [main/INFO]: Skipping mod compatibility accessor for: [optifine]\n[11:56:41] [main/INFO]: Skipping mod compatibility accessor for: [bclib]\n[11:56:41] [main/INFO]: Registered mod compatibility accessor for: [c2me].\n[11:56:41] [main/INFO]: Skipping mod compatibility accessor for: [imm_ptl_core, immersive_portals, immersive_portals_core]\n[11:56:41] [main/INFO]: Registered mod compatibility accessor for: [chunky].\n[11:56:41] [main/INFO]: Skipping mod compatibility accessor for: [iris]\n[11:56:41] [main/INFO]: Distant Horizons server Initialized, adding event subscribers...\n[11:56:41] [main/INFO]: Environment: Environment[discoveryUrl=https://discovery.minecraftservices.com/minecraft/client, name=PROD]\n[11:56:43] [Worker-Main-2/INFO]: No existing world data, creating new world\n[11:56:45] [Worker-Main-1/INFO]: Loaded 1866 advancements\n[11:56:45] [main/INFO]: Applied 0 biome modifications to 0 of 67 new biomes in 1.958 ms\n[11:56:46] [Server thread/INFO]: Initialising config for [DistantHorizons]\n[11:56:46] [Server thread/INFO]: [DistantHorizons] Config initialised\n[11:56:46] [Server thread/INFO]: Dimension ignoring disabled, DH will render all dimensions.\n[11:56:46] [Server thread/INFO]: Applying config to loggers\n[11:56:46] [Server thread/INFO]: Garbage collectors: [G1 Young Generation, G1 Concurrent GC, G1 Old Generation]\n[11:56:46] [Server thread/WARN]: Distant Horizons: G1 Garbage collector detected.\nThis can cause FPS stuttering. \nIt's recommended to use a concurrent garbage collector \nlike ZGC (Java 21+) or Shenandoah (Java 8 through 17) \nfor a smoother experience. \nThis warning can be disabled in the DH config.\n[11:56:46] [Server thread/INFO]: Explicit Garbage Collection: [Enabled]\n[11:56:46] [Server thread/INFO]: Running Delayed setup...\n[11:56:46] [Server thread/INFO]: Delayed setup complete, firing DhApiAfterDhInitEvent event...\n[11:56:46] [Server thread/INFO]: Checking for Distant Horizons [STABLE] update for MC [26.3]...\n[11:56:46] [Server thread/INFO]: Distant Horizons already up to date.\n[11:56:46] [Server thread/INFO]: Distant Horizons server Initialized at \n[11:56:48] [Server thread/INFO]: Starting background profiler...\n[11:56:48] [Server thread/INFO]: Started [DhServerWorld] of type [SERVER_ONLY].\n[11:56:48] [Server thread/INFO]: Starting minecraft server version 26.3\n[11:56:48] [Server thread/INFO]: Loading properties\n[11:56:48] [Server thread/INFO]: Default game type: SURVIVAL\n[11:56:48] [Server thread/INFO]: Generating keypair\n[11:56:48] [Server thread/INFO]: Starting Minecraft server on *:25565\n[11:56:48] [Server thread/WARN]: **** FAILED TO BIND TO PORT!\n[11:56:48] [Server thread/WARN]: The exception was: io.netty.channel.unix.Errors$NativeIoException: bind(..) failed with error(-98): Address already in use\n[11:56:48] [Server thread/WARN]: Perhaps a server is already running on that port?\n[11:56:48] [Server thread/ERROR]: Encountered an unexpected exception\njava.lang.IllegalStateException: Failed to initialize server\n\tat knot//net.minecraft.server.MinecraftServer.runServer(MinecraftServer.java:774)\n\tat knot//net.minecraft.server.MinecraftServer.lambda$spin$0(MinecraftServer.java:310)\n\tat java.base/java.lang.Thread.run(Thread.java:1474)\n[11:56:49] [Server thread/ERROR]: This crash report has been saved to: /srv/mc/runs/B0/minecraft:overworld/r3/crash-reports/crash-2026-10-05_11.56.49-server.txt\n[11:56:49] [Server thread/INFO]: Stopping server\n[11:56:49] [Server thread/INFO]: Saving worlds\n[11:56:49] [Server thread/INFO]: Closed DhWorld of type [SERVER_ONLY].\n[11:56:49] [Server thread/INFO]: Closed DhWorld of type [SERVER_ONLY].\n[11:56:49] [Server thread/INFO]: Shutting down PriorityTaskPicker thread pool...\n[11:56:49] [Server thread/INFO]: Closing all [0] databases...\n"
+}

@@ -86,6 +86,10 @@ try:
     r.cmd("stop")
     p.wait(timeout=180)
     dh=glob.glob(f"{run}/world/dimensions/*/*/data/DistantHorizons.sqlite"); res["dh_sqlite_mb"]=round(sum(os.path.getsize(x) for x in dh)/1e6,1)
+    try:
+        from analyze import analyze
+        res["analysis"]=analyze(run+"/world",dim,R)
+    except Exception as e: res["analysis"]={"error":repr(e)}
     res["world_mb"]=round(sum(os.path.getsize(os.path.join(a,f)) for a,_,fs in os.walk(run+"/world") for f in fs)/1e6,1)
     os.makedirs("/srv/mc/logs",exist_ok=True); shutil.copy(run+"/out.log",f"/srv/mc/logs/{cfg}__{dim.split(':')[1]}__r{idx}.log")
     finish("ok")
