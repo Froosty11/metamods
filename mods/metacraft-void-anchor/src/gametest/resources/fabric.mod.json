@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "void-anchor-clienttest",
+	"version": "1.0.0",
+	"name": "Void Anchor client tests",
+	"description": "Screenshot test: a client sees the rift the server opens.",
+	"license": "Apache-2.0",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"nu.metacraft.void_anchor.clienttest.VoidAnchorClientTests"
+		]
+	},
+	"mixins": [
+		"void-anchor-clienttest.mixins.json"
+	],
+	"depends": {
+		"metacraft-void-anchor": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

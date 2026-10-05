@@ -4,6 +4,20 @@ addCoreDependencies()
 
 setupRunDatagen("metacraft-void-anchor")
 
+// Client screenshot test: a vanilla client joins an in-process server and looks at a rift, so the
+// pack's shader is judged by what a player sees. Source set src/gametest, task runClientGameTest
+// (opens a window).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "void-anchor-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
 dependencies {
 	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
 }

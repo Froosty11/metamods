@@ -10,6 +10,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/metacraft/textures"
 BLOCK = ROOT / "block"
+ITEM = ROOT / "item"
 
 OBSIDIAN = [(20, 10, 34), (28, 14, 46), (36, 18, 60), (46, 22, 76)]
 CRYING = [(120, 40, 200), (150, 70, 230)]
@@ -64,12 +65,43 @@ def top():
 	return img
 
 
+def rift(frames=16, size=32):
+	"""The painted rift: a purple swirl in a soft disc, as a vertical strip of animation frames.
+
+	It is purple only, on purpose: the item shader adds the teal, so teal on screen shows the shader ran.
+	"""
+	import math
+	img = Image.new("RGBA", (size, size * frames))
+	c = (size - 1) / 2
+	for f in range(frames):
+		turn = 2 * math.pi * f / frames
+		for y in range(size):
+			for x in range(size):
+				dx, dy = x - c, y - c
+				r = math.hypot(dx, dy) / c
+				if r > 1:
+					continue
+				a = math.atan2(dy, dx)
+				band = 0.5 + 0.5 * math.sin(3 * a + 7 * r - turn * 3)
+				core = max(0.0, 1 - r * 1.6)
+				red = int(40 + 110 * band * r + 30 * core)
+				blue = int(70 + 160 * band * r + 60 * core)
+				green = int(10 + 20 * band * r)
+				rim = max(0.0, (r - 0.82) / 0.18)
+				red, green, blue = (int(v + (230 - v) * rim * 0.6) for v in (red, green, blue))
+				alpha = int(255 * min(1.0, (1 - r) * 6))
+				img.putpixel((x, f * size + y), (min(red, 255), min(green, 120), min(blue, 255), alpha))
+	return img
+
+
 def main():
 	BLOCK.mkdir(parents=True, exist_ok=True)
 	for charge in range(5):
 		side(charge).save(BLOCK / f"void_anchor_side_{charge}.png")
 	top().save(BLOCK / "void_anchor_top.png")
 	obsidian(random.Random(5), crying=0.0).save(BLOCK / "void_anchor_bottom.png")
+	ITEM.mkdir(parents=True, exist_ok=True)
+	rift().save(ITEM / "rift.png")
 
 
 if __name__ == "__main__":
