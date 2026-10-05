@@ -421,8 +421,8 @@ public final class BookletRenders implements FabricClientGameTest {
 		level.setBlockAndUpdate(new BlockPos(100, -60, 20),
 				VoidAnchorBlocks.VOID_ANCHOR.value().defaultBlockState().setValue(RespawnAnchorBlock.CHARGE, 3));
 
-		// an open rift in the air, someone sinking into it (opened here, not by command: it stays open)
-		Rift.open(level, new Vec3(106.5, -58.6, 20.5), 2.6f);
+		// a crack open in the air, someone sinking into it (opened here, not by command: it stays open)
+		Rift.open(level, new Vec3(106.5, -58.6, 20.5), 3.6f);
 		Mannequin sinking = new Mannequin(EntityTypes.MANNEQUIN, level);
 		sinking.setPos(106.5, -57.9, 20.5);
 		sinking.setNoGravity(true);
