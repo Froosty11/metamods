@@ -7,6 +7,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import nu.metacraft.lib.config.CommentCodec;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.qol.concrete_cauldron.ConcreteCauldronConfig;
+import nu.metacraft.qol.silence_mobs.SilenceMobsConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 
 import java.nio.file.Path;
@@ -16,9 +17,9 @@ import java.util.Optional;
  * {@code config/metacraft-qol.json}: one section per feature. A missing section takes its
  * defaults, so a file written before a feature existed still loads.
  */
-public record QolConfig(VoidAnchorConfig voidAnchor, ConcreteCauldronConfig concreteCauldron) {
+public record QolConfig(VoidAnchorConfig voidAnchor, ConcreteCauldronConfig concreteCauldron, SilenceMobsConfig silenceMobs) {
 
-	public static final QolConfig DEFAULT = new QolConfig(VoidAnchorConfig.DEFAULT, ConcreteCauldronConfig.DEFAULT);
+	public static final QolConfig DEFAULT = new QolConfig(VoidAnchorConfig.DEFAULT, ConcreteCauldronConfig.DEFAULT, SilenceMobsConfig.DEFAULT);
 
 	public static final MapCodec<QolConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -30,7 +31,11 @@ public record QolConfig(VoidAnchorConfig voidAnchor, ConcreteCauldronConfig conc
 							section("concrete_cauldron", ConcreteCauldronConfig.CODEC.codec(), ConcreteCauldronConfig.DEFAULT),
 							"The concrete cauldron: concrete powder thrown into a water cauldron turns into concrete,",
 							"the whole dropped stack for one level of water."
-					).forGetter(QolConfig::concreteCauldron)
+					).forGetter(QolConfig::concreteCauldron),
+					CommentCodec.comment(
+							section("silence_mobs", SilenceMobsConfig.CODEC.codec(), SilenceMobsConfig.DEFAULT),
+							"Silence mobs: use a name tag named \"silence me\" on a mob to silence it, \"unsilence me\" to undo it."
+					).forGetter(QolConfig::silenceMobs)
 			).apply(instance, QolConfig::new)
 	);
 

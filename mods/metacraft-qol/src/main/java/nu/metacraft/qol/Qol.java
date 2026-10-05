@@ -4,6 +4,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.qol.silence_mobs.SilenceMobs;
 import nu.metacraft.qol.void_anchor.VoidAnchor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,6 +19,7 @@ public class Qol implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		VoidAnchor.init();
+		SilenceMobs.init();
 
 		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();

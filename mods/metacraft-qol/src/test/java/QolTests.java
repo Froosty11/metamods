@@ -13,6 +13,7 @@ import nu.metacraft.lib.util.helper.TestHelper;
 import nu.metacraft.qol.Qol;
 import nu.metacraft.qol.QolConfig;
 import nu.metacraft.qol.concrete_cauldron.ConcreteCauldronConfig;
+import nu.metacraft.qol.silence_mobs.SilenceMobsConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ public class QolTests {
 					registerTestCommands();
 					VoidAnchorTests.registerTests();
 					ConcreteCauldronTests.registerTests();
+					SilenceMobsTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, Qol::new
 		);
@@ -61,10 +63,11 @@ public class QolTests {
 							var v = config.voidAnchor();
 							return new QolConfig(
 									new VoidAnchorConfig(on, v.fuelItem(), v.triggerYOffset(), v.riftDepth(), v.descentSpeed(), v.riftTicks(), v.riftSize()),
-									config.concreteCauldron()
+									config.concreteCauldron(), config.silenceMobs()
 							);
 						}))
-						.then(toggle("concrete_cauldron", (config, on) -> new QolConfig(config.voidAnchor(), new ConcreteCauldronConfig(on))))
+						.then(toggle("concrete_cauldron", (config, on) -> new QolConfig(config.voidAnchor(), new ConcreteCauldronConfig(on), config.silenceMobs())))
+						.then(toggle("silence_mobs", (config, on) -> new QolConfig(config.voidAnchor(), config.concreteCauldron(), new SilenceMobsConfig(on))))
 		));
 	}
 
