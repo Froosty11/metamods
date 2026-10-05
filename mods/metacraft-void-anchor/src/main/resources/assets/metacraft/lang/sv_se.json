@@ -1,5 +1,8 @@
 {
 	"block.metacraft.void_anchor": "Tomrumsankare",
 	"block.metacraft.void_anchor.bound": "Det här tomrumsankaret fångar dig om du faller",
-	"block.metacraft.void_anchor.not_in_end": "Tomrumsankare fungerar bara i End"
+	"block.metacraft.void_anchor.not_in_end": "Tomrumsankare fungerar bara i End",
+	"block.metacraft.void_anchor.hint.empty": "Ditt tomrumsankare är tomt",
+	"block.metacraft.void_anchor.hint.gone": "Ditt tomrumsankare är borta",
+	"block.metacraft.void_anchor.hint.blocked": "Ditt tomrumsankare är blockerat"
 }

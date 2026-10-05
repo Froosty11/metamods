@@ -1,5 +1,8 @@
 {
 	"block.metacraft.void_anchor": "Void Anchor",
 	"block.metacraft.void_anchor.bound": "This void anchor will catch you if you fall",
-	"block.metacraft.void_anchor.not_in_end": "Void anchors only work in the End"
+	"block.metacraft.void_anchor.not_in_end": "Void anchors only work in the End",
+	"block.metacraft.void_anchor.hint.empty": "Your void anchor is empty",
+	"block.metacraft.void_anchor.hint.gone": "Your void anchor is gone",
+	"block.metacraft.void_anchor.hint.blocked": "Your void anchor is blocked"
 }

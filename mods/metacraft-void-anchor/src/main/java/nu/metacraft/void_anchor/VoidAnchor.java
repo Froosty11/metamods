@@ -4,6 +4,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.void_anchor.rift.RiftTracker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,6 +20,7 @@ public class VoidAnchor implements ModInitializer {
 		VoidAnchorItems.init();
 		AnchorBinding.init();
 		VoidAnchorCommand.init();
+		RiftTracker.init();
 
 		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();
