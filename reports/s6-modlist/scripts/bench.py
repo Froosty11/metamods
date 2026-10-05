@@ -107,6 +107,9 @@ try:
     try:
         from analyze import analyze
         res["analysis"]=analyze(run+"/world",dim,R)
+        if idx==1:
+            from analyze import structure_starts
+            res["analysis"]["structure_starts"]=structure_starts(run+"/world",dim,R)
     except Exception as e: res["analysis"]={"error":repr(e)}
     res["world_mb"]=round(sum(os.path.getsize(os.path.join(a,f)) for a,_,fs in os.walk(run+"/world") for f in fs)/1e6,1)
     os.makedirs("/srv/mc/logs",exist_ok=True); shutil.copy(run+"/out.log",f"/srv/mc/logs/{cfg}__{dim.split(':')[1]}__r{idx}.log")

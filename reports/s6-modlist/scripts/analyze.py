@@ -70,3 +70,15 @@ def analyze(world,dim,R=1000,step=4):
             "biomes":{k:round(100*v/tot,2) for k,v in hist.most_common()}}
 if __name__=="__main__":
     print(json.dumps(analyze(sys.argv[1],sys.argv[2],int(sys.argv[3]) if len(sys.argv)>3 else 1000),indent=1))
+
+def structure_starts(world,dim,R=1000):
+    """Count structure starts (by structure id) in every chunk of the pregen square."""
+    import collections
+    ns,name=dim.split(":"); regdir=f"{world}/dimensions/{ns}/{name}/region"; rc=R//16; cnt=collections.Counter()
+    for cx in range(-rc,rc+1):
+        for cz in range(-rc,rc+1):
+            c=chunk(regdir,cx,cz)
+            if not c: continue
+            for k,v in (c.get("structures",{}).get("starts",{}) or {}).items():
+                if isinstance(v,dict) and v.get("id","INVALID")!="INVALID": cnt[k]+=1
+    return dict(cnt.most_common())
