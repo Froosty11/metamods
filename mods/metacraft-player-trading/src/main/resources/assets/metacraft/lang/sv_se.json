@@ -1,0 +1,9 @@
+{
+	"block.metacraft.shop": "Butik",
+	"block.metacraft.admin_shop": "Adminbutik",
+	"block.metacraft.single_use_shop": "Engångsbutik",
+	"item.metacraft.shop_key": "Butiknyckel",
+	"item.metacraft.shop_key.owned": "%ss butiknyckel",
+	"gui.metacraft.shop_config_menu": "Butikskonfiguration",
+	"gui.metacraft.shop": "Butik"
+}

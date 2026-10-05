@@ -180,6 +180,20 @@ public class METACodecs {
 		);
 	}
 
+	public static <K, V, C extends PMap<K, V>> Codec<C> createPMapCodec(
+		Codec<K> keyCodec, Codec<V> valueCodec, C emptyCollection
+	) {
+		//noinspection unchecked
+		return Codec.unboundedMap(keyCodec, valueCodec).xmap(
+			map -> map.entrySet().stream().reduce(
+				emptyCollection,
+				(lhs, rhs) -> (C) lhs.plus(rhs.getKey(), rhs.getValue()),
+				(lhs, rhs) -> (C) lhs.plusAll(rhs)
+			),
+			map -> map
+		);
+	}
+
 	public static <T, C extends Collection<T>> Codec<C> createCollectionCodec(
 			Codec<T> codec, Supplier<C> collectionSupplier, BiFunction<C, T, C> adder, BinaryOperator<C> combiner
 	) {
