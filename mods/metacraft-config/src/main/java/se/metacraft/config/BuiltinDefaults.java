@@ -16,6 +16,7 @@ import org.pcollections.TreePVector;
 import se.metacraft.config.event.CodecDefaultValueEvent;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataKey;
+import se.metacraft.config.parser.metadata.Container;
 import se.metacraft.config.parser.metadata.ContainerType;
 import se.metacraft.config.parser.metadata.Entries;
 import se.metacraft.config.parser.result.AbstractCodecResult;
@@ -121,6 +122,60 @@ public class BuiltinDefaults {
 		return object;
 	}
 
+	private static DataResult<?> compilerHack(Object d, Container.DispatchedEither dispatchData) {
+		return dispatchData.decoderByKey().apply(d);
+	}
+
+	private static DataResult<PMap<String, Object>> appendElements(
+		AbstractCodecResult element, DataResult<PMap<String, Object>> result, DynamicOps<?> ctx, HolderLookup.Provider lookup
+	) {
+		for (var subElement : CodecInternalsHelper.getNamedElements(element)) {
+			boolean hasDispatch = false;
+			var name = subElement.nestedMetadata(MetadataKey.NAMED_FIELD);
+			var eitherDispatch = subElement.getContainer(ContainerType.DISPATCHED_EITHER);
+			if (name.isEmpty() && eitherDispatch.isPresent()) {
+				name = eitherDispatch.get().components().getFirst().nestedMetadata(MetadataKey.NAMED_FIELD);
+				hasDispatch = true;
+			}
+			if (name.isEmpty() || !name.get().required()) continue;
+			var type = CodecInternalsHelper.getUnnamed(subElement);
+			var n = name;
+			DataResult<Object> foundDefaultValue = CodecInternalsHelper.defaultValue(type, lookup);
+			if (hasDispatch) {
+				var k = CodecInternalsHelper.defaultValue(eitherDispatch.get().components().getFirst(), lookup);
+				var dispatchData = subElement.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
+				var r = result;
+				result = k.flatMap(key -> compilerHack(key, dispatchData).flatMap(decoder -> {
+					if (decoder instanceof MapCodec<?> c) {
+						return appendElements(
+							CodecParser.parse(c, lookup), r.flatMap(
+								currentResult -> CodecInternalsHelper.forceEncode(
+									eitherDispatch.get().components().getFirst().codec(), ctx, key
+								).map(
+									encoded -> {
+										//noinspection unchecked
+										return encoded instanceof Map<?, ?> ? currentResult.plusAll((Map<String, ?>) encoded) : currentResult;
+									}
+								).setPartial(currentResult)
+							),
+							ctx, lookup
+						);
+					}
+					return r;
+				}));
+			} else {
+				result = result.flatMap(
+					currentResult -> foundDefaultValue.flatMap(v ->
+						CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
+					).map(
+						encoded -> currentResult.plus(n.get().name(), encoded)
+					).setPartial(currentResult)
+				);
+			}
+		}
+		return result;
+	}
+
 	public static final CodecDefaultValueEvent BUILTIN = (element, lookup) -> {
 		var recursion = element.getContainerData(ContainerType.RECURSIVE);
 		if (recursion.isPresent()) {
@@ -139,17 +194,9 @@ public class BuiltinDefaults {
 				return map;
 			}
 
-			DataResult<PMap<String, Object>> result = DataResult.success(HashTreePMap.empty());
-			for (var subElement : CodecInternalsHelper.getNamedElements(element)) {
-				var name = subElement.metadata(MetadataKey.NAMED_FIELD);
-				if (name.isEmpty() || !name.get().required()) continue;
-				var type = CodecInternalsHelper.getUnnamed(subElement);
-				result = result.flatMap(
-					currentResult -> CodecInternalsHelper.defaultValue(type, lookup).flatMap(v ->
-						CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
-					).map(encoded -> currentResult.plus(name.get().name(), encoded)).setPartial(currentResult)
-				);
-			}
+			DataResult<PMap<String, Object>> result = appendElements(
+				element, DataResult.success(HashTreePMap.empty()), ctx, lookup
+			);
 			if (element.hasContainerType(ContainerType.RECORD) || element.hasContainerType(ContainerType.UNIT) || result.hasResultOrPartial()) {
 				return Optional.of(result.flatMap(r -> mapCodec.codec().parse(ctx, r).map(BuiltinDefaults::handleDefaultObject)));
 			}
