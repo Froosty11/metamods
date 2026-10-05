@@ -1,0 +1,28 @@
+# Preflight 2026-10-05T11:27:27Z
+## Hosts (HTTPS status of /, plus API probe)
+piston-meta.mojang.com: HTTP 404 (reachable)
+maven.fabricmc.net: HTTP 200 (reachable)
+api.modrinth.com: HTTP 301 (reachable)
+cdn.modrinth.com: HTTP 404 (reachable)
+github.com: HTTP 400 (reachable)
+piston-meta latest: release 26.3
+meta.fabricmc.net loader 0.19.5 stable: yes
+
+## nproc
+4
+## free -g
+               total        used        free      shared  buff/cache   available
+Mem:              15           0          14           0           0          15
+Swap:              0           0           0
+## uname -a
+Linux vm 6.18.44-fc-v70 #1 SMP PREEMPT_DYNAMIC @0 x86_64 x86_64 x86_64 GNU/Linux
+## lscpu
+CPU(s):                                  4
+Model name:                              Intel(R) Xeon(R) Processor @ 2.10GHz
+Thread(s) per core:                      1
+## disk
+/dev/vda        252G  8.9G   30G  24% /
+## Java
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
