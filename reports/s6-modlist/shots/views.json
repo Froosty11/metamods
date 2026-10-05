@@ -1,8 +1,95 @@
-{"note":"yaw/pitch in Minecraft degrees (yaw 0 = looking south/+Z, 90 = west/-X, 180 = north, -90 = east). Camera in spectator mode, HUD hidden (F1), time 6000, weather clear, render distance 12, 1280x720.",
- "views":[
-  {"id":"ow1_spawn","dim":"minecraft:overworld","x":-60,"y":150,"z":-60,"yaw":-45,"pitch":25,"note":"spawn area, looking SE over 0,0"},
-  {"id":"ow2_mountain","dim":"minecraft:overworld","x":-640,"y":200,"z":-130,"yaw":124,"pitch":15,"note":"wooded badlands highlands around -800,-250 (B0 tallest area, y~155)"},
-  {"id":"ow3_coast","dim":"minecraft:overworld","x":-760,"y":120,"z":130,"yaw":115,"pitch":18,"note":"beach / lukewarm ocean around -880,60"},
-  {"id":"ow4_forest","dim":"minecraft:overworld","x":-290,"y":160,"z":70,"yaw":135,"pitch":22,"note":"forest around -350,0"},
-  {"id":"ow5_aerial","dim":"minecraft:overworld","x":0,"y":300,"z":-160,"yaw":0,"pitch":50,"note":"aerial overview toward 0,0"}
- ]}
+{
+ "note": "yaw/pitch in Minecraft degrees (yaw 0 = looking south/+Z, 90 = west/-X, 180 = north, -90 = east). Camera in spectator mode, HUD hidden (F1), time 6000, weather clear, render distance 12, 1280x720.",
+ "views": [
+  {
+   "id": "ow1_spawn",
+   "dim": "minecraft:overworld",
+   "x": -60,
+   "y": 150,
+   "z": -60,
+   "yaw": -45,
+   "pitch": 25,
+   "note": "spawn area, looking SE over 0,0"
+  },
+  {
+   "id": "ow2_mountain",
+   "dim": "minecraft:overworld",
+   "x": -640,
+   "y": 200,
+   "z": -130,
+   "yaw": 124,
+   "pitch": 15,
+   "note": "wooded badlands highlands around -800,-250 (B0 tallest area, y~155)"
+  },
+  {
+   "id": "ow3_coast",
+   "dim": "minecraft:overworld",
+   "x": -760,
+   "y": 120,
+   "z": 130,
+   "yaw": 115,
+   "pitch": 18,
+   "note": "beach / lukewarm ocean around -880,60"
+  },
+  {
+   "id": "ow4_forest",
+   "dim": "minecraft:overworld",
+   "x": -290,
+   "y": 160,
+   "z": 70,
+   "yaw": 135,
+   "pitch": 22,
+   "note": "forest around -350,0"
+  },
+  {
+   "id": "ow5_aerial",
+   "dim": "minecraft:overworld",
+   "x": 0,
+   "y": 300,
+   "z": -160,
+   "yaw": 0,
+   "pitch": 50,
+   "note": "aerial overview toward 0,0"
+  },
+  {
+   "id": "ne1_cavern",
+   "dim": "minecraft:the_nether",
+   "x": 720,
+   "y": 80,
+   "z": 0,
+   "yaw": 90,
+   "pitch": 10,
+   "note": "large open Nether cavern (B0: air from y48-95), looking west"
+  },
+  {
+   "id": "ne2_cavern",
+   "dim": "minecraft:the_nether",
+   "x": 816,
+   "y": 75,
+   "z": 624,
+   "yaw": 135,
+   "pitch": 10,
+   "note": "second open Nether area, looking NW"
+  },
+  {
+   "id": "end1_main",
+   "dim": "minecraft:the_end",
+   "x": 0,
+   "y": 100,
+   "z": -110,
+   "yaw": 0,
+   "pitch": 20,
+   "note": "main End island and obsidian pillars from the north"
+  },
+  {
+   "id": "end2_outer",
+   "dim": "minecraft:the_end",
+   "x": 812,
+   "y": 175,
+   "z": -1428,
+   "yaw": 135,
+   "pitch": 25,
+   "note": "outer End island around 752,-1488 (B0 top y~151)"
+  }
+ ]
+}
