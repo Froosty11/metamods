@@ -1,6 +1,7 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -232,6 +233,15 @@ public class VoidAnchorTests {
 				ctx.assertTrue(Math.abs(y + sink) < 1e-6, "not sinking at " + sink + " once open: " + y);
 				ctx.succeed();
 			});
+		});
+		register("bind_command", ctx -> {
+			var pos = endAnchor(ctx, 460, 1);
+			var player = TestHelper.addMockPlayer(ctx, "bound", UUID.randomUUID());
+			var server = ctx.getLevel().getServer();
+			var source = server.createCommandSourceStack().withLevel(end(ctx)).withPermission(LevelBasedPermissionSet.OWNER);
+			server.getCommands().performPrefixedCommand(source, "voidanchor bind bound %d %d %d".formatted(pos.getX(), pos.getY(), pos.getZ()));
+			ctx.assertTrue(GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)), "not bound: " + AnchorBinding.get(player));
+			ctx.succeed();
 		});
 		register("empty_anchor", ctx -> {
 			var pos = endAnchor(ctx, 220, 0);

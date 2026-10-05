@@ -4,16 +4,24 @@ import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.coordinates.Vec3Argument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
+
+import java.util.Collection;
+import nu.metacraft.qol.void_anchor.block.VoidAnchorBlock;
 import nu.metacraft.qol.void_anchor.rift.Rift;
 import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 
 /**
  * {@code /voidanchor rift [crack|shatter] [pos]}: opens a rift that only looks, for testing how it
- * renders; in the configured style unless one is named.
+ * renders; in the configured style unless one is named. {@code /voidanchor bind <players> <pos>}:
+ * binds players to the void anchor at pos in this dimension, as using it with an empty hand would.
  */
 public final class VoidAnchorCommand {
 
@@ -35,8 +43,28 @@ public final class VoidAnchorCommand {
 								ctx -> openRift(ctx.getSource(), Vec3Argument.getVec3(ctx, "pos"), style)
 						)));
 			}
-			dispatcher.register(Commands.literal("voidanchor").requires(Permissions.require("metacraft.qol.voidanchor", 2)).then(rift));
+			var bind = Commands.literal("bind").then(Commands.argument("players", EntityArgument.players()).then(
+					Commands.argument("pos", BlockPosArgument.blockPos()).executes(ctx -> bind(
+							ctx.getSource(), EntityArgument.getPlayers(ctx, "players"), BlockPosArgument.getLoadedBlockPos(ctx, "pos")
+					))
+			));
+			dispatcher.register(Commands.literal("voidanchor").requires(Permissions.require("metacraft.qol.voidanchor", 2)).then(rift).then(bind));
 		});
+	}
+
+	private static int bind(CommandSourceStack source, Collection<ServerPlayer> players, BlockPos pos) {
+		if (!(source.getLevel().getBlockState(pos).getBlock() instanceof VoidAnchorBlock)) {
+			source.sendFailure(Component.literal("No void anchor at %d %d %d".formatted(pos.getX(), pos.getY(), pos.getZ())));
+			return 0;
+		}
+		var anchor = GlobalPos.of(source.getLevel().dimension(), pos);
+		for (var player : players) {
+			AnchorBinding.bind(player, anchor);
+		}
+		source.sendSuccess(() -> Component.literal(
+				"Bound %d player(s) to the void anchor at %d %d %d".formatted(players.size(), pos.getX(), pos.getY(), pos.getZ())
+		), true);
+		return players.size();
 	}
 
 	private static Vec3 inFrontOf(ServerPlayer player) {
