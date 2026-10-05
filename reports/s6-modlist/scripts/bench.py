@@ -16,6 +16,20 @@ CONF=json.load(open(os.path.join(HERE,"configs.json")))[cfg]
 B0=["fabric-api","c2me-fabric","distanthorizons","spark","chunky"]
 mods=B0+CONF["mods"]
 run=f"/srv/mc/runs/{cfg}/{dim}/r{idx}"
+import socket
+def port_free(port):
+    with socket.socket() as so:
+        so.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        try: so.bind(("0.0.0.0",port)); return True
+        except OSError: return False
+for _ in range(30):  # wait up to 60 s for a previous server to release its ports
+    if port_free(25565) and port_free(25575): break
+    time.sleep(2)
+else:
+    os.makedirs(OUT,exist_ok=True)
+    json.dump({"config":cfg,"dimension":dim,"run":idx,"seed":SEED,"radius":R,"status":"start_failed","error":"port 25565/25575 busy before start"},
+              open(f"{OUT}/{cfg}__{dim.split(':')[1]}__r{idx}.json","w"),indent=1)
+    print("port busy, not starting"); sys.exit(2)
 make(run,mods,SEED)
 log=open(run+"/out.log","w")
 t_launch=time.time()
@@ -101,3 +115,5 @@ except Exception as e:
 finally:
     if p.poll() is None: p.kill()
     if not keep and os.path.exists(run+"/world"): shutil.rmtree(run+"/world")
+
+sys.exit(0 if res["status"]=="ok" else 1)

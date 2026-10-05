@@ -4,71 +4,48 @@ B0 minecraft:overworld 3 1000
 terralith minecraft:overworld 1 1000 --keep
 terralith minecraft:overworld 2 1000
 tectonic minecraft:overworld 1 1000 --keep
-tectonic minecraft:overworld 2 1000
 geophilic minecraft:overworld 1 1000 --keep
-geophilic minecraft:overworld 2 1000
 wwoo minecraft:overworld 1 1000 --keep
-wwoo minecraft:overworld 2 1000
 continents minecraft:overworld 1 1000 --keep
-continents minecraft:overworld 2 1000
 hybrid-beta minecraft:overworld 1 1000 --keep
-hybrid-beta minecraft:overworld 2 1000
 geophilic+tectonic minecraft:overworld 1 1000 --keep
-geophilic+tectonic minecraft:overworld 2 1000
 geophilic+terralith minecraft:overworld 1 1000 --keep
-geophilic+terralith minecraft:overworld 2 1000
 tectonic+terralith minecraft:overworld 1 1000 --keep
-tectonic+terralith minecraft:overworld 2 1000
-PUSH s6-modlist: bench batch 1 (B0 overworld + terrain)
 B0 minecraft:the_nether 1 1200 --keep
 B0 minecraft:the_nether 2 1200
 B0 minecraft:the_nether 3 1200
 incendium minecraft:the_nether 1 1200 --keep
-incendium minecraft:the_nether 2 1200
 amplified-nether minecraft:the_nether 1 1200 --keep
-amplified-nether minecraft:the_nether 2 1200
 amethyst-nether minecraft:the_nether 1 1200 --keep
-amethyst-nether minecraft:the_nether 2 1200
 formations-nether minecraft:the_nether 1 1200 --keep
-formations-nether minecraft:the_nether 2 1200
 mns minecraft:the_nether 1 1200 --keep
-mns minecraft:the_nether 2 1200
 B0 minecraft:the_end 1 2200 --keep
 B0 minecraft:the_end 2 2200
 B0 minecraft:the_end 3 2200
 nullscape minecraft:the_end 1 2200 --keep
-nullscape minecraft:the_end 2 2200
 stellarity minecraft:the_end 1 2200 --keep
-stellarity minecraft:the_end 2 2200
 endercon minecraft:the_end 1 2200 --keep
-endercon minecraft:the_end 2 2200
 mes minecraft:the_end 1 2200 --keep
-mes minecraft:the_end 2 2200
-PUSH s6-modlist: bench batch 2 (Nether + End)
 scalablelux minecraft:overworld 1 1000 --keep
-scalablelux minecraft:overworld 2 1000
 structure-layout-optimizer minecraft:overworld 1 1000 --keep
-structure-layout-optimizer minecraft:overworld 2 1000
 zfastnoise minecraft:overworld 1 1000 --keep
-zfastnoise minecraft:overworld 2 1000
-PUSH s6-modlist: bench batch 3 (perf mods)
-dungeons-and-taverns minecraft:overworld 1 1000
-structory minecraft:overworld 1 1000
-structory-towers minecraft:overworld 1 1000
-towns-and-towers minecraft:overworld 1 1000
-sparsestructures minecraft:overworld 1 1000
-repurposed-structures minecraft:overworld 1 1000
-mvs minecraft:overworld 1 1000
-formations-overworld minecraft:overworld 1 1000
-katters-structures minecraft:overworld 1 1000
-tidal-towns minecraft:overworld 1 1000
-hopo-better-mineshaft minecraft:overworld 1 1000
-hopo-better-underwater-ruins minecraft:overworld 1 1000
-hopo-better-ruined-portals minecraft:overworld 1 1000
-ati-structures minecraft:overworld 1 1000
-villages-and-pillages minecraft:overworld 1 1000
-vanilla-structure-update minecraft:overworld 1 1000
-epic-structures-villages minecraft:overworld 1 1000
-mss minecraft:overworld 1 1000
-snow-under-trees minecraft:overworld 1 1000
-PUSH s6-modlist: bench batch 4 (structure packs, run 1)
+# PACKS (LEAN/BALANCED/PRETTY x3) inserted here
+dungeons-and-taverns minecraft:overworld 1 1000 --keep
+structory minecraft:overworld 1 1000 --keep
+structory-towers minecraft:overworld 1 1000 --keep
+towns-and-towers minecraft:overworld 1 1000 --keep
+sparsestructures minecraft:overworld 1 1000 --keep
+repurposed-structures minecraft:overworld 1 1000 --keep
+mvs minecraft:overworld 1 1000 --keep
+formations-overworld minecraft:overworld 1 1000 --keep
+katters-structures minecraft:overworld 1 1000 --keep
+tidal-towns minecraft:overworld 1 1000 --keep
+hopo-better-mineshaft minecraft:overworld 1 1000 --keep
+hopo-better-underwater-ruins minecraft:overworld 1 1000 --keep
+hopo-better-ruined-portals minecraft:overworld 1 1000 --keep
+ati-structures minecraft:overworld 1 1000 --keep
+villages-and-pillages minecraft:overworld 1 1000 --keep
+vanilla-structure-update minecraft:overworld 1 1000 --keep
+epic-structures-villages minecraft:overworld 1 1000 --keep
+mss minecraft:overworld 1 1000 --keep
+snow-under-trees minecraft:overworld 1 1000 --keep

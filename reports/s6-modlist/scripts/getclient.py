@@ -21,5 +21,5 @@ ai=V["assetIndex"]; dl(ai["url"],f"{M}/assets/indexes/{ai['id']}.json",ai["sha1"
 for k,o in json.load(open(f"{M}/assets/indexes/{ai['id']}.json"))["objects"].items():
     h=o["hash"]; jobs.append((f"https://resources.download.minecraft.net/{h[:2]}/{h}",f"{M}/assets/objects/{h[:2]}/{h}",h))
 print(len(jobs),"files")
-with cf.ThreadPoolExecutor(6) as ex: tot=sum(ex.map(lambda j:dl(*j),jobs))
+with cf.ThreadPoolExecutor(4) as ex: tot=sum(ex.map(lambda j:dl(*j),jobs))
 print("downloaded",tot//1e6,"MB")
