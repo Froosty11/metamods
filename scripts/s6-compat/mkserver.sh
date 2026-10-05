@@ -21,6 +21,7 @@ simulation-distance=10
 enable-command-block=true
 max-tick-time=-1
 white-list=false
+pause-when-empty-seconds=-1
 P
 for l in "$@"; do echo "$l" >> "$d/server.properties"; done
 for g in $(modset "$set_"); do cp $JARS/$g "$d/mods/"; done
