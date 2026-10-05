@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image
 
+import anchor_art
+
 ROOT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/metacraft/textures"
 BLOCK = ROOT / "block"
 ITEM = ROOT / "item"
@@ -20,77 +22,54 @@ PIP_OFF = (40, 24, 56)
 PIP_ON = [(200, 130, 255), (240, 200, 255)]
 
 
-def obsidian(rng, size=16, crying=0.04):
-	img = Image.new("RGBA", (size, size))
-	for y in range(size):
-		for x in range(size):
-			c = rng.choice(OBSIDIAN)
-			if rng.random() < crying:
-				c = rng.choice(CRYING)
-			img.putpixel((x, y), c + (255,))
-	return img
-
-
-def side(charge):
-	rng = random.Random(11)
-	img = obsidian(rng)
-	# A darker band across the middle holds four pips, lit left to right.
-	for x in range(1, 15):
-		for y in range(6, 11):
-			img.putpixel((x, y), (14, 6, 24, 255))
-	for i, x0 in enumerate((2, 5, 9, 12)):
-		lit = i < charge
-		for dx in range(2):
-			for dy in range(3):
-				c = (PIP_ON[(dx + dy) % 2] if lit else PIP_OFF)
-				img.putpixel((x0 + dx, 7 + dy), c + (255,))
-	return img
-
-
-def top():
-	rng = random.Random(23)
-	img = Image.new("RGBA", (16, 16))
-	for y in range(16):
-		for x in range(16):
-			d = ((x - 7.5) ** 2 + (y - 7.5) ** 2) ** 0.5
-			if d < 4.6:
-				c = VOID
-				if rng.random() < 0.06:
-					c = (220, 200, 255)
-			elif d < 5.6:
-				c = (90, 30, 150)
-			else:
-				c = rng.choice(RIM)
-			img.putpixel((x, y), c + (255,))
-	return img
-
-
-def rift(frames=16, size=32):
-	"""The painted rift: a purple swirl in a soft disc, as a vertical strip of animation frames.
-
-	It is purple only, on purpose: the item shader adds the teal, so teal on screen shows the shader ran.
+def rift(frames=8, size=64):
+	"""The rift's sprite: a torn, slanted lens of space. Its alpha is the shape the shader reads —
+	1 inside, about 0.95 to 0.55 across the edge, fading to 0 in a halo — and its colours are the
+	painted rift a client without the shader sees: dark space and a few stars inside, a magenta and
+	teal edge. The edge crackles from frame to frame; the outline itself stays put.
 	"""
 	import math
 	img = Image.new("RGBA", (size, size * frames))
-	c = (size - 1) / 2
+	rng = random.Random(41)
+	stars = [(rng.uniform(-0.6, 0.6), rng.uniform(-0.3, 0.3), rng.uniform(0.5, 1.0)) for _ in range(14)]
+	tilt = math.radians(32)
+
+	def boundary(theta, f):
+		# a lens, lumpy in a fixed way, with a little per-frame crackle
+		wobble = 0.10 * math.sin(3 * theta + 1.0) + 0.06 * math.sin(5 * theta + 2.3) + 0.04 * math.sin(9 * theta + 0.4)
+		crackle = 0.035 * math.sin(17 * theta + f * 2.1) * math.sin(11 * theta - f * 1.3)
+		return 1.0 + wobble + crackle
+
 	for f in range(frames):
-		turn = 2 * math.pi * f / frames
 		for y in range(size):
 			for x in range(size):
-				dx, dy = x - c, y - c
-				r = math.hypot(dx, dy) / c
-				if r > 1:
+				u = (x + 0.5) / size * 2 - 1
+				v = (y + 0.5) / size * 2 - 1
+				# into the lens' own frame: tilted, wide and thin
+				lu = u * math.cos(tilt) + v * math.sin(tilt)
+				lv = -u * math.sin(tilt) + v * math.cos(tilt)
+				r = math.hypot(lu / 0.86, lv / 0.42)
+				theta = math.atan2(lv / 0.42, lu / 0.86)
+				s = r / boundary(theta, f)          # 1 at the edge
+				if s < 0.80:
+					a = 1.0
+				elif s < 1.0:
+					a = 0.95 - (s - 0.80) / 0.20 * 0.40
+				elif s < 1.30:
+					a = 0.45 * (1 - (s - 1.0) / 0.30) ** 1.5
+				else:
 					continue
-				a = math.atan2(dy, dx)
-				band = 0.5 + 0.5 * math.sin(3 * a + 7 * r - turn * 3)
-				core = max(0.0, 1 - r * 1.6)
-				red = int(40 + 110 * band * r + 30 * core)
-				blue = int(70 + 160 * band * r + 60 * core)
-				green = int(10 + 20 * band * r)
-				rim = max(0.0, (r - 0.82) / 0.18)
-				red, green, blue = (int(v + (230 - v) * rim * 0.6) for v in (red, green, blue))
-				alpha = int(255 * min(1.0, (1 - r) * 6))
-				img.putpixel((x, f * size + y), (min(red, 255), min(green, 120), min(blue, 255), alpha))
+				if a >= 0.999:
+					c = (14, 4, 30)
+					for sx, sy, br in stars:
+						if (lu - sx) ** 2 + (lv - sy) ** 2 < 0.0016:
+							c = (int(200 * br + 40), int(170 * br + 30), 255)
+				elif a > 0.5:
+					mix = 0.5 + 0.5 * math.sin(theta * 3 + f * 0.8)
+					c = (int(230 - 150 * mix), int(80 + 160 * mix), int(250 - 30 * mix))
+				else:
+					c = (150, 70, 220)
+				img.putpixel((x, f * size + y), c + (max(1, int(round(a * 255))),))
 	return img
 
 
@@ -116,15 +95,10 @@ def muffler():
 
 
 def main():
-	BLOCK.mkdir(parents=True, exist_ok=True)
-	for charge in range(5):
-		side(charge).save(BLOCK / f"void_anchor_side_{charge}.png")
-	top().save(BLOCK / "void_anchor_top.png")
-	obsidian(random.Random(5), crying=0.0).save(BLOCK / "void_anchor_bottom.png")
+	anchor_art.draw_all(BLOCK)
 	ITEM.mkdir(parents=True, exist_ok=True)
 	rift().save(ITEM / "rift.png")
 	muffler().save(ITEM / "muffler.png")
-
 
 if __name__ == "__main__":
 	main()

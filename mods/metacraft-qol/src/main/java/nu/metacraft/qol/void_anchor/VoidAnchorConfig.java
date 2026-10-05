@@ -21,7 +21,7 @@ public record VoidAnchorConfig(
 ) {
 
 	public static final VoidAnchorConfig DEFAULT = new VoidAnchorConfig(
-			true, Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.3, 30, 3.0f
+			true, Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.3, 30, 4.0f
 	);
 
 	public static final MapCodec<VoidAnchorConfig> CODEC = RecordCodecBuilder.mapCodec(
