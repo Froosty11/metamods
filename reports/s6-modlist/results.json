@@ -1497,6 +1497,28 @@
     "minecraft:ocean": 0.18,
     "minecraft:deep_lukewarm_ocean": 0.17,
     "minecraft:birch_forest": 0.09
+   },
+   "structure_starts": {
+    "minecraft:mineshaft": 47,
+    "minecraft:trial_chambers": 13,
+    "minecraft:ocean_ruin_warm": 10,
+    "minecraft:shipwreck": 8,
+    "minecraft:ruined_portal": 4,
+    "minecraft:village_savanna": 3,
+    "minecraft:abandoned_camp_wooded_badlands": 3,
+    "minecraft:buried_treasure": 2,
+    "minecraft:ruined_portal_mountain": 2,
+    "minecraft:mineshaft_mesa": 2,
+    "minecraft:trail_ruins": 2,
+    "minecraft:village_plains": 2,
+    "minecraft:ruined_portal_ocean": 2,
+    "minecraft:abandoned_camp_savanna": 1,
+    "minecraft:abandoned_camp_sparse_jungle": 1,
+    "minecraft:jungle_pyramid": 1,
+    "minecraft:abandoned_camp_bamboo_jungle": 1,
+    "minecraft:ruined_portal_jungle": 1,
+    "minecraft:pillager_outpost": 1,
+    "minecraft:monument": 1
    }
   },
   "world_mb": 261.2
@@ -9688,6 +9710,9 @@
     "minecraft:the_end": 16.95,
     "minecraft:end_highlands": 15.06,
     "minecraft:end_barrens": 9.66
+   },
+   "structure_starts": {
+    "minecraft:end_city": 22
    }
   },
   "world_mb": 408.3
@@ -22048,6 +22073,12 @@
     "minecraft:basalt_deltas": 19.29,
     "minecraft:soul_sand_valley": 14.88,
     "minecraft:warped_forest": 3.99
+   },
+   "structure_starts": {
+    "minecraft:nether_fossil": 433,
+    "minecraft:bastion_remnant": 19,
+    "minecraft:fortress": 14,
+    "minecraft:ruined_portal_nether": 12
    }
   },
   "world_mb": 241.0
@@ -27378,6 +27409,67 @@
     "minecraft:ocean": 0.18,
     "minecraft:deep_lukewarm_ocean": 0.17,
     "minecraft:birch_forest": 0.09
+   },
+   "structure_starts": {
+    "minecraft:mineshaft": 47,
+    "minecraft:trial_chambers": 13,
+    "minecraft:ocean_ruin_warm": 10,
+    "minecraft:shipwreck": 8,
+    "nova_structures:underground_house": 6,
+    "nova_structures:surface_trial_dungeon_default": 5,
+    "minecraft:ruined_portal": 4,
+    "nova_structures:well_jungle": 4,
+    "nova_structures:illager_camp": 4,
+    "minecraft:village_savanna": 3,
+    "minecraft:abandoned_camp_wooded_badlands": 3,
+    "minecraft:mineshaft_mesa": 3,
+    "nova_structures:well_savanna": 3,
+    "nova_structures:tavern_oak": 3,
+    "nova_structures:small_conduit_ruin_warm": 3,
+    "towns_and_towers:wreckage_ocean": 3,
+    "nova_structures:firewatch_tower_jungle": 3,
+    "nova_structures:undead_crypt": 3,
+    "structory_towers:farmer_outpost": 2,
+    "minecraft:buried_treasure": 2,
+    "nova_structures:deepslate_camp": 2,
+    "minecraft:ruined_portal_mountain": 2,
+    "nova_structures:remnant_miner_hut": 2,
+    "nova_structures:shrine_combat_tier_4": 2,
+    "structory_towers:quarter_outpost": 2,
+    "minecraft:trail_ruins": 2,
+    "nova_structures:illager_treehouse": 2,
+    "nova_structures:tavern_jungle": 2,
+    "structory:ruin_grassy": 2,
+    "minecraft:village_plains": 2,
+    "minecraft:ruined_portal_ocean": 2,
+    "structory:graveyard": 1,
+    "nova_structures:cave_chamber_dungeon_colony": 1,
+    "nova_structures:remnant_lone_shrine_sentinel": 1,
+    "nova_structures:ruin_town": 1,
+    "nova_structures:shrine_combat_tier_5": 1,
+    "nova_structures:illager_barracks": 1,
+    "minecraft:abandoned_camp_savanna": 1,
+    "structory_towers:nomad_outpost": 1,
+    "minecraft:abandoned_camp_sparse_jungle": 1,
+    "nova_structures:shrine_biome_tier_5": 1,
+    "structory:outcast_villager_desert": 1,
+    "nova_structures:wild_ruin": 1,
+    "nova_structures:desert_ruins": 1,
+    "minecraft:jungle_pyramid": 1,
+    "minecraft:abandoned_camp_bamboo_jungle": 1,
+    "nova_structures:cave_hut": 1,
+    "minecraft:ruined_portal_jungle": 1,
+    "minecraft:pillager_outpost": 1,
+    "nova_structures:shrine_combat_tier_3": 1,
+    "towns_and_towers:village_wooded_badlands": 1,
+    "structory:jungle_ruin": 1,
+    "nova_structures:remnant_shrine_sentinel_mass_grave": 1,
+    "nova_structures:cave_chamber": 1,
+    "nova_structures:trial_dungeon": 1,
+    "towns_and_towers:pillager_outpost_jungle": 1,
+    "nova_structures:cave_chamber_archeology_ruins": 1,
+    "minecraft:monument": 1,
+    "structory_towers:lighthouse": 1
    }
   },
   "world_mb": 268.2
@@ -40027,6 +40119,40 @@
     "terralith:cave/fungal_caves": 0.13,
     "minecraft:bamboo_jungle": 0.09,
     "terralith:cave/infested_caves": 0.06
+   },
+   "structure_starts": {
+    "minecraft:mineshaft": 51,
+    "terralith:underground/mining_outpost": 29,
+    "terralith:underground/old_refinery": 16,
+    "minecraft:trial_chambers": 14,
+    "terralith:underground/sunken_tower": 13,
+    "minecraft:shipwreck": 8,
+    "minecraft:ocean_ruin_warm": 7,
+    "terralith:underground/giant_bee_hive": 7,
+    "minecraft:buried_treasure": 6,
+    "terralith:rubble_jungle": 6,
+    "minecraft:ruined_portal": 5,
+    "terralith:rubble_desert": 4,
+    "minecraft:village_plains": 3,
+    "structory_towers:quarter_outpost": 2,
+    "minecraft:desert_pyramid": 2,
+    "minecraft:jungle_pyramid": 2,
+    "structory:northern_ruin": 2,
+    "terralith:desert_outpost": 2,
+    "minecraft:abandoned_camp_sparse_jungle": 2,
+    "structory:ruin_grassy": 2,
+    "structory:jungle_ruin": 2,
+    "minecraft:ruined_portal_ocean": 2,
+    "structory:graveyard": 1,
+    "minecraft:village_desert": 1,
+    "terralith:fortified_village": 1,
+    "structory:outcast_villager_desert": 1,
+    "structory_towers:mirage_outpost": 1,
+    "structory_towers:farmer_outpost": 1,
+    "minecraft:ruined_portal_jungle": 1,
+    "terralith:rubble_mesa": 1,
+    "structory_towers:lighthouse": 1,
+    "minecraft:trail_ruins": 1
    }
   },
   "world_mb": 249.7
@@ -51141,6 +51267,14 @@
     "an:old_growth_crimson_forest": 0.18,
     "minecraft:crimson_forest": 0.13,
     "an:sulfur_fields": 0.01
+   },
+   "structure_starts": {
+    "minecraft:nether_fossil": 358,
+    "structory_towers:nether/fortress_tower": 16,
+    "minecraft:ruined_portal_nether": 12,
+    "an:red_fortress": 5,
+    "minecraft:fortress": 2,
+    "structory_towers:nether/strange_outpost": 1
    }
   },
   "world_mb": 205.7

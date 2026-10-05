@@ -1496,6 +1496,28 @@
    "minecraft:ocean": 0.18,
    "minecraft:deep_lukewarm_ocean": 0.17,
    "minecraft:birch_forest": 0.09
+  },
+  "structure_starts": {
+   "minecraft:mineshaft": 47,
+   "minecraft:trial_chambers": 13,
+   "minecraft:ocean_ruin_warm": 10,
+   "minecraft:shipwreck": 8,
+   "minecraft:ruined_portal": 4,
+   "minecraft:village_savanna": 3,
+   "minecraft:abandoned_camp_wooded_badlands": 3,
+   "minecraft:buried_treasure": 2,
+   "minecraft:ruined_portal_mountain": 2,
+   "minecraft:mineshaft_mesa": 2,
+   "minecraft:trail_ruins": 2,
+   "minecraft:village_plains": 2,
+   "minecraft:ruined_portal_ocean": 2,
+   "minecraft:abandoned_camp_savanna": 1,
+   "minecraft:abandoned_camp_sparse_jungle": 1,
+   "minecraft:jungle_pyramid": 1,
+   "minecraft:abandoned_camp_bamboo_jungle": 1,
+   "minecraft:ruined_portal_jungle": 1,
+   "minecraft:pillager_outpost": 1,
+   "minecraft:monument": 1
   }
  },
  "world_mb": 261.2

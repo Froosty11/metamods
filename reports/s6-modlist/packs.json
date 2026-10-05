@@ -1,0 +1,14 @@
+{
+ "LEAN": {
+  "why": "Geophilic (looks, ~0 cost) + Structory + Moog's Nether/End structures + ScalableLux. Measured \u22123.2% (inside B0 noise)."
+ },
+ "BALANCED-G": {
+  "why": "Recommended. Geophilic + four structure packs + ScalableLux/SLO + Amethyst Nether + Nullscape. Measured \u22120.6% Overworld, \u22129.5% Nether, \u221268.7% End."
+ },
+ "BALANCED": {
+  "why": "Terralith-based attempt at the 15% budget; came in at \u221222.8%, so it misses the target."
+ },
+ "PRETTY": {
+  "why": "Tectonic + Terralith + Geophilic + D&T + Towns and Towers + Structory (+Towers) + Incendium + Nullscape. Costs \u221234.3% Overworld, \u221259.2% Nether, \u221269.0% End."
+ }
+}

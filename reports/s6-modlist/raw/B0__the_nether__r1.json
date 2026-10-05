@@ -1914,6 +1914,12 @@
    "minecraft:basalt_deltas": 19.29,
    "minecraft:soul_sand_valley": 14.88,
    "minecraft:warped_forest": 3.99
+  },
+  "structure_starts": {
+   "minecraft:nether_fossil": 433,
+   "minecraft:bastion_remnant": 19,
+   "minecraft:fortress": 14,
+   "minecraft:ruined_portal_nether": 12
   }
  },
  "world_mb": 241.0

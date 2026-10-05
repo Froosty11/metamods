@@ -1955,6 +1955,14 @@
    "an:old_growth_crimson_forest": 0.18,
    "minecraft:crimson_forest": 0.13,
    "an:sulfur_fields": 0.01
+  },
+  "structure_starts": {
+   "minecraft:nether_fossil": 358,
+   "structory_towers:nether/fortress_tower": 16,
+   "minecraft:ruined_portal_nether": 12,
+   "an:red_fortress": 5,
+   "minecraft:fortress": 2,
+   "structory_towers:nether/strange_outpost": 1
   }
  },
  "world_mb": 205.7

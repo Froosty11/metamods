@@ -5205,6 +5205,9 @@
    "minecraft:the_end": 16.95,
    "minecraft:end_highlands": 15.06,
    "minecraft:end_barrens": 9.66
+  },
+  "structure_starts": {
+   "minecraft:end_city": 22
   }
  },
  "world_mb": 408.3

@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1042" width="100%" role="img" aria-label="Chunks per second relative to B0" style="font:12px system-ui,sans-serif">
+<style>.t{fill:#222} .g{stroke:#ccc} .b{fill:#4a7bd1} .w{stroke:#222} .ref{stroke:#c0392b;stroke-dasharray:4 3}</style>
+<text class="t" x="260" y="16">chunks/s as % of B0 in the same dimension (bar = mean, whisker = min–max)</text>
+<line class="g" x1="260.0" y1="26" x2="260.0" y2="1012"/><text class="t" x="260.0" y="1028" text-anchor="middle">0%</text>
+<line class="g" x1="336.9" y1="26" x2="336.9" y2="1012"/><text class="t" x="336.9" y="1028" text-anchor="middle">20%</text>
+<line class="g" x1="413.9" y1="26" x2="413.9" y2="1012"/><text class="t" x="413.9" y="1028" text-anchor="middle">40%</text>
+<line class="g" x1="490.8" y1="26" x2="490.8" y2="1012"/><text class="t" x="490.8" y="1028" text-anchor="middle">60%</text>
+<line class="g" x1="567.8" y1="26" x2="567.8" y2="1012"/><text class="t" x="567.8" y="1028" text-anchor="middle">80%</text>
+<line class="g" x1="644.7" y1="26" x2="644.7" y2="1012"/><text class="t" x="644.7" y="1028" text-anchor="middle">100%</text>
+<line class="g" x1="721.7" y1="26" x2="721.7" y2="1012"/><text class="t" x="721.7" y="1028" text-anchor="middle">120%</text>
+<line class="g" x1="798.6" y1="26" x2="798.6" y2="1012"/><text class="t" x="798.6" y="1028" text-anchor="middle">140%</text>
+<line class="ref" x1="644.7" y1="26" x2="644.7" y2="1012"/>
+<text class="t" x="254" y="42" text-anchor="end">V0 (Overworld)</text>
+<rect class="b" x="260" y="33" width="469.5" height="12"/><line class="w" x1="721.1" y1="39.0" x2="734.4" y2="39.0"/>
+<text class="t" x="738.4" y="42">122%</text>
+<text class="t" x="254" y="60" text-anchor="end">V0+C2ME (Overworld)</text>
+<rect class="b" x="260" y="51" width="559.9" height="12"/><line class="w" x1="819.1" y1="57.0" x2="820.8" y2="57.0"/>
+<text class="t" x="824.8" y="60">146%</text>
+<text class="t" x="254" y="78" text-anchor="end">continents (Overworld)</text>
+<rect class="b" x="260" y="69" width="414.4" height="12"/><line class="w" x1="674.4" y1="75.0" x2="674.4" y2="75.0"/>
+<text class="t" x="678.4" y="78">108%</text>
+<text class="t" x="254" y="96" text-anchor="end">geophilic (Overworld)</text>
+<rect class="b" x="260" y="87" width="391.8" height="12"/><line class="w" x1="651.8" y1="93.0" x2="651.8" y2="93.0"/>
+<text class="t" x="655.8" y="96">102%</text>
+<text class="t" x="254" y="114" text-anchor="end">geophilic+tectonic (Overworld)</text>
+<rect class="b" x="260" y="105" width="291.8" height="12"/><line class="w" x1="551.8" y1="111.0" x2="551.8" y2="111.0"/>
+<text class="t" x="555.8" y="114">76%</text>
+<text class="t" x="254" y="132" text-anchor="end">geophilic+terralith (Overworld)</text>
+<rect class="b" x="260" y="123" width="281.0" height="12"/><line class="w" x1="541.0" y1="129.0" x2="541.0" y2="129.0"/>
+<text class="t" x="545.0" y="132">73%</text>
+<text class="t" x="254" y="150" text-anchor="end">hybrid-beta (Overworld)</text>
+<rect class="b" x="260" y="141" width="325.0" height="12"/><line class="w" x1="585.0" y1="147.0" x2="585.0" y2="147.0"/>
+<text class="t" x="589.0" y="150">84%</text>
+<text class="t" x="254" y="168" text-anchor="end">tectonic (Overworld)</text>
+<rect class="b" x="260" y="159" width="312.9" height="12"/><line class="w" x1="572.9" y1="165.0" x2="572.9" y2="165.0"/>
+<text class="t" x="576.9" y="168">81%</text>
+<text class="t" x="254" y="186" text-anchor="end">tectonic+terralith (Overworld)</text>
+<rect class="b" x="260" y="177" width="252.9" height="12"/><line class="w" x1="512.9" y1="183.0" x2="512.9" y2="183.0"/>
+<text class="t" x="516.9" y="186">66%</text>
+<text class="t" x="254" y="204" text-anchor="end">terralith (Overworld)</text>
+<rect class="b" x="260" y="195" width="310.1" height="12"/><line class="w" x1="567.5" y1="201.0" x2="572.7" y2="201.0"/>
+<text class="t" x="576.7" y="204">81%</text>
+<text class="t" x="254" y="222" text-anchor="end">wwoo (Overworld)</text>
+<rect class="b" x="260" y="213" width="209.0" height="12"/><line class="w" x1="469.0" y1="219.0" x2="469.0" y2="219.0"/>
+<text class="t" x="473.0" y="222">54%</text>
+<text class="t" x="254" y="240" text-anchor="end">scalablelux (Overworld)</text>
+<rect class="b" x="260" y="231" width="386.8" height="12"/><line class="w" x1="646.8" y1="237.0" x2="646.8" y2="237.0"/>
+<text class="t" x="650.8" y="240">101%</text>
+<text class="t" x="254" y="258" text-anchor="end">structure-layout-optimizer (Overworld)</text>
+<rect class="b" x="260" y="249" width="367.8" height="12"/><line class="w" x1="627.8" y1="255.0" x2="627.8" y2="255.0"/>
+<text class="t" x="631.8" y="258">96%</text>
+<text class="t" x="254" y="276" text-anchor="end">zfastnoise (Overworld)</text>
+<rect class="b" x="260" y="267" width="394.8" height="12"/><line class="w" x1="654.8" y1="273.0" x2="654.8" y2="273.0"/>
+<text class="t" x="658.8" y="276">103%</text>
+<text class="t" x="254" y="294" text-anchor="end">ati-structures (Overworld)</text>
+<rect class="b" x="260" y="285" width="326.9" height="12"/><line class="w" x1="586.9" y1="291.0" x2="586.9" y2="291.0"/>
+<text class="t" x="590.9" y="294">85%</text>
+<text class="t" x="254" y="312" text-anchor="end">dungeons-and-taverns (Overworld)</text>
+<rect class="b" x="260" y="303" width="351.3" height="12"/><line class="w" x1="611.3" y1="309.0" x2="611.3" y2="309.0"/>
+<text class="t" x="615.3" y="312">91%</text>
+<text class="t" x="254" y="330" text-anchor="end">epic-structures-villages (Overworld)</text>
+<rect class="b" x="260" y="321" width="371.4" height="12"/><line class="w" x1="631.4" y1="327.0" x2="631.4" y2="327.0"/>
+<text class="t" x="635.4" y="330">97%</text>
+<text class="t" x="254" y="348" text-anchor="end">formations-overworld (Overworld)</text>
+<rect class="b" x="260" y="339" width="375.6" height="12"/><line class="w" x1="635.6" y1="345.0" x2="635.6" y2="345.0"/>
+<text class="t" x="639.6" y="348">98%</text>
+<text class="t" x="254" y="366" text-anchor="end">hopo-better-mineshaft (Overworld)</text>
+<rect class="b" x="260" y="357" width="370.2" height="12"/><line class="w" x1="630.2" y1="363.0" x2="630.2" y2="363.0"/>
+<text class="t" x="634.2" y="366">96%</text>
+<text class="t" x="254" y="384" text-anchor="end">hopo-better-ruined-portals (Overworld)</text>
+<rect class="b" x="260" y="375" width="376.7" height="12"/><line class="w" x1="636.7" y1="381.0" x2="636.7" y2="381.0"/>
+<text class="t" x="640.7" y="384">98%</text>
+<text class="t" x="254" y="402" text-anchor="end">hopo-better-underwater-ruins (Overworld)</text>
+<rect class="b" x="260" y="393" width="376.7" height="12"/><line class="w" x1="636.7" y1="399.0" x2="636.7" y2="399.0"/>
+<text class="t" x="640.7" y="402">98%</text>
+<text class="t" x="254" y="420" text-anchor="end">katters-structures (Overworld)</text>
+<rect class="b" x="260" y="411" width="369.1" height="12"/><line class="w" x1="629.1" y1="417.0" x2="629.1" y2="417.0"/>
+<text class="t" x="633.1" y="420">96%</text>
+<text class="t" x="254" y="438" text-anchor="end">mss (Overworld)</text>
+<rect class="b" x="260" y="429" width="378.9" height="12"/><line class="w" x1="638.9" y1="435.0" x2="638.9" y2="435.0"/>
+<text class="t" x="642.9" y="438">98%</text>
+<text class="t" x="254" y="456" text-anchor="end">mvs (Overworld)</text>
+<rect class="b" x="260" y="447" width="377.3" height="12"/><line class="w" x1="637.3" y1="453.0" x2="637.3" y2="453.0"/>
+<text class="t" x="641.3" y="456">98%</text>
+<text class="t" x="254" y="474" text-anchor="end">repurposed-structures (Overworld)</text>
+<rect class="b" x="260" y="465" width="377.4" height="12"/><line class="w" x1="637.4" y1="471.0" x2="637.4" y2="471.0"/>
+<text class="t" x="641.4" y="474">98%</text>
+<text class="t" x="254" y="492" text-anchor="end">sparsestructures (Overworld)</text>
+<rect class="b" x="260" y="483" width="387.6" height="12"/><line class="w" x1="647.6" y1="489.0" x2="647.6" y2="489.0"/>
+<text class="t" x="651.6" y="492">101%</text>
+<text class="t" x="254" y="510" text-anchor="end">structory (Overworld)</text>
+<rect class="b" x="260" y="501" width="385.5" height="12"/><line class="w" x1="645.5" y1="507.0" x2="645.5" y2="507.0"/>
+<text class="t" x="649.5" y="510">100%</text>
+<text class="t" x="254" y="528" text-anchor="end">structory-towers (Overworld)</text>
+<rect class="b" x="260" y="519" width="368.8" height="12"/><line class="w" x1="628.8" y1="525.0" x2="628.8" y2="525.0"/>
+<text class="t" x="632.8" y="528">96%</text>
+<text class="t" x="254" y="546" text-anchor="end">tidal-towns (Overworld)</text>
+<rect class="b" x="260" y="537" width="385.9" height="12"/><line class="w" x1="645.9" y1="543.0" x2="645.9" y2="543.0"/>
+<text class="t" x="649.9" y="546">100%</text>
+<text class="t" x="254" y="564" text-anchor="end">towns-and-towers (Overworld)</text>
+<rect class="b" x="260" y="555" width="360.0" height="12"/><line class="w" x1="620.0" y1="561.0" x2="620.0" y2="561.0"/>
+<text class="t" x="624.0" y="564">94%</text>
+<text class="t" x="254" y="582" text-anchor="end">vanilla-structure-update (Overworld)</text>
+<rect class="b" x="260" y="573" width="376.5" height="12"/><line class="w" x1="636.5" y1="579.0" x2="636.5" y2="579.0"/>
+<text class="t" x="640.5" y="582">98%</text>
+<text class="t" x="254" y="600" text-anchor="end">villages-and-pillages (Overworld)</text>
+<rect class="b" x="260" y="591" width="377.2" height="12"/><line class="w" x1="637.2" y1="597.0" x2="637.2" y2="597.0"/>
+<text class="t" x="641.2" y="600">98%</text>
+<text class="t" x="254" y="618" text-anchor="end">snow-under-trees (Overworld)</text>
+<rect class="b" x="260" y="609" width="395.1" height="12"/><line class="w" x1="655.1" y1="615.0" x2="655.1" y2="615.0"/>
+<text class="t" x="659.1" y="618">103%</text>
+<text class="t" x="254" y="636" text-anchor="end">BALANCED (Overworld)</text>
+<rect class="b" x="260" y="627" width="297.0" height="12"/><line class="w" x1="553.7" y1="633.0" x2="558.8" y2="633.0"/>
+<text class="t" x="562.8" y="636">77%</text>
+<text class="t" x="254" y="654" text-anchor="end">BALANCED-G (Overworld)</text>
+<rect class="b" x="260" y="645" width="382.2" height="12"/><line class="w" x1="630.7" y1="651.0" x2="648.3" y2="651.0"/>
+<text class="t" x="652.3" y="654">99%</text>
+<text class="t" x="254" y="672" text-anchor="end">LEAN (Overworld)</text>
+<rect class="b" x="260" y="663" width="372.3" height="12"/><line class="w" x1="629.3" y1="669.0" x2="637.9" y2="669.0"/>
+<text class="t" x="641.9" y="672">97%</text>
+<text class="t" x="254" y="690" text-anchor="end">PRETTY (Overworld)</text>
+<rect class="b" x="260" y="681" width="252.8" height="12"/><line class="w" x1="510.1" y1="687.0" x2="518.0" y2="687.0"/>
+<text class="t" x="522.0" y="690">66%</text>
+<text class="t" x="254" y="708" text-anchor="end">amethyst-nether (Nether)</text>
+<rect class="b" x="260" y="699" width="340.6" height="12"/><line class="w" x1="600.6" y1="705.0" x2="600.6" y2="705.0"/>
+<text class="t" x="604.6" y="708">89%</text>
+<text class="t" x="254" y="726" text-anchor="end">amplified-nether (Nether)</text>
+<rect class="b" x="260" y="717" width="211.7" height="12"/><line class="w" x1="471.7" y1="723.0" x2="471.7" y2="723.0"/>
+<text class="t" x="475.7" y="726">55%</text>
+<text class="t" x="254" y="744" text-anchor="end">formations-nether (Nether)</text>
+<rect class="b" x="260" y="735" width="351.8" height="12"/><line class="w" x1="611.8" y1="741.0" x2="611.8" y2="741.0"/>
+<text class="t" x="615.8" y="744">91%</text>
+<text class="t" x="254" y="762" text-anchor="end">incendium (Nether)</text>
+<rect class="b" x="260" y="753" width="155.4" height="12"/><line class="w" x1="415.4" y1="759.0" x2="415.4" y2="759.0"/>
+<text class="t" x="419.4" y="762">40%</text>
+<text class="t" x="254" y="780" text-anchor="end">mns (Nether)</text>
+<rect class="b" x="260" y="771" width="354.1" height="12"/><line class="w" x1="614.1" y1="777.0" x2="614.1" y2="777.0"/>
+<text class="t" x="618.1" y="780">92%</text>
+<text class="t" x="254" y="798" text-anchor="end">BALANCED (Nether)</text>
+<rect class="b" x="260" y="789" width="364.0" height="12"/><line class="w" x1="624.0" y1="795.0" x2="624.0" y2="795.0"/>
+<text class="t" x="628.0" y="798">95%</text>
+<text class="t" x="254" y="816" text-anchor="end">BALANCED-G (Nether)</text>
+<rect class="b" x="260" y="807" width="348.0" height="12"/><line class="w" x1="608.0" y1="813.0" x2="608.0" y2="813.0"/>
+<text class="t" x="612.0" y="816">90%</text>
+<text class="t" x="254" y="834" text-anchor="end">LEAN (Nether)</text>
+<rect class="b" x="260" y="825" width="377.8" height="12"/><line class="w" x1="637.8" y1="831.0" x2="637.8" y2="831.0"/>
+<text class="t" x="641.8" y="834">98%</text>
+<text class="t" x="254" y="852" text-anchor="end">PRETTY (Nether)</text>
+<rect class="b" x="260" y="843" width="157.1" height="12"/><line class="w" x1="417.1" y1="849.0" x2="417.1" y2="849.0"/>
+<text class="t" x="421.1" y="852">41%</text>
+<text class="t" x="254" y="870" text-anchor="end">endercon (End)</text>
+<rect class="b" x="260" y="861" width="156.1" height="12"/><line class="w" x1="416.1" y1="867.0" x2="416.1" y2="867.0"/>
+<text class="t" x="420.1" y="870">41%</text>
+<text class="t" x="254" y="888" text-anchor="end">mes (End)</text>
+<rect class="b" x="260" y="879" width="375.0" height="12"/><line class="w" x1="635.0" y1="885.0" x2="635.0" y2="885.0"/>
+<text class="t" x="639.0" y="888">97%</text>
+<text class="t" x="254" y="906" text-anchor="end">nullscape (End)</text>
+<rect class="b" x="260" y="897" width="119.3" height="12"/><line class="w" x1="379.3" y1="903.0" x2="379.3" y2="903.0"/>
+<text class="t" x="383.3" y="906">31%</text>
+<text class="t" x="254" y="924" text-anchor="end">stellarity (End)</text>
+<rect class="b" x="260" y="915" width="160.4" height="12"/><line class="w" x1="420.4" y1="921.0" x2="420.4" y2="921.0"/>
+<text class="t" x="424.4" y="924">42%</text>
+<text class="t" x="254" y="942" text-anchor="end">BALANCED (End)</text>
+<rect class="b" x="260" y="933" width="123.0" height="12"/><line class="w" x1="383.0" y1="939.0" x2="383.0" y2="939.0"/>
+<text class="t" x="387.0" y="942">32%</text>
+<text class="t" x="254" y="960" text-anchor="end">BALANCED-G (End)</text>
+<rect class="b" x="260" y="951" width="120.3" height="12"/><line class="w" x1="380.3" y1="957.0" x2="380.3" y2="957.0"/>
+<text class="t" x="384.3" y="960">31%</text>
+<text class="t" x="254" y="978" text-anchor="end">LEAN (End)</text>
+<rect class="b" x="260" y="969" width="393.9" height="12"/><line class="w" x1="653.9" y1="975.0" x2="653.9" y2="975.0"/>
+<text class="t" x="657.9" y="978">102%</text>
+<text class="t" x="254" y="996" text-anchor="end">PRETTY (End)</text>
+<rect class="b" x="260" y="987" width="119.4" height="12"/><line class="w" x1="379.4" y1="993.0" x2="379.4" y2="993.0"/>
+<text class="t" x="383.4" y="996">31%</text>
+</svg>
