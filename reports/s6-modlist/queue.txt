@@ -53,6 +53,11 @@ BALANCED minecraft:the_nether 1 1200 --keep
 BALANCED minecraft:the_end 1 2200 --keep
 PRETTY minecraft:the_nether 1 1200 --keep
 PRETTY minecraft:the_end 1 2200 --keep
+BALANCED-G minecraft:overworld 1 1000 --keep
+BALANCED-G minecraft:overworld 2 1000
+BALANCED-G minecraft:overworld 3 1000
+BALANCED-G minecraft:the_nether 1 1200 --keep
+BALANCED-G minecraft:the_end 1 2200 --keep
 dungeons-and-taverns minecraft:overworld 1 1000 --keep
 structory minecraft:overworld 1 1000 --keep
 structory-towers minecraft:overworld 1 1000 --keep
