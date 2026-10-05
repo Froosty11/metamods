@@ -2,6 +2,7 @@ config,type,dimension,run,seed,radius,status,chunks,wall_s,chunks_per_s,mean_msp
 B0,baseline,minecraft:overworld,1,20251006,1000,ok,16129,245.9,65.59,0.55,19.99,95.3,3880,2.5,75.2,https://spark.lucko.me/qRcRhmITIT,https://spark.lucko.me/9hAjma7VdM
 B0,baseline,minecraft:overworld,2,20251006,1000,ok,16129,235.1,68.6,0.47,20.0,96.6,3985,1.6,75.2,https://spark.lucko.me/keR7M2qyek,https://spark.lucko.me/v2gaH20sw2
 B0,baseline,minecraft:overworld,3,20251006,1000,ok,16129,235.1,68.6,0.52,20.0,95.6,3962,1.7,75.2,https://spark.lucko.me/3VAqfFUHGg,https://spark.lucko.me/hFnuj1WM63
+B0,baseline,minecraft:the_end,1,20251006,2200,ok,76729,230.6,332.74,0.48,20.0,95.3,3781,4.1,37.3,https://spark.lucko.me/WKn6cFutaE,https://spark.lucko.me/nq6a3cHmlB
 B0,baseline,minecraft:the_nether,1,20251006,1200,ok,22801,256.6,88.86,0.68,20.0,95.8,4072,39.1,68.2,https://spark.lucko.me/q8lhvtkfv4,https://spark.lucko.me/ZAfewTjyCq
 B0,baseline,minecraft:the_nether,2,20251006,1200,ok,22801,244.2,93.37,0.7,20.0,96.0,3984,39.3,68.3,https://spark.lucko.me/NIV100fVSJ,https://spark.lucko.me/OGym1qyBIa
 B0,baseline,minecraft:the_nether,3,20251006,1200,ok,22801,232.6,98.03,0.56,20.0,96.6,3917,42.0,66.4,https://spark.lucko.me/ZLmtsvM1p6,https://spark.lucko.me/zLg3DbZ8vI
