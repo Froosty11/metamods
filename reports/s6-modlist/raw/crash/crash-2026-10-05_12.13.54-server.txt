@@ -1,0 +1,276 @@
+---- Minecraft Crash Report ----
+// Don't be sad. I'll do better next time, I promise!
+
+Time: 2026-10-05 12:13:54
+Description: Exception in server tick loop
+
+java.lang.ExceptionInInitializerError
+	at knot//net.minecraft.server.network.ServerCommonPacketListenerImpl.wrapWithCondition$dbi000$metacraft-lib$handleCustomClickAction(ServerCommonPacketListenerImpl.java:5036)
+	at knot//net.minecraft.server.network.ServerCommonPacketListenerImpl.handleCustomClickAction(ServerCommonPacketListenerImpl.java:107)
+	at knot//net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket.handle(ServerboundCustomClickActionPacket.java:32)
+	at knot//net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket.handle(ServerboundCustomClickActionPacket.java:14)
+	at knot//net.minecraft.network.PacketProcessor$ListenerAndPacket.handle(PacketProcessor.java:55)
+	at knot//net.minecraft.network.PacketProcessor.processQueuedPackets(PacketProcessor.java:38)
+	at knot//net.minecraft.server.MinecraftServer.processPacketsAndTick(MinecraftServer.java:1011)
+	at knot//net.minecraft.server.MinecraftServer.runServer(MinecraftServer.java:752)
+	at knot//net.minecraft.server.MinecraftServer.lambda$spin$0(MinecraftServer.java:310)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: java.lang.IllegalStateException: Registry is already frozen (trying to add key ResourceKey[minecraft:root / metacraft:message_handlers])
+	at knot//net.minecraft.core.MappedRegistry.validateWrite(MappedRegistry.java:90)
+	at knot//net.minecraft.core.MappedRegistry.register(MappedRegistry.java:96)
+	at knot//net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder.buildAndRegister(FabricRegistryBuilder.java:149)
+	at knot//nu.metacraft.lib.custom_message.CustomMessageRegistry.<clinit>(CustomMessageRegistry.java:19)
+	... 10 more
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- System Details --
+Details:
+	Minecraft Version: 26.3
+	Minecraft Version ID: 26.3
+	Operating System: Linux (amd64) version 6.18.44-fc-v70
+	Java Version: 25.0.4.1, Eclipse Adoptium
+	Java VM Version: OpenJDK 64-Bit Server VM (mixed mode, sharing), Eclipse Adoptium
+	Memory: 5158993920 bytes (4920 MiB) / 8589934592 bytes (8192 MiB) up to 8589934592 bytes (8192 MiB)
+	Memory (heap): init: 8192MiB, used: 3264MiB, committed: 8192MiB, max: 8192MiB
+	Memory (non-heap): init: 007MiB, used: 319MiB, committed: 322MiB, max: 000MiB
+	CPUs: 4
+	Processor Vendor: GenuineIntel
+	Processor Name: Intel(R) Xeon(R) Processor @ 2.10GHz
+	Identifier: Intel64 Family 6 Model 207 Stepping 2
+	Microarchitecture: unknown
+	Frequency (GHz): 2.10
+	Number of physical packages: 1
+	Number of physical CPUs: 4
+	Number of logical CPUs: 4
+	Graphics card #0 name: unknown
+	Graphics card #0 vendor: unknown
+	Graphics card #0 VRAM (MiB): 0.00
+	Graphics card #0 deviceId: unknown
+	Graphics card #0 versionInfo: unknown
+	Virtual memory max (MiB): 8047.35
+	Virtual memory used (MiB): 10473.51
+	Swap memory total (MiB): 0.00
+	Swap memory used (MiB): 0.00
+	Space in storage for jna.tmpdir (MiB): <path not set>
+	Space in storage for org.lwjgl.system.SharedLibraryExtractPath (MiB): <path not set>
+	Space in storage for io.netty.native.workdir (MiB): <path not set>
+	Space in storage for java.io.tmpdir (MiB): available: 22286.79, total: 258019.61
+	Space in storage for workdir (MiB): available: 22286.79, total: 258019.61
+	Operating System Version: GNU/Linux Ubuntu 24.04.4 LTS (Noble Numbat) build 6.18.44-fc-v70
+	Process Elevated: true
+	Process Loads: Uptime: 351s, user: 170s (48.42%), kernel: 14s (4.09%), total: 184s (52.51%)
+	Process Virtual Size (MiB): 12261.98
+	Process Resident Size (MiB): 6485.96
+	JVM Flags: 2 total; -Xms8G -Xmx8G
+	Debug Flags: 0 total; 
+	Fabric Mods: 
+		alternate-current: Alternate Current 1.9.0
+		balm: Balm 26.3.0.3
+			kuma_api: KumaAPI 26.3.0.1
+		booklet: Booklet 0.4.0+26.3
+		c2me: Concurrent Chunk Management Engine 0.4.2-alpha.0.89+26.3
+			c2me-base: Concurrent Chunk Management Engine (Base) 0.4.2-alpha.0.89+26.3
+			c2me-fixes-chunkio-threading-issues: Concurrent Chunk Management Engine (Fixes/Chunk IO/Threading Issues) 0.4.2-alpha.0.89+26.3
+			c2me-fixes-general-threading-issues: Concurrent Chunk Management Engine (Fixes/General/Threading Issues) 0.4.2-alpha.0.89+26.3
+			c2me-fixes-worldgen-threading-issues: Concurrent Chunk Management Engine (Fixes/WorldGen/Threading Issues) 0.4.2-alpha.0.89+26.3
+			c2me-fixes-worldgen-vanilla-bugs: Concurrent Chunk Management Engine (Fixes/WorldGen/Vanilla Bugs) 0.4.2-alpha.0.89+26.3
+			c2me-notickvd: Concurrent Chunk Management Engine (No Tick View Distance) 0.4.2-alpha.0.89+26.3
+			c2me-opts-allocs: Concurrent Chunk Management Engine (Optimizations/Memory Allocations) 0.4.2-alpha.0.89+26.3
+			c2me-opts-chunkio: Concurrent Chunk Management Engine (Optimizations/Chunk IO) 0.4.2-alpha.0.89+26.3
+			c2me-opts-math: Concurrent Chunk Management Engine (Optimizations/Math) 0.4.2-alpha.0.89+26.3
+			c2me-opts-natives-math: Concurrent Chunk Management Engine (Optimizations/Natives Math) 0.4.2-alpha.0.89+26.3
+			c2me-opts-scheduling: Concurrent Chunk Management Engine (Optimizations/Scheduling) 0.4.2-alpha.0.89+26.3
+			c2me-opts-worldgen-general: Concurrent Chunk Management Engine (Optimizations/General WorldGen) 0.4.2-alpha.0.89+26.3
+			c2me-opts-worldgen-vanilla: Concurrent Chunk Management Engine (Optimizations/Vanilla WorldGen) 0.4.2-alpha.0.89+26.3
+			c2me-rewrites-chunk-serializer: Concurrent Chunk Management Engine (Rewrites/Chunk Serializer) 0.4.2-alpha.0.89+26.3
+			c2me-rewrites-chunk-system: Concurrent Chunk Management Engine (Rewrites/Chunk System) 0.4.2-alpha.0.89+26.3
+			c2me-rewrites-chunkio: Concurrent Chunk Management Engine (Rewrites/Chunk IO) 0.4.2-alpha.0.89+26.3
+			c2me-server-utils: Concurrent Chunk Management Engine (Server Utils) 0.4.2-alpha.0.89+26.3
+			c2me-threading-lighting: Concurrent Chunk Management Engine (Threading/Lighting) 0.4.2-alpha.0.89+26.3
+			com_electronwill_night-config_core: core 3.6.5
+			com_electronwill_night-config_toml: toml 3.6.5
+			com_github_ben-manes_caffeine_caffeine: caffeine 3.2.1
+			com_ibm_async_asyncutil: asyncutil 0.1.0
+			io_reactivex_rxjava3_rxjava: rxjava 3.1.12
+			net_objecthunter_exp4j: exp4j 0.4.8
+			org_jctools_jctools-core: jctools-core 4.0.5
+			org_reactivestreams_reactive-streams: reactive-streams 1.0.4
+		chunky: Chunky 1.5.3
+		danse: danse - player gestures 2.6.0-metacraft.2+26.3
+			dialogutils: DialogUtils 1.8.4+26.1
+			map-canvas-api: Map Canvas API 0.9.1+26.2
+			placeholder-api: Placeholder API 3.2.0+26.3
+		distanthorizons: Distant Horizons 3.3.4
+			fabric-api-lookup-api-v1: Fabric API Lookup API (v1) 2.0.24+3434d6d902
+			fabric-biome-api-v1: Fabric Biome API (v1) 20.0.9+74ed1ea502
+			fabric-block-api-v1: Fabric Block API (v1) 3.1.0+0ae6f91102
+			fabric-block-getter-api-v2: Fabric BlockGetter API (v2) 2.0.9+3434d6d902
+			fabric-crash-report-info-v1: Fabric Crash Report Info (v1) 1.0.7+fcdff87f02
+			fabric-creative-tab-api-v1: Fabric Creative Tab API (v1) 5.0.21+fcdff87f02
+			fabric-data-attachment-api-v1: Fabric Data Attachment API (v1) 2.2.30+3434d6d902
+			fabric-debug-api-v1: Fabric Debug API (v1) 1.0.4+3434d6d902
+			fabric-dimensions-v1: Fabric Dimensions API (v1) 5.1.19+47f74c9802
+			fabric-entity-events-v1: Fabric Entity Events (v1) 6.0.4+3434d6d902
+			fabric-events-interaction-v0: Fabric Events Interaction (v0) 5.3.6+3434d6d902
+			fabric-game-rule-api-v1: Fabric Game Rule API (v1) 4.0.10+3434d6d902
+			fabric-message-api-v1: Fabric Message API (v1) 7.0.10+3434d6d902
+			fabric-object-builder-api-v1: Fabric Object Builder API (v1) 24.1.9+3434d6d902
+			fabric-particles-v1: Fabric Particles (v1) 5.0.24+3434d6d902
+			fabric-recipe-api-v1: Fabric Recipe API (v1) 10.0.8+fcdff87f02
+			fabric-registry-sync-v0: Fabric Registry Sync (v0) 8.0.1+fcdff87f02
+			fabric-rendering-fluids-v1: Fabric Rendering Fluids (v1) 6.0.6+3434d6d902
+			fabric-resource-conditions-api-v1: Fabric Resource Conditions API (v1) 6.1.5+3434d6d902
+			fabric-resource-loader-v0: Fabric Resource Loader (v0) 3.3.26+4fc5413f02
+			fabric-serialization-api-v1: Fabric Serialization API (v1) 2.0.7+74ed1ea502
+			fabric-tag-api-v1: Fabric Tag API (v1) 2.1.10+fcdff87f02
+			fabric-transfer-api-v1: Fabric Transfer API (v1) 8.0.25+fcdff87f02
+			fabric-transitive-access-wideners-v1: Fabric Transitive Access Wideners (v1) 8.1.16+52268a0e02
+		fabric-api: Fabric API 0.161.0+26.3
+			fabric-advancement-api-v1: Fabric Advancement API (v1) 1.0.0+38c7a2d55d
+			fabric-content-registries-v0: Fabric Content Registries (v0) 15.0.4+74ed1ea55d
+			fabric-convention-tags-v2: Fabric Convention Tags (v2) 4.10.3+6b5b47fd5d
+			fabric-data-generation-api-v1: Fabric Data Generation API (v1) 27.2.4+427eab975d
+			fabric-item-api-v1: Fabric Item API (v1) 14.7.0+cf6bc2db5d
+			fabric-loot-api-v3: Fabric Loot API (v3) 4.0.8+4068fd645d
+			fabric-menu-api-v1: Fabric Menu API (v1) 2.0.27+ed66f0a35d
+		fabric-language-kotlin: Fabric Language Kotlin 1.14.1+kotlin.2.4.20
+			org_jetbrains_kotlin_kotlin-reflect: kotlin-reflect 2.4.20
+			org_jetbrains_kotlin_kotlin-stdlib: kotlin-stdlib 2.4.20
+			org_jetbrains_kotlin_kotlin-stdlib-jdk7: kotlin-stdlib-jdk7 2.4.20
+			org_jetbrains_kotlin_kotlin-stdlib-jdk8: kotlin-stdlib-jdk8 2.4.20
+			org_jetbrains_kotlinx_atomicfu-jvm: atomicfu-jvm 0.33.0
+			org_jetbrains_kotlinx_kotlinx-coroutines-core-jvm: kotlinx-coroutines-core-jvm 1.11.0
+			org_jetbrains_kotlinx_kotlinx-coroutines-jdk8: kotlinx-coroutines-jdk8 1.11.0
+			org_jetbrains_kotlinx_kotlinx-datetime-jvm: kotlinx-datetime-jvm 0.8.0
+			org_jetbrains_kotlinx_kotlinx-io-bytestring-jvm: kotlinx-io-bytestring-jvm 0.9.1
+			org_jetbrains_kotlinx_kotlinx-io-core-jvm: kotlinx-io-core-jvm 0.9.1
+			org_jetbrains_kotlinx_kotlinx-serialization-cbor-jvm: kotlinx-serialization-cbor-jvm 1.11.0
+			org_jetbrains_kotlinx_kotlinx-serialization-core-jvm: kotlinx-serialization-core-jvm 1.11.0
+			org_jetbrains_kotlinx_kotlinx-serialization-json-jvm: kotlinx-serialization-json-jvm 1.11.0
+		fabricloader: Fabric Loader 0.19.5
+			mixinextras: MixinExtras 0.5.5
+		fabrictailor: Fabric Tailor ${version}
+			config2brigadier: Config to Brigadier 2.5.0
+		ferritecore: FerriteCore 9.0.0
+		filament: filament 1.8.4+26.3
+			bil: blockbench-import-library 2.2.0+26.3-rc-3
+			common-protection-api: Common Protection API 2.0.0
+			sgui: sgui 2.2.0+26.3
+		forgivingvoid: Forgiving Void 26.3.0.2
+			shogi_api: Shogi API 26.3.0.1
+		java: OpenJDK 64-Bit Server VM 25
+		krypton: Krypton 0.3.2
+			com_velocitypowered_velocity-native: velocity-native 3.4.0-SNAPSHOT
+		ledger: Ledger 1.3.25
+			com_fasterxml_jackson_core_jackson-annotations: jackson-annotations 2.12.2
+			com_fasterxml_jackson_core_jackson-core: jackson-core 2.12.2
+			com_fasterxml_jackson_core_jackson-databind: jackson-databind 2.12.2
+			com_fasterxml_jackson_datatype_jackson-datatype-jsr310: jackson-datatype-jsr310 2.12.2
+			com_fasterxml_jackson_module_jackson-module-kotlin: jackson-module-kotlin 2.12.2
+			com_moandjiezana_toml_toml4j: toml4j 0.7.2
+			com_uchuhimo_konf-core: konf-core 1.1.2
+			com_uchuhimo_konf-toml: konf-toml 1.1.2
+			fabric-permissions-api-v0: fabric-permissions-api 0.7.0
+			org_apache_commons_commons-text: commons-text 1.9
+			org_javassist_javassist: javassist 3.26.0-GA
+			org_jetbrains_exposed_exposed-core: exposed-core 1.0.0-rc-2
+			org_jetbrains_exposed_exposed-dao: exposed-dao 1.0.0-rc-2
+			org_jetbrains_exposed_exposed-java-time: exposed-java-time 1.0.0-rc-2
+			org_jetbrains_exposed_exposed-jdbc: exposed-jdbc 1.0.0-rc-2
+			org_reflections_reflections: reflections 0.9.12
+			server_translations_api: Server Translations API 3.2.0+26.3
+		lithium: Lithium 0.26.2+mc26.3
+		luckperms: LuckPerms 5.5.85
+		meowantixray: Meow Anti-Xray 1.7.0
+		metacraft: METAcraft 1.0.0
+			metacraft-booklet: METAcraft Booklet 0.1.0
+			metacraft-bundles: METAcraft-Bundles 1.0.0
+			metacraft-core: METAcraft-Core 1.0.0
+				org_apache_commons_commons-math3: commons-math3 3.6.1
+			metacraft-cutscenes: METAcraft-Cutscenes 1.0.0
+				org_objenesis_objenesis: objenesis 3.6
+			metacraft-lib: METAcraft-Lib 1.0.0
+				net_bytebuddy_byte-buddy: byte-buddy 1.18.13
+				org_pcollections_pcollections: pcollections 5.0.0
+			metacraft-minigame-util: METAcraft Minigame Util 1.0.0
+			metacraft-moderation: METAcraft-Moderation 1.0.0
+			metacraft-pause: METAcraft-Pause 1.0.0
+			metacraft-player-specific-scoreboards: METAcraft player-specific scoreboards 1.0.0
+			metacraft-resource-packs: METAcraft-Resource-Packs 1.0.0
+				mixinsquared: MixinSquared 0.3.7-beta.3
+			metacraft-zones: METAcraft-Zones 1.0.0
+			moredyes: More Dyes 0.1.0
+			ovvar: Ovvar 0.1.0
+				org_mariadb_jdbc_mariadb-java-client: mariadb-java-client 3.5.10
+				org_postgresql_postgresql: postgresql 42.7.13
+			point-system: point-system 1.0.0
+				org_xerial_sqlite-jdbc: sqlite-jdbc 3.51.1.0
+			rivals-paint: Rivals Paint 0.1.0
+		minecraft: Minecraft 26.3
+		nochatreports: No Chat Reports 26.3-v2.21.0
+		polydecorations: PolyDecorations 0.13.1+26.3-rc-1.metacraft.1
+			factorytools: FactoryTools 0.12.1+26.3
+			resource-locator-api: resource locator api 0.8.0-patbox+26.2
+		polymer-bundled: Polymer 0.18.2+26.3
+			polymer-autohost: Polymer (Auto Host) 0.18.2+26.3
+			polymer-blocks: Polymer (Textured Blocks) 0.18.2+26.3
+			polymer-common: Polymer (Common) 0.18.2+26.3
+			polymer-core: Polymer (Core) 0.18.2+26.3
+				polymer-networking: Polymer (Networking) 0.18.2+26.3
+				polymer-registry-sync-manipulator: Polymer (Registry Sync Manipulator) 0.18.2+26.3
+			polymer-resource-pack: Polymer (Resource Pack) 0.18.2+26.3
+			polymer-resource-pack-extras: Polymer (Resource Pack Extras) 0.18.2+26.3
+			polymer-sound-patcher: Polymer (Sound Patcher) 0.18.2+26.3
+			polymer-virtual-entity: Polymer (Virtual Entity) 0.18.2+26.3
+		scalablelux: ScalableLux 0.3.0-alpha.0.6+26.3
+		spark: spark 1.10.187
+		squaremap: squaremap 1.4.0
+			adventure-platform-fabric: adventure-platform-fabric 7.2.0
+				net_kyori_adventure-api: adventure-api 5.2.0
+				net_kyori_adventure-key: adventure-key 5.2.0
+				net_kyori_adventure-platform-mod-shared: adventure-platform-mod-shared 7.2.0
+				net_kyori_adventure-text-logger-slf4j: adventure-text-logger-slf4j 5.2.0
+				net_kyori_adventure-text-minimessage: adventure-text-minimessage 5.2.0
+				net_kyori_adventure-text-serializer-ansi: adventure-text-serializer-ansi 5.2.0
+				net_kyori_adventure-text-serializer-gson: adventure-text-serializer-gson 5.2.0
+				net_kyori_adventure-text-serializer-json: adventure-text-serializer-json 5.2.0
+				net_kyori_adventure-text-serializer-plain: adventure-text-serializer-plain 5.2.0
+				net_kyori_ansi: ansi 1.1.1
+				net_kyori_option: option 1.1.0
+			cloud: Cloud 2.1.0
+				io_leangen_geantyref_geantyref: geantyref 1.3.16
+				org_incendo_cloud-brigadier: cloud-brigadier 2.0.1
+				org_incendo_cloud-core: cloud-core 2.1.0
+				org_incendo_cloud-minecraft-modded-common: cloud-minecraft-modded-common 2.1.0
+				org_incendo_cloud-services: cloud-services 2.1.0
+			org_incendo_cloud-minecraft-extras: cloud-minecraft-extras 2.0.1
+			org_incendo_cloud-processors-common: cloud-processors-common 1.0.0-rc.1
+			org_incendo_cloud-processors-confirmation: cloud-processors-confirmation 1.0.0-rc.1
+		vanish: Vanish 1.6.16+26.3
+			com_typesafe_config: config 1.4.1
+			org_spongepowered_configurate-core: configurate-core 4.1.2
+			org_spongepowered_configurate-hocon: configurate-hocon 4.1.2
+			player-data-api: Player Data API 0.11.0+26.2
+		voicechat: Simple Voice Chat 2.6.24+26.3
+			fabric-api-base: Fabric API Base 2.0.6+fcdff87f02
+			fabric-command-api-v2: Fabric Command API (v2) 3.1.2+fcdff87f02
+			fabric-lifecycle-events-v1: Fabric Lifecycle Events (v1) 4.1.9+ffef5f6702
+			fabric-networking-api-v1: Fabric Networking API (v1) 6.3.8+fcdff87f02
+			fabric-permission-api-v1: Fabric Permission API (v1) 1.0.8+fcdff87f02
+			fabric-resource-loader-v1: Fabric Resource Loader (v1) 3.0.4+fcdff87f02
+			voicechat_api: Simple Voice Chat API 2.6.24
+		worldedit: WorldEdit 7.4.6-beta-02+2c90a77a1
+			worldeditcui_protocol: WorldEditCUI Protocol (Fabric) 4.0.3
+	Server Running: true
+	Player Count: 1 / 20; [ServerPlayer['Bot1'/126, l='ServerLevel[world]', x=-137.50, y=71.00, z=-82.50]]
+	Active Data Packs: vanilla, booklet, config2brigadier, danse, fabric-convention-tags-v2, fabrictailor, filament, ledger, metacraft-core, metacraft-lib, moredyes, ovvar, polydecorations, rivals-paint, server_translations_api, vanish, metacraft-booklet:polydecorations_s6, metacraft-booklet:decorating, metacraft-booklet:ovvar
+	Available Data Packs: booklet, config2brigadier, danse, fabric-convention-tags-v2, fabrictailor, filament, ledger, metacraft-booklet:decorating, metacraft-booklet:ovvar, metacraft-booklet:polydecorations_s6, metacraft-core, metacraft-lib, minecart_improvements, moredyes, ovvar, polydecorations, redstone_experiments, rivals-paint, server_translations_api, trade_rebalance, vanilla, vanish
+	Enabled Feature Flags: minecraft:vanilla
+	World Generation: Stable
+	World Seed: 6262026
+	Suppressed Exceptions: ~~NONE~~
+	Is Modded: Definitely; Server brand changed to 'fabric'
+	Type: Dedicated Server

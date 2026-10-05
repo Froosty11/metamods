@@ -1,0 +1,12 @@
+diff --git a/mods/metacraft-lib/src/main/java/nu/metacraft/lib/METAcraftLib.java b/mods/metacraft-lib/src/main/java/nu/metacraft/lib/METAcraftLib.java
+index 3873505b..af11b095 100644
+--- a/mods/metacraft-lib/src/main/java/nu/metacraft/lib/METAcraftLib.java
++++ b/mods/metacraft-lib/src/main/java/nu/metacraft/lib/METAcraftLib.java
+@@ -16,6 +16,7 @@ public class METAcraftLib implements ModInitializer {
+ 	@Override
+ 	public void onInitialize() {
+ 		METAcraftTickets.init();
++		nu.metacraft.lib.custom_message.CustomMessageRegistry.init();
+ 		RegularTimeGetterRegistry.init();
+ 		METAcraftConditions.init();
+ 		Commands.init();

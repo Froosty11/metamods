@@ -20,6 +20,7 @@ view-distance=10
 simulation-distance=10
 enable-command-block=true
 max-tick-time=-1
+white-list=false
 P
 for l in "$@"; do echo "$l" >> "$d/server.properties"; done
 for g in $(modset "$set_"); do cp $JARS/$g "$d/mods/"; done
@@ -27,3 +28,5 @@ for g in $(modset "$set_"); do cp $JARS/$g "$d/mods/"; done
 if ls "$d/mods" | grep -q polydecorations && [ -z "${NO_PD_CONFIG:-}" ]; then
   cp $ROOT/polydecorations.json "$d/config/polydecorations.json"; fi
 echo "$d port=$port mods=$(ls "$d/mods" | wc -l)"
+# Polymer auto-host on, so vanilla clients receive the generated pack as they would in production
+if ls "$d/mods" | grep -q polymer; then mkdir -p "$d/config/polymer"; cp $ROOT/autohost.json "$d/config/polymer/auto-host.json"; fi
