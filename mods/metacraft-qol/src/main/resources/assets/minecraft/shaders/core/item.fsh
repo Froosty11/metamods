@@ -1,6 +1,6 @@
 // Vanilla 26.3 item.fsh with one addition (metacraft-qol, the void anchor): where item.vsh flagged a
-// void-anchor rift, the painted sprite is replaced by a view into space — stars and nebula at depth,
-// a crackling edge — using the sprite's alpha as the rift's shape. Every other item takes the vanilla path. Re-diff against vanilla on
+// void-anchor rift, the painted sprite is replaced by a crack in space — the End's void through the
+// split, glowing edges — using the sprite's alpha as the crack's shape. Every other item takes the vanilla path. Re-diff against vanilla on
 // every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
@@ -28,7 +28,6 @@ layout(location = 4) in vec4 overlayColor;
 layout(location = 5) in vec2 texCoord0;
 layout(location = 7) in vec2 riftUv;
 layout(location = 8) in float riftFlag;
-layout(location = 9) in vec3 riftPos;
 #ifdef GLINT
 layout(location = 6) in vec2 texCoordGlint;
 #endif
@@ -85,17 +84,38 @@ mat2 riftRot(float a) {
     return mat2(c, -s, s, c);
 }
 
-// One layer of stars: a star in some of the cells of a grid, twinkling.
-vec3 riftStars(vec2 p, float density, float t, float seed) {
-    vec2 g = p * density;
+// The End portal's colours, one per layer, as vanilla's rendertype_end_portal has them.
+const vec3 RIFT_LAYER_COLORS[16] = vec3[](
+    vec3(0.022087, 0.098399, 0.110818), vec3(0.011892, 0.095924, 0.089485), vec3(0.027636, 0.101689, 0.100326),
+    vec3(0.046564, 0.109883, 0.114838), vec3(0.064901, 0.117696, 0.097189), vec3(0.063761, 0.086895, 0.123646),
+    vec3(0.084817, 0.111994, 0.166380), vec3(0.097489, 0.154120, 0.091064), vec3(0.106152, 0.131144, 0.195191),
+    vec3(0.097721, 0.110188, 0.187229), vec3(0.133516, 0.138278, 0.148582), vec3(0.070006, 0.243332, 0.235792),
+    vec3(0.196766, 0.142899, 0.214696), vec3(0.047281, 0.315338, 0.321970), vec3(0.204675, 0.390010, 0.302066),
+    vec3(0.080955, 0.314821, 0.661491)
+);
+
+// Sparse specks, as the end portal texture's: one in some cells of a grid.
+float riftSpecks(vec2 p, float seed) {
+    vec2 g = p * 12.0;
     vec2 cell = floor(g);
     float h = riftHash(cell + seed);
-    vec2 at = vec2(riftHash(cell + seed + 3.1), riftHash(cell + seed + 7.7)) * 0.8 + 0.1;
-    float d = length(fract(g) - at);
-    float twinkle = 0.6 + 0.4 * sin(t * (2.0 + h * 4.0) + h * 30.0);
-    float star = smoothstep(0.13, 0.0, d) * step(0.68, h) * twinkle;
-    vec3 tint = mix(vec3(0.80, 0.62, 1.00), vec3(0.60, 1.00, 0.95), riftHash(cell + seed + 11.0));
-    return tint * star * 1.7;
+    vec2 at = vec2(riftHash(cell + seed + 3.1), riftHash(cell + seed + 7.7)) * 0.7 + 0.15;
+    return smoothstep(0.16, 0.02, length(fract(g) - at)) * step(0.80, h);
+}
+
+// The void behind the crack, the way the End portal and gateway draw theirs: layers of specks laid
+// in screen space, each turned, scaled and drifting its own way, so the void stays put on the screen
+// while the crack moves over it and reads as endlessly deep.
+vec3 riftVoid() {
+    vec2 screen = gl_FragCoord.xy / ScreenSize.y;
+    vec3 color = RIFT_LAYER_COLORS[0] * 0.6;
+    for (int i = 0; i < 15; i++) {
+        float layer = float(i + 1);
+        vec2 p = riftRot(radians((layer * layer * 4321.0 + layer * 9.0) * 2.0)) * (screen * (4.5 - layer / 4.0) * 0.5)
+                + vec2(17.0 / layer, (2.0 + layer / 1.5) * GameTime * 1.5);
+        color += riftSpecks(p, layer * 13.0) * RIFT_LAYER_COLORS[i] * 2.4;
+    }
+    return color;
 }
 
 // Where on the sprite this fragment is, 0..1 along the sprite's own axes. riftUv numbers the quad's
@@ -113,48 +133,21 @@ vec2 riftLocal() {
     return (texCoord0 - lo) / max(hi - lo, vec2(1e-9));
 }
 
-// The rift: a torn lens (the sprite's alpha) looking into space. Its stars and nebula sit at depths
-// below the surface and shift with the angle you look from; its edge crackles magenta and teal.
+// The rift: a crack in space (the sprite's alpha). Through the split, the End's void; along its
+// edges and hairline branches, white-hot light flickering magenta and teal; round it, a glow.
 // GameTime counts days, so * 1200 is seconds.
 vec4 riftColor(vec4 sprite) {
     float t = GameTime * 1200.0;
     vec2 local = riftLocal();
-
-    // the surface's own axes in view space, and how far one sprite-width is
-    vec3 dPx = dFdx(riftPos), dPy = dFdy(riftPos);
-    mat2 dL = mat2(dFdx(local), dFdy(local));
-    vec3 tu = vec3(1.0, 0.0, 0.0), tv = vec3(0.0, 0.0, 1.0);
-    if (abs(determinant(dL)) > 1e-12) {
-        mat2 inv = inverse(dL);
-        tu = dPx * inv[0][0] + dPy * inv[0][1];
-        tv = dPx * inv[1][0] + dPy * inv[1][1];
-    }
-    float width = max(length(tu), 1e-4);
-    vec3 n = normalize(cross(tu, tv));
-    vec3 toEye = normalize(-riftPos);
-    vec3 eye = vec3(dot(toEye, tu / width), dot(toEye, normalize(tv)), max(abs(dot(toEye, n)), 0.2));
-    vec2 depth = eye.xy / eye.z / width;   // sprite-widths of shift per block of depth
-
-    vec2 c = local - 0.5;
-    vec3 space = vec3(0.012, 0.0, 0.03);
-    vec2 nb = riftRot(t * 0.02) * (c - depth * 6.0);
-    float cloud = riftFbm(nb * 3.0 + vec2(t * 0.03, -t * 0.02));
-    float hue = riftFbm(nb * 6.0 - vec2(t * 0.05, t * 0.04) + 5.0);
-    space += mix(vec3(0.34, 0.06, 0.50), vec3(0.05, 0.42, 0.42), hue) * smoothstep(0.30, 0.85, cloud);
-    space += riftStars(riftRot(t * 0.015) * (c - depth * 4.0), 9.0, t, 1.0) * 0.55;
-    space += riftStars(riftRot(-t * 0.02) * (c - depth * 2.0), 6.0, t, 7.0) * 0.8;
-    space += riftStars(riftRot(t * 0.03) * (c - depth * 0.8), 4.0, t, 13.0);
-
     float a = sprite.a;
-    float inside = smoothstep(0.80, 0.97, a);
-    float crackle = riftFbm(local * 9.0 + vec2(t * 0.9, -t * 0.7));
-    float band = exp(-pow((a - 0.70) / 0.18, 2.0));
-    float rim = band * (0.6 + 1.0 * crackle);
-    vec3 rimColor = mix(vec3(0.95, 0.35, 1.0), vec3(0.35, 1.0, 0.9), smoothstep(0.35, 0.75, riftFbm(local * 4.0 - t * 0.4)));
-    float halo = (1.0 - inside) * smoothstep(0.0, 0.45, a) * (1.0 - band);
-
-    vec3 color = space * inside + rimColor * (rim * 1.7 + halo * 0.8);
-    float alpha = clamp(max(inside, max(rim, halo * 0.85)), 0.0, 1.0);
+    float inside = smoothstep(0.90, 0.99, a);
+    float edge = exp(-pow((a - 0.76) / 0.16, 2.0));
+    float flicker = 0.7 + 0.6 * riftFbm(local * 14.0 + vec2(t * 1.6, -t * 1.1));
+    vec3 hot = mix(vec3(1.0, 0.28, 0.95), vec3(0.25, 1.0, 0.85), smoothstep(0.42, 0.68, riftFbm(local * 5.0 - t * 0.5)));
+    vec3 line = mix(hot, vec3(1.0, 0.92, 1.0), 0.35 * smoothstep(0.82, 0.92, a));
+    float halo = (1.0 - inside) * smoothstep(0.0, 0.45, a) * (1.0 - edge);
+    vec3 color = riftVoid() * inside + line * edge * flicker * 1.5 + hot * halo * 1.3;
+    float alpha = clamp(max(inside, max(edge * flicker, halo)), 0.0, 1.0);
     return vec4(color, alpha);
 }
 

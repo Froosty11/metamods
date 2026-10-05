@@ -53,11 +53,13 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 
 				BufferedImage a = read(first), b = read(second);
 				int box = (300 * 300);
-				int purple = count(a, (r, g, bl) -> bl > g + 40 && r > g + 20);
+				// The rift is a thin crack, so count every pixel of it: its magenta, its teal, and the
+				// near-white of its hottest lines (none of which the grass or sky have).
+				int purple = count(a, (r, g, bl) -> (bl > g + 40 && r > g + 20) || (r > 200 && bl > 200 && g < r - 10));
 				int teal = count(a, (r, g, bl) -> g > r + 40 && bl > r + 40);
 				int moved = changed(a, b, 24);
 				System.out.println("[qol-clienttest] purple=" + purple + " teal=" + teal + " moved=" + moved + " of " + box);
-				if (purple < box / 50) throw new AssertionError("no rift on screen: " + purple + " purple pixels in the centre");
+				if (purple < box / 90) throw new AssertionError("no rift on screen: " + purple + " magenta or white-hot pixels in the centre");
 				if (teal < box / 300) throw new AssertionError("the rift shader did not run: " + teal + " teal pixels in the centre");
 				if (moved < box / 200) throw new AssertionError("the rift does not move: " + moved + " pixels changed between frames");
 

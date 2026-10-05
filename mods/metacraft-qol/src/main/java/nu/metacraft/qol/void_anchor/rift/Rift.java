@@ -14,18 +14,28 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
- * A flat portal lying in the air: one item display showing the rift model, which grows open and
- * shrinks shut. What it looks like comes from the pack (the rift sprite and the item shader).
+ * A crack in space lying in the air: one item display showing the rift model. It opens the way a
+ * crack does, first running out along its length as a thin line, then prying open; it shuts by
+ * shrinking away. Each one lies at its own angle. What it looks like comes from the pack (the
+ * rift sprite and the item shader).
  */
 public final class Rift extends ElementHolder {
 
-	public static final int OPEN_TICKS = 8;
+	/** The crack runs out along its length... */
+	public static final int RUN_TICKS = 5;
+	/** ...then pries open. */
+	public static final int PRY_TICKS = 6;
 	public static final int CLOSE_TICKS = 6;
 
 	private static final float CLOSED = 0.01f;
+	private static final float THIN = 0.08f;
 
 	private final ItemDisplayElement display;
 	private final float size;
@@ -41,6 +51,7 @@ public final class Rift extends ElementHolder {
 		display.setItemDisplayContext(ItemDisplayContext.NONE);
 		display.setBrightness(new Brightness(15, 15));
 		display.setScale(new Vector3f(CLOSED, 1f, CLOSED));
+		display.setLeftRotation(new Quaternionf().rotateY(ThreadLocalRandom.current().nextFloat() * Mth.TWO_PI));
 		display.setViewRange(4f);
 		addElement(display);
 	}
@@ -63,7 +74,7 @@ public final class Rift extends ElementHolder {
 			return;
 		}
 		closingSince = age;
-		scaleTo(CLOSED, CLOSE_TICKS);
+		scaleTo(CLOSED, CLOSED, CLOSE_TICKS);
 	}
 
 	public boolean isClosing() {
@@ -74,8 +85,11 @@ public final class Rift extends ElementHolder {
 	protected void onTick() {
 		age++;
 		if (age == 1) {
-			// The spawn packet carried the closed scale; grow from it.
-			scaleTo(size, OPEN_TICKS);
+			// The spawn packet carried the closed scale: run out from it as a thin line...
+			scaleTo(size, size * THIN, RUN_TICKS);
+		} else if (age == 1 + RUN_TICKS && closingSince < 0) {
+			// ...then pry open.
+			scaleTo(size, size, PRY_TICKS);
 		}
 		if (age == autoCloseAt) {
 			close();
@@ -95,10 +109,11 @@ public final class Rift extends ElementHolder {
 		}
 	}
 
-	private void scaleTo(float scale, int ticks) {
+	/** Scales the crack to `length` along it and `width` across it, over `ticks`. */
+	private void scaleTo(float length, float width, int ticks) {
 		display.setInterpolationDuration(ticks);
 		display.setStartInterpolation(0);
-		display.setScale(new Vector3f(scale, 1f, scale));
+		display.setScale(new Vector3f(length, 1f, width));
 	}
 
 }
