@@ -162,8 +162,14 @@ public final class RiftTracker {
 		}
 	}
 
-	/** Holds the fall to a slow drift toward the rift's centre; syncVelocity sends the motion to the client. */
+	/**
+	 * Holds the fall to a slow drift toward the rift's centre; syncVelocity sends the motion to the
+	 * client. A glider stops gliding, as on hitting water, or the elytra would fight the hang.
+	 */
 	private static void ease(ServerPlayer player, Vec3 centre, double sink) {
+		if (player.isFallFlying()) {
+			player.stopFallFlying();
+		}
 		double dx = Mth.clamp((centre.x - player.getX()) * 0.25, -0.5, 0.5);
 		double dz = Mth.clamp((centre.z - player.getZ()) * 0.25, -0.5, 0.5);
 		player.setDeltaMovement(dx, -sink, dz);

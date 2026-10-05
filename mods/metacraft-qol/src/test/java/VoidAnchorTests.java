@@ -1,6 +1,7 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
@@ -242,6 +243,18 @@ public class VoidAnchorTests {
 			server.getCommands().performPrefixedCommand(source, "voidanchor bind bound %d %d %d".formatted(pos.getX(), pos.getY(), pos.getZ()));
 			ctx.assertTrue(GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)), "not bound: " + AnchorBinding.get(player));
 			ctx.succeed();
+		});
+		register("glider_stops_gliding", ctx -> {
+			var pos = endAnchor(ctx, 480, 2);
+			var player = fallingPlayer(ctx, pos, "glider");
+			player.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.ELYTRA));
+			player.startFallFlying();
+			ctx.assertTrue(player.isFallFlying(), "the mock player never started gliding");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened for a glider");
+				ctx.assertTrue(!player.isFallFlying(), "still gliding in the rift");
+				ctx.succeed();
+			});
 		});
 		register("empty_anchor", ctx -> {
 			var pos = endAnchor(ctx, 220, 0);
