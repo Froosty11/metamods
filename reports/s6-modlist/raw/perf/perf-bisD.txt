@@ -1,0 +1,41 @@
+boot: Done (3.325s) wall=24s
+== idle health report
+https://spark.lucko.me/xJT2XBtnrE
+== idle tps
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  *20.0, 20.0, 20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.2/0.3/0.5/28.2;  0.2/0.4/0.8/28.2
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  5%, 3%, 10%  (system)
+System chat: [⚡]  4%, 2%, 9%  (process)
+== pregen r=500: wall=76s
+[13:45:20] [Server thread/INFO]: System chat: [Chunky] Task running for minecraft:overworld. Processed: 4177 chunks (98.86%), ETA: 0:00:00, Rate: 67.0 cps, Current: -16, 32
+[13:45:20] [Server thread/INFO]: System chat: [Chunky] Task finished for minecraft:overworld. Processed: 4225 chunks (100.00%), Total time: 0:01:15
+== tps samples during pregen
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  19.99, 19.99, 20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.0/0.3/1.7/7.0;  0.0/0.3/2.0/24.3
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  99%, 97%, 49%  (system)
+System chat: [⚡]  99%, 97%, 48%  (process)
+System chat: [Chunky] Task running for minecraft:overworld. Processed: 3152 chunks (74.60%), ETA: 0:00:17, Rate: 62.4 cps, Current: -27, 0
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  20.0, 20.0, *20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.0/0.3/2.7/67.0;  0.0/0.3/2.3/67.0
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  99%, 99%, 54%  (system)
+System chat: [⚡]  99%, 99%, 53%  (process)
+System chat: [⚡] Stopping the profiler & uploading results, please wait...
+== pregen profile (all threads): https://spark.lucko.me/ih9ZXQedoW
+pregen error lines: 0
+56M	/home/user/s6/servers/perf-bisD/world/dimensions/minecraft/overworld/region 26M	/home/user/s6/servers/perf-bisD/world 
+DH db: 20M	total

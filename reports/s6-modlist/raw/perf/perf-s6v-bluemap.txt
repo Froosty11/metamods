@@ -1,0 +1,42 @@
+boot: Done (4.434s) wall=34s
+== idle health report
+https://spark.lucko.me/3m2DiaZVpG
+== idle tps
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  20.0, 20.0, *20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.2/0.4/0.5/25.9;  0.2/0.4/0.5/25.9
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  5%, 2%, 12%  (system)
+System chat: [⚡]  5%, 2%, 12%  (process)
+== idle profile (60 s, server thread): https://spark.lucko.me/WwwC0gExRZ
+== pregen r=500: wall=87s
+[13:56:32] [Server thread/INFO]: System chat: [Chunky] Task running for minecraft:overworld. Processed: 4219 chunks (99.86%), ETA: 0:00:00, Rate: 57.9 cps, Current: 26, 32
+[13:56:32] [Server thread/INFO]: System chat: [Chunky] Task finished for minecraft:overworld. Processed: 4225 chunks (100.00%), Total time: 0:01:26
+== tps samples during pregen
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  20.0, *20.0, 20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.2/0.3/0.8/7.8;  0.0/0.3/1.8/36.8
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  99%, 98%, 31%  (system)
+System chat: [⚡]  99%, 98%, 32%  (process)
+System chat: [Chunky] Task running for minecraft:overworld. Processed: 2708 chunks (64.09%), ETA: 0:00:33, Rate: 46.0 cps, Current: -14, -2
+System chat: [⚡] TPS from last 5s, 10s, 1m, 5m, 15m:
+System chat: [⚡]  *20.0, *20.0, *20.0, *20.0, *20.0
+System chat: [⚡] 
+System chat: [⚡] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:
+System chat: [⚡]  0.2/0.3/0.7/5.0;  0.0/0.3/1.0/36.8
+System chat: [⚡] 
+System chat: [⚡] CPU usage from last 10s, 1m, 15m:
+System chat: [⚡]  99%, 99%, 39%  (system)
+System chat: [⚡]  99%, 99%, 39%  (process)
+System chat: [⚡] Stopping the profiler & uploading results, please wait...
+== pregen profile (all threads): https://spark.lucko.me/MGmQEyUjrf
+pregen error lines: 0
+56M	/home/user/s6/servers/perf-s6v-bluemap/world/dimensions/minecraft/overworld/region 27M	/home/user/s6/servers/perf-s6v-bluemap/world 
+DH db: 21M	total

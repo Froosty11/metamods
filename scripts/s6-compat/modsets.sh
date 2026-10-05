@@ -13,6 +13,7 @@ modset() {
     s6v-carpet) echo "$S6_COMMON fabric-carpet-*" ;;
     s6v-noac) echo "$S6_COMMON" | sed 's/alternate-current-\*//' ;;
     s6v-bluemap) echo "$S6_COMMON" | sed 's/squaremap-\*/bluemap-*/' ;;
+    env) echo "$MODSET_GLOBS" ;;
     *) echo "unknown modset $1" >&2; return 1 ;;
   esac
 }

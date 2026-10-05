@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 # perf.sh MODSET — fresh world (same seed), idle spark profile, then a 500-block-radius Chunky pregen
 # under a spark profile of all threads. Writes $ROOT/reports/perf-MODSET/{summary.txt,errors.txt}.
-S=$(dirname "$0"); ROOT=${ROOT:-/home/user/s6}; set_=$1; name=perf-$1
+S=$(dirname "$0"); ROOT=${ROOT:-/home/user/s6}; set_=$1; name=perf-${PERF_NAME:-$1}
 d=$ROOT/servers/$name; out=$ROOT/reports/$name; mkdir -p $out; L=$d/console.out
 ROOT=$ROOT $S/mkserver.sh $name $set_ >/dev/null
+[ -n "$PRE_HOOK" ] && eval "$PRE_HOOK"
 $S/mc.sh start $name; t0=$(date +%s); $S/mc.sh wait $name 'Done \(' 900 || { echo "boot failed"; exit 1; }
 echo "boot: $(grep -o 'Done ([0-9.]*s)' $L) wall=$(( $(date +%s)-t0 ))s" > $out/summary.txt
 mark() { wc -l < $L; }
 # settle: let spawn-time DH and pack generation finish
-for i in $(seq 90); do sleep 1; done
+for i in $(seq ${SETTLE:-90}); do sleep 1; done
 n=$(mark); $S/mc.sh cmd $name "spark health --memory"; sleep 6
 { echo "== idle health report"; tail -n +$((n+1)) $L | grep -oE 'https://spark.lucko.me/[A-Za-z0-9]{6,}' | head -1; } >> $out/summary.txt
 newlink() { for i in $(seq ${2:-200}); do tail -n +$(($1+1)) $L | grep -qE 'spark.lucko.me/[A-Za-z0-9]{6,}' && break; sleep 1; done
   tail -n +$(($1+1)) $L | grep -oE 'https://spark.lucko.me/[A-Za-z0-9]{6,}' | head -1; }
 n=$(mark); $S/mc.sh cmd $name "spark tps"; sleep 2
 { echo "== idle tps"; tail -n +$((n+1)) $L | sed 's/^\[[0-9:]*\] \[[^]]*\]: //' | grep -v '^\s*$'; } >> $out/summary.txt
-n=$(mark); $S/mc.sh cmd $name "spark profiler start --timeout 60"
-echo "== idle profile (60 s, server thread): $(newlink $n 200)" >> $out/summary.txt
+[ -z "$QUICK" ] && { n=$(mark); $S/mc.sh cmd $name "spark profiler start --timeout 60"; }
+[ -z "$QUICK" ] && echo "== idle profile (60 s, server thread): $(newlink $n 200)" >> $out/summary.txt
 # pregen
 n=$(mark); $S/mc.sh cmd $name "chunky center 0 0"; $S/mc.sh cmd $name "chunky radius 500"; sleep 1
 $S/mc.sh cmd $name "spark profiler start --thread *"; sleep 2
