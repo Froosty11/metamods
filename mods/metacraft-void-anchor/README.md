@@ -40,6 +40,8 @@ sees the painted sprite.
 
 The overrides are vanilla 26.3's shaders plus that one branch, so **re-diff them against vanilla on
 every Minecraft update**. 26.3 compiles shaders to SPIR-V, hence `gl_VertexIndex`, not `gl_VertexID`.
+Which vertex counts as a quad's first depends on where its draw starts in a shared buffer, so the
+swirl repeats every quarter turn: a shifted corner order turns it by 90° and nothing visibly changes.
 
 Block and rift textures are placeholders drawn by `tools/gen_textures.py`; replace them with real art
 whenever.
@@ -47,8 +49,9 @@ whenever.
 ## Tests
 
 - `./gradlew :mods:metacraft-void-anchor:runDatagen :mods:metacraft-void-anchor:test` runs the
-  game tests (charging, binding, dispensers, and the rescue: empty, gone, flying, disconnecting
-  and shared anchors).
+  game tests (charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
+  disconnecting, saved-themselves and shared anchors).
 - `./gradlew :mods:metacraft-void-anchor:runClientGameTest` opens a window: a vanilla client joins
-  an in-process server, looks down at a rift, and checks that the shader ran and the rift moves.
+  an in-process server, looks down at a rift, and checks that the shader ran, the rift moves, and
+  it looks the same turned a quarter (see above).
   Screenshots land in `build/run/clientGameTest/screenshots`.

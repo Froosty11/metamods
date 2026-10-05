@@ -56,10 +56,18 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 				int purple = count(a, (r, g, bl) -> bl > g + 40 && r > g + 20);
 				int teal = count(a, (r, g, bl) -> g > r + 40 && bl > r + 40);
 				int moved = changed(a, b, 24);
-				System.out.println("[void-anchor-clienttest] purple=" + purple + " teal=" + teal + " moved=" + moved + " of " + box);
+				int[] quarterTurn = quarterTurnMismatch(a, 95, 40);
+				System.out.println("[void-anchor-clienttest] purple=" + purple + " teal=" + teal + " moved=" + moved + " of " + box
+						+ "; quarter-turn mismatch " + quarterTurn[0] + " of " + quarterTurn[1]);
 				if (purple < box / 50) throw new AssertionError("no rift on screen: " + purple + " purple pixels in the centre");
 				if (teal < box / 300) throw new AssertionError("the rift shader did not run: " + teal + " teal pixels in the centre");
 				if (moved < box / 200) throw new AssertionError("the rift does not move: " + moved + " pixels changed between frames");
+				// Which vertex of the quad item.vsh calls corner 0 depends on where the draw starts in a
+				// shared buffer, so the pattern must look the same turned a quarter: then a shifted
+				// corner order cannot make it jump.
+				if (quarterTurn[0] > quarterTurn[1] * 15 / 100) {
+					throw new AssertionError("the rift changes when turned a quarter: " + quarterTurn[0] + " of " + quarterTurn[1] + " pixels differ");
+				}
 			}
 		}
 	}
@@ -104,6 +112,26 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 			}
 		}
 		return n;
+	}
+
+	/** Pixels in a disc at the screen's centre that differ by more than {@code step} from the pixel a quarter turn round; and the disc's size. */
+	private static int[] quarterTurnMismatch(BufferedImage img, int radius, int step) {
+		int n = 0, total = 0;
+		int cx = img.getWidth() / 2, cy = img.getHeight() / 2;
+		for (int dy = -radius; dy < radius; dy++) {
+			for (int dx = -radius; dx < radius; dx++) {
+				if (dx * dx + dy * dy > radius * radius) continue;
+				total++;
+				int p = img.getRGB(cx + dx, cy + dy), q = img.getRGB(cx - dy, cy + dx);
+				for (int s = 0; s <= 16; s += 8) {
+					if (Math.abs(((p >> s) & 255) - ((q >> s) & 255)) > step) {
+						n++;
+						break;
+					}
+				}
+			}
+		}
+		return new int[] {n, total};
 	}
 
 	private static BufferedImage read(Path path) {

@@ -62,11 +62,12 @@ public final class RiftTracker {
 	private static void tick(MinecraftServer server) {
 		var end = server.getLevel(Level.END);
 		var config = VoidAnchorConfig.getInstance();
-		advance(server, end, config);
 		if (end == null) {
+			advance(server, null, Double.NEGATIVE_INFINITY, config);
 			return;
 		}
 		double trigger = end.getMinY() + config.triggerYOffset();
+		advance(server, end, trigger, config);
 		HANDLED.removeIf(id -> {
 			var player = server.getPlayerList().getPlayer(id);
 			return player == null || player.level() != end || player.getY() >= trigger;
@@ -76,7 +77,8 @@ public final class RiftTracker {
 			if (player.getY() >= trigger || SESSIONS.containsKey(id) || HANDLED.contains(id)) {
 				continue;
 			}
-			if (player.isSpectator() || player.getAbilities().flying || !player.isAlive() || player.isPassenger()) {
+			// Creative players can fly out and shouldn't drain an anchor others may share.
+			if (player.isSpectator() || player.isCreative() || player.getAbilities().flying || !player.isAlive() || player.isPassenger()) {
 				continue;
 			}
 			start(player, end, config);
@@ -94,14 +96,14 @@ public final class RiftTracker {
 		}
 	}
 
-	private static void advance(MinecraftServer server, @Nullable ServerLevel end, VoidAnchorConfig config) {
+	private static void advance(MinecraftServer server, @Nullable ServerLevel end, double trigger, VoidAnchorConfig config) {
 		var it = SESSIONS.entrySet().iterator();
 		while (it.hasNext()) {
 			var entry = it.next();
 			var session = entry.getValue();
 			var player = server.getPlayerList().getPlayer(entry.getKey());
-			if (player == null || !player.isAlive() || player.level() != end) {
-				// Gone, dead or elsewhere: close up and spend nothing.
+			if (player == null || !player.isAlive() || player.level() != end || player.getY() >= trigger) {
+				// Gone, dead, elsewhere, or saved themselves (a pearl back up): close up and spend nothing.
 				session.rift.close();
 				it.remove();
 				continue;

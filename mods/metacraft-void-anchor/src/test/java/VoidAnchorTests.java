@@ -270,6 +270,32 @@ public class VoidAnchorTests {
 							ctx.succeed();
 						});
 					});
+					register("saved_mid_rift", ctx -> {
+						var pos = endAnchor(ctx, 340, 2);
+						var player = fallingPlayer(ctx, pos, "saved");
+						ctx.runAtTickTime(5, () -> {
+							ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
+							// An ender pearl back up onto an island.
+							moveTo(player, end(ctx), new Vec3(pos.getX() + 0.5, 70, 30.5));
+						});
+						ctx.runAtTickTime(45, () -> {
+							ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift kept a player who saved themselves");
+							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who saved themselves");
+							ctx.assertTrue(!rescued(player, pos), "taken to the anchor after saving themselves");
+							ctx.succeed();
+						});
+					});
+					register("creative_player_ignored", ctx -> {
+						var pos = endAnchor(ctx, 360, 2);
+						var player = fallingPlayer(ctx, pos, "creative");
+						player.setGameMode(GameType.CREATIVE);
+						player.getAbilities().flying = false;
+						ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a creative player"));
+						ctx.runAtTickTime(45, () -> {
+							ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a creative player");
+							ctx.succeed();
+						});
+					});
 					register("dispenser_refill", ctx -> dispenserTest(ctx, 0, 1, 1));
 					register("dispenser_full_anchor", ctx -> dispenserTest(ctx, 4, 4, 2));
 				},

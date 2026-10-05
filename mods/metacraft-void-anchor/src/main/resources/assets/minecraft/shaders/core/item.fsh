@@ -64,14 +64,19 @@ float riftHash(vec2 p) {
 
 // The rift: polar coordinates round the quad's centre, bands that wind inward and turn with
 // time, stars drifting through them, a bright rim. GameTime counts days, so * 1200 is seconds.
+// Everything that depends on the angle repeats every quarter turn: item.vsh numbers the corners
+// from wherever the draw starts in a shared buffer, which turns the pattern by a multiple of 90°,
+// and a pattern that looks the same turned a quarter cannot jump when that happens.
+const float RIFT_QUARTER = 1.5707963;
+
 vec4 riftColor(vec4 sprite) {
     vec2 p = riftUv * 2.0 - 1.0;
     float r = length(p);
     float a = atan(p.y, p.x);
     float t = GameTime * 1200.0;
     float swirl = a + 2.6 * (1.0 - r) + t * 0.9;
-    float bands = 0.5 + 0.5 * sin(swirl * 3.0 + r * 9.0 - t * 2.2);
-    vec2 starCell = floor(vec2(swirl * 4.0, r * 14.0 - t * 1.5));
+    float bands = 0.5 + 0.5 * sin(swirl * 4.0 + r * 9.0 - t * 2.2);
+    vec2 starCell = floor(vec2(mod(swirl, RIFT_QUARTER) / RIFT_QUARTER * 6.0, r * 14.0 - t * 1.5));
     float star = step(0.93, riftHash(starCell)) * smoothstep(1.0, 0.3, r);
     vec3 deep = vec3(0.02, 0.0, 0.06);
     vec3 purple = vec3(0.42, 0.10, 0.70);
