@@ -1,8 +1,9 @@
 """Draws the void anchor's placeholder textures. Run from the module: python3 tools/gen_textures.py
 
-Everything is drawn from a fixed seed, so a rerun gives the same files. Replace the PNGs with real
+Everything is drawn from fixed seeds, so a rerun gives the same files. Replace the PNGs with real
 art whenever; nothing else depends on this script.
 """
+import json
 import random
 from pathlib import Path
 
@@ -13,6 +14,10 @@ import anchor_art
 ROOT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/metacraft/textures"
 BLOCK = ROOT / "block"
 ITEM = ROOT / "item"
+ASSETS = ROOT.parent
+RIFT_VARIANTS = 8               # keep in step with Rift.VARIANTS
+RIFT_TINT = -65795              # #FEFEFD, the marker the item shader looks for; Rift dyes glowing cracks #FEFEFC
+CORE_TINT = -65797              # #FEFEFB, the shatter rift's core
 
 OBSIDIAN = [(20, 10, 34), (28, 14, 46), (36, 18, 60), (46, 22, 76)]
 CRYING = [(120, 40, 200), (150, 70, 230)]
@@ -22,16 +27,17 @@ PIP_OFF = (40, 24, 56)
 PIP_ON = [(200, 130, 255), (240, 200, 255)]
 
 
-def rift(frames=4, size=64):
+def rift(seed, frames=4, size=64):
 	"""The rift's sprite: a crack in space. A jagged main split runs along the sprite's x axis (the
 	display stretches along x first, then widens it), widest in the middle, with hairline branches
 	off it. Its alpha is the map the shader reads: 1 inside the split (the view into the void),
 	about 0.95 to 0.55 on the edges and along the hairlines (the glowing cracks), under 0.45 in the
 	halo. Its colours are the painted crack a client without the shader sees. The frames only
-	flicker the glow; the cracks stay put.
+	flicker the glow; the cracks stay put. Each seed gives a differently shaped crack: how it
+	wanders, how wide it gapes, how many branches it throws off and where.
 	"""
 	import math
-	rng = random.Random(53)
+	rng = random.Random(seed)
 
 	def jagged(p0, p1, depth, rough):
 		"""A line from p0 to p1, split and nudged sideways `depth` times."""
@@ -47,26 +53,32 @@ def rift(frames=4, size=64):
 			pts = out
 		return pts
 
-	main = jagged((-0.94, 0.03), (0.94, -0.04), 4, 0.42)
-	branches = []
-	for k in range(10):
-		# spread the branches along the split, alternating sides, leaning outward
-		i = 2 + (k * (len(main) - 4)) // 10 + rng.randrange(0, 2)
-		ox, oy = main[min(i, len(main) - 3)]
-		side = 1 if k % 2 else -1
-		lean = 1 if ox > 0 else -1
-		angle = rng.uniform(0.45, 1.15)
-		length = rng.uniform(0.22, 0.55)
-		end = (ox + math.cos(angle) * length * lean, oy + math.sin(angle) * length * side)
-		branch = jagged((ox, oy), end, 3, 0.45)
-		branches.append(branch)
-		if rng.random() < 0.6:
-			j = len(branch) // 2
-			bx, by = branch[j]
-			fork = rng.uniform(0.4, 0.8) * side
-			twig_len = length * rng.uniform(0.35, 0.6)
-			twig = (bx + math.cos(angle + fork) * twig_len * lean, by + math.sin(angle + fork) * twig_len * side)
-			branches.append(jagged((bx, by), twig, 2, 0.45))
+	# draw cracks until one fits: the split keeps to the middle band, nothing runs off the sprite
+	while True:
+		main = jagged((-0.94, rng.uniform(-0.18, 0.18)), (0.94, rng.uniform(-0.18, 0.18)), 4, rng.uniform(0.34, 0.5))
+		gape = rng.uniform(0.06, 0.09)
+		count = rng.randint(6, 12)
+		branches = []
+		for k in range(count):
+			# spread the branches along the split, mostly alternating sides, leaning outward
+			i = 2 + (k * (len(main) - 4)) // count + rng.randrange(0, 2)
+			ox, oy = main[min(i, len(main) - 3)]
+			side = (1 if k % 2 else -1) * (-1 if rng.random() < 0.2 else 1)
+			lean = 1 if ox > 0 else -1
+			angle = rng.uniform(0.45, 1.15)
+			length = rng.uniform(0.22, 0.55)
+			end = (ox + math.cos(angle) * length * lean, oy + math.sin(angle) * length * side)
+			branch = jagged((ox, oy), end, 3, 0.45)
+			branches.append(branch)
+			if rng.random() < 0.6:
+				j = len(branch) // 2
+				bx, by = branch[j]
+				fork = rng.uniform(0.4, 0.8) * side
+				twig_len = length * rng.uniform(0.35, 0.6)
+				twig = (bx + math.cos(angle + fork) * twig_len * lean, by + math.sin(angle + fork) * twig_len * side)
+				branches.append(jagged((bx, by), twig, 2, 0.45))
+		if all(abs(y) < 0.4 for _, y in main) and all(abs(x) < 0.97 and abs(y) < 0.88 for b in branches for x, y in b):
+			break
 
 	def nearest(pts, x, y):
 		"""Distance to a polyline, and how far along it (0..1) the nearest point is."""
@@ -90,7 +102,7 @@ def rift(frames=4, size=64):
 			u = (x + 0.5) / size * 2 - 1
 			v = (y + 0.5) / size * 2 - 1
 			d, along = nearest(main, u, v)
-			width = 0.075 * max(0.0, math.sin(math.pi * along)) ** 0.7         # widest mid-way, closed at the tips
+			width = gape * max(0.0, math.sin(math.pi * along)) ** 0.7         # widest mid-way, closed at the tips
 			edge = d - width
 			hair = min((nearest(b, u, v)[0] for b in branches), default=9.0)
 			if edge < 0:
@@ -121,6 +133,24 @@ def rift(frames=4, size=64):
 	return img
 
 
+def rift_core(size=32):
+	"""The shatter rift's core: a white-hot point in a violet glow. The shader draws its own (a
+	swirling vortex); this is what a client without it sees."""
+	import math
+	img = Image.new("RGBA", (size, size))
+	for y in range(size):
+		for x in range(size):
+			r = math.hypot((x + 0.5) / size * 2 - 1, (y + 0.5) / size * 2 - 1)
+			hot = math.exp(-(r / 0.16) ** 2)
+			glow = math.exp(-r / 0.22) * max(0.0, 1 - r)
+			a = min(1.0, hot + glow)
+			if a < 0.02:
+				continue
+			c = tuple(int(lo + (255 - lo) * hot) for lo in (190, 90, 255))
+			img.putpixel((x, y), c + (int(a * 255),))
+	return img
+
+
 def muffler():
 	"""A puff of grey-white wool bound with string, an amethyst shard tucked in it."""
 	img = Image.new("RGBA", (16, 16))
@@ -142,10 +172,36 @@ def muffler():
 	return img
 
 
+def write_json(path, data):
+	path.write_text(json.dumps(data, indent="\t") + "\n")
+
+
 def main():
 	anchor_art.draw_all(BLOCK)
 	ITEM.mkdir(parents=True, exist_ok=True)
-	rift().save(ITEM / "rift.png")
+	for old in list(ITEM.glob("rift*.png*")) + list((ASSETS / "models/item").glob("rift*.json")) + list((ASSETS / "items").glob("rift*.json")):
+		old.unlink()
+	for i in range(RIFT_VARIANTS):
+		name = f"rift_{i}"
+		rift(53 + 101 * i).save(ITEM / f"{name}.png")
+		write_json(ITEM / f"{name}.png.mcmeta", {"animation": {"frametime": 3}})
+		write_json(ASSETS / "models/item" / f"{name}.json", {
+			"textures": {"rift": f"metacraft:item/{name}", "particle": f"metacraft:item/{name}"},
+			"elements": [{"from": [0, 8, 0], "to": [16, 8, 16], "faces": {
+				"up": {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0},
+				"down": {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0}}}]})
+		write_json(ASSETS / "items" / f"{name}.json", {"model": {
+			"type": "minecraft:model", "model": f"metacraft:item/{name}",
+			"tints": [{"type": "minecraft:dye", "default": RIFT_TINT}]}})
+	rift_core().save(ITEM / "rift_core.png")
+	write_json(ASSETS / "models/item/rift_core.json", {
+		"textures": {"core": "metacraft:item/rift_core", "particle": "metacraft:item/rift_core"},
+		"elements": [{"from": [0, 0, 8], "to": [16, 16, 8], "faces": {
+			"north": {"uv": [0, 0, 16, 16], "texture": "#core", "tintindex": 0},
+			"south": {"uv": [0, 0, 16, 16], "texture": "#core", "tintindex": 0}}}]})
+	write_json(ASSETS / "items/rift_core.json", {"model": {
+		"type": "minecraft:model", "model": "metacraft:item/rift_core",
+		"tints": [{"type": "minecraft:constant", "value": CORE_TINT}]}})
 	muffler().save(ITEM / "muffler.png")
 
 if __name__ == "__main__":

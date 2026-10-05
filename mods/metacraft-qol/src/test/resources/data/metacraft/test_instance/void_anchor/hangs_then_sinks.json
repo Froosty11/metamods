@@ -1,8 +1,8 @@
 {
 	"type": "minecraft:function",
 	"environment": "metacraft:default",
-	"function": "metacraft:void_anchor/disconnect_mid_rift",
-	"max_ticks": 100,
+	"function": "metacraft:void_anchor/hangs_then_sinks",
+	"max_ticks": 60,
 	"required": true,
 	"setup_ticks": 1,
 	"structure": "metacraft:qol_room"

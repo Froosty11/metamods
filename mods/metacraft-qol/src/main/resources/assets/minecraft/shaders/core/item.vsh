@@ -1,5 +1,6 @@
 // Vanilla 26.3 item.vsh with one addition (metacraft-qol, the void anchor): a vertex tinted exactly
-// #FEFEFD belongs to a void-anchor rift, and gets a flag plus a corner index for its place on the quad.
+// #FEFEFD, #FEFEFC or #FEFEFB belongs to a void-anchor rift (its main crack, a glowing crack, its
+// core), and gets that part's number (1, 2, 3) as a flag plus a corner index for its place on the quad.
 // Re-diff against vanilla on every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
@@ -55,10 +56,11 @@ void main() {
 
     texCoord0 = UV0;
 
-    if (all(lessThan(abs(Color.rgb - vec3(254.0, 254.0, 253.0) / 255.0), vec3(0.5 / 255.0)))) {
+    vec3 tint = Color.rgb * 255.0;
+    if (all(lessThan(abs(tint.rg - vec2(254.0)), vec2(0.5))) && tint.b > 250.5 && tint.b < 253.5) {
         // Quads are drawn as four vertices in order round the face; which one this is gives its corner.
         int corner = gl_VertexIndex % 4;
-        riftFlag = 1.0;
+        riftFlag = 254.0 - floor(tint.b + 0.5);
         riftUv = vec2((corner == 1 || corner == 2) ? 1.0 : 0.0, corner >= 2 ? 1.0 : 0.0);
     } else {
         riftFlag = 0.0;

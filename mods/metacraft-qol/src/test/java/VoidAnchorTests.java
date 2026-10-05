@@ -20,6 +20,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.util.helper.TestHelper;
 import nu.metacraft.qol.void_anchor.AnchorBinding;
+import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.rift.RiftTracker;
 
@@ -91,6 +92,9 @@ public class VoidAnchorTests {
 				&& player.position().distanceTo(Vec3.atCenterOf(anchor)) < 3;
 	}
 
+	/** Mock players don't move, so a rescue waits out the rift's opening (a crack, at most 12 ticks) and then rift_ticks. */
+	static final int RESCUED_BY = 70;
+
 	static boolean stillFalling(ServerPlayer player) {
 		return player.getY() < 0;
 	}
@@ -107,7 +111,7 @@ public class VoidAnchorTests {
 			var pos = endAnchor(ctx, 400, 2);
 			var player = fallingPlayer(ctx, pos, "off");
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened while void anchors are off"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
 				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent while void anchors are off");
 				ctx.succeed();
@@ -207,10 +211,25 @@ public class VoidAnchorTests {
 			var pos = endAnchor(ctx, 200, 2);
 			var player = fallingPlayer(ctx, pos, "rescue");
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
 				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
 				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
+				ctx.succeed();
+			});
+		});
+		register("hangs_then_sinks", ctx -> {
+			var pos = endAnchor(ctx, 440, 2);
+			var player = fallingPlayer(ctx, pos, "hangs");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
+				double y = player.getDeltaMovement().y;
+				ctx.assertTrue(y < 0 && y > -0.05, "not hanging while the rift opens: " + y);
+			});
+			ctx.runAtTickTime(30, () -> {
+				double y = player.getDeltaMovement().y;
+				double sink = VoidAnchorConfig.getInstance().descentSpeed();
+				ctx.assertTrue(Math.abs(y + sink) < 1e-6, "not sinking at " + sink + " once open: " + y);
 				ctx.succeed();
 			});
 		});
@@ -218,7 +237,7 @@ public class VoidAnchorTests {
 			var pos = endAnchor(ctx, 220, 0);
 			var player = fallingPlayer(ctx, pos, "empty");
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an empty anchor"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
 				ctx.succeed();
 			});
@@ -227,7 +246,7 @@ public class VoidAnchorTests {
 			var player = survivalPlayer(ctx);
 			moveTo(player, end(ctx), new Vec3(240.5, -2, 30.5));
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for an unbound player"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(stillFalling(player), "moved to " + player.position());
 				ctx.succeed();
 			});
@@ -238,7 +257,7 @@ public class VoidAnchorTests {
 			player.getAbilities().mayfly = true;
 			player.getAbilities().flying = true;
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a flying player"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent");
 				ctx.succeed();
 			});
@@ -250,7 +269,7 @@ public class VoidAnchorTests {
 				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
 				ctx.getLevel().getServer().getPlayerList().remove(player);
 			});
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift outlived its player");
 				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who left");
 				ctx.succeed();
@@ -263,7 +282,7 @@ public class VoidAnchorTests {
 				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened");
 				end(ctx).setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 			});
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "still in the rift");
 				ctx.assertTrue(stillFalling(player), "taken to a broken anchor: " + player.position());
 				ctx.succeed();
@@ -273,7 +292,7 @@ public class VoidAnchorTests {
 			var pos = endAnchor(ctx, 320, 1);
 			var first = fallingPlayer(ctx, pos, "first");
 			var second = fallingPlayer(ctx, pos, "second");
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				int saved = (rescued(first, pos) ? 1 : 0) + (rescued(second, pos) ? 1 : 0);
 				ctx.assertTrue(saved == 1, saved + " players rescued by one charge");
 				ctx.assertTrue(stillFalling(first) || stillFalling(second), "nobody was left falling");
@@ -289,7 +308,7 @@ public class VoidAnchorTests {
 				// An ender pearl back up onto an island.
 				moveTo(player, end(ctx), new Vec3(pos.getX() + 0.5, 70, 30.5));
 			});
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "the rift kept a player who saved themselves");
 				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a player who saved themselves");
 				ctx.assertTrue(!rescued(player, pos), "taken to the anchor after saving themselves");
@@ -302,7 +321,7 @@ public class VoidAnchorTests {
 			player.setGameMode(GameType.CREATIVE);
 			player.getAbilities().flying = false;
 			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a creative player"));
-			ctx.runAtTickTime(45, () -> {
+			ctx.runAtTickTime(RESCUED_BY, () -> {
 				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a creative player");
 				ctx.succeed();
 			});

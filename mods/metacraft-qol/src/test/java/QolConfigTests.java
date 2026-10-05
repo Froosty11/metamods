@@ -4,6 +4,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import nu.metacraft.qol.QolConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
+import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,7 @@ public class QolConfigTests {
 		var voidAnchor = json.getAsJsonObject().getAsJsonObject("void_anchor");
 		assertTrue(voidAnchor.get("enabled").getAsBoolean());
 		assertEquals("minecraft:end_crystal", voidAnchor.get("fuel_item").getAsString());
+		assertEquals("crack", voidAnchor.get("rift_style").getAsString());
 	}
 
 	@Test
@@ -43,7 +45,7 @@ public class QolConfigTests {
 
 	@Test
 	public void unknownFuelItem() {
-		var config = new VoidAnchorConfig(true, Identifier.fromNamespaceAndPath("nope", "missing"), 0, 6, 0.3, 30, 3);
+		var config = new VoidAnchorConfig(true, Identifier.fromNamespaceAndPath("nope", "missing"), 0, 6, 0.3, 30, 3, RiftStyle.CRACK);
 		assertEquals(Optional.empty(), config.fuel());
 		// A second look neither throws nor warns again.
 		assertEquals(Optional.empty(), config.fuel());
@@ -53,6 +55,15 @@ public class QolConfigTests {
 	public void rejectsOutOfRangeValues() {
 		var json = VoidAnchorConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, VoidAnchorConfig.DEFAULT).getOrThrow().getAsJsonObject();
 		json.addProperty("rift_ticks", 0);
+		assertTrue(VoidAnchorConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).isError());
+	}
+
+	@Test
+	public void riftStyleReadsByName() {
+		var json = VoidAnchorConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, VoidAnchorConfig.DEFAULT).getOrThrow().getAsJsonObject();
+		json.addProperty("rift_style", "shatter");
+		assertEquals(RiftStyle.SHATTER, VoidAnchorConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow().riftStyle());
+		json.addProperty("rift_style", "sparkles");
 		assertTrue(VoidAnchorConfig.CODEC.codec().parse(JsonOps.INSTANCE, json).isError());
 	}
 

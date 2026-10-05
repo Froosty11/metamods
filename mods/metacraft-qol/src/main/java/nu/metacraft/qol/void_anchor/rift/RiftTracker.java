@@ -24,8 +24,8 @@ import java.util.UUID;
 
 /**
  * Catches players falling into the End void. Below the End's lowest Y there is nothing to stand
- * on, so a bound player there gets a rift beneath them, sinks into it slowly, and is taken to
- * their anchor. The anchor is checked again at the last moment, and a charge is spent only when
+ * on, so a bound player there is stopped in mid-air while a rift cracks open beneath them, then
+ * sinks into it slowly and is taken to their anchor. The anchor is checked again at the last moment, and a charge is spent only when
  * the player is actually moved.
  */
 public final class RiftTracker {
@@ -33,6 +33,8 @@ public final class RiftTracker {
 	private static final Map<UUID, Session> SESSIONS = new HashMap<>();
 	/** Players whose current fall has been dealt with; forgotten once they are back above the trigger or out of the End. */
 	private static final Set<UUID> HANDLED = new HashSet<>();
+	/** How fast a caught player drifts down while the rift opens under them, in blocks per tick. */
+	private static final double HANG_DRIFT = 0.02;
 
 	private static final class Session {
 		final Rift rift;
@@ -89,7 +91,7 @@ public final class RiftTracker {
 		var resolution = AnchorBinding.resolve(player);
 		if (resolution instanceof AnchorBinding.Ready) {
 			var centre = new Vec3(player.getX(), player.getY() - config.riftDepth(), player.getZ());
-			SESSIONS.put(player.getUUID(), new Session(Rift.open(end, centre, config.riftSize()), centre));
+			SESSIONS.put(player.getUUID(), new Session(Rift.open(end, centre, config.riftSize(), config.riftStyle()), centre));
 		} else {
 			HANDLED.add(player.getUUID());
 			hint(player, resolution);
@@ -109,22 +111,24 @@ public final class RiftTracker {
 				continue;
 			}
 			session.ticks++;
-			if (session.ticks >= config.riftTicks() || player.getY() <= session.centre.y + 0.5) {
+			int opening = session.rift.openTicks();
+			boolean open = session.ticks > opening;
+			if (session.ticks >= opening + config.riftTicks() || (open && player.getY() <= session.centre.y + 0.5)) {
 				it.remove();
 				HANDLED.add(player.getUUID());
 				session.rift.close();
 				finish(player);
 			} else {
-				ease(player, session.centre, config);
+				ease(player, session.centre, open ? config.descentSpeed() : HANG_DRIFT);
 			}
 		}
 	}
 
 	/** Holds the fall to a slow drift toward the rift's centre; needsSync sends the motion to the client. */
-	private static void ease(ServerPlayer player, Vec3 centre, VoidAnchorConfig config) {
+	private static void ease(ServerPlayer player, Vec3 centre, double sink) {
 		double dx = Mth.clamp((centre.x - player.getX()) * 0.25, -0.5, 0.5);
 		double dz = Mth.clamp((centre.z - player.getZ()) * 0.25, -0.5, 0.5);
-		player.setDeltaMovement(dx, -config.descentSpeed(), dz);
+		player.setDeltaMovement(dx, -sink, dz);
 		player.needsSync = true;
 		player.resetFallDistance();
 	}

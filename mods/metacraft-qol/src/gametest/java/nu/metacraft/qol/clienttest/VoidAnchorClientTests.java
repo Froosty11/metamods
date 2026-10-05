@@ -18,7 +18,8 @@ import java.util.Properties;
  * client joins it as a vanilla client (PolymerHelloMixin), accepts the pack, hovers above a rift
  * and looks straight down at it.
  *
- * The painted sprite is purple only; the shader adds teal. Teal on screen therefore proves the
+ * The painted sprite's split is a near-black purple (about 10 4 24); the shader shows the End's
+ * void through it, a lighter grey-violet (about 45 37 58). That void on screen therefore proves the
  * pack's item shader ran, and a change between two frames proves it moves.
  *
  * Run: {@code ./gradlew :mods:metacraft-qol:runClientGameTest} (opens a window).
@@ -53,14 +54,14 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 
 				BufferedImage a = read(first), b = read(second);
 				int box = (300 * 300);
-				// The rift is a thin crack, so count every pixel of it: its magenta, its teal, and the
+				// The rift is a thin crack, so count every pixel of it: its magenta and violet, and the
 				// near-white of its hottest lines (none of which the grass or sky have).
 				int purple = count(a, (r, g, bl) -> (bl > g + 40 && r > g + 20) || (r > 200 && bl > 200 && g < r - 10));
-				int teal = count(a, (r, g, bl) -> g > r + 40 && bl > r + 40);
+				int voidPx = count(a, (r, g, bl) -> r >= 28 && r <= 70 && g < r && g >= r - 18 && bl > r + 5 && bl < r + 30);
 				int moved = changed(a, b, 24);
-				System.out.println("[qol-clienttest] purple=" + purple + " teal=" + teal + " moved=" + moved + " of " + box);
+				System.out.println("[qol-clienttest] purple=" + purple + " void=" + voidPx + " moved=" + moved + " of " + box);
 				if (purple < box / 90) throw new AssertionError("no rift on screen: " + purple + " magenta or white-hot pixels in the centre");
-				if (teal < box / 300) throw new AssertionError("the rift shader did not run: " + teal + " teal pixels in the centre");
+				if (voidPx < box / 100) throw new AssertionError("the rift shader did not run: " + voidPx + " void pixels in the centre");
 				if (moved < box / 200) throw new AssertionError("the rift does not move: " + moved + " pixels changed between frames");
 
 				// Seen at an angle, for the depth: the stars inside shift against the edge.
@@ -68,6 +69,26 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 				server.runCommand("tp Tester 4.5 -53.5 4.5 135 40");
 				ctx.waitTicks(20);
 				ctx.takeScreenshot(TestScreenshotOptions.of("rift_angle").withSize(1920, 1080));
+
+				// The shatter style in the End's void, each its own rift, once fully open: from above, at an angle, side on.
+				server.runCommand("execute in minecraft:the_end run tp Tester 300.5 40 0.5 0 90");
+				ctx.waitTicks(40);
+				server.runCommand("execute in minecraft:the_end run voidanchor rift shatter 300.5 33 0.5");
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("shatter_above").withSize(1920, 1080));
+				server.runCommand("execute in minecraft:the_end run voidanchor rift shatter 340.5 33 0.5");
+				server.runCommand("execute in minecraft:the_end run tp Tester 345.5 36.5 5.5 135 30");
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("shatter_angle").withSize(1920, 1080));
+				server.runCommand("execute in minecraft:the_end run voidanchor rift shatter 380.5 33 0.5");
+				server.runCommand("execute in minecraft:the_end run tp Tester 380.5 33.2 7.5 180 0");
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("shatter_side").withSize(1920, 1080));
+				server.runCommand("execute in minecraft:the_end run voidanchor rift crack 420.5 33 0.5");
+				server.runCommand("execute in minecraft:the_end run tp Tester 425.5 36.5 5.5 135 30");
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("crack_end_angle").withSize(1920, 1080));
+				server.runCommand("execute in minecraft:overworld run tp Tester 0.5 -58.4 2.0 0 25");
 
 				// The block at each charge, in a row in front of the camera.
 				for (int charge = 0; charge <= 4; charge++) {

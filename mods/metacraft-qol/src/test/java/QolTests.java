@@ -62,7 +62,7 @@ public class QolTests {
 						.then(toggle("void_anchor", (config, on) -> {
 							var v = config.voidAnchor();
 							return new QolConfig(
-									new VoidAnchorConfig(on, v.fuelItem(), v.triggerYOffset(), v.riftDepth(), v.descentSpeed(), v.riftTicks(), v.riftSize()),
+									new VoidAnchorConfig(on, v.fuelItem(), v.triggerYOffset(), v.riftDepth(), v.descentSpeed(), v.riftTicks(), v.riftSize(), v.riftStyle()),
 									config.concreteCauldron(), config.silenceMobs()
 							);
 						}))
