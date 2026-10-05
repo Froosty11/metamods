@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundPlayerRotationPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,8 +25,8 @@ import java.util.UUID;
 
 /**
  * Catches players falling into the End void. Below the End's lowest Y there is nothing to stand
- * on, so a bound player there is stopped in mid-air while a rift cracks open beneath them, then
- * sinks into it slowly and is taken to their anchor. The anchor is checked again at the last moment, and a charge is spent only when
+ * on, so a bound player there is stopped in mid-air and their view tilted down while a rift cracks
+ * open beneath them, then sinks into it slowly and is taken to their anchor. The anchor is checked again at the last moment, and a charge is spent only when
  * the player is actually moved.
  */
 public final class RiftTracker {
@@ -35,15 +36,36 @@ public final class RiftTracker {
 	private static final Set<UUID> HANDLED = new HashSet<>();
 	/** How fast a caught player drifts down while the rift opens under them, in blocks per tick. */
 	private static final double HANG_DRIFT = 0.02;
+	/** Over the first ticks of the hang the player's view tilts down to this pitch, so they see the rift open. */
+	private static final float LOOK_PITCH = 80f;
+	private static final int LOOK_TICKS = 8;
+	/**
+	 * A caught player's client keeps falling until the hang reaches it, a tick or more at full
+	 * speed. The rift waits until they have stopped (moved less than this in a tick, or at most
+	 * MAX_STOPPING ticks), so it opens below where they hang, not where they were caught.
+	 */
+	private static final double SETTLED = 0.5;
+	private static final int MAX_STOPPING = 6;
 
 	private static final class Session {
-		final Rift rift;
-		final Vec3 centre;
+		final float startPitch;
+		double lastY;
 		int ticks;
+		/** Null while the player is still stopping. */
+		@Nullable Rift rift;
+		Vec3 centre;
+		int openedAt;
 
-		Session(Rift rift, Vec3 centre) {
-			this.rift = rift;
-			this.centre = centre;
+		Session(ServerPlayer player) {
+			this.startPitch = player.getXRot();
+			this.lastY = player.getY();
+			this.centre = player.position();
+		}
+
+		void close() {
+			if (rift != null) {
+				rift.close();
+			}
 		}
 	}
 
@@ -90,8 +112,8 @@ public final class RiftTracker {
 	private static void start(ServerPlayer player, ServerLevel end, VoidAnchorConfig config) {
 		var resolution = AnchorBinding.resolve(player);
 		if (resolution instanceof AnchorBinding.Ready) {
-			var centre = new Vec3(player.getX(), player.getY() - config.riftDepth(), player.getZ());
-			SESSIONS.put(player.getUUID(), new Session(Rift.open(end, centre, config.riftSize(), config.riftStyle()), centre));
+			SESSIONS.put(player.getUUID(), new Session(player));
+			ease(player, player.position(), HANG_DRIFT);
 		} else {
 			HANDLED.add(player.getUUID());
 			hint(player, resolution);
@@ -106,31 +128,65 @@ public final class RiftTracker {
 			var player = server.getPlayerList().getPlayer(entry.getKey());
 			if (player == null || !player.isAlive() || player.level() != end || player.getY() >= trigger) {
 				// Gone, dead, elsewhere, or saved themselves (a pearl back up): close up and spend nothing.
-				session.rift.close();
+				session.close();
 				it.remove();
 				continue;
 			}
 			session.ticks++;
+			if (session.rift == null) {
+				boolean stopped = Math.abs(player.getY() - session.lastY) < SETTLED || session.ticks >= MAX_STOPPING;
+				session.lastY = player.getY();
+				if (stopped) {
+					session.centre = new Vec3(player.getX(), player.getY() - config.riftDepth(), player.getZ());
+					session.rift = Rift.open(end, session.centre, config.riftSize(), config.riftStyle());
+					session.openedAt = session.ticks;
+				} else {
+					session.centre = player.position();
+				}
+				ease(player, session.centre, HANG_DRIFT);
+				look(player, session);
+				continue;
+			}
+			int since = session.ticks - session.openedAt;
 			int opening = session.rift.openTicks();
-			boolean open = session.ticks > opening;
-			if (session.ticks >= opening + config.riftTicks() || (open && player.getY() <= session.centre.y + 0.5)) {
+			boolean open = since > opening;
+			if (since >= opening + config.riftTicks() || (open && player.getY() <= session.centre.y + 0.5)) {
 				it.remove();
 				HANDLED.add(player.getUUID());
-				session.rift.close();
+				session.close();
 				finish(player);
 			} else {
 				ease(player, session.centre, open ? config.descentSpeed() : HANG_DRIFT);
+				look(player, session);
 			}
 		}
 	}
 
-	/** Holds the fall to a slow drift toward the rift's centre; needsSync sends the motion to the client. */
+	/** Holds the fall to a slow drift toward the rift's centre; syncVelocity sends the motion to the client. */
 	private static void ease(ServerPlayer player, Vec3 centre, double sink) {
 		double dx = Mth.clamp((centre.x - player.getX()) * 0.25, -0.5, 0.5);
 		double dz = Mth.clamp((centre.z - player.getZ()) * 0.25, -0.5, 0.5);
 		player.setDeltaMovement(dx, -sink, dz);
-		player.needsSync = true;
+		player.syncVelocity = true;
 		player.resetFallDistance();
+	}
+
+	/**
+	 * Tilts the player's view down toward the rift, eased over LOOK_TICKS. Each step is sent
+	 * relative to wherever they are looking, so turning the mouse meanwhile still works.
+	 */
+	private static void look(ServerPlayer player, Session session) {
+		if (session.ticks > LOOK_TICKS || session.startPitch >= LOOK_PITCH) {
+			return;
+		}
+		float step = eased(session.ticks) - eased(session.ticks - 1);
+		player.connection.send(new ClientboundPlayerRotationPacket(0, true, (LOOK_PITCH - session.startPitch) * step, true));
+	}
+
+	/** How far along the tilt is after `tick` ticks, 0..1, slowing into the end. */
+	private static float eased(int tick) {
+		float t = Mth.clamp(tick / (float) LOOK_TICKS, 0, 1);
+		return 1 - (1 - t) * (1 - t);
 	}
 
 	/** Checks the anchor again: it may have been broken or drained while the player sank. */

@@ -6,6 +6,11 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.level.Level;
+import nu.metacraft.qol.void_anchor.AnchorBinding;
+import nu.metacraft.qol.void_anchor.rift.RiftTracker;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -88,6 +93,37 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 				server.runCommand("execute in minecraft:the_end run tp Tester 425.5 36.5 5.5 135 30");
 				ctx.waitTicks(30);
 				ctx.takeScreenshot(TestScreenshotOptions.of("crack_end_angle").withSize(1920, 1080));
+				// A real fall, as the player sees it: a survival player bound to a charged anchor walks
+				// off into the void looking ahead, and is caught.
+				server.runCommand("execute in minecraft:the_end run fill 498 59 -2 502 59 2 minecraft:end_stone");
+				server.runCommand("execute in minecraft:the_end run setblock 500 60 0 metacraft:void_anchor[charges=4]");
+				server.runOnServer(s -> AnchorBinding.bind(
+						s.getPlayerList().getPlayerByName("Tester"), GlobalPos.of(Level.END, new BlockPos(500, 60, 0))
+				));
+				server.runCommand("gamemode survival Tester");
+				server.runCommand("execute in minecraft:the_end run tp Tester 540.5 40 0.5 90 10");
+				double caughtAt = Double.NaN;
+				double lowest = Double.POSITIVE_INFINITY;
+				boolean rescued = false;
+				for (int frame = 0; frame < 30; frame++) {
+					ctx.waitTicks(3);
+					double[] state = server.computeOnServer(s -> {
+						var p = s.getPlayerList().getPlayerByName("Tester");
+						return new double[]{p.getY(), p.getXRot(), RiftTracker.isRifting(p.getUUID()) ? 1 : 0};
+					});
+					System.out.printf("[qol-clienttest] fall %d: y=%.1f pitch=%.0f rifting=%s%n", frame, state[0], state[1], state[2] > 0);
+					ctx.takeScreenshot(TestScreenshotOptions.of("fall_" + (frame < 10 ? "0" : "") + frame).withSize(960, 540));
+					if (state[2] > 0) {
+						if (Double.isNaN(caughtAt)) caughtAt = state[0];
+						lowest = Math.min(lowest, state[0]);
+					}
+					rescued |= state[0] > 55;
+				}
+				// Caught, the player hangs and sinks into the rift (about 6 blocks below), not on past it.
+				if (Double.isNaN(caughtAt)) throw new AssertionError("the falling player was never caught");
+				if (lowest < caughtAt - 9) throw new AssertionError("fell on past the rift: caught at y " + caughtAt + ", fell to " + lowest);
+				if (!rescued) throw new AssertionError("never taken to the anchor");
+				server.runCommand("gamemode spectator Tester");
 				server.runCommand("execute in minecraft:overworld run tp Tester 0.5 -58.4 2.0 0 25");
 
 				// The block at each charge, in a row in front of the camera.
