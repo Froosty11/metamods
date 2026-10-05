@@ -1,0 +1,25 @@
+{
+ "datapacks": [],
+ "config": "V0+DH",
+ "dimension": "minecraft:overworld",
+ "run": 2,
+ "seed": 20251006,
+ "radius": 1000,
+ "mods": [
+  "fabric-api",
+  "chunky",
+  "spark",
+  "distanthorizons"
+ ],
+ "jvm": [
+  "-Xms6G",
+  "-Xmx6G",
+  "-XX:+UseG1GC",
+  "-XX:+ParallelRefProcEnabled",
+  "-XX:MaxGCPauseMillis=200",
+  "-XX:+AlwaysPreTouch"
+ ],
+ "status": "start_failed",
+ "error": "server failed to start",
+ "log_tail": "qlite-createChunkHashTable.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:09] [Server thread/INFO]: Running SQL update script: [sqlScripts/0070-sqlite-createBeaconBeamTable.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:09] [Server thread/INFO]: Running SQL update script: [sqlScripts/0080-sqlite-addApplyToChildrenColumn.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:09] [Server thread/INFO]: Running SQL update script: [sqlScripts/0090-sqlite-addAdjacentFullDataColumns.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:09] [Server thread/INFO]: Running SQL update script: [sqlScripts/0100-sqlite-deleteLowDetailDataForRegen.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:09] [Server thread/INFO]: Running SQL update script: [sqlScripts/0110-sqlite-addApplyToParentIndex.sql], for repo: [./world/dimensions/minecraft/overworld/data/DistantHorizons.sqlite]\n[14:11:10] [DH-Full Data Migration Thread[0]/INFO]: No migration necessary.\n[14:11:10] [Server thread/INFO]: Started DhServerLevel for [Wrapped{ServerLevel[world]@minecraft:overworld}] at [[LocalSaveStructure@(./world/dimensions/minecraft/overworld/data)]].\n[14:11:10] [Server thread/INFO]: Selecting global world spawn...\n[14:11:10] [DH-Request Module Ticker [minecraft:overworld] Thread[0]/INFO]: Creating world gen queue\n[14:11:10] [DH-Request Module Ticker [minecraft:overworld] Thread[0]/INFO]: Created world gen queue\n[14:11:10] [DH-Request Module Ticker [minecraft:overworld] Thread[0]/INFO]: Set world gen queue for level [minecraft:overworld].\n[14:11:20] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:11:30] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:11:40] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n[14:11:50] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n[14:12:00] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n[14:12:10] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:12:14] [spark-async-sampler-worker-3-thread-1/WARN]: Timed out waiting for world statistics\n[14:12:20] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:12:30] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:12:40] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:12:50] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n[14:13:00] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:13:10] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:13:14] [spark-async-sampler-worker-3-thread-1/WARN]: Timed out waiting for world statistics\n[14:13:20] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:13:30] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:13:40] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:13:50] [spark-monitoring-2-thread-4/WARN]: Timed out waiting for world statistics\n[14:14:00] [spark-monitoring-2-thread-2/WARN]: Timed out waiting for world statistics\n[14:14:10] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n[14:14:14] [spark-async-sampler-worker-3-thread-1/WARN]: Timed out waiting for world statistics\n[14:14:20] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:14:30] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:14:40] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:14:50] [spark-monitoring-2-thread-1/WARN]: Timed out waiting for world statistics\n[14:15:00] [spark-monitoring-2-thread-3/WARN]: Timed out waiting for world statistics\n"
+}
