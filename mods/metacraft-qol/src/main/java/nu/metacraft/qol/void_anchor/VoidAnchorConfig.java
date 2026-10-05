@@ -8,7 +8,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 import nu.metacraft.qol.QolConfig;
 import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 

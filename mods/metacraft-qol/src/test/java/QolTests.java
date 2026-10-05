@@ -15,6 +15,10 @@ import nu.metacraft.qol.QolConfig;
 import nu.metacraft.qol.concrete_cauldron.ConcreteCauldronConfig;
 import nu.metacraft.qol.silence_mobs.SilenceMobsConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
+import nu.metacraft.qol.void_anchor.rift.RiftStyle;
+import net.minecraft.nbt.NbtOps;
+import se.metacraft.config.parser.CodecParser;
+import se.metacraft.config_gui.CodecDialog;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +46,7 @@ public class QolTests {
 					VoidAnchorTests.registerTests();
 					ConcreteCauldronTests.registerTests();
 					SilenceMobsTests.registerTests();
+					register("config/dialog_round_trips", QolTests::dialogRoundTrips);
 				},
 				METAcraftLib::new, METAcraftCore::new, Qol::new
 		);
@@ -83,6 +88,24 @@ public class QolTests {
 			QolConfig.reload();
 			return 1;
 		}));
+	}
+
+	/**
+	 * metacraft-config-gui's dialog ({@code /meta-config-screen metacraft-qol}) reads the codec the
+	 * way it would to show and save the config: a changed config goes through it and comes back.
+	 */
+	static void dialogRoundTrips(GameTestHelper ctx) {
+		var lookup = ctx.getLevel().registryAccess();
+		var type = CodecDialog.Type.from(CodecParser.parse(QolConfig.CODEC.codec(), lookup));
+		var v = VoidAnchorConfig.DEFAULT;
+		var changed = new QolConfig(
+				new VoidAnchorConfig(v.enabled(), v.fuelItem(), 5, v.riftDepth(), v.descentSpeed(), v.riftTicks(), 2.5f, RiftStyle.SHATTER),
+				new ConcreteCauldronConfig(false), SilenceMobsConfig.DEFAULT
+		);
+		var tag = type.encode(NbtOps.INSTANCE, changed).getOrThrow();
+		var back = type.parse(lookup, tag).getOrThrow();
+		ctx.assertTrue(changed.equals(back), "the dialog read back " + back);
+		ctx.succeed();
 	}
 
 	@Test

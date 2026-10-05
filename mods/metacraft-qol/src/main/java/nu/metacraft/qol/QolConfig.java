@@ -4,8 +4,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import nu.metacraft.lib.config.CommentCodec;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import se.metacraft.config.util.CommentCodec;
+import se.metacraft.config.container.ConfigContainer;
 import nu.metacraft.qol.concrete_cauldron.ConcreteCauldronConfig;
 import nu.metacraft.qol.silence_mobs.SilenceMobsConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
@@ -14,7 +14,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * {@code config/metacraft-qol.json}: one section per feature. A missing section takes its
+ * {@code config/metacraft-qol.json5}: one section per feature, also editable in game through
+ * metacraft-config-gui ({@code /meta-config-screen metacraft-qol}). A missing section takes its
  * defaults, so a file written before a feature existed still loads.
  */
 public record QolConfig(VoidAnchorConfig voidAnchor, ConcreteCauldronConfig concreteCauldron, SilenceMobsConfig silenceMobs) {
@@ -39,11 +40,11 @@ public record QolConfig(VoidAnchorConfig voidAnchor, ConcreteCauldronConfig conc
 			).apply(instance, QolConfig::new)
 	);
 
-	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("metacraft-qol.json");
+	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(Qol.MODID + ".json5");
 
 	private static final ConfigContainer<QolConfig> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, () -> DEFAULT
-	).build(PATH);
+	).withPath(PATH).build(Qol.MODID);
 
 	/**
 	 * A feature's section: read as its defaults when missing, but always written out, so admins

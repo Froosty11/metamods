@@ -31,6 +31,7 @@
 		"fabric-api": "*",
 		"minecraft": "~${minecraft_version}",
 		"metacraft-lib": "*",
+		"metacraft-config": "*",
 		"metacraft-core": "*"
 	}
 }
