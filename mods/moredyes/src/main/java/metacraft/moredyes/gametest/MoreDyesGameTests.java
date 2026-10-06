@@ -347,4 +347,22 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(back.is(Items.DYED_BUNDLE.white()), "vanilla dye did not take our bundle back: " + back);
 		helper.succeed();
 	}
+
+	/** config/moredyes.json5: a family's look can be forced; one the file doesn't name, or the default, is auto. */
+	@GameTest
+	public void configSetsAFamilysLook(GameTestHelper helper) {
+		var json = com.google.gson.JsonParser.parseString("{\"looks\": {\"stained_glass_pane\": \"display\"}}");
+		var forced = metacraft.moredyes.MoreDyesConfig.CODEC.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, json)
+				.getOrThrow(message -> new IllegalStateException("config does not read: " + message));
+		if (forced.look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.DISPLAY) {
+			helper.fail("\"display\" in the file does not force the display look");
+		}
+		var empty = metacraft.moredyes.MoreDyesConfig.CODEC.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, new com.google.gson.JsonObject())
+				.getOrThrow(message -> new IllegalStateException("an empty file does not read: " + message));
+		if (empty.look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO) helper.fail("an empty file is not auto");
+		if (metacraft.moredyes.MoreDyesConfig.get().look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO) {
+			helper.fail("the default config is not auto");
+		}
+		helper.succeed();
+	}
 }

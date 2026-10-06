@@ -32,7 +32,9 @@ What limits how many colours fit is Polymer's donor-state budget, and `Looks` de
 startup, per family, whether the colour count fits the visible-donor pools ("donor" look: our
 model as chunk geometry) or the family switches to a shared invisible donor plus one item display
 per placed block ("display" look). The decision is logged at startup and applies to all colours of
-that family; `-Dmoredyes.look.<family>=donor|display` forces it for comparison. Today only glass
+that family. A server can set it per family in `config/moredyes.json5` (`auto`, `donor` or `display`,
+also editable with `/meta-config-screen moredyes`); `-Dmoredyes.look.<family>=donor|display` overrides
+that for comparison. Today only glass
 panes are planned this way (their copper-bars pools hold two colours in donor mode); beds
 (about 15), carpets (about 30) and glass (about 50) get the same treatment when needed. A pool
 that cannot serve even the chosen look still stops the server.
