@@ -20,7 +20,8 @@
 			"nu.metacraft.booklet.MetacraftBooklet"
 		],
 		"fabric-gametest": [
-			"nu.metacraft.booklet.gametest.GuideTests"
+			"nu.metacraft.booklet.gametest.GuideTests",
+			"nu.metacraft.booklet.gametest.BrewingTests"
 		]
 	},
 	"mixins": [

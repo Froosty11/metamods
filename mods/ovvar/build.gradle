@@ -32,9 +32,8 @@ dependencies {
 	// Dev/test only: an in-memory database for the JDBC game test; not shipped.
 	runtimeOnly("com.h2database:h2:2.5.250")
 
-	// The guidebook (metacraft.ovvar.guide, data/ovvar/booklet/pages): Booklet by Patbox, a
-	// server-side data-driven guidebook. Bundled jar-in-jar the way metacraft-core bundles Polymer,
-	// so the server has it wherever ovvar goes; the other mods' guide pages join the same book.
+	// Booklet by Patbox, the server-side guidebook "How to ovvar" is a chapter of (written in
+	// metacraft-booklet); /ovvar guide opens it. Bundled jar-in-jar the way metacraft-core bundles Polymer.
 	implementation(include("eu.pb4:booklet:${project.booklet_version}"))
 
 	// Danse (gestures) — our AGPL fork, as its own jar (libs/danse/NOTICE.txt). Compat only, and only
