@@ -134,7 +134,7 @@ public final class DanseModels {
 	 * empty (nothing of this layer on this part).
 	 */
 	private static boolean shell(Piece piece, BodyPart part, String texture, String model, int vShift, float inflate,
-								 BiConsumer<String, byte[]> out) {
+			BiConsumer<String, byte[]> out) {
 		BufferedImage layer = layer(piece, texture);
 		if (layer == null) return false;
 		int[] region = BodyLayerModels.region(part, vShift);
