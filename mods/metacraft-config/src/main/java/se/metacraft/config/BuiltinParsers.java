@@ -168,6 +168,33 @@ public class BuiltinParsers {
 				)
 			);
 		}
+		if (codec == Codec.INT_STREAM) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.INT, lookup))
+				)
+			);
+		}
+		if (codec == Codec.LONG_STREAM) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.LONG, lookup))
+				)
+			);
+		}
+		if (codec == Codec.BYTE_BUFFER) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.BYTE, lookup))
+				)
+			);
+		}
 		return Optional.empty();
 	};
 

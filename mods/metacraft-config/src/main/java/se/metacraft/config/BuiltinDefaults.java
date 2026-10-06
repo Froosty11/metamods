@@ -4,10 +4,16 @@ import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.bytes.ByteList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.data.BlockDataSource;
 import net.minecraft.util.ExtraCodecs;
@@ -27,16 +33,16 @@ import se.metacraft.config.parser.result.AbstractCodecResult;
 import se.metacraft.config.util.CapturedCodecs;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 
+import java.nio.ByteBuffer;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.UnsupportedTemporalTypeException;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 public class BuiltinDefaults {
 
@@ -106,6 +112,9 @@ public class BuiltinDefaults {
 		}
 		if (element.getUnderlying(codec -> codec.codec() == EntitySelector.COMPILABLE_CODEC).isPresent()) {
 			return DataResult.success("@s");
+		}
+		if (element.getUnderlying(codec -> codec.codec() == UUIDUtil.STRING_CODEC).isPresent()) {
+			return DataResult.success(new UUID(0, 0).toString());
 		}
 		var timeFormatter = element.nestedMetadata(MetadataKey.REMAINDER).flatMap(
 			param -> param.parameters().stream().filter(
@@ -313,6 +322,45 @@ public class BuiltinDefaults {
 						}
 					}))
 				);
+			}
+
+			if (CodecInternalsHelper.isPrimitiveCodec(simple, Codec.INT_STREAM, lookup)) {
+				var first = simple.parse(ctx, IntList.of());
+				if (!first.hasResultOrPartial()) {
+					for (int i = 1; i < 10; i++) {
+						var parsed = simple.parse(ctx, IntArrayList.toList(IntStream.generate(() -> 0).limit(i)));
+						if (parsed.hasResultOrPartial()) {
+							return Optional.of(parsed);
+						}
+					}
+				}
+				return Optional.of(first);
+			}
+
+			if (CodecInternalsHelper.isPrimitiveCodec(simple, Codec.LONG_STREAM, lookup)) {
+				var first = simple.parse(ctx, LongList.of());
+				if (!first.hasResultOrPartial()) {
+					for (int i = 1; i < 10; i++) {
+						var parsed = simple.parse(ctx, LongArrayList.toList(LongStream.generate(() -> 0).limit(i)));
+						if (parsed.hasResultOrPartial()) {
+							return Optional.of(parsed);
+						}
+					}
+				}
+				return Optional.of(first);
+			}
+
+			if (CodecInternalsHelper.isPrimitiveCodec(simple, Codec.BYTE_BUFFER, lookup)) {
+				var first = simple.parse(ctx, LongList.of());
+				if (!first.hasResultOrPartial()) {
+					for (int i = 1; i < 10; i++) {
+						var parsed = simple.parse(ctx, ByteArrayList.wrap(ByteBuffer.allocate(i).array()));
+						if (parsed.hasResultOrPartial()) {
+							return Optional.of(parsed);
+						}
+					}
+				}
+				return Optional.of(first);
 			}
 
 			if (CodecInternalsHelper.isOneOfPrimitiveCodecs(
