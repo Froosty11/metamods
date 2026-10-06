@@ -96,6 +96,37 @@ final class Tex {
 	}
 
 	/**
+	 * {@link #recolour} for the petals only: the warm, saturated texels (a torchflower's flame), mapped
+	 * onto the ramp by their own lightness; stem and leaves keep their colours.
+	 */
+	Tex recolourPetals(int dark, int light) {
+		java.util.function.IntPredicate petal = p -> {
+			if (a(p) == 0) return false;
+			float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
+			return hsb[1] > 0.35f && (hsb[0] < 0.17f || hsb[0] > 0.95f);
+		};
+		double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
+		for (int p : argb) {
+			if (petal.test(p)) {
+				lo = Math.min(lo, lum(p));
+				hi = Math.max(hi, lum(p));
+			}
+		}
+		double span = hi - lo <= 0 ? 1.0 : hi - lo;
+		int[] out = argb.clone();
+		for (int i = 0; i < argb.length; i++) {
+			int p = argb[i];
+			if (!petal.test(p)) continue;
+			double t = (lum(p) - lo) / span;
+			out[i] = pack(a(p),
+					(int) Math.round(r(dark) + (r(light) - r(dark)) * t),
+					(int) Math.round(g(dark) + (g(light) - g(dark)) * t),
+					(int) Math.round(b(dark) + (b(light) - b(dark)) * t));
+		}
+		return new Tex(width, height, out);
+	}
+
+	/**
 	 * Vanilla's hurt overlay baked in: the overlay texel is red at alpha 178/255 and the entity
 	 * shader does mix(overlay, texel, overlay.a), i.e. texel * 0.7 + (76, 0, 0).
 	 */

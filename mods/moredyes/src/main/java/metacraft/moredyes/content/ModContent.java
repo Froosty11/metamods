@@ -17,6 +17,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import net.minecraft.world.item.equipment.Equippable;
@@ -28,6 +30,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -45,6 +48,7 @@ public final class ModContent {
 	private static final Map<ModColor, ModDyeItem> DYES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModBundleItem> BUNDLES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModHarnessItem> HARNESSES = new LinkedHashMap<>();
+	private static final Map<ModColor, Item> TORCHFLOWERS = new LinkedHashMap<>();
 	private static final Map<ModColor, Map<Family, Block>> BLOCKS = new LinkedHashMap<>();
 
 	private ModContent() {}
@@ -70,6 +74,14 @@ public final class ModContent {
 		return HARNESSES.get(color);
 	}
 
+	public static Item torchflower(ModColor color) {
+		return TORCHFLOWERS.get(color);
+	}
+
+	public static Collection<Item> torchflowers() {
+		return Collections.unmodifiableCollection(TORCHFLOWERS.values());
+	}
+
 	/**
 	 * Vanilla's {@code equippable} for the white variant of something, worn as our equipment asset
 	 * {@code moredyes:<id>}: same slot, sounds and wearers, our look.
@@ -86,6 +98,7 @@ public final class ModContent {
 		items.add(DYES.get(color));
 		items.add(BUNDLES.get(color));
 		items.add(HARNESSES.get(color));
+		items.add(TORCHFLOWERS.get(color));
 		for (Family family : Family.values()) {
 			if (family.hasItem()) items.add(BLOCKS.get(color).get(family).asItem());
 		}
@@ -127,6 +140,16 @@ public final class ModContent {
 		HARNESSES.put(color, Registry.register(BuiltInRegistries.ITEM, harnessId, new ModHarnessItem(new Item.Properties()
 				.stacksTo(1).component(DataComponents.EQUIPPABLE, wornAs(Equippable.harness(DyeColor.WHITE), harnessId))
 				.setId(ResourceKey.create(Registries.ITEM, harnessId)), harnessId)));
+
+		// Torchflower: a sniffer's find, crafted into the dye.
+		Identifier flowerId = id(color.id() + "_torchflower");
+		requireAsset("items/" + flowerId.getPath() + ".json", flowerId);
+		Block flower = Registry.register(BuiltInRegistries.BLOCK, flowerId, new ModTorchflower(
+				BlockBehaviour.Properties.ofFullCopy(Blocks.TORCHFLOWER).mapColor(color.mapColor())
+						.setId(ResourceKey.create(Registries.BLOCK, flowerId)), flowerId));
+		TORCHFLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
+				new Item.Properties().useBlockDescriptionPrefix().setId(ResourceKey.create(Registries.ITEM, flowerId)),
+				flowerId, Items.TORCHFLOWER)));
 
 		// Blocks. Concrete must exist before its powder.
 		Map<Family, Block> blocks = new EnumMap<>(Family.class);

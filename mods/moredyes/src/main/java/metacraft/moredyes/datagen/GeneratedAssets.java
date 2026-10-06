@@ -117,6 +117,7 @@ public final class GeneratedAssets implements DataProvider {
 		MODELS.put("{c}_glazed_terracotta", obj("parent", "minecraft:block/template_glazed_terracotta",
 				"textures", obj("pattern", t("{c}_glazed_terracotta"))));
 		MODELS.put("{c}_carpet", obj("parent", "minecraft:block/carpet", "textures", obj("wool", t("{c}_wool"))));
+		MODELS.put("{c}_torchflower", obj("parent", "minecraft:block/cross", "textures", obj("cross", t("{c}_torchflower"))));
 		String[][] candles = {{"one_candle", "template_candle"}, {"two_candles", "template_two_candles"},
 				{"three_candles", "template_three_candles"}, {"four_candles", "template_four_candles"}};
 		for (String[] c : candles) {
@@ -153,6 +154,7 @@ public final class GeneratedAssets implements DataProvider {
 		ITEM_MODELS.put("{c}_stained_glass_pane", generated(t("{c}_stained_glass")));
 		ITEM_MODELS.put("{c}_bundle", generated(MOD + ":item/{c}_bundle"));
 		ITEM_MODELS.put("{c}_harness", generated(MOD + ":item/{c}_harness"));
+		ITEM_MODELS.put("{c}_torchflower", generated(t("{c}_torchflower")));
 		ITEM_MODELS.put("{c}_bundle_open_front", obj("parent", "minecraft:item/template_bundle_open_front",
 				"textures", obj("layer0", MOD + ":item/{c}_bundle_open_front")));
 		ITEM_MODELS.put("{c}_bundle_open_back", obj("parent", "minecraft:item/template_bundle_open_back",
@@ -463,6 +465,8 @@ public final class GeneratedAssets implements DataProvider {
 		// transmute keeps the box's contents, like vanilla's shulker dye recipes
 		r.put(cid + "_shulker_box", obj("type", "minecraft:crafting_transmute", "category", "misc", "group", "shulker_box_dye",
 				"input", "#minecraft:shulker_boxes", "material", dye, "result", obj("id", m.apply("shulker_box"))));
+		r.put(cid + "_dye_from_torchflower", obj("type", "minecraft:crafting_shapeless", "group", cid + "_dye",
+				"ingredients", arr(MOD + ":" + cid + "_torchflower"), "result", obj("id", dye)));
 		r.put(cid + "_harness", obj("type", "minecraft:crafting_shaped", "category", "equipment", "group", "harness",
 				"pattern", arr("LLL", "G#G"), "key", obj("#", m.apply("wool"), "G", "minecraft:glass", "L", "minecraft:leather"),
 				"result", obj("id", MOD + ":" + cid + "_harness")));
@@ -533,6 +537,7 @@ public final class GeneratedAssets implements DataProvider {
 		sharedRecipes().forEach((name, recipe) -> json(data.resolve(MOD + "/recipe/" + name + ".json"), recipe));
 
 		// Colour-independent sheep body: plain texture, models and item definitions, once.
+		Tex torchflower = Vanilla.texture("block/torchflower");
 		Tex sheepBody = Vanilla.texture("entity/sheep/sheep");
 		Tex undercoat = Vanilla.texture("entity/sheep/sheep_wool_undercoat");
 		png("textures/block/sheep/body.png", sheepBody);
@@ -571,6 +576,16 @@ public final class GeneratedAssets implements DataProvider {
 					JsonParser.parseString(bundleItemDef.replace("minecraft:item/white_bundle", MOD + ":item/" + cid + "_bundle")));
 			lang.put("item." + MOD + "." + cid + "_bundle", cname + " Bundle");
 			itemTags.get("bundles").add(MOD + ":" + cid + "_bundle");
+			// torchflower: dug up by sniffers, a dye of its colour
+			String flower = cid + "_torchflower";
+			png("textures/block/" + flower + ".png", torchflower.recolourPetals(dark, light));
+			json(assets.resolve("items/" + flower + ".json"), itemDef(MOD + ":item/" + flower));
+			lang.put("block." + MOD + "." + flower, cname + " Torchflower");
+			json(data.resolve(MOD + "/loot_table/blocks/" + flower + ".json"), lootTable("simple", MOD + ":" + flower));
+			for (String tag : List.of("small_flowers")) {
+				blockTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
+				itemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
+			}
 			// harness: worn by the happy ghast as our equipment asset
 			json(assets.resolve("items/" + cid + "_harness.json"), itemDef(MOD + ":item/" + cid + "_harness"));
 			json(assets.resolve("equipment/" + cid + "_harness.json"),

@@ -39,6 +39,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
@@ -280,6 +281,37 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(result.consumesAction(), "the dye did nothing to the collar");
 		helper.assertValueEqual(wolf.getCollarColor(), metacraft.moredyes.sign.SignColors.nearestDye(first()), "the collar");
 		helper.assertValueEqual(player.getItemInHand(InteractionHand.MAIN_HAND).getCount(), 1, "dye left");
+		helper.succeed();
+	}
+
+	/** Our torchflower crafts into our dye, grows on grass and drops itself. */
+	@GameTest
+	public void torchflowerMakesTheDye(GameTestHelper helper) {
+		ItemStack dye = craft(helper, grid(new ItemStack(ModContent.torchflower(first()))));
+		helper.assertTrue(dye.is(ModContent.dye(first())), "the torchflower made " + dye);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos.below(), Blocks.GRASS_BLOCK);
+		Block flower = ((net.minecraft.world.item.BlockItem) ModContent.torchflower(first())).getBlock();
+		helper.assertTrue(flower.defaultBlockState().canSurvive(helper.getLevel(), helper.absolutePos(pos)), "it cannot grow on grass");
+		helper.setBlock(pos, flower);
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> helper.assertItemEntityPresent(ModContent.torchflower(first()), pos, 2.0));
+	}
+
+	/** A sniffer's digging table turns up our torchflowers too. */
+	@GameTest
+	public void sniffersDigUpOurTorchflowers(GameTestHelper helper) {
+		var table = helper.getLevel().getServer().reloadableRegistries().getLootTable(net.minecraft.world.level.storage.loot.BuiltInLootTables.SNIFFER_DIGGING);
+		var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(helper.getLevel())
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, helper.absoluteVec(new net.minecraft.world.phys.Vec3(1, 1, 1)))
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, helper.spawnWithNoFreeWill(EntityTypes.SNIFFER, new BlockPos(1, 1, 1)))
+				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.GIFT);
+		java.util.Set<Item> found = new java.util.HashSet<>();
+		for (int i = 0; i < 400; i++) table.getRandomItems(params).forEach(stack -> found.add(stack.getItem()));
+		for (ModColor color : ModColors.all()) {
+			helper.assertTrue(found.contains(ModContent.torchflower(color)), "a sniffer never dug up " + color.name() + " torchflower: " + found);
+		}
+		helper.assertTrue(found.contains(Items.TORCHFLOWER_SEEDS), "vanilla's finds are gone: " + found);
 		helper.succeed();
 	}
 
