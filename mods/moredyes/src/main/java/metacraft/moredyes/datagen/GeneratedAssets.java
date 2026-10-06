@@ -578,11 +578,13 @@ public final class GeneratedAssets implements DataProvider {
 			String dye = MOD + ":" + cid + "_dye";
 
 			sources.forEach((dest, img) -> png("textures/" + dest.replace("{c}", cid) + ".png", img.recolour(dark, light)));
-			// sheared body: sheep.png with the tinted undercoat on top
-			Tex sheared = sheepBody.composite(undercoat.recolour(dark, light));
+			// sheared body: sheep.png with the tinted undercoat on top. The hurt flashes are made from
+			// whichever wool and sheared body the sheep wears, drawn by hand or not.
+			Tex sheared = drawnOr("textures/block/sheep/" + cid + "_body_sheared.png", sheepBody.composite(undercoat.recolour(dark, light)));
 			png("textures/block/sheep/" + cid + "_body_sheared.png", sheared);
 			png("textures/block/sheep/" + cid + "_body_sheared_hurt.png", sheared.hurt());
-			png("textures/block/sheep/" + cid + "_wool_hurt.png", sources.get("block/sheep/{c}_wool").recolour(dark, light).hurt());
+			Tex wool = drawnOr("textures/block/sheep/" + cid + "_wool.png", sources.get("block/sheep/{c}_wool").recolour(dark, light));
+			png("textures/block/sheep/" + cid + "_wool_hurt.png", wool.hurt());
 			MODELS.forEach((name, model) -> json(assets.resolve("models/block/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
 			ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
 
@@ -660,6 +662,17 @@ public final class GeneratedAssets implements DataProvider {
 
 	private void json(Path path, JsonElement element) {
 		writes.add(DataProvider.saveStable(out, element, path));
+	}
+
+	/** The hand-drawn texture at this path (src/main/resources), or {@code generated} if there is none. */
+	private Tex drawnOr(String path, Tex generated) {
+		var drawn = assets.getParent().getParent().getParent().resolve("resources/assets/" + MoreDyes.MOD_ID + "/" + path);
+		if (!drawn.toFile().exists()) return generated;
+		try (var in = java.nio.file.Files.newInputStream(drawn)) {
+			return Tex.read(in);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	private void png(String path, Tex tex) {
