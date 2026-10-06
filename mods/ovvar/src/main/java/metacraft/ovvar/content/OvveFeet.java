@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.pack.EquipmentJson;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -110,8 +111,21 @@ public final class OvveFeet {
 		if (Looks.feetChannel(ovve) != channel) ovve.set(ModComponents.FEET_CHANNEL, channel);
 	}
 
+	/**
+	 * Everything viewers were last sent for this wearer's feet, forgotten: the next sync sends the
+	 * cuffs again to every one of them. Danse's gesture uses this — it ends by re-sending the
+	 * player's raw equipment, an empty feet slot, which this cache would otherwise believe is still
+	 * the cuffs (see {@code metacraft.ovvar.compat.danse.DanseHooks}).
+	 */
+	public static void forget(LivingEntity wearer) {
+		SENT.remove(wearer.getUUID());
+	}
+
 	/** The virtual cuffs to every viewer whose last-sent look differs (a new viewer, new patches, a newer pack). */
 	private static void sendCuffs(LivingEntity wearer, ItemStack ovve) {
+		// Mid-gesture the real body is hidden and Danse draws a stand-in from equipment it took once,
+		// at the start: re-dressing the invisible player now would undo that.
+		if (DanseHooks.gesturing(wearer)) return;
 		ALIVE.add(wearer.getUUID());
 		Map<UUID, Integer> viewers = SENT.computeIfAbsent(wearer.getUUID(), id -> new HashMap<>());
 		ItemStack cuffs = null;

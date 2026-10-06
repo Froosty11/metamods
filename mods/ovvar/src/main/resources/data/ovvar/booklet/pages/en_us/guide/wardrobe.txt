@@ -1,0 +1,22 @@
+### Section: PageInfo
+title=Wardrobe and stash
+description=/ovvar stash: your patches, your ovve, on every server.
+category=ovvar:guide
+icon=minecraft:chest
+order=4
+### EndSection: PageInfo
+### Header: It follows you
+What you have sewn on, and the patches you own but have not sewn — your <bold>stash</bold> — are stored once for all the servers. Sew on one server, log into another wearing the same ovve; lose the item and a new ovve of that chapter shows your design again. Pockets and enchantments stay with the item; the look and the patches travel.
+
+### Header: /ovvar stash
+<yellow>/ovvar stash</yellow> opens the wardrobe. The top row is an ovve per chapter you own — click one to switch. The left panel is your stash, one slot per kind of patch. The right panel is your ovve as it looks right now; the two buttons at its top right turn it round. The bottom row is what you can do here, greyed out where this server does not allow it, with the reason.
+
+- <bold>Left-click</bold> a patch to take one out as an item: sew it on any stand wearing your ovve, or trade it.
+- The <bold>chest</bold> button puts every patch item you carry back into the stash.
+- Where private sewing sessions are on, <bold>right-click</bold> a patch instead: a stand wearing your ovve appears in front of you, your hotbar gets the patch and a pair of shears, and you sew straight from the stash. Walk away, or run <yellow>/ovvar stash done</yellow>, and it is over.
+
+### Header: Minigame servers
+On a minigame server the wardrobe is look-only: nothing is sewn there, and any patch that lands in your inventory is banked into your stash at once, so nothing is lost to a wiped inventory. Take it to a survival server to sew.
+
+### Header: Looking at others
+<yellow>/ovvar look</yellow> followed by a name shows somebody's ovve as they have it, whether they are online or not. Their stash stays theirs.

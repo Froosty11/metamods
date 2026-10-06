@@ -10,6 +10,7 @@ import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.OvveTopItem;
@@ -17,6 +18,7 @@ import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
@@ -264,6 +266,9 @@ public final class Combos {
 		int sent = 0;
 		for (LivingEntity entity : player.level().getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(RESYNC_RANGE))) {
 			if (entity == player) continue;
+			// Danse is drawing a stand-in for this one and holding their real body invisible; it took
+			// their equipment once, at the start. Dressing them again now would undo that.
+			if (DanseHooks.gesturing(entity)) continue;
 			List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
 			for (EquipmentSlot slot : EquipmentSlot.values()) {
 				ItemStack stack = entity.getItemBySlot(slot);
@@ -276,6 +281,27 @@ public final class Combos {
 		player.containerMenu.sendAllDataToRemote();
 		player.inventoryMenu.sendAllDataToRemote();
 		Ovvar.LOGGER.debug("[ovvar] {} loaded pack generation {}; re-sent {} wearer(s)", player.getName().getString(), LOADED.get(id), sent);
+	}
+
+	/**
+	 * One wearer's ovve sent again to everybody tracking them — the same packet {@link #packLoaded}
+	 * sends, for one entity instead of a screenful. Built from the raw server stacks: Polymer
+	 * rewrites outgoing item packets, so the assets, dye colour and trim are added on the way out,
+	 * exactly as they are for {@link #packLoaded}.
+	 *
+	 * <p>Danse's end-of-gesture uses this: it re-sends the player's own raw equipment, which is not
+	 * enough to put an ovve back the way the watchers had it.
+	 */
+	public static void resendEquipment(LivingEntity wearer) {
+		List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
+		for (EquipmentSlot slot : EquipmentSlot.values()) {
+			ItemStack stack = wearer.getItemBySlot(slot);
+			if (stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem) slots.add(Pair.of(slot, stack));
+		}
+		if (slots.isEmpty()) return;
+		for (ServerPlayer viewer : PlayerLookup.tracking(wearer)) {
+			viewer.connection.send(new ClientboundSetEquipmentPacket(wearer.getId(), slots));
+		}
 	}
 
 	// ---- keys
