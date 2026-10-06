@@ -79,7 +79,8 @@ public class SilenceMobsTests {
 			ctx.assertTrue(cow.isSilent(), "the cow isn't silent");
 			ctx.assertTrue(name(cow) == null, "the cow got named " + name(cow));
 			ctx.assertTrue(tag.isEmpty(), "the name tag wasn't used up");
-			ctx.assertTrue(cow.hasEffect(MobEffects.GLOWING), "the cow doesn't glow to show it worked");
+			// sparks show it worked, not Glowing, whose outline breaks shader packs
+			ctx.assertTrue(!cow.hasEffect(MobEffects.GLOWING), "the cow glows; the outline breaks shader packs");
 			ctx.succeed();
 		});
 		register("keeps_existing_name", ctx -> {
