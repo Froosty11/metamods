@@ -27,6 +27,7 @@ public class MoreDyes implements ModInitializer {
 		ModContent.register();
 		ModRecipes.init();
 		SheepColors.init();
+		metacraft.moredyes.pet.Collars.init();
 		ModCommands.init();
 		BannerPatterns.init();
 

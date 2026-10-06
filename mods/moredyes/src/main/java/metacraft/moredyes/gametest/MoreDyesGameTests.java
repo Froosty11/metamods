@@ -2,6 +2,7 @@ package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.content.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -232,6 +233,53 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(llama.isEquippableInSlot(carpet, EquipmentSlot.BODY), "a llama does not take " + first().name() + " carpet");
 		var asset = carpet.get(DataComponents.EQUIPPABLE).assetId().orElseThrow().identifier();
 		helper.assertValueEqual(asset, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, first().id() + "_carpet"), "the carpet's equipment asset");
+		helper.succeed();
+	}
+
+	/**
+	 * Our dye on a sign paints its lines our colour (a component colour, any RGB), and editing the
+	 * sign afterwards keeps it; the sign's own dye colour is the nearest vanilla one.
+	 */
+	@GameTest
+	public void signTextTakesOurColour(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, Blocks.OAK_SIGN);
+		var sign = helper.getBlockEntity(pos, net.minecraft.world.level.block.entity.SignBlockEntity.class);
+		sign.updateText(t -> t.asMutable().setLine(0, net.minecraft.network.chat.Component.literal("Spiken")).asImmutable(), net.minecraft.world.level.block.entity.SignTextSlot.FRONT);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ModDyeItem dye = ModContent.dye(first());
+		ItemStack stack = new ItemStack(dye);
+		helper.assertTrue(dye.canApplyToSign(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT), stack, player), "our dye cannot dye a sign");
+		helper.assertTrue(dye.tryApplyToSign(helper.getLevel(), sign, net.minecraft.world.level.block.entity.SignTextSlot.FRONT, stack, player), "dyeing the sign failed");
+		int rgb = first().rgb() & 0xFFFFFF;
+		helper.assertValueEqual(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getMessages(false).get(0).getStyle().getColor().getValue(), rgb, "the line's colour");
+		helper.assertValueEqual(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getColor(), metacraft.moredyes.sign.SignColors.nearestDye(first()), "the sign's own colour");
+
+		sign.setAllowedPlayerEditor(player.getUUID());
+		sign.updateSignText(player, net.minecraft.world.level.block.entity.SignTextSlot.FRONT, List.of(
+				net.minecraft.server.network.FilteredText.passThrough("Släggan"), net.minecraft.server.network.FilteredText.passThrough(""),
+				net.minecraft.server.network.FilteredText.passThrough(""), net.minecraft.server.network.FilteredText.passThrough("")));
+		var line = sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getMessages(false).get(0);
+		helper.assertValueEqual(line.getString(), "Släggan", "the edited line");
+		helper.assertValueEqual(line.getStyle().getColor() == null ? -1 : line.getStyle().getColor().getValue(), rgb, "the edited line's colour");
+		helper.succeed();
+	}
+
+	/** Our dye on a tamed wolf's collar: the nearest vanilla colour, and the dye is used. */
+	@GameTest
+	public void collarTakesTheNearestColour(GameTestHelper helper) {
+		floor(helper);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+		var wolf = helper.spawnWithNoFreeWill(EntityTypes.WOLF, new BlockPos(2, 1, 2));
+		wolf.tame(player);
+		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.dye(first()), 2));
+		var result = net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.invoker()
+				.interact(player, helper.getLevel(), InteractionHand.MAIN_HAND, wolf, null);
+		helper.assertTrue(result.consumesAction(), "the dye did nothing to the collar");
+		helper.assertValueEqual(wolf.getCollarColor(), metacraft.moredyes.sign.SignColors.nearestDye(first()), "the collar");
+		helper.assertValueEqual(player.getItemInHand(InteractionHand.MAIN_HAND).getCount(), 1, "dye left");
 		helper.succeed();
 	}
 
