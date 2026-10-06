@@ -27,7 +27,7 @@ public class QolConfigTests {
 		var voidAnchor = json.getAsJsonObject().getAsJsonObject("void_anchor");
 		assertTrue(voidAnchor.get("enabled").getAsBoolean());
 		assertEquals("minecraft:end_crystal", voidAnchor.get("fuel_item").getAsString());
-		assertEquals("crack", voidAnchor.get("rift_style").getAsString());
+		assertEquals("shatter", voidAnchor.get("rift_style").getAsString());
 	}
 
 	@Test
