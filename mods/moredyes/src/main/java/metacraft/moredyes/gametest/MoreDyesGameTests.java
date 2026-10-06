@@ -181,6 +181,23 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/** A PolyDecorations canvas takes our dyes, in their colour's nearest map colour (CanvasEntityMixin). */
+	@GameTest
+	public void canvasTakesOurDyes(GameTestHelper helper) {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) Canvas.takesOurDyes(helper, first());
+		helper.succeed();
+	}
+
+	/** Names PolyDecorations' classes, so it is loaded only when PolyDecorations is there. */
+	private static final class Canvas {
+		static void takesOurDyes(GameTestHelper helper, ModColor color) {
+			var painted = eu.pb4.polydecorations.entity.CanvasEntity.getColor(new ItemStack(ModContent.dye(color)));
+			helper.assertTrue(painted.isPresent(), "the canvas does not take " + color.name() + " dye");
+			helper.assertValueEqual(painted.get(), eu.pb4.mapcanvas.api.core.CanvasColor.from(color.mapColor(),
+					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
+		}
+	}
+
 	/** Our candles can be lit (block tag) and are not cake-able (item tag deliberately absent). */
 	@GameTest
 	public void candleTags(GameTestHelper helper) {
