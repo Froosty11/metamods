@@ -250,7 +250,9 @@ public final class GeneratedAssets implements DataProvider {
 		for (Tex art : arts.values()) for (int c : art.opaqueColours()) if (!colours.contains(c)) colours.add(c);
 		Tex key = Tex.blank(colours.size(), 1);
 		for (int i = 0; i < colours.size(); i++) key = key.with(i, 0, colours.get(i));
-		String palettes = "textures/trims/color_palettes/";
+		// 26.3 reads an atlas palette id from textures/palettes/: ovvar:trims/color_palettes/key is
+		// textures/palettes/trims/color_palettes/key.png (without palettes/ the patch trims go untextured)
+		String palettes = "textures/palettes/trims/color_palettes/";
 		files.png(assets.resolve(palettes + "key.png"), key);
 		files.png(assets.resolve(palettes + Trims.MATERIAL + ".png"), key);
 		files.json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("palette_id", MOD + ":" + Trims.MATERIAL, "description", obj("text", "Patch")));   // 26.3: an id, the permutation key
