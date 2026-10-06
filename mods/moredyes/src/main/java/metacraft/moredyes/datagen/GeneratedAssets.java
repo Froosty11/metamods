@@ -90,6 +90,9 @@ public final class GeneratedAssets implements DataProvider {
 		TEXTURES.put("item/{c}_bundle_open_front", "item/white_bundle_open_front");
 		TEXTURES.put("item/{c}_bundle_open_back", "item/white_bundle_open_back");
 		TEXTURES.put("item/{c}_harness", "item/white_harness");
+		TEXTURES.put("item/{c}_cushion", "item/white_cushion");
+		// the placed cushion's look: vanilla's entity texture, in the block atlas for the display model
+		TEXTURES.put("block/cushion/{c}", "entity/cushion/white_cushion");
 		// worn: the happy ghast's harness and the llama's carpet decor, drawn from the equippable's asset
 		TEXTURES.put("entity/equipment/happy_ghast_body/{c}_harness", "entity/equipment/happy_ghast_body/white_harness");
 		TEXTURES.put("entity/equipment/llama_body/{c}", "entity/equipment/llama_body/white");
@@ -155,6 +158,17 @@ public final class GeneratedAssets implements DataProvider {
 		ITEM_MODELS.put("{c}_bundle", generated(MOD + ":item/{c}_bundle"));
 		ITEM_MODELS.put("{c}_harness", generated(MOD + ":item/{c}_harness"));
 		ITEM_MODELS.put("{c}_torchflower", generated(t("{c}_torchflower")));
+		ITEM_MODELS.put("{c}_cushion", generated(MOD + ":item/{c}_cushion"));
+		// vanilla's CushionModel: one 16×4×16 box, texture offset 0,0 on a 64×64 texture (4 px a unit here)
+		ITEM_MODELS.put("cushion/{c}", obj("textures", obj("c", t("cushion/{c}"), "particle", t("cushion/{c}")),
+				"elements", arr(obj("from", arr(0, 0, 0), "to", arr(16, 4, 16), "faces", obj(
+						"up", obj("uv", arr(4, 0, 8, 4), "texture", "#c"),
+						"down", obj("uv", arr(8, 0, 12, 4), "texture", "#c"),
+						"west", obj("uv", arr(0, 4, 4, 5), "texture", "#c"),
+						"north", obj("uv", arr(4, 4, 8, 5), "texture", "#c"),
+						"east", obj("uv", arr(8, 4, 12, 5), "texture", "#c"),
+						"south", obj("uv", arr(12, 4, 16, 5), "texture", "#c"))))));
+		DISPLAY_ITEM_DEFS.put("cushion/{c}", MOD + ":item/cushion/{c}");
 		ITEM_MODELS.put("{c}_bundle_open_front", obj("parent", "minecraft:item/template_bundle_open_front",
 				"textures", obj("layer0", MOD + ":item/{c}_bundle_open_front")));
 		ITEM_MODELS.put("{c}_bundle_open_back", obj("parent", "minecraft:item/template_bundle_open_back",
@@ -467,6 +481,10 @@ public final class GeneratedAssets implements DataProvider {
 				"input", "#minecraft:shulker_boxes", "material", dye, "result", obj("id", m.apply("shulker_box"))));
 		r.put(cid + "_dye_from_torchflower", obj("type", "minecraft:crafting_shapeless", "group", cid + "_dye",
 				"ingredients", arr(MOD + ":" + cid + "_torchflower"), "result", obj("id", dye)));
+		r.put(cid + "_cushion", obj("type", "minecraft:crafting_shaped", "group", "cushion",
+				"pattern", arr("###"), "key", obj("#", m.apply("wool_slab")), "result", obj("id", MOD + ":" + cid + "_cushion")));
+		r.put("dye_" + cid + "_cushion", obj("type", "minecraft:crafting_transmute", "group", "cushion_dye",
+				"input", "#minecraft:cushions", "material", dye, "result", obj("id", MOD + ":" + cid + "_cushion")));
 		r.put(cid + "_harness", obj("type", "minecraft:crafting_shaped", "category", "equipment", "group", "harness",
 				"pattern", arr("LLL", "G#G"), "key", obj("#", m.apply("wool"), "G", "minecraft:glass", "L", "minecraft:leather"),
 				"result", obj("id", MOD + ":" + cid + "_harness")));
@@ -586,6 +604,10 @@ public final class GeneratedAssets implements DataProvider {
 				blockTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 				itemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 			}
+			// cushion: vanilla's, carrying our colour
+			json(assets.resolve("items/" + cid + "_cushion.json"), itemDef(MOD + ":item/" + cid + "_cushion"));
+			lang.put("item." + MOD + "." + cid + "_cushion", cname + " Cushion");
+			itemTags.computeIfAbsent("cushions", k -> new ArrayList<>()).add(MOD + ":" + cid + "_cushion");
 			// harness: worn by the happy ghast as our equipment asset
 			json(assets.resolve("items/" + cid + "_harness.json"), itemDef(MOD + ":item/" + cid + "_harness"));
 			json(assets.resolve("equipment/" + cid + "_harness.json"),

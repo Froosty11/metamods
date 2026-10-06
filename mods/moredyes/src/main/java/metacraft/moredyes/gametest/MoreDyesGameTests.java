@@ -315,6 +315,24 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A cushion placed from our item is ours: it takes our colour, a client is sent an interaction
+	 * box in its place (the look is a display model), and it gives our item back.
+	 */
+	@GameTest
+	public void cushionKeepsOurColour(GameTestHelper helper) {
+		floor(helper);
+		var cushion = EntityTypes.CUSHION.create(helper.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+		cushion.snapTo(helper.absoluteVec(new net.minecraft.world.phys.Vec3(2.5, 1, 2.5)), 0, 0);
+		cushion.applyComponentsFromItemStack(new ItemStack(ModContent.cushion(first())));
+		helper.getLevel().addFreshEntity(cushion);
+		helper.assertValueEqual(metacraft.moredyes.cushion.Cushions.colour(cushion), first(), "the placed cushion's colour");
+		helper.assertValueEqual(new metacraft.moredyes.cushion.CushionOverlay(cushion).getPolymerEntityType(null), EntityTypes.INTERACTION, "what a client is sent");
+		ItemStack back = cushion.getPickResult();
+		helper.assertTrue(back.is(ModContent.cushion(first())), "it gives back " + back);
+		helper.succeed();
+	}
+
 	/** Our candles can be lit (block tag) and are not cake-able (item tag deliberately absent). */
 	@GameTest
 	public void candleTags(GameTestHelper helper) {
