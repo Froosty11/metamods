@@ -45,6 +45,11 @@ it nothing reads them. Four potatoes, not six, and a second ingredient each, bec
 every drink whose ingredients are all in it and Brewery's vodka is six potatoes.
 `KulturDrinkTests` checks every recipe brews only its own drink.
 
+Brewery 0.17 on 26.3 cannot find its own drunkenness file (`brewery_effects.json`: it lists the
+resource root, which 26.3 refuses with "Invalid path ''"), so without help none of that loads on a
+real server. `compat/brewery`'s mixin finds it per namespace instead; it applies only when Brewery is
+loaded, and can go when Brewery fixes it.
+
 ## Adding a banner pattern
 
 1. Draw the pattern on a copy of a vanilla banner texture: 64×64 (or 128×128; any multiple of 64

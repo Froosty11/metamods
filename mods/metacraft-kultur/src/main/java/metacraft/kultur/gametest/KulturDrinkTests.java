@@ -5,6 +5,7 @@ import eu.pb4.brewery.drink.AlcoholManager;
 import eu.pb4.brewery.drink.DrinkType;
 import eu.pb4.brewery.drink.DrinkUtils;
 import metacraft.kultur.Kultur;
+import metacraft.kultur.compat.brewery.BreweryEffectsFiles;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.world.effect.MobEffects;
@@ -47,16 +48,7 @@ public final class KulturDrinkTests {
 
 	@GameTest
 	public void everyDrinkIsLoaded(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		List<String> wrong = new ArrayList<>();
-		for (String id : DRINKS) {
-			DrinkType type = BreweryInit.DRINK_TYPES.get(id(id));
-			if (type == null) { wrong.add(id + ": not loaded"); continue; }
-			if (type.requireDistillation() != DISTILLED.contains(id)) wrong.add(id + ": distillation " + type.requireDistillation());
-			if (!type.barrelInfo().isEmpty()) wrong.add(id + ": wants a barrel");
-		}
-		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
-		helper.succeed();
+		if (breweryHere(helper)) WithBrewery.everyDrinkIsLoaded(helper);
 	}
 
 	/**
@@ -67,85 +59,37 @@ public final class KulturDrinkTests {
 	 */
 	@GameTest
 	public void eachRecipeBrewsOnlyItsDrink(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		List<String> wrong = new ArrayList<>();
-		for (var recipe : recipes().entrySet()) {
-			boolean distilled = DISTILLED.contains(recipe.getKey());
-			List<Identifier> matches = DrinkUtils.findTypes(recipe.getValue(), null, Blocks.FIRE, new ItemStack(Items.GLASS_BOTTLE)).stream()
-					.filter(type -> type.requireDistillation() == distilled)
-					.map(BreweryInit.DRINK_TYPE_ID::get)
-					.toList();
-			if (!matches.equals(List.of(id(recipe.getKey())))) wrong.add(recipe.getKey() + " brews " + matches);
-		}
-		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
-		helper.succeed();
+		if (breweryHere(helper)) WithBrewery.eachRecipeBrewsOnlyItsDrink(helper);
+	}
+
+	/**
+	 * Brewery's own drunkenness — the stagger, the nausea, alcohol poisoning, bread and milk sobering
+	 * you up — is its {@code brewery_effects.json}, which Brewery 0.17 looks for by listing the resource
+	 * root, and 26.3 refuses an empty path; {@code BreweryEffectsMixin} finds it per namespace instead.
+	 */
+	@GameTest
+	public void breweryDrunkennessLoads(GameTestHelper helper) {
+		if (breweryHere(helper)) WithBrewery.breweryDrunkennessLoads(helper);
 	}
 
 	@GameTest
 	public void spikenStaggers(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		ServerPlayer player = drinker(helper);
-		drink(helper, player, "spiken");
-		helper.assertTrue(player.hasEffect(MobEffects.SPEED) || player.hasEffect(MobEffects.SLOWNESS), "Spiken sent the drinker neither fast nor slow");
-		helper.assertFalse(player.hasEffect(MobEffects.BLINDNESS), "one Spiken blacked the drinker out");
-		helper.succeed();
+		if (breweryHere(helper)) WithBrewery.spikenStaggers(helper);
 	}
 
 	@GameTest
 	public void slagganHitsLikeAHammer(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		ServerPlayer player = drinker(helper);
-		AlcoholManager.of(player).alcoholLevel = 40;   // drunk enough for the strength or the weakness
-		drink(helper, player, "slaggan");
-		// Släggan's pairs are a delayed effect, run from the drinker's tick, which a mock player has
-		// none of; tick the drinking for it.
-		AlcoholManager.of(player).tick();
-		boolean hammer = player.hasEffect(MobEffects.SLOWNESS) && player.hasEffect(MobEffects.STRENGTH);
-		boolean other = player.hasEffect(MobEffects.SPEED) && player.hasEffect(MobEffects.WEAKNESS);
-		helper.assertTrue(hammer || other, "Släggan gave neither slow-and-strong nor fast-and-weak");
-		helper.succeed();
+		if (breweryHere(helper)) WithBrewery.slagganHitsLikeAHammer(helper);
 	}
 
 	@GameTest
 	public void theDrinkPastTheLimitBlacksOut(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		ServerPlayer player = drinker(helper);
-		AlcoholManager.of(player).alcoholLevel = BLACKOUT_AT;
-		float health = player.getHealth();
-		drink(helper, player, "spiken");
-		helper.assertTrue(player.hasEffect(MobEffects.BLINDNESS), "no blindness after the blackout");
-		helper.assertFalse(player.hasEffect(MobEffects.SPEED) || player.hasEffect(MobEffects.SLOWNESS), "the stagger outlived the blackout");
-		helper.assertTrue(player.getHealth() < health, "the blackout did no damage");
-		helper.assertValueEqual(AlcoholManager.of(player).alcoholLevel, 30.0, "alcohol level after the blackout");
-		helper.succeed();
+		if (breweryHere(helper)) WithBrewery.theDrinkPastTheLimitBlacksOut(helper);
 	}
 
 	@GameTest
 	public void nyckelnIsSober(GameTestHelper helper) {
-		if (!breweryHere(helper)) return;
-		ServerPlayer player = drinker(helper);
-		AlcoholManager.of(player).alcoholLevel = BLACKOUT_AT;
-		drink(helper, player, "nyckeln");
-		helper.assertFalse(player.hasEffect(MobEffects.BLINDNESS), "Nyckeln blacked the drinker out");
-		helper.assertValueEqual(AlcoholManager.of(player).alcoholLevel, BLACKOUT_AT, "alcohol level after Nyckeln");
-		helper.succeed();
-	}
-
-	private static ServerPlayer drinker(GameTestHelper helper) {
-		ServerPlayer player = helper.makeMockServerPlayerInLevel();
-		// A player takes no damage until their client says it has loaded; a mock has no client to say it.
-		player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
-		player.setGameMode(GameType.SURVIVAL);
-		player.removeAllEffects();
-		AlcoholManager.of(player).alcoholLevel = 0;
-		return player;
-	}
-
-	/** A finished bottle of the best quality, drunk to the end. */
-	private static void drink(GameTestHelper helper, ServerPlayer player, String id) {
-		ItemStack bottle = DrinkUtils.createDrink(id(id), 0, 10, DISTILLED.contains(id) ? 1 : 0, Blocks.FIRE);
-		player.setItemInHand(InteractionHand.MAIN_HAND, bottle);
-		bottle.finishUsingItem(helper.getLevel(), player);
+		if (breweryHere(helper)) WithBrewery.nyckelnIsSober(helper);
 	}
 
 	private static boolean breweryHere(GameTestHelper helper) {
@@ -156,5 +100,105 @@ public final class KulturDrinkTests {
 
 	private static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(Kultur.MOD_ID, path);
+	}
+
+	/**
+	 * Everything that names a Brewery class, in a class of its own: it is loaded only once
+	 * {@link #breweryHere} has said Brewery is there, so the tests above load without it.
+	 */
+	private static final class WithBrewery {
+		static void everyDrinkIsLoaded(GameTestHelper helper) {
+			List<String> wrong = new ArrayList<>();
+			for (String id : DRINKS) {
+				DrinkType type = BreweryInit.DRINK_TYPES.get(id(id));
+				if (type == null) { wrong.add(id + ": not loaded"); continue; }
+				if (type.requireDistillation() != DISTILLED.contains(id)) wrong.add(id + ": distillation " + type.requireDistillation());
+				if (!type.barrelInfo().isEmpty()) wrong.add(id + ": wants a barrel");
+			}
+			if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+			helper.succeed();
+		}
+
+		static void eachRecipeBrewsOnlyItsDrink(GameTestHelper helper) {
+			List<String> wrong = new ArrayList<>();
+			for (var recipe : recipes().entrySet()) {
+				boolean distilled = DISTILLED.contains(recipe.getKey());
+				List<Identifier> matches = DrinkUtils.findTypes(recipe.getValue(), null, Blocks.FIRE, new ItemStack(Items.GLASS_BOTTLE)).stream()
+						.filter(type -> type.requireDistillation() == distilled)
+						.map(BreweryInit.DRINK_TYPE_ID::get)
+						.toList();
+				if (!matches.equals(List.of(id(recipe.getKey())))) wrong.add(recipe.getKey() + " brews " + matches);
+			}
+			if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+			helper.succeed();
+		}
+
+		static void breweryDrunkennessLoads(GameTestHelper helper) {
+			// A dev environment also builds the defaults in code, so look at the file lookup itself.
+			var files = BreweryEffectsFiles.find(helper.getLevel().getServer().getResourceManager());
+			helper.assertTrue(files.containsKey(Identifier.fromNamespaceAndPath("brewery", "brewery_effects.json")),
+					"Brewery's drunkenness file not found: " + files.keySet());
+			helper.assertFalse(BreweryInit.ALCOHOL_EFFECTS.isEmpty(), "Brewery loaded no drunkenness effects");
+			helper.succeed();
+		}
+
+		static void spikenStaggers(GameTestHelper helper) {
+			ServerPlayer player = drinker(helper);
+			drink(helper, player, "spiken");
+			helper.assertTrue(player.hasEffect(MobEffects.SPEED) || player.hasEffect(MobEffects.SLOWNESS), "Spiken sent the drinker neither fast nor slow");
+			helper.assertFalse(player.hasEffect(MobEffects.BLINDNESS), "one Spiken blacked the drinker out");
+			helper.succeed();
+		}
+
+		static void slagganHitsLikeAHammer(GameTestHelper helper) {
+			ServerPlayer player = drinker(helper);
+			AlcoholManager.of(player).alcoholLevel = 40;   // drunk enough for the strength or the weakness
+			drink(helper, player, "slaggan");
+			// Släggan's pairs are a delayed effect, run from the drinker's tick, which a mock player has
+			// none of; tick the drinking for it.
+			AlcoholManager.of(player).tick();
+			boolean hammer = player.hasEffect(MobEffects.SLOWNESS) && player.hasEffect(MobEffects.STRENGTH);
+			boolean other = player.hasEffect(MobEffects.SPEED) && player.hasEffect(MobEffects.WEAKNESS);
+			helper.assertTrue(hammer || other, "Släggan gave neither slow-and-strong nor fast-and-weak");
+			helper.succeed();
+		}
+
+		static void theDrinkPastTheLimitBlacksOut(GameTestHelper helper) {
+			ServerPlayer player = drinker(helper);
+			AlcoholManager.of(player).alcoholLevel = BLACKOUT_AT;
+			float health = player.getHealth();
+			drink(helper, player, "spiken");
+			helper.assertTrue(player.hasEffect(MobEffects.BLINDNESS), "no blindness after the blackout");
+			helper.assertFalse(player.hasEffect(MobEffects.SPEED) || player.hasEffect(MobEffects.SLOWNESS), "the stagger outlived the blackout");
+			helper.assertTrue(player.getHealth() < health, "the blackout did no damage");
+			helper.assertValueEqual(AlcoholManager.of(player).alcoholLevel, 30.0, "alcohol level after the blackout");
+			helper.succeed();
+		}
+
+		static void nyckelnIsSober(GameTestHelper helper) {
+			ServerPlayer player = drinker(helper);
+			AlcoholManager.of(player).alcoholLevel = BLACKOUT_AT;
+			drink(helper, player, "nyckeln");
+			helper.assertFalse(player.hasEffect(MobEffects.BLINDNESS), "Nyckeln blacked the drinker out");
+			helper.assertValueEqual(AlcoholManager.of(player).alcoholLevel, BLACKOUT_AT, "alcohol level after Nyckeln");
+			helper.succeed();
+		}
+
+		private static ServerPlayer drinker(GameTestHelper helper) {
+			ServerPlayer player = helper.makeMockServerPlayerInLevel();
+			// A player takes no damage until their client says it has loaded; a mock has no client to say it.
+			player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+			player.setGameMode(GameType.SURVIVAL);
+			player.removeAllEffects();
+			AlcoholManager.of(player).alcoholLevel = 0;
+			return player;
+		}
+
+		/** A finished bottle of the best quality, drunk to the end. */
+		private static void drink(GameTestHelper helper, ServerPlayer player, String id) {
+			ItemStack bottle = DrinkUtils.createDrink(id(id), 0, 10, DISTILLED.contains(id) ? 1 : 0, Blocks.FIRE);
+			player.setItemInHand(InteractionHand.MAIN_HAND, bottle);
+			bottle.finishUsingItem(helper.getLevel(), player);
+		}
 	}
 }
