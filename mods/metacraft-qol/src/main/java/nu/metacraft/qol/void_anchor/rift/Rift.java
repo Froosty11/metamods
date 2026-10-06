@@ -36,8 +36,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * crack shapes, lies at its own angle, may be mirrored, and is a little longer or wider than the
  * last.
  *
- * <p>{@link RiftStyle#SHATTER} adds a bright core and two glowing cracks crossing through it, all
- * facing whoever looks at them, shooting out one after
+ * <p>{@link RiftStyle#SHATTER} adds a bright core and glowing cracks running out from its edge,
+ * all facing whoever looks at them, shooting out one after
  * another before the main crack pries open, as if space broke like glass; light (portal particles)
  * is pulled into the core.
  */
@@ -57,11 +57,17 @@ public final class Rift extends ElementHolder {
 
 	private static final float CLOSED = 0.01f;
 	private static final float THIN = 0.08f;
-	/** The shatter rift's glowing cracks round its core. */
-	private static final int SHARDS = 2;
+	/** How many ray shapes the pack has: {@code metacraft:rift_ray_0} and on. */
+	public static final int RAY_VARIANTS = 4;
+	/** The shatter rift's glowing cracks out from its core. */
+	private static final int RAYS = 5;
 
-	/** One display: from closed it runs out to `run` (if any), then opens to `open`. */
-	private record Piece(ItemDisplayElement display, int start, Vector3f run, Vector3f open) {}
+	/** One display: from closed it runs out to `run` (if any), then opens to `open`, moving to `at` (if any) as it does. */
+	private record Piece(ItemDisplayElement display, int start, Vector3f run, Vector3f open, Vector3f at) {
+		Piece(ItemDisplayElement display, int start, Vector3f run, Vector3f open) {
+			this(display, start, run, open, null);
+		}
+	}
 
 	private final List<Piece> pieces = new ArrayList<>();
 	private final float size;
@@ -86,22 +92,26 @@ public final class Rift extends ElementHolder {
 			// a little toward the viewer, so the cracks through the centre don't cut it in half
 			display.setTranslation(new Vector3f(0, 0, size * 0.25f));
 			pieces.add(new Piece(display, 1, null, new Vector3f(core, core, core)));
-			// Two, crossing in an X: more layers on top of each other flatten into a sticker, and the
-			// void crack below stops reading as deep.
-			int shards = SHARDS;
-			float roll = random.nextFloat() * Mth.PI;
-			for (int i = 0; i < shards; i++) {
-				// Each faces the camera wherever it is, stood up from lying flat and turned to its own
-				// angle round the core; as a crack runs both ways, half a turn spreads them all round.
-				var shard = crack(GLOW_CRACK, new Quaternionf().rotateZ(roll + i * Mth.PI / shards + (random.nextFloat() - 0.5f) * 0.4f));
-				shard.setBillboardMode(Display.BillboardConstraints.CENTER);
-				shard.setRightRotation(new Quaternionf().rotateX(Mth.HALF_PI));
-				// a hair apart, so where they cross they don't fight over which is in front
-				shard.setTranslation(new Vector3f(0, 0, 0.01f * i));
-				float reach = size * (1.2f + 0.4f * random.nextFloat());
-				pieces.add(new Piece(shard, 2 + 2 * i, null, new Vector3f(reach, reach * 0.45f, 1f)));
+			// Rays out from the core's edge, each its own way round it, so none lies over another
+			// or over the core. Each faces the camera wherever it is, stood up from lying flat; it
+			// grows out from the rim, its inner end staying there.
+			// just under the core's rim, so the core hides each ray's cut-off inner end
+			float rim = core * 0.2f;
+			float turn = random.nextFloat() * Mth.TWO_PI;
+			for (int i = 0; i < RAYS; i++) {
+				float angle = turn + i * Mth.TWO_PI / RAYS + (random.nextFloat() - 0.5f) * 0.5f;
+				var out = new Vector3f(Mth.cos(angle), Mth.sin(angle), 0);
+				// half a turn round: facing the camera, the sprite's wide end (its left) comes out on the far side
+				var ray = crack(GLOW_CRACK, "rift_ray_" + random.nextInt(RAY_VARIANTS), new Quaternionf().rotateZ(angle + Mth.PI));
+				ray.setBillboardMode(Display.BillboardConstraints.CENTER);
+				ray.setRightRotation(new Quaternionf().rotateX(Mth.HALF_PI));
+				// a hair apart in depth, so where they meet at the rim they don't fight over which is in front
+				ray.setTranslation(new Vector3f(out).mul(rim).add(0, 0, 0.01f * i));
+				float reach = size * (0.7f + 0.4f * random.nextFloat());
+				var at = new Vector3f(out).mul(rim + reach / 2).add(0, 0, 0.01f * i);
+				pieces.add(new Piece(ray, 2 + i, null, new Vector3f(reach, reach * 0.4f, 1f), at));
 			}
-			mainStart = 2 + 2 * shards;
+			mainStart = 3 + RAYS;
 		}
 		// the main crack; turning it over mirrors it (the model is a flat quad with both faces, so it stays in place)
 		var lie = new Quaternionf().rotateY(random.nextFloat() * Mth.TWO_PI);
@@ -110,8 +120,12 @@ public final class Rift extends ElementHolder {
 	}
 
 	private ItemDisplayElement crack(int part, Quaternionf turn) {
+		return crack(part, "rift_" + ThreadLocalRandom.current().nextInt(VARIANTS), turn);
+	}
+
+	private ItemDisplayElement crack(int part, String model, Quaternionf turn) {
 		var stack = new ItemStack(Items.PAPER);
-		stack.set(DataComponents.ITEM_MODEL, Qol.getID("rift_" + ThreadLocalRandom.current().nextInt(VARIANTS)));
+		stack.set(DataComponents.ITEM_MODEL, Qol.getID(model));
 		stack.set(DataComponents.DYED_COLOR, new DyedItemColor(part));
 		return display(stack, turn);
 	}
@@ -175,6 +189,9 @@ public final class Rift extends ElementHolder {
 			// The spawn packets carried the closed scale; each piece opens from it in its turn.
 			for (var piece : pieces) {
 				if (age == piece.start) {
+					if (piece.at != null) {
+						piece.display.setTranslation(piece.at);
+					}
 					scaleTo(piece.display, piece.run != null ? piece.run : piece.open, RUN_TICKS);
 					if (style == RiftStyle.SHATTER && piece.run == null && piece.start > 1 && attachment != null) {
 						var c = attachment.getPos();

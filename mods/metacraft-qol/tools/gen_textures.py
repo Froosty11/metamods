@@ -16,6 +16,7 @@ BLOCK = ROOT / "block"
 ITEM = ROOT / "item"
 ASSETS = ROOT.parent
 RIFT_VARIANTS = 8               # keep in step with Rift.VARIANTS
+RAY_VARIANTS = 4                # keep in step with Rift.RAY_VARIANTS
 RIFT_TINT = -65795              # #FEFEFD, the marker the item shader looks for; Rift dyes glowing cracks #FEFEFC
 CORE_TINT = -65797              # #FEFEFB, the shatter rift's core
 
@@ -27,7 +28,7 @@ PIP_OFF = (40, 24, 56)
 PIP_ON = [(200, 130, 255), (240, 200, 255)]
 
 
-def rift(seed, frames=4, size=64):
+def rift(seed, frames=4, size=64, ray=False):
 	"""The rift's sprite: a crack in space. A jagged main split runs along the sprite's x axis (the
 	display stretches along x first, then widens it), widest in the middle, with hairline branches
 	off it. Its alpha is the map the shader reads: 1 inside the split (the view into the void),
@@ -35,6 +36,9 @@ def rift(seed, frames=4, size=64):
 	halo. Its colours are the painted crack a client without the shader sees. The frames only
 	flicker the glow; the cracks stay put. Each seed gives a differently shaped crack: how it
 	wanders, how wide it gapes, how many branches it throws off and where.
+
+	A ray (the shatter rift's cracks round its core) starts at the sprite's left edge, widest there
+	where it meets the core, and runs out to a point, its branches all leaning outward.
 	"""
 	import math
 	rng = random.Random(seed)
@@ -55,16 +59,20 @@ def rift(seed, frames=4, size=64):
 
 	# draw cracks until one fits: the split keeps to the middle band, nothing runs off the sprite
 	while True:
-		main = jagged((-0.94, rng.uniform(-0.18, 0.18)), (0.94, rng.uniform(-0.18, 0.18)), 4, rng.uniform(0.34, 0.5))
+		if ray:
+			main = jagged((-1.0, 0.0), (0.94, rng.uniform(-0.25, 0.25)), 4, rng.uniform(0.3, 0.42))
+		else:
+			main = jagged((-0.94, rng.uniform(-0.18, 0.18)), (0.94, rng.uniform(-0.18, 0.18)), 4, rng.uniform(0.34, 0.5))
 		gape = rng.uniform(0.06, 0.09)
 		count = rng.randint(6, 12)
 		branches = []
 		for k in range(count):
 			# spread the branches along the split, mostly alternating sides, leaning outward
-			i = 2 + (k * (len(main) - 4)) // count + rng.randrange(0, 2)
+			first = len(main) // 5 if ray else 2
+			i = first + (k * (len(main) - first - 2)) // count + rng.randrange(0, 2)
 			ox, oy = main[min(i, len(main) - 3)]
 			side = (1 if k % 2 else -1) * (-1 if rng.random() < 0.2 else 1)
-			lean = 1 if ox > 0 else -1
+			lean = 1 if ray or ox > 0 else -1
 			angle = rng.uniform(0.45, 1.15)
 			length = rng.uniform(0.22, 0.55)
 			end = (ox + math.cos(angle) * length * lean, oy + math.sin(angle) * length * side)
@@ -102,7 +110,10 @@ def rift(seed, frames=4, size=64):
 			u = (x + 0.5) / size * 2 - 1
 			v = (y + 0.5) / size * 2 - 1
 			d, along = nearest(main, u, v)
-			width = gape * max(0.0, math.sin(math.pi * along)) ** 0.7         # widest mid-way, closed at the tips
+			if ray:
+				width = gape * 1.3 * max(0.0, 1 - along) ** 0.9              # widest at the core, out to a point
+			else:
+				width = gape * max(0.0, math.sin(math.pi * along)) ** 0.7     # widest mid-way, closed at the tips
 			edge = d - width
 			hair = min((nearest(b, u, v)[0] for b in branches), default=9.0)
 			if edge < 0:
@@ -181,9 +192,10 @@ def main():
 	ITEM.mkdir(parents=True, exist_ok=True)
 	for old in list(ITEM.glob("rift*.png*")) + list((ASSETS / "models/item").glob("rift*.json")) + list((ASSETS / "items").glob("rift*.json")):
 		old.unlink()
-	for i in range(RIFT_VARIANTS):
-		name = f"rift_{i}"
-		rift(53 + 101 * i).save(ITEM / f"{name}.png")
+	sprites = [(f"rift_{i}", rift(53 + 101 * i)) for i in range(RIFT_VARIANTS)]
+	sprites += [(f"rift_ray_{i}", rift(907 + 89 * i, ray=True)) for i in range(RAY_VARIANTS)]
+	for name, image in sprites:
+		image.save(ITEM / f"{name}.png")
 		write_json(ITEM / f"{name}.png.mcmeta", {"animation": {"frametime": 3}})
 		write_json(ASSETS / "models/item" / f"{name}.json", {
 			"textures": {"rift": f"metacraft:item/{name}", "particle": f"metacraft:item/{name}"},
