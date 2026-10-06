@@ -59,6 +59,26 @@ public final class KulturClientTests implements FabricClientGameTest {
 				ctx.waitTicks(60);
 				Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("kultur_banner_shield_painting").withSize(1920, 1080));
 				System.out.println("[kultur-clienttest] screenshot: " + shot);
+
+				// The drinks, each in a frame on a wall of their own behind the camera, close up: PolymITer's
+				// bottles, through Brewery.
+				server.runCommand("fill -3 -60 -7 3 -57 -7 minecraft:stone");
+				server.runCommand("item replace entity Tester weapon.mainhand with minecraft:air");
+				server.runOnServer(s -> {
+					var level = s.overworld();
+					String[] drinks = {"alcohol", "spiken", "slaggan", "nyckeln"};
+					for (int i = 0; i < drinks.length; i++) {
+						var frame = new net.minecraft.world.entity.decoration.ItemFrame(level, new net.minecraft.core.BlockPos(i - 2, -59, -6), net.minecraft.core.Direction.SOUTH);
+						frame.setItem(eu.pb4.brewery.drink.DrinkUtils.createDrink(net.minecraft.resources.Identifier.fromNamespaceAndPath("kultur", drinks[i]),
+								0, 10, i == 1 || i == 2 ? 1 : 0, net.minecraft.world.level.block.Blocks.FIRE));
+						level.addFreshEntity(frame);
+					}
+				});
+				server.runCommand("tp Tester -0.5 -60 -3.6 180 10");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				Path drinksShot = ctx.takeScreenshot(TestScreenshotOptions.of("kultur_drinks").withSize(1920, 1080));
+				System.out.println("[kultur-clienttest] screenshot: " + drinksShot);
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 # Kultur
 
 METAmods module `mods/metacraft-kultur` (mod id `kultur`). Chapter culture for vanilla clients:
-banner and shield patterns for the chapters and their clubs, and paintings. Fabric +
+banner and shield patterns for the chapters and their clubs, paintings, and drinks. Fabric +
 [Polymer](https://polymer.pb4.eu), Minecraft 26.3, Java 25. Players need only the auto-served
 resource pack; no client mod. The successor of PolymITer (the IT chapter's 1.21.10 mod this content
 comes from); the ovvar and patches from there live in `mods/ovvar`.
@@ -10,16 +10,40 @@ comes from); the ovvar and patches from there live in `mods/ovvar`.
 
 IT's content: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko pattern behind a
 pattern item ("gated", below — `kultur:pirkko_banner_pattern`, from creative or `/give` for now),
-and Emelie Stark's painting "The Guardian of Kistan" (3×4). Data and Media have their places in the
-catalogue and nothing in them yet — that is what this file is for.
+Emelie Stark's painting "The Guardian of Kistan" (3×4), and PolymITer's four drinks (below). Data
+and Media have their places in the catalogue and nothing in them yet — that is what this file is for.
 
-Not here yet, on purpose: loot tables for the pattern items, the chapter drinks (they will be a
-Patbox's Brewery datapack in this module), any Data or Media art.
+Not here yet, on purpose: loot tables for the pattern items, any Data or Media art.
 
 With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet through
-its dye loom; nothing in this module knows about that. That dye loom lists every derived colour of
-every pattern with no pattern-item check, so a Cerise or Laserviolet Pirkko needs no Pirkko item —
-the gate holds for vanilla colours only.
+its dye loom; nothing in this module knows about that. The dye loom keeps a loom's rule, so a
+Cerise Pirkko needs the Pirkko pattern item in the player's inventory, as a white one does.
+
+## The drinks
+
+PolymITer's IT drinks, brewed with [Patbox's Brewery](https://modrinth.com/mod/brewery): cook the
+ingredients in a water cauldron over fire, a campfire or lava, take the brew out with a glass bottle, and distil the
+two that say so in a brewing stand. No barrel ageing.
+
+| drink | cauldron | cook | then | alcohol |
+| --- | --- | --- | --- | --- |
+| Alcoholic Beverage | 4 potatoes, 2 sugar | 10 min | — | 20 |
+| Spiken Patch Drink | 4 potatoes, 4 sweet berries | 8 min | distil once | 30 |
+| Släggan Patch Drink | 4 potatoes, 1 suspicious stew | 8 min | distil once | 35 |
+| Nyckeln Patch Drink | 2 apples, 1 sugar | 2 min | — | 0 |
+
+Each alcoholic one sends you fast or slow for a minute or more (Släggan: slow three times in four,
+with strength once you are drunk, else fast with weakness), harder the drunker you are. Brewery's
+own drunkenness (stagger, nausea, poisoning) comes on top. Past 100 alcohol a kultur drink blacks you
+out, as PolymITer's fourth drink did: you come to somewhere within 250 blocks with a headache, blind
+for ten seconds and a little hurt, at 30 alcohol. Brewery counts a poor brew as stronger than it is,
+so bad ones get you there sooner.
+
+The drinks are data, `src/main/resources/data/kultur/brewery_drinks/*.json` (Brewery's format; their
+bottles, PolymITer's models, are `assets/kultur/items/drink/`). Brewery is not a dependency: without
+it nothing reads them. Four potatoes, not six, and a second ingredient each, because a cauldron offers
+every drink whose ingredients are all in it and Brewery's vodka is six potatoes.
+`KulturDrinkTests` checks every recipe brews only its own drink.
 
 ## Adding a banner pattern
 

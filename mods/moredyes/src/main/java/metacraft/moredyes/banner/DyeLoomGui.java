@@ -6,6 +6,7 @@ import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.color.ModColor;
 import net.minecraft.util.Prediction;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -14,7 +15,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BannerPatternTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.DyeColor;
@@ -32,6 +35,10 @@ import java.util.List;
  * colour) in the other hand. Lists every derived pattern for that colour as a banner already
  * carrying the layer, so the vanilla client renders the preview itself; clicking applies the layer
  * (with WHITE as the carrier colour) and consumes the dye.
+ *
+ * <p>A pattern that needs a pattern item at a loom (vanilla's flower or globe, kultur's Pirkko — anything
+ * outside {@code #minecraft:no_item_required}) needs it here too: an item in the player's inventory
+ * that provides it. As at a loom, the item is not used up.
  *
  * <p>The vanilla loom is deliberately not used: its client-side preview runs the same handler logic
  * on the client's view of the items and would list the wrong patterns for a Polymer-mapped dye.
@@ -59,13 +66,31 @@ public final class DyeLoomGui extends SimpleGui {
 		String prefix = color.id() + "/";
 		registry.listElements().forEach(ref -> {
 			var id = ref.key().identifier();
-			if (id.getNamespace().equals(MoreDyes.MOD_ID) && id.getPath().startsWith(prefix)) {
+			if (id.getNamespace().equals(MoreDyes.MOD_ID) && id.getPath().startsWith(prefix) && offered(player, registry, ref)) {
 				patterns.add(ref);
 			}
 		});
 		patterns.sort(Comparator.comparing(ref -> ref.key().identifier().getPath()));
 		setTitle(Component.literal(color.name() + " patterns"));
 		render();
+	}
+
+	/**
+	 * Whether the player may apply this derived pattern: its source is free in any loom, or something in
+	 * their inventory provides the source the way a pattern item does in the loom's slot.
+	 */
+	public static boolean offered(ServerPlayer player, Registry<BannerPattern> registry, Holder<BannerPattern> derived) {
+		BannerPatterns.Derived d = derived.unwrapKey().map(key -> BannerPatterns.derived(key.identifier())).orElse(null);
+		if (d == null) return false;
+		var source = registry.get(d.source());
+		if (source.isEmpty()) return false;
+		if (source.get().is(BannerPatternTags.NO_ITEM_REQUIRED)) return true;
+		Inventory inventory = player.getInventory();
+		for (int i = 0; i < inventory.getContainerSize(); i++) {
+			HolderSet<BannerPattern> provided = inventory.getItem(i).get(DataComponents.PROVIDES_BANNER_PATTERNS);
+			if (provided != null && provided.contains(source.get())) return true;
+		}
+		return false;
 	}
 
 	private ItemStack target() {
@@ -108,7 +133,9 @@ public final class DyeLoomGui extends SimpleGui {
 	private void apply(Holder.Reference<BannerPattern> pattern) {
 		ItemStack target = target();
 		ItemStack dye = player.getItemInHand(dyeHand);
-		if (!canOpen(target) || dye.isEmpty()) {
+		Registry<BannerPattern> registry = player.level().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
+		// The pattern item may have left the inventory since the list was drawn.
+		if (!canOpen(target) || dye.isEmpty() || !offered(player, registry, pattern)) {
 			close();
 			return;
 		}
