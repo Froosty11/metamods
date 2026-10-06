@@ -21,10 +21,13 @@ import java.util.Set;
  */
 public final class METAcraftCreativeTab {
 
-	/** The item namespaces our mods use. A mod adding items under a new namespace adds it here. */
+	/**
+	 * The item namespaces our mods use. A mod adding items under a new namespace adds it here.
+	 * {@code booklet} is the server's guidebook ("The Encyclopedia"), which has no tab of its own.
+	 */
 	public static final Set<String> NAMESPACES = Set.of(
-			"metacraft", "better_pets", "faster_minecarts", "metacraft_plots", "portable_jukebox", "portal_blocker",
-			"simple_custom_features"
+			"metacraft", "better_pets", "booklet", "faster_minecarts", "metacraft_plots", "portable_jukebox",
+			"portal_blocker", "simple_custom_features"
 	);
 
 	private METAcraftCreativeTab() {}
