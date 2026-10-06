@@ -2,6 +2,7 @@ package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.content.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,9 +35,11 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
@@ -132,6 +135,19 @@ public final class MoreDyesGameTests {
 		});
 	}
 
+	/** Four candles in one block drop four candles (the loot table's set_count, in 26.3's shape). */
+	@GameTest
+	public void candlesDropTheirCount(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, block(Family.CANDLE).defaultBlockState().setValue(CandleBlock.CANDLES, 4));
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			int n = helper.getEntities(EntityTypes.ITEM, pos, 2.0).stream().mapToInt(e -> e.getItem().getCount()).sum();
+			helper.assertValueEqual(n, 4, "candles dropped");
+		});
+	}
+
 	/** A shulker box in our colour keeps its contents when broken (vanilla block entity + loot). */
 	@GameTest
 	public void shulkerKeepsContents(GameTestHelper helper) {
@@ -196,6 +212,107 @@ public final class MoreDyesGameTests {
 			helper.assertValueEqual(painted.get(), eu.pb4.mapcanvas.api.core.CanvasColor.from(color.mapColor(),
 					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
 		}
+	}
+
+	/** A happy ghast takes our harness, and wears it as our equipment asset. */
+	@GameTest
+	public void harnessFitsTheHappyGhast(GameTestHelper helper) {
+		var ghast = helper.spawnWithNoFreeWill(EntityTypes.HAPPY_GHAST, new BlockPos(2, 4, 2));
+		ItemStack harness = new ItemStack(ModContent.harness(first()));
+		helper.assertTrue(ghast.isEquippableInSlot(harness, EquipmentSlot.BODY), "a happy ghast does not take " + first().name() + " harness");
+		var asset = harness.get(DataComponents.EQUIPPABLE).assetId().orElseThrow().identifier();
+		helper.assertValueEqual(asset, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, first().id() + "_harness"), "the harness's equipment asset");
+		helper.succeed();
+	}
+
+	/** A llama wears our carpet as its decor. */
+	@GameTest
+	public void carpetDecoratesTheLlama(GameTestHelper helper) {
+		floor(helper);
+		var llama = helper.spawnWithNoFreeWill(EntityTypes.LLAMA, new BlockPos(2, 1, 2));
+		ItemStack carpet = new ItemStack(block(Family.CARPET));
+		helper.assertTrue(llama.isEquippableInSlot(carpet, EquipmentSlot.BODY), "a llama does not take " + first().name() + " carpet");
+		var asset = carpet.get(DataComponents.EQUIPPABLE).assetId().orElseThrow().identifier();
+		helper.assertValueEqual(asset, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, first().id() + "_carpet"), "the carpet's equipment asset");
+		helper.succeed();
+	}
+
+	/**
+	 * Our dye on a sign paints its lines our colour (a component colour, any RGB), and editing the
+	 * sign afterwards keeps it; the sign's own dye colour is the nearest vanilla one.
+	 */
+	@GameTest
+	public void signTextTakesOurColour(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, Blocks.OAK_SIGN);
+		var sign = helper.getBlockEntity(pos, net.minecraft.world.level.block.entity.SignBlockEntity.class);
+		sign.updateText(t -> t.asMutable().setLine(0, net.minecraft.network.chat.Component.literal("Spiken")).asImmutable(), net.minecraft.world.level.block.entity.SignTextSlot.FRONT);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ModDyeItem dye = ModContent.dye(first());
+		ItemStack stack = new ItemStack(dye);
+		helper.assertTrue(dye.canApplyToSign(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT), stack, player), "our dye cannot dye a sign");
+		helper.assertTrue(dye.tryApplyToSign(helper.getLevel(), sign, net.minecraft.world.level.block.entity.SignTextSlot.FRONT, stack, player), "dyeing the sign failed");
+		int rgb = first().rgb() & 0xFFFFFF;
+		helper.assertValueEqual(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getMessages(false).get(0).getStyle().getColor().getValue(), rgb, "the line's colour");
+		helper.assertValueEqual(sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getColor(), metacraft.moredyes.sign.SignColors.nearestDye(first()), "the sign's own colour");
+
+		sign.setAllowedPlayerEditor(player.getUUID());
+		sign.updateSignText(player, net.minecraft.world.level.block.entity.SignTextSlot.FRONT, List.of(
+				net.minecraft.server.network.FilteredText.passThrough("Släggan"), net.minecraft.server.network.FilteredText.passThrough(""),
+				net.minecraft.server.network.FilteredText.passThrough(""), net.minecraft.server.network.FilteredText.passThrough("")));
+		var line = sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getMessages(false).get(0);
+		helper.assertValueEqual(line.getString(), "Släggan", "the edited line");
+		helper.assertValueEqual(line.getStyle().getColor() == null ? -1 : line.getStyle().getColor().getValue(), rgb, "the edited line's colour");
+		helper.succeed();
+	}
+
+	/** Our dye on a tamed wolf's collar: the nearest vanilla colour, and the dye is used. */
+	@GameTest
+	public void collarTakesTheNearestColour(GameTestHelper helper) {
+		floor(helper);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+		var wolf = helper.spawnWithNoFreeWill(EntityTypes.WOLF, new BlockPos(2, 1, 2));
+		wolf.tame(player);
+		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.dye(first()), 2));
+		var result = net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.invoker()
+				.interact(player, helper.getLevel(), InteractionHand.MAIN_HAND, wolf, null);
+		helper.assertTrue(result.consumesAction(), "the dye did nothing to the collar");
+		helper.assertValueEqual(wolf.getCollarColor(), metacraft.moredyes.sign.SignColors.nearestDye(first()), "the collar");
+		helper.assertValueEqual(player.getItemInHand(InteractionHand.MAIN_HAND).getCount(), 1, "dye left");
+		helper.succeed();
+	}
+
+	/** Our torchflower crafts into our dye, grows on grass and drops itself. */
+	@GameTest
+	public void torchflowerMakesTheDye(GameTestHelper helper) {
+		ItemStack dye = craft(helper, grid(new ItemStack(ModContent.torchflower(first()))));
+		helper.assertTrue(dye.is(ModContent.dye(first())), "the torchflower made " + dye);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos.below(), Blocks.GRASS_BLOCK);
+		Block flower = ((net.minecraft.world.item.BlockItem) ModContent.torchflower(first())).getBlock();
+		helper.assertTrue(flower.defaultBlockState().canSurvive(helper.getLevel(), helper.absolutePos(pos)), "it cannot grow on grass");
+		helper.setBlock(pos, flower);
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> helper.assertItemEntityPresent(ModContent.torchflower(first()), pos, 2.0));
+	}
+
+	/** A sniffer's digging table turns up our torchflowers too. */
+	@GameTest
+	public void sniffersDigUpOurTorchflowers(GameTestHelper helper) {
+		var table = helper.getLevel().getServer().reloadableRegistries().getLootTable(net.minecraft.world.level.storage.loot.BuiltInLootTables.SNIFFER_DIGGING);
+		var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(helper.getLevel())
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, helper.absoluteVec(new net.minecraft.world.phys.Vec3(1, 1, 1)))
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, helper.spawnWithNoFreeWill(EntityTypes.SNIFFER, new BlockPos(1, 1, 1)))
+				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.GIFT);
+		java.util.Set<Item> found = new java.util.HashSet<>();
+		for (int i = 0; i < 400; i++) table.getRandomItems(params).forEach(stack -> found.add(stack.getItem()));
+		for (ModColor color : ModColors.all()) {
+			helper.assertTrue(found.contains(ModContent.torchflower(color)), "a sniffer never dug up " + color.name() + " torchflower: " + found);
+		}
+		helper.assertTrue(found.contains(Items.TORCHFLOWER_SEEDS), "vanilla's finds are gone: " + found);
+		helper.succeed();
 	}
 
 	/** Our candles can be lit (block tag) and are not cake-able (item tag deliberately absent). */
@@ -342,8 +459,8 @@ public final class MoreDyesGameTests {
 		ItemStack out = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), dye));
 		helper.assertTrue(out.is(Items.LEATHER_CHESTPLATE), "no dyed chestplate, got " + out);
 		DyedItemColor color = out.get(DataComponents.DYED_COLOR);
-		helper.assertTrue(color != null && (color.rgb() & 0xFFFFFF) == first().rgb(),
-				"expected " + Integer.toHexString(first().rgb()) + ", got " + color);
+		helper.assertTrue(color != null && (color.rgb() & 0xFFFFFF) == (first().rgb() & 0xFFFFFF),
+				"expected " + Integer.toHexString(first().rgb() & 0xFFFFFF) + ", got " + color);
 
 		ItemStack mixed = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), dye, new ItemStack(Items.DYE.white())));
 		DyedItemColor mixedColor = mixed.get(DataComponents.DYED_COLOR);

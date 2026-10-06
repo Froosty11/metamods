@@ -12,6 +12,13 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.entity.SignTextSlot;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.item.SignApplicator;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import metacraft.moredyes.sign.SignColors;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jspecify.annotations.Nullable;
@@ -19,11 +26,11 @@ import org.jspecify.annotations.Nullable;
 /**
  * A More Dyes dye. Deliberately NOT a vanilla {@code DyeItem}: that would drag it into every
  * {@code DyeColor}-keyed vanilla path (tag recipes, loom, collars) that cannot show our colour.
- * The interactions we want (sheep, armour, blocks) are implemented against {@link ModColor} instead.
+ * The interactions we want (sheep, armour, blocks, sign text, collars) are implemented against {@link ModColor} instead.
  *
  * The client is told it holds white dye with our item model, so it behaves like a dye in hand.
  */
-public final class ModDyeItem extends Item implements PolymerItem {
+public final class ModDyeItem extends Item implements PolymerItem, SignApplicator {
 	private final ModColor color;
 	private final Identifier model;
 
@@ -46,6 +53,19 @@ public final class ModDyeItem extends Item implements PolymerItem {
 			new DyeLoomGui(serverPlayer, color, hand).open();
 		}
 		return InteractionResult.SUCCESS;
+	}
+
+	/** Sign text in our colour: see {@link SignColors}. */
+	@Override
+	public boolean canApplyToSign(SignText text, ItemStack stack, Player player) {
+		return text.hasMessage(player.isTextFilteringEnabled()) && SignColors.colourOf(text) != color;
+	}
+
+	@Override
+	public boolean tryApplyToSign(Level level, SignBlockEntity sign, SignTextSlot slot, ItemStack stack, Player player) {
+		if (!sign.updateText(text -> SignColors.paint(text, color), slot)) return false;
+		level.playSound(null, sign.getBlockPos(), SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
+		return true;
 	}
 
 	@Override

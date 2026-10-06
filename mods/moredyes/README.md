@@ -19,8 +19,18 @@ translucent); bundles; sheep (colour attachment, vanilla sheep sent invisible, w
 display-entity rig animated server-side); banner patterns (every registered pattern, vanilla or
 datapack, derived per colour at registry load and tinted at pack build; applied through the
 dye-loom GUI, which offers a pattern that needs a pattern item only while the player carries one); recipes for everything vanilla dyes make, including leather/horse/wolf armour
-and firework stars mixed with vanilla dyes. Not supported by design: wolf/cat collars, sign
-text, harnesses, and beacon-beam tinting (our glass passes the beam untinted).
+and firework stars mixed with vanilla dyes; happy ghast harnesses and llama carpet decor (vanilla's
+equippable on our own equipment asset); sign text in our exact colour (component colour on every
+line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
+nearest vanilla dye); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
+tinting (our glass passes the beam untinted; see the worktree-beacon-beam-spike branch).
+
+## Later
+
+- **Collars in our exact colour.** The client tints a collar by a vanilla `DyeColor`, so today it
+  gets the nearest one. A pet could be sent like our sheep are: the vanilla wolf or cat drawn
+  without its collar and a display-entity collar in our colour riding on it (see `sheep/`
+  `SheepOverlay` and `SheepWoolRig`), animated with the head.
 
 ## Adding a colour
 
