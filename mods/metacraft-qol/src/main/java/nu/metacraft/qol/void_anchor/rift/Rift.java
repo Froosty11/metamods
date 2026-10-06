@@ -5,6 +5,7 @@ import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.ChunkAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -57,6 +58,8 @@ public final class Rift extends ElementHolder {
 
 	private static final float CLOSED = 0.01f;
 	private static final float THIN = 0.08f;
+	/** How tall the rift a rescued player steps out of is, in blocks. */
+	private static final float EXIT_SIZE = 2.0f;
 	/** How many ray shapes the pack has: {@code metacraft:rift_ray_0} and on. */
 	public static final int RAY_VARIANTS = 4;
 	/** The shatter rift's glowing cracks out from its core. */
@@ -75,6 +78,12 @@ public final class Rift extends ElementHolder {
 	private int age = 0;
 	private int closingSince = -1;
 	private int autoCloseAt = -1;
+
+	/** An empty rift, its one piece added by the caller. */
+	private Rift(float size, RiftStyle style, boolean bare) {
+		this.size = size;
+		this.style = style;
+	}
 
 	private Rift(float size, RiftStyle style) {
 		this.size = size;
@@ -139,6 +148,24 @@ public final class Rift extends ElementHolder {
 		display.setViewRange(4f);
 		addElement(display);
 		return display;
+	}
+
+	/**
+	 * The rift a rescued player steps out of: a crack stood up on top of their anchor, facing where
+	 * they arrive, already open by the time the white-out clears.
+	 */
+	public static Rift openExit(ServerLevel level, BlockPos anchor, Vec3 arrival) {
+		var rift = new Rift(EXIT_SIZE, RiftStyle.CRACK, true);
+		var centre = new Vec3(anchor.getX() + 0.5, anchor.getY() + 1 + EXIT_SIZE / 2, anchor.getZ() + 0.5);
+		// stand the flat crack up (its length vertical), then turn it to face the arrival spot
+		float face = (float) Mth.atan2(arrival.x - centre.x, arrival.z - centre.z);
+		var standing = new Quaternionf().rotateY(face).rotateZ(Mth.HALF_PI).rotateX(Mth.HALF_PI);
+		float width = EXIT_SIZE * 0.6f;
+		rift.pieces.add(new Piece(rift.crack(VOID_CRACK, standing), 1,
+				new Vector3f(EXIT_SIZE, 1f, width * THIN), new Vector3f(EXIT_SIZE, 1f, width)));
+		ChunkAttachment.ofTicking(rift, level, centre);
+		level.playSound(null, centre.x, centre.y, centre.z, SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.4f, 1.8f);
+		return rift;
 	}
 
 	/** Opens a rift in the configured style. */

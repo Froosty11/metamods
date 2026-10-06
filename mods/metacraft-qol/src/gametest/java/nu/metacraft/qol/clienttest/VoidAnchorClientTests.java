@@ -105,14 +105,22 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 				double caughtAt = Double.NaN;
 				double lowest = Double.POSITIVE_INFINITY;
 				boolean rescued = false;
-				for (int frame = 0; frame < 30; frame++) {
-					ctx.waitTicks(3);
+				double whitest = 0;
+				int exitRift = 0;
+				for (int frame = 0; frame < 40; frame++) {
+					ctx.waitTicks(2);
 					double[] state = server.computeOnServer(s -> {
 						var p = s.getPlayerList().getPlayerByName("Tester");
 						return new double[]{p.getY(), p.getXRot(), RiftTracker.isRifting(p.getUUID()) ? 1 : 0};
 					});
 					System.out.printf("[qol-clienttest] fall %d: y=%.1f pitch=%.0f rifting=%s%n", frame, state[0], state[1], state[2] > 0);
-					ctx.takeScreenshot(TestScreenshotOptions.of("fall_" + (frame < 10 ? "0" : "") + frame).withSize(960, 540));
+					BufferedImage shot = read(ctx.takeScreenshot(TestScreenshotOptions.of("fall_" + (frame < 10 ? "0" : "") + frame).withSize(960, 540)));
+					// the white-out: most of the screen near white
+					whitest = Math.max(whitest, countAll(shot, (r, g, bl) -> r > 225 && g > 225 && bl > 225) / (double) (shot.getWidth() * shot.getHeight()));
+					if (state[0] > 55) {
+						// home: the way out stands on the anchor in front of them
+						exitRift = Math.max(exitRift, countAll(shot, (r, g, bl) -> (bl > g + 40 && r > g + 20) || (r > 200 && bl > 200 && g < r - 10)));
+					}
 					if (state[2] > 0) {
 						if (Double.isNaN(caughtAt)) caughtAt = state[0];
 						lowest = Math.min(lowest, state[0]);
@@ -123,6 +131,9 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 				if (Double.isNaN(caughtAt)) throw new AssertionError("the falling player was never caught");
 				if (lowest < caughtAt - 9) throw new AssertionError("fell on past the rift: caught at y " + caughtAt + ", fell to " + lowest);
 				if (!rescued) throw new AssertionError("never taken to the anchor");
+				System.out.printf("[qol-clienttest] whitest frame %.2f, exit rift %d px%n", whitest, exitRift);
+				if (whitest < 0.6) throw new AssertionError("the screen never whited out: at most " + whitest + " white");
+				if (exitRift < 2000) throw new AssertionError("no rift on the anchor to step out of: " + exitRift + " rift pixels");
 				server.runCommand("gamemode spectator Tester");
 				server.runCommand("execute in minecraft:overworld run tp Tester 0.5 -58.4 2.0 0 25");
 
@@ -154,6 +165,18 @@ public final class VoidAnchorClientTests implements FabricClientGameTest {
 		int cx = img.getWidth() / 2, cy = img.getHeight() / 2;
 		for (int y = cy - 150; y < cy + 150; y++) {
 			for (int x = cx - 150; x < cx + 150; x++) {
+				int p = img.getRGB(x, y);
+				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
+			}
+		}
+		return n;
+	}
+
+	/** Pixels anywhere on the screen that match. */
+	private static int countAll(BufferedImage img, Rgb rgb) {
+		int n = 0;
+		for (int y = 0; y < img.getHeight(); y++) {
+			for (int x = 0; x < img.getWidth(); x++) {
 				int p = img.getRGB(x, y);
 				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
 			}

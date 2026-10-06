@@ -45,6 +45,12 @@ public final class RiftTracker {
 	 * MAX_STOPPING ticks), so it opens below where they hang, not where they were caught.
 	 */
 	private static final double SETTLED = 0.5;
+	/** The screen whites out this many ticks before the rift takes them; they arrive while it is white. */
+	private static final int WHITE_IN = 4;
+	private static final int WHITE_HOLD = 4;
+	private static final int WHITE_OUT = 16;
+	/** The rift a rescued player steps out of stays open this long. */
+	private static final int EXIT_TICKS = 50;
 	private static final int MAX_STOPPING = 6;
 
 	private static final class Session {
@@ -55,6 +61,8 @@ public final class RiftTracker {
 		@Nullable Rift rift;
 		Vec3 centre;
 		int openedAt;
+		/** Opened as the screen whites out; null until then. */
+		@Nullable Rift exit;
 
 		Session(ServerPlayer player) {
 			this.startPitch = player.getXRot();
@@ -65,6 +73,9 @@ public final class RiftTracker {
 		void close() {
 			if (rift != null) {
 				rift.close();
+			}
+			if (exit != null) {
+				exit.close();
 			}
 		}
 	}
@@ -150,11 +161,25 @@ public final class RiftTracker {
 			int since = session.ticks - session.openedAt;
 			int opening = session.rift.openTicks();
 			boolean open = since > opening;
+			if (session.exit == null && open && (since >= opening + config.riftTicks() - WHITE_IN
+					|| player.getY() <= session.centre.y + 0.5 + config.descentSpeed() * WHITE_IN)) {
+				// a few ticks out: white the screen out and open the way out at the anchor
+				if (AnchorBinding.resolve(player) instanceof AnchorBinding.Ready ready) {
+					WhiteOut.send(player, WHITE_IN, WHITE_HOLD, WHITE_OUT);
+					session.exit = Rift.openExit(ready.level(), ready.anchor(), ready.standUp());
+				}
+			}
 			if (since >= opening + config.riftTicks() || (open && player.getY() <= session.centre.y + 0.5)) {
 				it.remove();
 				HANDLED.add(player.getUUID());
-				session.close();
-				finish(player);
+				session.rift.close();
+				if (finish(player)) {
+					if (session.exit != null) {
+						session.exit.closeAfter(EXIT_TICKS);
+					}
+				} else if (session.exit != null) {
+					session.exit.close();
+				}
 			} else {
 				ease(player, session.centre, open ? config.descentSpeed() : HANG_DRIFT);
 				look(player, session);
@@ -195,8 +220,8 @@ public final class RiftTracker {
 		return 1 - (1 - t) * (1 - t);
 	}
 
-	/** Checks the anchor again: it may have been broken or drained while the player sank. */
-	private static void finish(ServerPlayer player) {
+	/** Checks the anchor again: it may have been broken or drained while the player sank. True if they were taken. */
+	private static boolean finish(ServerPlayer player) {
 		var resolution = AnchorBinding.resolve(player);
 		if (resolution instanceof AnchorBinding.Ready ready && AnchorBinding.consume(ready.level(), ready.anchor())) {
 			player.teleport(new TeleportTransition(
@@ -205,9 +230,10 @@ public final class RiftTracker {
 			player.resetFallDistance();
 			var at = ready.standUp();
 			ready.level().sendParticles(ParticleTypes.REVERSE_PORTAL, at.x, at.y + 1, at.z, 40, 0.4, 0.8, 0.4, 0.05);
-		} else {
-			hint(player, resolution instanceof AnchorBinding.Ready ? new AnchorBinding.Empty() : resolution);
+			return true;
 		}
+		hint(player, resolution instanceof AnchorBinding.Ready ? new AnchorBinding.Empty() : resolution);
+		return false;
 	}
 
 	private static void hint(ServerPlayer player, AnchorBinding.Resolution resolution) {

@@ -162,6 +162,12 @@ def rift_core(size=32):
 	return img
 
 
+def flash():
+	"""The white-out on teleporting: one wide white glyph, shown as a title. The font scales it up
+	(height 512) until it covers any screen."""
+	return Image.new("RGBA", (128, 16), (255, 255, 255, 255))
+
+
 def muffler():
 	"""A puff of grey-white wool bound with string, an amethyst shard tucked in it."""
 	img = Image.new("RGBA", (16, 16))
@@ -214,6 +220,12 @@ def main():
 	write_json(ASSETS / "items/rift_core.json", {"model": {
 		"type": "minecraft:model", "model": "metacraft:item/rift_core",
 		"tints": [{"type": "minecraft:constant", "value": CORE_TINT}]}})
+	(ROOT / "font").mkdir(exist_ok=True)
+	flash().save(ROOT / "font/flash.png")
+	(ASSETS / "font").mkdir(exist_ok=True)
+	# a title is drawn 10 px above the screen's middle at 4x; ascent puts the glyph's middle there
+	write_json(ASSETS / "font/flash.json", {"providers": [
+		{"type": "bitmap", "file": "metacraft:font/flash.png", "ascent": 253, "height": 512, "chars": ["\ue000"]}]})
 	muffler().save(ITEM / "muffler.png")
 
 if __name__ == "__main__":
