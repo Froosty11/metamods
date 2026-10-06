@@ -1,7 +1,7 @@
 // Vanilla 26.3 item.fsh with one addition (metacraft-qol, the void anchor): where item.vsh flagged a
 // void-anchor rift, the painted sprite is replaced. The main crack (1) shows the End's void through
 // its split with glowing edges, a glowing crack (2) is all light, both using the sprite's alpha as
-// the crack's shape; the core (3) is a ring drawn like them, open in the middle. Every other item takes the vanilla
+// the crack's shape; the core (3) is a white-hot disc drawn like them. Every other item takes the vanilla
 // path. Re-diff against vanilla on every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
@@ -171,24 +171,22 @@ vec4 riftGlow(vec4 sprite) {
 }
 
 // The shatter rift's core, facing the camera: drawn like its cracks, on the same pixel grid and in
-// the same light, a ring, white-hot on its inner edge and flickering magenta-violet out to its rim,
-// with arms of light swirling in. Its middle is left open, so the void crack behind shows through.
+// the same light, a white-hot disc with a flickering magenta-violet rim and arms of light swirling
+// into it.
 vec4 riftCore() {
     float t = GameTime * 1200.0;
     vec2 local = (floor(riftLocal() * 32.0) + 0.5) / 32.0;
     vec2 p = local * 2.0 - 1.0;
     float r = length(p);
     float angle = atan(p.y, p.x);
-    float pulse = 1.0 + 0.06 * sin(t * 5.0);
-    float inner = 0.28 * pulse;
-    float ring = smoothstep(inner - 0.02, inner + 0.04, r) * (1.0 - smoothstep(0.44, 0.54, r));
-    float hot = ring * (1.0 - smoothstep(inner + 0.02, inner + 0.12, r));
-    float swirl = pow(0.5 + 0.5 * sin(angle * 3.0 + r * 12.0 - t * 6.0), 4.0)
-            * smoothstep(inner + 0.05, inner + 0.15, r) * (1.0 - smoothstep(0.45, 0.75, r));
+    float pulse = 1.0 + 0.08 * sin(t * 5.0);
+    float hot = 1.0 - smoothstep(0.2 * pulse, 0.3 * pulse, r);
+    float rim = (1.0 - smoothstep(0.38, 0.52, r)) * (1.0 - hot);
+    float swirl = pow(0.5 + 0.5 * sin(angle * 3.0 + r * 12.0 - t * 6.0), 4.0) * (1.0 - smoothstep(0.4, 0.75, r)) * (1.0 - hot);
     float flicker = 0.75 + 0.5 * riftFbm(local * 12.0 + vec2(t * 2.0, -t * 1.3));
     vec3 tint = mix(vec3(1.0, 0.3, 0.95), vec3(0.55, 0.25, 1.0), riftFbm(local * 4.0 + t * 0.4));
     vec3 color = mix(tint * 1.4, vec3(1.0, 0.92, 1.0), hot);
-    float alpha = clamp(max(hot, max(ring * flicker, swirl * 0.6)), 0.0, 1.0);
+    float alpha = clamp(max(hot, max(rim * flicker, swirl * 0.7)), 0.0, 1.0);
     return vec4(color, alpha);
 }
 

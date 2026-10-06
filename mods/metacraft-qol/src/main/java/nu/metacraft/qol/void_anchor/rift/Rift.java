@@ -37,8 +37,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * crack shapes, lies at its own angle, may be mirrored, and is a little longer or wider than the
  * last.
  *
- * <p>{@link RiftStyle#SHATTER} adds a bright core and glowing cracks running out from its edge,
- * all facing whoever looks at them, shooting out one after
+ * <p>{@link RiftStyle#SHATTER} adds, below the crack, a bright core and glowing cracks running out
+ * from its edge, all facing whoever looks at them, shooting out one after
  * another before the main crack pries open, as if space broke like glass; light (portal particles)
  * is pulled into the core.
  */
@@ -60,6 +60,8 @@ public final class Rift extends ElementHolder {
 	private static final float THIN = 0.08f;
 	/** How tall the rift a rescued player steps out of is, in blocks. */
 	private static final float EXIT_SIZE = 2.0f;
+	/** How far below the crack the shatter rift's burst sits, in rift sizes. */
+	private static final float BURST_DROP = 0.4f;
 	/** How many ray shapes the pack has: {@code metacraft:rift_ray_0} and on. */
 	public static final int RAY_VARIANTS = 4;
 	/** The shatter rift's glowing cracks out from its core. */
@@ -93,13 +95,17 @@ public final class Rift extends ElementHolder {
 		float width = size * (0.8f + 0.4f * random.nextFloat());
 		int mainStart = 1;
 		if (style == RiftStyle.SHATTER) {
-			float core = size * 0.5f;
+			float core = size * 0.35f;
 			var stack = new ItemStack(Items.PAPER);
 			stack.set(DataComponents.ITEM_MODEL, Qol.getID("rift_core"));
+			// The burst sits below the crack, so the crack stays in front of it for a player above
+			// and its light comes out round the crack from underneath.
+			var below = new Vec3(0, -size * BURST_DROP, 0);
 			var display = display(stack, new Quaternionf());
 			display.setBillboardMode(Display.BillboardConstraints.CENTER);
-			// a little toward the viewer, so the cracks through the centre don't cut it in half
-			display.setTranslation(new Vector3f(0, 0, size * 0.25f));
+			display.setOffset(below);
+			// a touch toward the viewer, over the rays' inner ends
+			display.setTranslation(new Vector3f(0, 0, size * 0.05f));
 			pieces.add(new Piece(display, 1, null, new Vector3f(core, core, core)));
 			// Rays out from the core's edge, each its own way round it, so none lies over another
 			// or over the core. Each faces the camera wherever it is, stood up from lying flat; it
@@ -113,10 +119,12 @@ public final class Rift extends ElementHolder {
 				// half a turn round: facing the camera, the sprite's wide end (its left) comes out on the far side
 				var ray = crack(GLOW_CRACK, "rift_ray_" + random.nextInt(RAY_VARIANTS), new Quaternionf().rotateZ(angle + Mth.PI));
 				ray.setBillboardMode(Display.BillboardConstraints.CENTER);
+				ray.setOffset(below);
 				ray.setRightRotation(new Quaternionf().rotateX(Mth.HALF_PI));
 				// a hair apart in depth, so where they meet at the rim they don't fight over which is in front
 				ray.setTranslation(new Vector3f(out).mul(rim).add(0, 0, 0.01f * i));
-				float reach = size * (0.7f + 0.4f * random.nextFloat());
+				// shorter than the crack is long, so the crack stays the thing to look at
+				float reach = size * (0.45f + 0.25f * random.nextFloat());
 				var at = new Vector3f(out).mul(rim + reach / 2).add(0, 0, 0.01f * i);
 				pieces.add(new Piece(ray, 2 + i, null, new Vector3f(reach, reach * 0.4f, 1f), at));
 			}
@@ -240,7 +248,7 @@ public final class Rift extends ElementHolder {
 			var c = attachment.getPos();
 			if (style == RiftStyle.SHATTER) {
 				// portal particles fly to where they were sent from: light pulled into the core
-				attachment.getWorld().sendParticles(ParticleTypes.PORTAL, c.x, c.y, c.z, 10, 0, 0, 0, size * 0.35);
+				attachment.getWorld().sendParticles(ParticleTypes.PORTAL, c.x, c.y - size * BURST_DROP, c.z, 10, 0, 0, 0, size * 0.35);
 			} else {
 				attachment.getWorld().sendParticles(
 						ParticleTypes.REVERSE_PORTAL, c.x, c.y + 0.2, c.z, 6, size * 0.35, 0.1, size * 0.35, 0.02
