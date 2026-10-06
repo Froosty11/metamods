@@ -31,7 +31,8 @@
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
     "minecraft": "~${minecraft_version}",
-    "metacraft-lib": "*"
+    "metacraft-lib": "*",
+    "metacraft-config": "*"
   },
   "suggests": {
     "another-mod": "*"

@@ -6,3 +6,4 @@ dependencies {
 	implementation(include("org.xerial:sqlite-jdbc:$jdbc_sqlite_version"))
 	implementation(include("org.postgresql:postgresql:$jdbc_postgresql_version"))
 }
+addConfigDependency()

@@ -14,11 +14,14 @@ import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.MinecraftServer;
 import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.resource_packs.mixin.HttpUtilAccessor;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.container.ReloadCause;
-import nu.metacraft.lib.config.extensions.LoadAware;
-import nu.metacraft.lib.config.extensions.Modifiable;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.container.ReloadCause;
+import se.metacraft.config.extensions.LoadAware;
+import se.metacraft.config.extensions.ReloadAware;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,10 +29,8 @@ import java.net.BindException;
 import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
-public class ResourcePackConfig implements Modifiable, LoadAware {
+public class ResourcePackConfig implements LoadAware, ReloadAware {
 
 	@SuppressWarnings("deprecation")
 	private static final HashFunction SHA1 = Hashing.sha1();
@@ -42,7 +43,9 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	public static final MapCodec<ResourcePackConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codec.unboundedMap(UUIDUtil.STRING_CODEC, ResourcePack.CODEC).fieldOf("resource_packs").forGetter(
+					METACodecs.createPMapCodec(
+						UUIDUtil.STRING_CODEC, ResourcePack.CODEC, HashTreePMap.empty()
+					).fieldOf("resource_packs").forGetter(
 							c -> c.resourcePacks
 					),
 					Codec.BOOL.fieldOf("required").forGetter(c -> c.required),
@@ -62,9 +65,9 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
 		c.handleReload(old, cause == SOFT);
 		return c;
-	}).orElse(old)).build(configDir.resolve("config.json"));
+	}).orElse(old)).withPath(configDir.resolve("config.json5")).build("resource-packs");
 
-	private final Map<UUID, ResourcePack> resourcePacks;
+	private final PMap<UUID, ResourcePack> resourcePacks;
 	private final Set<UUID> removedPacks = new HashSet<>();
 	private final Set<UUID> modifiedPacks = new HashSet<>();
 	private final Set<UUID> prevGlobals = new HashSet<>();
@@ -83,13 +86,13 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public ResourcePackConfig(
-			Map<UUID, ResourcePack> resourcePacks,
+			PMap<UUID, ResourcePack> resourcePacks,
 			boolean required, Optional<Component> prompt, String serverAddress,
 			Optional<String> networkAddress, int port, int maxConnections,
 			boolean allowManualDownloads,
 			Optional<ResourcePackServer.SSLSettings> sslSettings
 	) {
-		this.resourcePacks = new ConcurrentHashMap<>(resourcePacks);
+		this.resourcePacks = resourcePacks;
 		this.required = required;
 		this.prompt = prompt;
 		this.serverAddress = serverAddress;
@@ -102,11 +105,18 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	public ResourcePackConfig() {
 		this(
-				new HashMap<>(), true,
+				HashTreePMap.empty(), true,
 				Optional.empty(), "localhost",
 				Optional.empty(), 25585,
 				50, false, Optional.empty()
 		);
+	}
+
+	public void copyTransientFrom(ResourcePackConfig source) {
+		removedPacks.addAll(source.removedPacks);
+		modifiedPacks.addAll(source.modifiedPacks);
+		prevGlobals.addAll(source.prevGlobals);
+		newGlobals.addAll(source.newGlobals);
 	}
 
 	public static ResourcePackConfig getConfig() {
@@ -209,18 +219,6 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return new ResourcePackServer(server, port, networkAddress, maxConnections, sslSettings);
 	}
 
-	private boolean modified = false;
-
-	@Override
-	public void setModified(boolean modified) {
-		this.modified = modified;
-	}
-
-	@Override
-	public boolean isModified() {
-		return modified;
-	}
-
 	public boolean allowManualDownloads() {
 		return allowManualDownloads;
 	}
@@ -235,8 +233,15 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		});
 	}
 
-	@Override
-	public void afterLoad(Optional<ReloadCause> cause) {
+	public ResourcePackConfig withPack(UUID uuid, ResourcePack pack) {
+		var packs = new ResourcePackConfig(
+			resourcePacks.plus(uuid, pack), required, prompt, serverAddress, networkAddress, port, maxConnections, allowManualDownloads, sslSettings
+		);
+		packs.copyTransientFrom(this);
+		return packs;
+	}
+
+	private void movePacks() {
 		try {
 			Files.createDirectories(RP_UPDATE_DIR);
 			var zipsToUpdate = RP_UPDATE_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
@@ -247,6 +252,20 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 					Files.move(file.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
 				}
 			}
+		} catch (IOException err) {
+			ResourcePacks.LOGGER.error(err.getMessage(), err);
+		}
+	}
+
+	@Override
+	public void beforeReload(ReloadCause cause) {
+		movePacks();
+	}
+
+	@Override
+	public void afterLoad(Optional<ReloadCause> cause) {
+		try {
+			if (cause.isEmpty()) movePacks();
 			var resourcePackZips = RESOURCE_PACK_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
 			if (resourcePackZips != null) {
 				for (var file : resourcePackZips) {
@@ -267,26 +286,26 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 							//Resource pack update.
 							if (pack.getFile().equals(path)) {
 								pack.setHash(hash);
-								return false;
+								return c;
 							}
 							//Try to follow renamed file (might cause mismatches).
 							if ((pack.getHash() == null || pack.getHash().equals(hash)) && !pack.getFile().toFile().exists()) {
-								pack.setFile(path);
-								pack.setHash(hash);
-								return true;
+								var newPack = pack.withFile(path);
+								newPack.setHash(hash);
+								return c.withPack(uuid, newPack);
 							}
 						}
 
-						c.resourcePacks.put(uuid, new ResourcePack(
+						return c.withPack(
+							uuid, new ResourcePack(
 								path, false, Optional.empty(), hash
-						));
-						return true;
+							)
+						);
 					});
-					CONFIG.get();
 				}
 			}
 		} catch (IOException e) {
-			ResourcePacks.LOGGER.error(e);
+			ResourcePacks.LOGGER.error(e.getMessage(), e);
 		}
 
 		cause.ifPresent(reloadCause -> ResourcePackServerManager.getServers().forEach(
@@ -296,15 +315,9 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		));
 	}
 
-	private Set<UUID> getGlobalPacks() {
-		return resourcePacks.entrySet().stream().filter(
-				entry -> entry.getValue().isGlobal()
-		).map(Map.Entry::getKey).collect(Collectors.toSet());
-	}
-
 	public static class ResourcePack {
 
-		private Path file;
+		private final Path file;
 		private final boolean global;
 		private final Optional<Boolean> allowManualDownloads;
 		private HashCode hash;
@@ -342,11 +355,18 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		}
 
 		public HashCode getHash() {
+			if (hash == null && file.toFile().exists()) {
+				try {
+					hash = HttpUtilAccessor.callHashFile(file, SHA1);
+				} catch (IOException err) {
+					ResourcePacks.LOGGER.error(err.getMessage(), err);
+				}
+			}
 			return hash;
 		}
 
-		public void setFile(Path path) {
-			this.file = path;
+		public ResourcePack withFile(Path path) {
+			return new ResourcePack(path, global, allowManualDownloads, hash);
 		}
 
 		public void setHash(HashCode hash) {

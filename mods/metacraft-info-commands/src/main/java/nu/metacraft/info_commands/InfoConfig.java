@@ -10,7 +10,7 @@ import java.util.Map;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 
 public record InfoConfig(
 	Map<String, InfoNode> commands, boolean resendCommandTreeOnReload,

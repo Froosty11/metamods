@@ -1,6 +1,7 @@
 version = project.qol_version
 
 addCoreDependencies()
+addConfigDependency()
 
 setupRunDatagen("metacraft-qol")
 
@@ -20,4 +21,6 @@ fabricApi {
 
 dependencies {
 	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+	// the config dialog, so a test can check it reads the qol config
+	testImplementation project(":mods:metacraft-config-gui")
 }

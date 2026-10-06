@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 
 public record InfoNode(Component message, Map<String, InfoNode> subCommands) {
 	public static final Codec<InfoNode> RECORD_CODEC = RecordCodecBuilder.create(instance -> instance.group(

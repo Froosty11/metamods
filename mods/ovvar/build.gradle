@@ -18,6 +18,7 @@ fabricApi {
 }
 
 addPolymerDependency()
+addConfigDependency()
 addSGUIDependency()
 // Pockets: the ovve is a bundle whose capacity metacraft-bundles scales (metacraft:bundle_size_factor).
 addProjectDependency(":mods:metacraft-bundles")

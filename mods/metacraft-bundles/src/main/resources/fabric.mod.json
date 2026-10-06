@@ -28,6 +28,7 @@
 		"fabricloader": ">=${loader_version}",
 		"fabric-api": "*",
 		"minecraft": "~${minecraft_version}",
-		"polymer-core": "*"
+		"polymer-core": "*",
+		"metacraft-config": "*"
 	}
 }

@@ -8,8 +8,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 import nu.metacraft.qol.QolConfig;
+import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 
 import java.util.Optional;
 import java.util.Set;
@@ -17,11 +18,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** The void anchor's section of {@code metacraft-qol.json}. */
 public record VoidAnchorConfig(
-		boolean enabled, Identifier fuelItem, int triggerYOffset, double riftDepth, double descentSpeed, int riftTicks, float riftSize
+		boolean enabled, Identifier fuelItem, int triggerYOffset, double riftDepth, double descentSpeed, int riftTicks, float riftSize,
+		RiftStyle riftStyle
 ) {
 
 	public static final VoidAnchorConfig DEFAULT = new VoidAnchorConfig(
-			true, Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.3, 30, 4.0f
+			true, Identifier.withDefaultNamespace("end_crystal"), 0, 6.0, 0.2, 40, 4.0f, RiftStyle.CRACK
 	);
 
 	public static final MapCodec<VoidAnchorConfig> CODEC = RecordCodecBuilder.mapCodec(
@@ -45,16 +47,21 @@ public record VoidAnchorConfig(
 					).forGetter(VoidAnchorConfig::riftDepth),
 					CommentCodec.comment(
 							Codec.doubleRange(0.05, 2).fieldOf("descent_speed"),
-							"How fast the player sinks into the rift, in blocks per tick."
+							"How fast the player sinks into the rift once it has opened, in blocks per tick. (While it opens, they hang in the air.)"
 					).forGetter(VoidAnchorConfig::descentSpeed),
 					CommentCodec.comment(
 							Codec.intRange(1, 200).fieldOf("rift_ticks"),
-							"The longest a player spends sinking before the rift takes them, in ticks."
+							"The longest a player spends sinking once the rift has opened, before it takes them, in ticks."
 					).forGetter(VoidAnchorConfig::riftTicks),
 					CommentCodec.comment(
 							Codec.floatRange(0.5f, 8).fieldOf("rift_size"),
 							"How wide the rift is, in blocks."
-					).forGetter(VoidAnchorConfig::riftSize)
+					).forGetter(VoidAnchorConfig::riftSize),
+					CommentCodec.comment(
+							RiftStyle.CODEC.fieldOf("rift_style"),
+							"How a rift looks. \"crack\": one crack in space under the player, the End's void showing through.",
+							"\"shatter\": that crack, crossed by glowing cracks at every angle through a bright core, as if space broke like glass."
+					).forGetter(VoidAnchorConfig::riftStyle)
 			).apply(instance, VoidAnchorConfig::new)
 	);
 

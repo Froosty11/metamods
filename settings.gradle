@@ -9,6 +9,8 @@ pluginManagement {
 }
 
 include "dist"
+include "mods:metacraft-config"
+include "mods:metacraft-config-gui"
 include "mods:metacraft-core"
 include "mods:metacraft-cutscenes"
 include "mods:metacraft-bundles"

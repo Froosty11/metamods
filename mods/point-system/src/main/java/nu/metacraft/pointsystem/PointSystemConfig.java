@@ -7,7 +7,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import se.metacraft.config.container.ConfigContainer;
 
 public record PointSystemConfig(
 		Component universityScoreText,
@@ -33,7 +33,7 @@ public record PointSystemConfig(
 			Component.literal("Top Players").withStyle(style -> style.withColor(ChatFormatting.GOLD).withBold(true)),
 			"jdbc:sqlite:point-system-data.db", "", ""
 		)
-	).build(FabricLoader.getInstance().getConfigDir().resolve("point-system-config.json"));
+	).withPath(FabricLoader.getInstance().getConfigDir().resolve("point-system-config.json")).build("point-system");
 
 	public static PointSystemConfig getInstance() {
 		return CONFIG.get();

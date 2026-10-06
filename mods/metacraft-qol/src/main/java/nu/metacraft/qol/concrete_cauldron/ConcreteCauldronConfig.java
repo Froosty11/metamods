@@ -3,7 +3,7 @@ package nu.metacraft.qol.concrete_cauldron;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import nu.metacraft.lib.config.CommentCodec;
+import se.metacraft.config.util.CommentCodec;
 import nu.metacraft.qol.QolConfig;
 
 /** The concrete cauldron's section of {@code metacraft-qol.json}. */

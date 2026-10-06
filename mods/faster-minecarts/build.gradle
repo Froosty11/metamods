@@ -1,3 +1,4 @@
 version = project.faster_minecarts_version
 
 addPolymerDependency()
+addConfigDependency()

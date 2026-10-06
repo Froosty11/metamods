@@ -8,8 +8,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
-import nu.metacraft.lib.config.JsonHelper;
 import nu.metacraft.lib.util.TaskScheduler;
+import nu.metacraft.lib.util.helper.JsonHelper;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 
 import java.nio.file.Path;

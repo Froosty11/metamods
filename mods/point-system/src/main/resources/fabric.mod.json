@@ -24,6 +24,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
+    "metacraft-config": "*",
     "minecraft": "${minecraft_version}"
   }
 }

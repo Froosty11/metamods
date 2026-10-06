@@ -35,6 +35,7 @@
 		"minecraft": ">=26.3-rc.1 <26.4",
 		"java": ">=25",
 		"fabric-api": "*",
+		"metacraft-config": "*",
 		"polymer-core": "*",
 		"polymer-resource-pack": "*",
 		"polymer-virtual-entity": "*",

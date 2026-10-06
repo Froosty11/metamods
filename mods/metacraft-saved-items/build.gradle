@@ -5,3 +5,4 @@ loom {
 }
 
 addProjectDependency(":mods:metacraft-loot-containers")
+addConfigDependency()

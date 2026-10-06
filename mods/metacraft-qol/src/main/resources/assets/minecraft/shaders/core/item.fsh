@@ -1,7 +1,8 @@
 // Vanilla 26.3 item.fsh with one addition (metacraft-qol, the void anchor): where item.vsh flagged a
-// void-anchor rift, the painted sprite is replaced by a crack in space — the End's void through the
-// split, glowing edges — using the sprite's alpha as the crack's shape. Every other item takes the vanilla path. Re-diff against vanilla on
-// every Minecraft update.
+// void-anchor rift, the painted sprite is replaced. The main crack (1) shows the End's void through
+// its split with glowing edges, a glowing crack (2) is all light, both using the sprite's alpha as
+// the crack's shape; the core (3) is a white-hot disc drawn like them. Every other item takes the vanilla
+// path. Re-diff against vanilla on every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
@@ -134,7 +135,7 @@ vec2 riftLocal() {
 }
 
 // The rift: a crack in space (the sprite's alpha). Through the split, the End's void; along its
-// edges and hairline branches, white-hot light flickering magenta and teal; round it, a glow.
+// edges and hairline branches, white-hot light flickering magenta and violet; round it, a glow.
 // GameTime counts days, so * 1200 is seconds.
 vec4 riftColor(vec4 sprite) {
     float t = GameTime * 1200.0;
@@ -143,11 +144,49 @@ vec4 riftColor(vec4 sprite) {
     float inside = smoothstep(0.90, 0.99, a);
     float edge = exp(-pow((a - 0.76) / 0.16, 2.0));
     float flicker = 0.7 + 0.6 * riftFbm(local * 14.0 + vec2(t * 1.6, -t * 1.1));
-    vec3 hot = mix(vec3(1.0, 0.28, 0.95), vec3(0.25, 1.0, 0.85), smoothstep(0.42, 0.68, riftFbm(local * 5.0 - t * 0.5)));
+    vec3 hot = mix(vec3(1.0, 0.28, 0.95), vec3(0.5, 0.22, 1.0), smoothstep(0.42, 0.68, riftFbm(local * 5.0 - t * 0.5)));
     vec3 line = mix(hot, vec3(1.0, 0.92, 1.0), 0.35 * smoothstep(0.82, 0.92, a));
     float halo = (1.0 - inside) * smoothstep(0.0, 0.45, a) * (1.0 - edge);
     vec3 color = riftVoid() * inside + line * edge * flicker * 1.5 + hot * halo * 1.3;
     float alpha = clamp(max(inside, max(edge * flicker, halo)), 0.0, 1.0);
+    return vec4(color, alpha);
+}
+
+// A glowing crack, as the shatter rift crosses its main one with: no void, the split and its edges
+// white-hot, the hairlines lit, and a wide soft glow smeared along them that drifts like an aurora.
+vec4 riftGlow(vec4 sprite) {
+    float t = GameTime * 1200.0;
+    vec2 local = riftLocal();
+    float a = sprite.a;
+    float core = smoothstep(0.9, 0.99, a);
+    float edge = smoothstep(0.5, 0.8, a) * (1.0 - core);
+    float flicker = 0.75 + 0.5 * riftFbm(local * 12.0 + vec2(t * 2.0, -t * 1.3));
+    // the halo's alpha falls off fast; its root spreads the glow wider
+    float glow = (1.0 - smoothstep(0.45, 0.6, a)) * sqrt(clamp(a / 0.45, 0.0, 1.0));
+    float aurora = 0.45 + 0.9 * riftFbm(vec2(local.x * 3.0 - t * 0.7, local.y * 9.0 + t * 0.3));
+    vec3 hot = mix(vec3(1.0, 0.3, 0.95), vec3(0.55, 0.25, 1.0), riftFbm(local * 4.0 + t * 0.4));
+    vec3 color = mix(hot * 1.4, vec3(1.0, 0.92, 1.0), core);
+    float alpha = clamp(max(core, max(edge * flicker, glow * aurora * 0.6)), 0.0, 1.0);
+    return vec4(color, alpha);
+}
+
+// The shatter rift's core, facing the camera: drawn like its cracks, on the same pixel grid and in
+// the same light, a white-hot disc with a flickering magenta-violet rim and arms of light swirling
+// into it.
+vec4 riftCore() {
+    float t = GameTime * 1200.0;
+    vec2 local = (floor(riftLocal() * 32.0) + 0.5) / 32.0;
+    vec2 p = local * 2.0 - 1.0;
+    float r = length(p);
+    float angle = atan(p.y, p.x);
+    float pulse = 1.0 + 0.08 * sin(t * 5.0);
+    float hot = 1.0 - smoothstep(0.2 * pulse, 0.3 * pulse, r);
+    float rim = (1.0 - smoothstep(0.38, 0.52, r)) * (1.0 - hot);
+    float swirl = pow(0.5 + 0.5 * sin(angle * 3.0 + r * 12.0 - t * 6.0), 4.0) * (1.0 - smoothstep(0.4, 0.75, r)) * (1.0 - hot);
+    float flicker = 0.75 + 0.5 * riftFbm(local * 12.0 + vec2(t * 2.0, -t * 1.3));
+    vec3 tint = mix(vec3(1.0, 0.3, 0.95), vec3(0.55, 0.25, 1.0), riftFbm(local * 4.0 + t * 0.4));
+    vec3 color = mix(tint * 1.4, vec3(1.0, 0.92, 1.0), hot);
+    float alpha = clamp(max(hot, max(rim * flicker, swirl * 0.7)), 0.0, 1.0);
     return vec4(color, alpha);
 }
 
@@ -161,8 +200,16 @@ void main() {
 
     color *= vertexColor * ColorModulator;
 
-    if (riftFlag > 0.5) {
+    if (riftFlag > 2.5) {
+        color = riftCore();
+    } else if (riftFlag > 1.5) {
+        color = riftGlow(texture(Sampler0, texCoord0));
+    } else if (riftFlag > 0.5) {
         color = riftColor(texture(Sampler0, texCoord0));
+    }
+    // Nothing to draw: leave no depth behind either, or a rift's empty corners hide its other parts.
+    if (riftFlag > 0.5 && color.a < 0.02) {
+        discard;
     }
 
     #ifdef GLINT

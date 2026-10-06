@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import metacraft.ovvar.store.DesignStoreConfig;
 import metacraft.ovvar.store.StashConfig;
 import net.fabricmc.loader.api.FabricLoader;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import se.metacraft.config.container.ConfigContainer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,7 +56,7 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 
 	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, () -> new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT)
-	).build(FabricLoader.getInstance().getConfigDir().resolve(Ovvar.MOD_ID + ".json"));
+	).withPath(FabricLoader.getInstance().getConfigDir().resolve(Ovvar.MOD_ID + ".json")).build(Ovvar.MOD_ID);
 
 
 	public static OvvarConfig get() {
@@ -78,6 +78,6 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 	}
 
 	public static void modify(UnaryOperator<OvvarConfig> config) {
-		CONTAINER.replace(config.apply(CONTAINER.get()));
+		CONTAINER.modify(config);
 	}
 }

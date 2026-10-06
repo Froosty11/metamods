@@ -1,0 +1,2 @@
+version = project.config_gui_version
+addConfigDependency()

@@ -17,9 +17,9 @@ import net.minecraft.world.level.storage.loot.IntLimit;
 import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.container.ServerAware;
 import org.jetbrains.annotations.NotNull;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.container.ServerAware;
 
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +81,7 @@ public record RevivalConfig(
 	).reloadAfterServer().makeRegistryAware(
 			WorldData.CODEC
 	).refreshOnReload().setInitializer(() -> new WorldData(getDefaultReviveCondition())).build(
-			FabricLoader.getInstance().getConfigDir().resolve("metacraft-revival.json")
+			"metacraft-revival"
 	);
 
 	public record WorldData(Holder<@NotNull LootItemCondition> reviveCondition) {

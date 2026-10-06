@@ -19,8 +19,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
-import nu.metacraft.lib.config.container.ConfigContainer;
-import nu.metacraft.lib.config.container.ServerAware;
+import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.container.ServerAware;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,8 +29,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class RepairFixConfig {
-
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(RepairFix.modid + ".json");
 
 	public static final MapCodec<RepairFixConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -42,7 +40,7 @@ public final class RepairFixConfig {
 
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RepairFixConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, RepairFixConfig::createDefault
-	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(configPath);
+	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(RepairFix.modid);
 
 	public static void init() {
 		getConfig();
