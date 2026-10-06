@@ -86,6 +86,7 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.qol.silence_mobs.SilenceMobs;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.rift.Rift;
+import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 
 /**
  * The guidebook's page images, the way Patbox makes PolyFactory's: each scene is built in a flat
@@ -291,7 +292,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("decorating/lead", new BlockPos(72, -60, 20), new BlockPos(76, -59, 20), 70),
 			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70),
 			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
-			new Scene("qol/rift", new BlockPos(105, -59, 19), new BlockPos(108, -56, 22), 70),
+			new Scene("qol/rift", new BlockPos(104, -60, 18), new BlockPos(109, -54, 23), 55),
 			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
 			new Scene("qol/muffler", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75));
 
@@ -421,10 +422,11 @@ public final class BookletRenders implements FabricClientGameTest {
 		level.setBlockAndUpdate(new BlockPos(100, -60, 20),
 				VoidAnchorBlocks.VOID_ANCHOR.value().defaultBlockState().setValue(RespawnAnchorBlock.CHARGE, 3));
 
-		// a crack open in the air, someone sinking into it (opened here, not by command: it stays open)
-		Rift.open(level, new Vec3(106.5, -58.6, 20.5), 3.6f);
+		// a crack open in the air, its light bursting out from under it, someone sinking into it
+		// (opened here, not by command: it stays open)
+		Rift.open(level, new Vec3(106.5, -56.6, 20.5), 3.6f, RiftStyle.SHATTER);
 		Mannequin sinking = new Mannequin(EntityTypes.MANNEQUIN, level);
-		sinking.setPos(106.5, -57.9, 20.5);
+		sinking.setPos(106.5, -55.9, 20.5);
 		sinking.setNoGravity(true);
 		sinking.setYRot(30); sinking.setYBodyRot(30); sinking.setYHeadRot(30);
 		sinking.setXRot(40);

@@ -5,7 +5,7 @@ category=metacraft:qol
 icon=metacraft:void_anchor
 order=1
 ### EndSection: PageInfo
-### Image: metacraft:beside/qol/void_anchor A void anchor catches you when you fall into the End's void. Space cracks open below you, you sink into the crack, and you come out next to your anchor.<nl2>It only works in the End.
+### Image: metacraft:beside/qol/void_anchor A void anchor catches you when you fall into the End's void. Space cracks open below you, you sink into the crack, and you step out next to your anchor.<nl2>It only works in the End.
 
 ### Header: Making one
 ### Image: metacraft:beside/recipe/void_anchor Like a respawn anchor, with eyes of ender where the glowstone goes.
@@ -17,7 +17,7 @@ Right-click it with an end crystal to add a charge, up to four; the lights on it
 Right-click it with an empty hand. You are bound to one anchor at a time, so binding another moves you over. Friends can bind to the same anchor and share its charges.
 
 ### Header: Falling
-Drop below the bottom of the End and space cracks open under you and slows your fall. You come out beside your anchor, and it loses a charge.
+### Image: metacraft:beside/qol/rift Drop below the bottom of the End and you stop in mid-air, looking down, while space cracks open under you. You sink into the crack, everything goes white, and you step out of a crack on top of your anchor. The anchor loses a charge.<nl2>Gliding with an elytra? It folds when the crack catches you.
 
 ### Body:
 If your anchor is empty, broken or blocked in, you are told so as you fall, and you fall the way you would without one.
