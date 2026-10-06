@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.jspecify.annotations.Nullable;
 
 import static metacraft.ovvar.datagen.J.arr;
 import static metacraft.ovvar.datagen.J.obj;
@@ -364,7 +365,9 @@ public final class GeneratedAssets implements DataProvider {
 
 			String ovve = ModContent.ovveId(chapter).getPath();
 			Tex tinted = icon.tinted(colour);
-			item(ovve, tinted);
+			// A garment cut unlike the ovve (the frack) brings its own icon, drawn in its own colours:
+			// tinting the ovve's would give the wrong shape, and grey cloth tints to the grey's stray hue.
+			item(ovve, ownIcon(chapter) != null ? ownIcon(chapter) : tinted);
 			lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
 			// A frack is all top: no legs layer (what the overlay paints on the legs, the coat's tails,
 			// is left out — a chest item cannot draw there), no companion top, no cuffs.
@@ -792,6 +795,15 @@ public final class GeneratedAssets implements DataProvider {
 
 	private static Tex art(String name) {
 		return Tex.art(name);
+	}
+
+	/** {@code art/ovvar/icon_<overlay>.png}, the chapter's own 16×16 icon, or null if it has none. */
+	private static @Nullable Tex ownIcon(Chapter chapter) {
+		String name = "icon_" + chapter.overlay;
+		if (Tex.class.getResource("/art/" + MOD + "/" + name + ".png") == null) return null;
+		Tex tex = art(name);
+		require(tex.width == 16 && tex.height == 16, name + ".png is not 16×16");
+		return tex;
 	}
 
 	private static Tex overlay(String name, Chapter chapter) {
