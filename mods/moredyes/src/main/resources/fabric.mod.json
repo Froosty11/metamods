@@ -35,6 +35,7 @@
 		"polymer-resource-pack": "*",
 		"polymer-virtual-entity": "*",
 		"polymer-sound-patcher": "*",
+		"metacraft-config": "*",
 		"sgui": "*"
 	},
 	"mixins": [

@@ -3,6 +3,7 @@ package metacraft.moredyes.content;
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.MoreDyesConfig;
 import net.minecraft.core.Direction;
 
 import java.util.ArrayList;
@@ -25,8 +26,9 @@ import java.util.Map;
  *
  * Polymer itself has no such fallback: when a pool is empty it hands back null, which
  * {@link ClientStates} turns into a startup failure. This planner is what makes adding a colour a
- * data change: the decision is deterministic, logged, and never differs between colours. Override
- * for testing with {@code -Dmoredyes.look.<family>=donor|display}.
+ * data change: the decision is deterministic, logged, and never differs between colours. A server
+ * can set it per family in {@code config/moredyes.json5} ({@link MoreDyesConfig}); for testing,
+ * {@code -Dmoredyes.look.<family>=donor|display} overrides that.
  */
 public final class Looks {
 	public enum Look { DONOR, DISPLAY }
@@ -60,6 +62,11 @@ public final class Looks {
 		}
 		int fit = perColour == 0 ? Integer.MAX_VALUE : tightest / perColour;
 		Look look = fit >= colours ? Look.DONOR : Look.DISPLAY;
+		var configured = MoreDyesConfig.get().look(family);
+		if (configured != MoreDyesConfig.LookChoice.AUTO) {
+			look = configured == MoreDyesConfig.LookChoice.DONOR ? Look.DONOR : Look.DISPLAY;
+			MoreDyes.LOGGER.info("[{}] {} look set to {} by config/moredyes.json5", MoreDyes.MOD_ID, family.id, look);
+		}
 		String override = System.getProperty("moredyes.look." + family.id);
 		if (override != null) {
 			look = Look.valueOf(override.toUpperCase(Locale.ROOT));

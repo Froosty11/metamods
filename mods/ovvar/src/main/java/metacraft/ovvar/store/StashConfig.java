@@ -1,6 +1,7 @@
 package metacraft.ovvar.store;
 
 import com.mojang.serialization.Codec;
+import metacraft.ovvar.ConfigFields;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.level.GameType;
@@ -122,43 +123,24 @@ public record StashConfig(
 			},
 			GameType::getName);
 
-	/** Written into the file as {@code _help}, one line per key, since JSON has no comments. */
-	public static final Map<String, String> HELP = new LinkedHashMap<>();
-	static {
-		HELP.put("_about", "What this server is, and the rules for patches here. Patches live in a player's stash (shared by all servers), on their ovve, or as items in the world.");
-		HELP.put("minigame_server", "true on a minigame server: the stash can be looked at but nothing sewn, unpicked or taken out, and any patch item that lands in an inventory is banked into the stash so it cannot be lost to a locked or wiped inventory. false on a survival server.");
-		HELP.put("sew_game_modes", "Game modes in which a player may sew, unpick and take patches out of the stash. Adventure is deliberately not one.");
-		HELP.put("ingame_objective", "A scoreboard objective. A player whose score in it is not 0 is in a game and may not sew or take patches out. \"\" turns the check off.");
-		HELP.put("bank_on_pickup", "When a patch item in a player's inventory is moved into their stash automatically: \"minigame\" (only on a minigame server), \"always\", or \"never\".");
-		HELP.put("bank_in_creative", "Whether that also happens to players in creative mode. false lets gamemasters keep patch items for showcase stands.");
-		HELP.put("unpick_to_stash", "true: a patch unpicked from a stand goes to the stash. false: it goes into the hand as an item, the vanilla feel.");
-		HELP.put("withdraw", "Whether a player may take a patch out of the stash as an item here (to sew on a stand or trade). Never on a minigame server.");
-		HELP.put("sessions", "The private sewing flow: click a patch in the stash to get your own posed armour stand with the patch pinned in hotbar slot 9 and shears in slot 8. Off by default; the stash then just hands patches out as items.");
-		HELP.put("stash_click", "With sessions on: what a left-click on a patch in the stash does, \"withdraw\" (take it out as an item) or \"session\". Right-click does the other.");
-		HELP.put("any_stand", "Patches may be sewn and unpicked on any armour stand wearing an owned ovve (true, the classic way). false: only on a session stand.");
-		HELP.put("session_reach", "Blocks a player may walk from their session stand before the session ends.");
-		HELP.put("session_seconds", "Idle seconds before a session ends.");
-		HELP.put("explain_in_chat", "When a patch is earned, also explain in chat what the stash is and how to use it.");
-	}
 
 	public static final StashConfig DEFAULT = new StashConfig(false, List.of(GameType.SURVIVAL, GameType.CREATIVE), "ingame",
 			Bank.MINIGAME, false, false, true, false, StashClick.WITHDRAW, true, 8.0, 300, true);
 
 	public static final MapCodec<StashConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", java.util.Map.of()).forGetter(c -> HELP),
-			Codec.BOOL.optionalFieldOf("minigame_server", DEFAULT.minigameServer).forGetter(StashConfig::minigameServer),
-			GAME_TYPE.listOf().optionalFieldOf("sew_game_modes", DEFAULT.sewGameModes).forGetter(StashConfig::sewGameModes),
-			Codec.STRING.optionalFieldOf("ingame_objective", DEFAULT.ingameObjective).forGetter(StashConfig::ingameObjective),
-			Bank.CODEC.optionalFieldOf("bank_on_pickup", DEFAULT.bankOnPickup).forGetter(StashConfig::bankOnPickup),
-			Codec.BOOL.optionalFieldOf("bank_in_creative", DEFAULT.bankInCreative).forGetter(StashConfig::bankInCreative),
-			Codec.BOOL.optionalFieldOf("unpick_to_stash", DEFAULT.unpickToStash).forGetter(StashConfig::unpickToStash),
-			Codec.BOOL.optionalFieldOf("withdraw", DEFAULT.withdraw).forGetter(StashConfig::withdraw),
-			Codec.BOOL.optionalFieldOf("sessions", DEFAULT.sessions).forGetter(StashConfig::sessions),
-			StashClick.CODEC.optionalFieldOf("stash_click", DEFAULT.stashClick).forGetter(StashConfig::stashClick),
-			Codec.BOOL.optionalFieldOf("any_stand", DEFAULT.anyStand).forGetter(StashConfig::anyStand),
-			Codec.doubleRange(1, 64).optionalFieldOf("session_reach", DEFAULT.sessionReach).forGetter(StashConfig::sessionReach),
-			Codec.intRange(10, 3600).optionalFieldOf("session_seconds", DEFAULT.sessionSeconds).forGetter(StashConfig::sessionSeconds),
-			Codec.BOOL.optionalFieldOf("explain_in_chat", DEFAULT.explainInChat).forGetter(StashConfig::explainInChat)
-	).apply(instance, (help, minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain) ->
+			ConfigFields.field(Codec.BOOL, "minigame_server", DEFAULT.minigameServer, "true on a minigame server: the stash can be looked at but nothing sewn, unpicked or taken out,", "and any patch item that lands in an inventory is banked into the stash so it cannot be lost to a", "locked or wiped inventory. false on a survival server.").forGetter(StashConfig::minigameServer),
+			ConfigFields.field(GAME_TYPE.listOf(), "sew_game_modes", DEFAULT.sewGameModes, "Game modes in which a player may sew, unpick and take patches out of the stash. Adventure is", "deliberately not one.").forGetter(StashConfig::sewGameModes),
+			ConfigFields.field(Codec.STRING, "ingame_objective", DEFAULT.ingameObjective, "A scoreboard objective. A player whose score in it is not 0 is in a game and may not sew or take", "patches out. \"\" turns the check off.").forGetter(StashConfig::ingameObjective),
+			ConfigFields.field(Bank.CODEC, "bank_on_pickup", DEFAULT.bankOnPickup, "When a patch item in a player's inventory is moved into their stash automatically: \"minigame\"", "(only on a minigame server), \"always\", or \"never\".").forGetter(StashConfig::bankOnPickup),
+			ConfigFields.field(Codec.BOOL, "bank_in_creative", DEFAULT.bankInCreative, "Whether that also happens to players in creative mode. false lets gamemasters keep patch items", "for showcase stands.").forGetter(StashConfig::bankInCreative),
+			ConfigFields.field(Codec.BOOL, "unpick_to_stash", DEFAULT.unpickToStash, "true: a patch unpicked from a stand goes to the stash. false: it goes into the hand as an item,", "the vanilla feel.").forGetter(StashConfig::unpickToStash),
+			ConfigFields.field(Codec.BOOL, "withdraw", DEFAULT.withdraw, "Whether a player may take a patch out of the stash as an item here (to sew on a stand or trade).", "Never on a minigame server.").forGetter(StashConfig::withdraw),
+			ConfigFields.field(Codec.BOOL, "sessions", DEFAULT.sessions, "The private sewing flow: click a patch in the stash to get your own posed armour stand with the", "patch pinned in hotbar slot 9 and shears in slot 8. Off by default; the stash then just hands", "patches out as items.").forGetter(StashConfig::sessions),
+			ConfigFields.field(StashClick.CODEC, "stash_click", DEFAULT.stashClick, "With sessions on: what a left-click on a patch in the stash does, \"withdraw\" (take it out as", "an item) or \"session\". Right-click does the other.").forGetter(StashConfig::stashClick),
+			ConfigFields.field(Codec.BOOL, "any_stand", DEFAULT.anyStand, "Patches may be sewn and unpicked on any armour stand wearing an owned ovve (true, the classic", "way). false: only on a session stand.").forGetter(StashConfig::anyStand),
+			ConfigFields.field(Codec.doubleRange(1, 64), "session_reach", DEFAULT.sessionReach, "Blocks a player may walk from their session stand before the session ends.").forGetter(StashConfig::sessionReach),
+			ConfigFields.field(Codec.intRange(10, 3600), "session_seconds", DEFAULT.sessionSeconds, "Idle seconds before a session ends.").forGetter(StashConfig::sessionSeconds),
+			ConfigFields.field(Codec.BOOL, "explain_in_chat", DEFAULT.explainInChat, "When a patch is earned, also explain in chat what the stash is and how to use it.").forGetter(StashConfig::explainInChat)
+	).apply(instance, (minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain) ->
 			new StashConfig(minigame, modes, objective, bank, creative, unpickToStash, withdraw, sessions, click, anyStand, reach, seconds, explain)));
 }
