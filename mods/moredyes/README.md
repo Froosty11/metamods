@@ -18,7 +18,7 @@ donors — since 26.x the client picks the render layer per sprite, so they are 
 translucent); bundles; sheep (colour attachment, vanilla sheep sent invisible, whole-sheep
 display-entity rig animated server-side); banner patterns (every registered pattern, vanilla or
 datapack, derived per colour at registry load and tinted at pack build; applied through the
-dye-loom GUI); recipes for everything vanilla dyes make, including leather/horse/wolf armour
+dye-loom GUI, which offers a pattern that needs a pattern item only while the player carries one); recipes for everything vanilla dyes make, including leather/horse/wolf armour
 and firework stars mixed with vanilla dyes. Not supported by design: wolf/cat collars, sign
 text, harnesses, and beacon-beam tinting (our glass passes the beam untinted).
 

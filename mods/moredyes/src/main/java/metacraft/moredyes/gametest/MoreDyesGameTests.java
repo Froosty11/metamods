@@ -3,6 +3,9 @@ package metacraft.moredyes.gametest;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.banner.BannerPatterns;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import metacraft.moredyes.banner.DyeLoomGui;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.ClientStates;
@@ -156,6 +159,26 @@ public final class MoreDyesGameTests {
 		helper.setBlock(water, Blocks.WATER);
 		helper.setBlock(water.above(3), block(Family.CONCRETE_POWDER));
 		helper.succeedWhenBlockPresent(block(Family.CONCRETE), water);
+	}
+
+	/**
+	 * The dye loom keeps a loom's rule: a pattern that needs a pattern item (globe) is offered only
+	 * while the player carries one, and a free pattern (stripe) always is.
+	 */
+	@GameTest
+	public void dyeLoomGatesPatternItems(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.getInventory().clearContent();
+		Registry<BannerPattern> registry = helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
+		var globe = registry.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN,
+				BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("globe"))));
+		var stripe = registry.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN,
+				BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("stripe_bottom"))));
+		helper.assertTrue(DyeLoomGui.offered(player, registry, stripe), "a free pattern is not offered");
+		helper.assertFalse(DyeLoomGui.offered(player, registry, globe), "the globe is offered without its pattern item");
+		player.getInventory().add(new ItemStack(Items.GLOBE_BANNER_PATTERN));
+		helper.assertTrue(DyeLoomGui.offered(player, registry, globe), "the globe is not offered with its pattern item");
+		helper.succeed();
 	}
 
 	/** Our candles can be lit (block tag) and are not cake-able (item tag deliberately absent). */
