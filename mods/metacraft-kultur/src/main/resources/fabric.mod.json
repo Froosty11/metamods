@@ -36,5 +36,8 @@
 	},
 	"suggests": {
 		"brewery": "*"
-	}
+	},
+	"mixins": [
+		"kultur.mixins.json"
+	]
 }
