@@ -2,11 +2,13 @@
   "branches": {
     "dev": ["test"],
     "prod": ["survival", "test"],
-    "minigame": ["event"]
+    "minigame": ["event"],
+		"edvin-test": ["edvin"]
   },
   "servers": {
     "test": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.098974a0"},
     "survival": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.604966da"},
-    "event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"}
+    "event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"},
+		"edvin": {"host": "pterodactyl.kth.it", "port": 3022, "user": "edvin-deploy.e906b112"}
   }
 }
