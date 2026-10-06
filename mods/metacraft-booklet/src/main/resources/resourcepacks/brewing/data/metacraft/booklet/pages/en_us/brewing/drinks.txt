@@ -5,7 +5,7 @@ category=metacraft:brewing
 icon=minecraft:potion
 order=5
 ### EndSection: PageInfo
-Brewery's own drinks. Cook and age close to the times given for the best quality; far off and the drink comes out poor, or not at all.
+### Image: metacraft:beside/brewing/drinks Brewery's own drinks. Cook and age close to the times given for the best quality; far off and the drink comes out poor, or not at all.
 
 ### Header: Apple Liquor
 - 12 × <citem 'minecraft:apple'>

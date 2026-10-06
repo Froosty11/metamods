@@ -16,6 +16,7 @@ import eu.pb4.polydecorations.item.DecorationsItems;
 import eu.pb4.simpleimagerenderer.renderer.RegionImageRenderer;
 import eu.pb4.simpleimagerenderer.renderer.RendererSettings;
 import metacraft.ovvar.content.Chapter;
+import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
@@ -52,6 +53,9 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.BrewingStandBlock;
 import net.minecraft.world.level.block.CeilingHangingSignBlock;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
@@ -137,6 +141,7 @@ public final class BookletRenders implements FabricClientGameTest {
 				server.runCommand("tp Tester 40.5 -60 22.3 186 14");
 
 				server.runOnServer(mc -> build(mc.overworld()));
+				buildBrewing(server);
 				// Mail in the mailboxes, so their flags are up.
 				for (BlockPos box : List.of(new BlockPos(50, -59, 20), new BlockPos(88, -59, 21))) {
 					server.runCommand("data merge block " + box.getX() + " " + box.getY() + " " + box.getZ()
@@ -294,7 +299,12 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
 			new Scene("qol/rift", new BlockPos(104, -60, 18), new BlockPos(109, -54, 23), 55),
 			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
-			new Scene("qol/muffler", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75));
+			new Scene("qol/muffler", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75),
+			new Scene("brewing/cauldron", new BlockPos(20, -60, 28), new BlockPos(22, -57, 30), 80),
+			new Scene("brewing/distilling", new BlockPos(25, -60, 28), new BlockPos(27, -59, 30), 90),
+			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
+			new Scene("brewing/drinks", new BlockPos(39, -60, 30), new BlockPos(43, -59, 30), 85),
+			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -459,6 +469,81 @@ public final class BookletRenders implements FabricClientGameTest {
 		MID_SWING.add(muffling.getUUID());
 	}
 
+	/**
+	 * The Brewing chapter's scenes. Brewery's blocks and drinks are placed by command, so this source
+	 * set needs no Brewery classes; they are there at runtime (metacraft-booklet's dev runtime).
+	 */
+	private static void buildBrewing(TestDedicatedServerContext server) {
+		server.runOnServer(mc -> {
+			ServerLevel level = mc.overworld();
+			// a cauldron of water over a lit campfire, the ingredients dropping in, a stick to stir with
+			level.setBlockAndUpdate(new BlockPos(21, -60, 29), Blocks.CAMPFIRE.defaultBlockState());
+			level.setBlockAndUpdate(new BlockPos(21, -59, 29), Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
+			floating(level, 21.35, -57.7, 29.4, new ItemStack(Items.POTATO, 4));
+			floating(level, 21.7, -57.4, 29.6, new ItemStack(Items.SWEET_BERRIES, 4));
+			ItemEntity stick = new ItemEntity(level, 22.5, -60, 29.4, new ItemStack(Items.STICK), 0, 0, 0);
+			stick.setNeverPickUp();
+			level.addFreshEntity(stick);
+			// a brewing stand with three mixtures in it and nothing on top, blaze powder beside it
+			level.setBlockAndUpdate(new BlockPos(26, -60, 29), Blocks.BREWING_STAND.defaultBlockState()
+					.setValue(BrewingStandBlock.HAS_BOTTLE[0], true).setValue(BrewingStandBlock.HAS_BOTTLE[1], true)
+					.setValue(BrewingStandBlock.HAS_BOTTLE[2], true));
+			ItemEntity powder = new ItemEntity(level, 27.4, -60, 29.5, new ItemStack(Items.BLAZE_POWDER, 3), 0, 0, 0);
+			powder.setNeverPickUp();
+			level.addFreshEntity(powder);
+			// a barrel's frame, as Brewery checks it: four slices along x, each round (stairs on the
+			// corners, planks on the sides), the end slices closed, standing on four fences
+			for (int x = 31; x <= 34; x++) {
+				boolean end = x == 31 || x == 34;
+				for (int y = -59; y <= -57; y++) for (int z = 28; z <= 30; z++) {
+					BlockPos at = new BlockPos(x, y, z);
+					boolean corner = (y != -58) && (z != 29);
+					if (corner) {
+						// round off the outside: the full half and the raised back toward the barrel's middle
+						level.setBlockAndUpdate(at, Blocks.SPRUCE_STAIRS.defaultBlockState()
+								.setValue(StairBlock.HALF, y == -57 ? Half.BOTTOM : Half.TOP)
+								.setValue(StairBlock.FACING, z == 28 ? Direction.SOUTH : Direction.NORTH));
+					} else if (y == -58 && z == 29 && !end) {
+						level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState());
+					} else {
+						level.setBlockAndUpdate(at, Blocks.SPRUCE_PLANKS.defaultBlockState());
+					}
+				}
+				if (end) {
+					level.setBlockAndUpdate(new BlockPos(x, -60, 28), Blocks.SPRUCE_FENCE.defaultBlockState());
+					level.setBlockAndUpdate(new BlockPos(x, -60, 30), Blocks.SPRUCE_FENCE.defaultBlockState());
+				}
+			}
+		});
+		// the spigot on the middle plank of the east end, facing into the barrel
+		server.runCommand("setblock 35 -58 29 brewery:barrel_spigot[facing=west]");
+		// shelves of drinks: Brewery's own, and the chapter drinks, in frames on a wall
+		shelf(server, 39, List.of("brewery:beer", "brewery:wine", "brewery:vodka", "brewery:mead", "brewery:cider"), List.of());
+		shelf(server, 46, List.of("kultur:alcohol", "kultur:spiken", "kultur:slaggan", "kultur:nyckeln"), List.of("kultur:spiken", "kultur:slaggan"));
+	}
+
+	private static void floating(ServerLevel level, double x, double y, double z, ItemStack stack) {
+		ItemEntity item = new ItemEntity(level, x, y, z, stack, 0, 0, 0);
+		item.setNoGravity(true);
+		item.setNeverPickUp();
+		level.addFreshEntity(item);
+	}
+
+	/**
+	 * A shelf of drinks from x0: a row of dark oak slabs with a bottle standing on each (resting item
+	 * entities; the image renderer draws those, not item frames).
+	 */
+	private static void shelf(TestDedicatedServerContext server, int x0, List<String> drinks, List<String> distilled) {
+		int x1 = x0 + drinks.size() - 1;
+		server.runCommand("fill " + x0 + " -60 30 " + x1 + " -60 30 minecraft:dark_oak_slab");
+		for (int i = 0; i < drinks.size(); i++) {
+			String type = drinks.get(i);
+			server.runCommand("summon minecraft:item " + (x0 + i + 0.5) + " -59.5 30.5 {NoGravity:1b,PickupDelay:32767,Age:-32768,"
+					+ "Item:{id:\"brewery:drink_bottle\",count:1,components:{\"brewery:brew_data\":{type:\"" + type + "\",quality:10.0d,"
+					+ "distillation_runs:" + (distilled.contains(type) ? 1 : 0) + "}}}}");
+		}
+	}
+
 	private static void mailboxOnPost(ServerLevel level, BlockPos post, Direction facing) {
 		level.setBlockAndUpdate(post, Blocks.OAK_FENCE.defaultBlockState());
 		level.setBlockAndUpdate(post.above(), DecorationsBlocks.WOODEN_MAILBOX.get(WoodType.OAK).defaultBlockState().setValue(MailboxBlock.FACING, facing));
@@ -509,10 +594,15 @@ public final class BookletRenders implements FabricClientGameTest {
 		Mannequin m = new Mannequin(EntityTypes.MANNEQUIN, level);
 		m.setPos(x + 0.5, -60, 20.5);
 		m.setYRot(yaw); m.setYBodyRot(yaw); m.setYHeadRot(yaw);
-		m.setItemSlot(EquipmentSlot.LEGS, ovve);
-		ItemStack top = new ItemStack(ModContent.top(chapter));
-		top.set(ModComponents.PATCHES, ovve.get(ModComponents.PATCHES));
-		m.setItemSlot(EquipmentSlot.CHEST, top);
+		if (chapter.ownPiece() == Piece.TOP) {
+			// a frack is worn in the chest slot and is its own top
+			m.setItemSlot(EquipmentSlot.CHEST, ovve);
+		} else {
+			m.setItemSlot(EquipmentSlot.LEGS, ovve);
+			ItemStack top = new ItemStack(ModContent.top(chapter));
+			top.set(ModComponents.PATCHES, ovve.get(ModComponents.PATCHES));
+			m.setItemSlot(EquipmentSlot.CHEST, top);
+		}
 		level.addFreshEntity(m);
 	}
 

@@ -7,7 +7,7 @@ Brewery or a drink changes:
 
     python3 mods/metacraft-booklet/tools/brewing_recipes.py
 
-GuideTests (brewingChapterHasEveryDrink) fails when a loaded drink is missing from these pages.
+BrewingTests.everyDrinkHasARecipe fails when a loaded drink is missing from these pages.
 """
 import glob
 import json
@@ -71,9 +71,10 @@ def recipe(name, drink, names):
     return "\n".join(lines)
 
 
-def page(title, description, icon, order, intro, recipes):
+def page(title, description, icon, order, image, intro, recipes):
     return (f"### Section: PageInfo\ntitle={title}\ndescription={description}\ncategory=metacraft:brewing\n"
-            f"icon={icon}\norder={order}\n### EndSection: PageInfo\n{intro}\n\n" + "\n\n".join(recipes) + "\n")
+            f"icon={icon}\norder={order}\n### EndSection: PageInfo\n### Image: metacraft:beside/brewing/{image} {intro}\n\n"
+            + "\n\n".join(recipes) + "\n")
 
 
 def write(path, text):
@@ -95,7 +96,7 @@ def main():
     brewery.sort(key=lambda d: d[0])
     write(os.path.join(PACKS, "brewing/data/metacraft/booklet/pages/en_us/brewing/drinks.txt"), page(
         "Drinks", "Every drink Brewery knows: what goes in, how long, and where it ages.",
-        "minecraft:potion", 5,
+        "minecraft:potion", 5, "drinks",
         "Brewery's own drinks. Cook and age close to the times given for the best quality; far off and "
         "the drink comes out poor, or not at all.",
         [recipe(name, drink, names) for name, drink in brewery]))
@@ -106,7 +107,7 @@ def main():
         kultur.append((drink["name"].get("fallback", os.path.basename(path)), drink))
     write(os.path.join(PACKS, "brewing_kultur/data/metacraft/booklet/pages/en_us/brewing/chapter_drinks.txt"), page(
         "Chapter drinks", "IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.",
-        "minecraft:sweet_berries", 6,
+        "minecraft:sweet_berries", 6, "chapter_drinks",
         "The chapters' own drinks, brewed the same way. Each one sends you fast or slow (Släggan: slow "
         "and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: "
         "you come to somewhere else with a headache, a little hurt and blind for a moment.",
