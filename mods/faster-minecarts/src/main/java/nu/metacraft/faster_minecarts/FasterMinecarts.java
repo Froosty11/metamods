@@ -1,5 +1,6 @@
 package nu.metacraft.faster_minecarts;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -40,6 +41,9 @@ public class FasterMinecarts implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets("faster-minecarts");
+		PolymerResourcePackUtils.markAsRequired();
 		FasterMinecartsConfig.getConfig();
 		MinecartComponents.init();
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {

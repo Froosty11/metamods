@@ -1,4 +1,8 @@
 version = project.faster_minecarts_version
 
 addPolymerDependency()
+dependencies {
+	// the item models and lang, served in Polymer's resource pack
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+}
 addConfigDependency()

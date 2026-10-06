@@ -7,7 +7,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.codec.RegistryFileCodec;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import nu.metacraft.lib.METAcraftLib;
 import se.metacraft.config.comments.codecs.MapCodecWithComments;
@@ -29,7 +28,8 @@ import se.metacraft.config.util.event.EventWithPhases;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 import se.metacraft.config.util.helper.CodecParsingHelper;
 
-import java.util.List;
+import java.lang.reflect.Modifier;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -168,6 +168,33 @@ public class BuiltinParsers {
 				)
 			);
 		}
+		if (codec == Codec.INT_STREAM) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.INT, lookup))
+				)
+			);
+		}
+		if (codec == Codec.LONG_STREAM) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.LONG, lookup))
+				)
+			);
+		}
+		if (codec == Codec.BYTE_BUFFER) {
+			return Optional.of(
+				CodecResult.createWithComponents(
+					codec,
+					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
+					TreePVector.singleton(CodecParser.parse(Codec.BYTE, lookup))
+				)
+			);
+		}
 		return Optional.empty();
 	};
 
@@ -303,6 +330,14 @@ public class BuiltinParsers {
 				codec, Metadata.metadataMap(new Entries(entries)), TreePVector.empty())
 			);
 		}
+		if (codec instanceof OrCompressedCodecAccessor orCompressed) {
+			return Optional.of(
+				CodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(orCompressed.getCompressed()))),
+					CodecParser.parse(orCompressed.getNormal(), lookup)
+				)
+			);
+		}
 		if (codec instanceof RegistryFixedCodecAccessor fixed) {
 			var registry = lookup.lookup(fixed.getRegistryKey());
 			if (registry.isPresent()) {
@@ -341,6 +376,26 @@ public class BuiltinParsers {
 		return Optional.empty();
 	};
 
+	private static final CodecParseEvents.ParseMapCodec MINECRAFT_MAP_CODECS = (codec, lookup) -> {
+		if (codec instanceof OrCompressedMapCodecAccessor orCompressed) {
+			return Optional.of(
+				MapCodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(orCompressed.getCompressed()))),
+					CodecParser.parse(orCompressed.getNormal(), lookup)
+				)
+			);
+		}
+		if (codec instanceof StrictEitherAccessor strictEither) {
+			return Optional.of(
+				MapCodecResult.createMapped(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(strictEither.getFuzzy()))),
+					CodecParser.parse(strictEither.getTyped(), lookup)
+				)
+			);
+		}
+		return Optional.empty();
+	};
+
 	private static final CodecParseEvents.ParseMapCodec CUSTOM = (codec, lookup) -> {
 		if (codec instanceof MapCodecWithComments<?> comments) {
 			return Optional.of(
@@ -360,7 +415,7 @@ public class BuiltinParsers {
 	);
 
 	public static final CodecParseEvents.ParseMapCodec ALL_MAP_CODECS = (codec, lookup) -> EventWithPhases.getOptionalResult(
-		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, CUSTOM},
+		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, MINECRAFT_MAP_CODECS, CUSTOM},
 		p -> p.parse(codec, lookup)
 	);
 
@@ -412,6 +467,29 @@ public class BuiltinParsers {
 			list.getLast() instanceof Number rhs
 		) {
 			metadata = metadata.plus(Range.range(lhs, rhs));
+		}
+
+		for (var param : parameters) {
+			for (var field : param.getClass().getDeclaredFields()) {
+				if (Map.class.isAssignableFrom(field.getType())) {
+					field.setAccessible(true);
+					try {
+						var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
+						var entries = Entries.from(
+							map.entrySet().stream().filter(
+								e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
+							).map(
+								e -> new Entries.Entry((String) e.getKey(), e.getValue())
+							)
+						);
+						if (!entries.isEmpty()) {
+							metadata = metadata.plus(entries);
+						}
+					} catch (IllegalAccessException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
 		}
 
 		var entries = underlying.metadata(MetadataKey.ENTRIES);

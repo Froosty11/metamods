@@ -3,6 +3,8 @@
 	"package": "se.metacraft.config.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"ComponentSerializationMixin",
+		"TranslatableContentsAccessor",
 		"codec.CodecMixin",
 		"codec.EitherMapCodecAccessor",
 		"codec.KeyDispatchCodecAccessor",
@@ -13,6 +15,7 @@
 		"codec.MappedMapDecoderAccessor",
 		"codec.OptionalFieldCodecAccessor",
 		"codec.OrCompressedCodecAccessor",
+		"codec.OrCompressedMapCodecAccessor",
 		"codec.PairMapCodecAccessor",
 		"codec.RecordCodecBuilderAccessor",
 		"codec.RecordCodecBuilderAccessor$MapCodec",
@@ -24,6 +27,7 @@
 		"codec.RegistryFixedCodecAccessor",
 		"codec.SimpleCodecAccessor",
 		"codec.SimpleMapCodecAccessor",
+		"codec.StrictEitherAccessor",
 		"codec.StringRepresentableCodecAccessor",
 		"codec.UnitCodecAccessor"
 	],
