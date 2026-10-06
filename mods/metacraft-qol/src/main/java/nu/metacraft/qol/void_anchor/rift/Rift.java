@@ -36,8 +36,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * crack shapes, lies at its own angle, may be mirrored, and is a little longer or wider than the
  * last.
  *
- * <p>{@link RiftStyle#SHATTER} adds a bright core and glowing cracks through it, all facing
- * whoever looks at them, the cracks each at its own angle round the core, shooting out one after
+ * <p>{@link RiftStyle#SHATTER} adds a bright core and two glowing cracks crossing through it, all
+ * facing whoever looks at them, shooting out one after
  * another before the main crack pries open, as if space broke like glass; light (portal particles)
  * is pulled into the core.
  */
@@ -57,6 +57,8 @@ public final class Rift extends ElementHolder {
 
 	private static final float CLOSED = 0.01f;
 	private static final float THIN = 0.08f;
+	/** The shatter rift's glowing cracks round its core. */
+	private static final int SHARDS = 2;
 
 	/** One display: from closed it runs out to `run` (if any), then opens to `open`. */
 	private record Piece(ItemDisplayElement display, int start, Vector3f run, Vector3f open) {}
@@ -84,17 +86,19 @@ public final class Rift extends ElementHolder {
 			// a little toward the viewer, so the cracks through the centre don't cut it in half
 			display.setTranslation(new Vector3f(0, 0, size * 0.25f));
 			pieces.add(new Piece(display, 1, null, new Vector3f(core, core, core)));
-			int shards = 3 + random.nextInt(2);
+			// Two, crossing in an X: more layers on top of each other flatten into a sticker, and the
+			// void crack below stops reading as deep.
+			int shards = SHARDS;
 			float roll = random.nextFloat() * Mth.PI;
 			for (int i = 0; i < shards; i++) {
 				// Each faces the camera wherever it is, stood up from lying flat and turned to its own
 				// angle round the core; as a crack runs both ways, half a turn spreads them all round.
-				var shard = crack(GLOW_CRACK, new Quaternionf().rotateZ(roll + i * Mth.PI / shards + (random.nextFloat() - 0.5f) * 0.5f));
+				var shard = crack(GLOW_CRACK, new Quaternionf().rotateZ(roll + i * Mth.PI / shards + (random.nextFloat() - 0.5f) * 0.4f));
 				shard.setBillboardMode(Display.BillboardConstraints.CENTER);
 				shard.setRightRotation(new Quaternionf().rotateX(Mth.HALF_PI));
 				// a hair apart, so where they cross they don't fight over which is in front
 				shard.setTranslation(new Vector3f(0, 0, 0.01f * i));
-				float reach = size * (1.0f + 0.5f * random.nextFloat());
+				float reach = size * (1.2f + 0.4f * random.nextFloat());
 				pieces.add(new Piece(shard, 2 + 2 * i, null, new Vector3f(reach, reach * 0.45f, 1f)));
 			}
 			mainStart = 2 + 2 * shards;
