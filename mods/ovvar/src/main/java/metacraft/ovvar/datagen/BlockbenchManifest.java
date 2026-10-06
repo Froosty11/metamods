@@ -186,9 +186,11 @@ public final class BlockbenchManifest implements DataProvider {
 			c.addProperty("nercabbad", chapter.nercabbadOverlay == null ? null : chapter.nercabbadOverlay + ".png");
 			c.addProperty("tint", chapter.tint);
 			c.addProperty("rollable", chapter.rollable);
+			c.addProperty("slot", chapter.slot.getName());
 			JsonObject layers = new JsonObject();
 			layers.addProperty("top", Piece.TOP.layer + "/" + chapter.id + "/top.png");
-			layers.addProperty("bottom", Piece.BOTTOM.layer + "/" + chapter.id + "/bottom.png");
+			// A frack has no bottom half: nothing is drawn on the legs.
+			layers.addProperty("bottom", chapter.pieces().contains(Piece.BOTTOM) ? Piece.BOTTOM.layer + "/" + chapter.id + "/bottom.png" : null);
 			layers.addProperty("bottomNercabbad", chapter.rollable
 					? Piece.BOTTOM.layer + "/" + chapter.id + "/bottom_nercabbad.png" : null);
 			c.add("layers", layers);

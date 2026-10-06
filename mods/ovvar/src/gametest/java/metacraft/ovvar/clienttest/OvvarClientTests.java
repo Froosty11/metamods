@@ -79,6 +79,17 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					top.set(ModComponents.PATCHES, ovve.get(ModComponents.PATCHES));
 					m.setItemSlot(EquipmentSlot.CHEST, top);
 					level.addFreshEntity(m);
+					// The Media frack: a chest-slot garment, no companion. Off to the side (west, +x is
+					// east) so the ovve's shots are unchanged; the camera turns to it for its own shot.
+					ItemStack frack = new ItemStack(ModContent.ovve(Chapter.MEDIA));
+					Looks.setSewn(frack, SpotPlacements.fromList(List.of(
+							new Placement(Spot.FRONT_TOP_LEFT, Patches.get("itk")),
+							new Placement(Spot.FRONT_LOW_RIGHT, Patches.get("it")))).getOrThrow());
+					Mannequin f = new Mannequin(EntityTypes.MANNEQUIN, level);
+					f.setPos(-5.5, -60, 3.5);
+					f.setYRot(180); f.setYBodyRot(180); f.setYHeadRot(180);
+					OvveItem.wear(f, frack);
+					level.addFreshEntity(f);
 				});
 				acceptResourcePack(ctx);   // the current system may push a rebuilt pack for the fourth patch
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
@@ -112,6 +123,19 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				int flicker = flickering(a, b, box, 24);
 				int budget = (box.x1() - box.x0()) * (box.y1() - box.y0()) / 100;   // 1% for residual edge motion
 				if (flicker > budget) throw new AssertionError(flicker + " pixel(s) over the mannequin flickered by more than a step between two still frames (budget " + budget + ")");
+
+				// The frack, straight on from three blocks north of it: the chest slot draws the coat and
+				// its patches without a companion — the same probes, on a black coat.
+				server.runCommand("tp Tester -5.5 -60 0.5 0 0");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				Path frackShot = ctx.takeScreenshot(TestScreenshotOptions.of("frack_front").withSize(1920, 1080));
+				BufferedImage fr = read(frackShot);
+				Region frackBox = Region.subjectBox(fr);
+				assertPresent(fr, frackBox, "itk (green) on the frack", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
+				assertPresent(fr, frackBox, "it (lilac rim) on the frack", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
+				// Near-black cloth: the coat itself, not the mannequin's skin.
+				assertPresent(fr, frackBox, "the coat (near black)", (r, g, bl) -> r < 40 && g < 40 && bl < 40, 200);
 			}
 		}
 	}

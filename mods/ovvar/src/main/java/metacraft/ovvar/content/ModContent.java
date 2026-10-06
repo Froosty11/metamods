@@ -86,12 +86,15 @@ public final class ModContent {
 		for (Chapter chapter : Chapter.values()) {
 			Identifier ovveId = ovveId(chapter);
 			requireAsset("items/" + ovveId.getPath() + ".json", ovveId);
-			requireAsset("equipment/" + Looks.assetPath(chapter, Piece.BOTTOM, false, "") + ".json", ovveId);
-			OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, Piece.BOTTOM, ArmorType.LEGGINGS)
+			requireAsset("equipment/" + Looks.assetPath(chapter, chapter.ownPiece(), false, "") + ".json", ovveId);
+			ArmorType type = chapter.slot == EquipmentSlot.CHEST ? ArmorType.CHESTPLATE : ArmorType.LEGGINGS;
+			OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, chapter.ownPiece(), type)
 					.component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY))
 					.setId(ResourceKey.create(Registries.ITEM, ovveId)), chapter, ovveId));
 			OVVAR.put(chapter, ovve);
 			ALL.add(ovve);
+			// A frack is its own top and has no legs: no companion top to render sleeves, no cuffs for a boots pass.
+			if (chapter.slot == EquipmentSlot.CHEST) continue;
 
 			Identifier topId = topId(chapter);
 			requireAsset("items/" + topId.getPath() + ".json", topId);
