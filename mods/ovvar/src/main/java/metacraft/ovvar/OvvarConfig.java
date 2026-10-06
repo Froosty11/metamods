@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
  *					   instead of in one click
  * @param stitches	   how many stitches a cell-sized patch takes in the minigame; a longer outline
  *					   takes proportionally more ({@link metacraft.ovvar.sewing.Seam#stitchesFor})
- * @param server	     what this server calls itself, for the MOTD ({@link ServerConfig}, {@link Motd})
+ * @param server	     what this server calls itself ({@link ServerConfig})
  * @param designs	    where the players' wardrobes live and what sewing does without it ({@link DesignStoreConfig})
  * @param stash		  this server's role, and the rules for taking patches out of the stash ({@link StashConfig})
  */

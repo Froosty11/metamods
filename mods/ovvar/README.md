@@ -486,12 +486,10 @@ pure white, so the stitching reads the same on every chapter.
 
 `config/ovvar.json` → `server` (what this server calls itself):
 
-    name                     this server's name in the MOTD (default "METAcraft")
+    name                     this server's name (default "METAcraft"; no longer used for the MOTD)
 
-The MOTD is set from those two blocks when the server is up, so the server list says what a player
-gets before they join: `METAcraft Survival · ovve sewing on stands, patches are items`, or
-`METAcraft Minigame · ovve stash only, no sewing` where `stash.minigame_server` is on. Every key
-above is optional in the file: the defaults are the ones documented here, and a key only needs
+ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
+the file: the defaults are the ones documented here, and a key only needs
 writing to change it.
 
 Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
@@ -546,7 +544,7 @@ sewn on the last pull, nothing sewn after cutting the thread). `WardrobeTests` r
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
-what they say, and the MOTD names this server and its mode. It also runs the wardrobe screen: that
+what they say. It also runs the wardrobe screen: that
 nothing the background draws overlaps a slot's icon, the title's glyphs and spaces, the tab row and
 its highlight, the empty-state notices, the four angles and that every visible cell has a glyph of
 its own per angle that draws it, that a placement is drawn by that glyph on the angle that shows it

@@ -8,9 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * The {@code server} block of {@code config/ovvar.json}: what this server calls itself. It is the
- * first half of the MOTD ({@link Motd}); the second half is what sewing does here, which is
- * {@code stash.minigame_server}. Every key has a default.
+ * The {@code server} block of {@code config/ovvar.json}: what this server calls itself. ovvar no
+ * longer sets the MOTD from it (that is {@code server.properties}' job); the key stays so existing
+ * files still read. Every key has a default.
  *
  * @param name this server's name, as players read it in the server list (default "METAcraft")
  */

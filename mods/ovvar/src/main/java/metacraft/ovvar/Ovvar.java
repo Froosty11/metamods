@@ -46,7 +46,6 @@ public class Ovvar implements ModInitializer {
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();
-		Motd.init();
 
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();

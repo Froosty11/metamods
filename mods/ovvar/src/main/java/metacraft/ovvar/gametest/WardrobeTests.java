@@ -1,6 +1,5 @@
 package metacraft.ovvar.gametest;
 
-import metacraft.ovvar.Motd;
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.ServerConfig;
 import metacraft.ovvar.content.Chapter;
@@ -67,7 +66,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * front of them turns a lost race into a refetch, a patch moves between the stash and the design
  * and never multiplies, two ovves of one owner are one design, and an unpick hands the patch out
  * once no matter how many ovves show it; and the ownership rules: somebody else's ovve is not worn,
- * sewn on or unpicked, the owner's own is, and the MOTD says which server this is. The tests that swap the server's backend for a temporary
+ * sewn on or unpicked, and the owner's own is. The tests that swap the server's backend for a temporary
  * one take turns ({@link #BUSY}: game tests in a batch run together) and put a throwaway one back —
  * never the run dir's configured store (a live JDBC backend, in a deployed run dir, whose rows are
  * real): every mock player these tests spawn joins for real and is fetched on join, so the
@@ -2788,23 +2787,6 @@ public final class WardrobeTests {
 			if (!m.isRemoved()) helper.fail("the first mannequin was not discarded by the second click");
 		} finally {
 			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
-		}
-		helper.succeed();
-	}
-
-	// ---- the MOTD
-
-	@GameTest
-	public void motdNamesTheServerMode(GameTestHelper helper) {
-		String survival = Motd.text("Testcraft", false);
-		String minigame = Motd.text("Testcraft", true);
-		if (!survival.startsWith("Testcraft ") || !minigame.startsWith("Testcraft ")) helper.fail("the MOTD does not name the server: " + survival + " / " + minigame);
-		if (!survival.contains("Survival") || !survival.contains("sewing")) helper.fail("survival MOTD: " + survival);
-		if (!minigame.contains("Minigame") || minigame.contains("sewing on stands")) helper.fail("minigame MOTD: " + minigame);
-		if (!Motd.text("", false).startsWith(ServerConfig.DEFAULT.name())) helper.fail("a nameless server does not fall back on a name");
-		OvvarConfig config = OvvarConfig.get();
-		if (!Motd.text(config).equals(Motd.text(config.server().name(), config.stash().minigameServer()))) {
-			helper.fail("this server's MOTD is not its config's: " + Motd.text(config));
 		}
 		helper.succeed();
 	}
