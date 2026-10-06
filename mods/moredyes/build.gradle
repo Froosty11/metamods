@@ -19,6 +19,11 @@ dependencies {
 	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
 	implementation("eu.pb4:polymer-sound-patcher:${project.polymer_version}")
+	// PolyDecorations' canvas, which our dyes paint (compat.polydecorations): compile against it, and
+	// run with it in dev and the game tests. Never a dependency.
+	compileOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+	compileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
+	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
 }
 
 processResources {

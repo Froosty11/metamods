@@ -40,12 +40,20 @@ public final class MetacraftBooklet implements ModInitializer {
 	public static final Identifier INDEX = Identifier.fromNamespaceAndPath("booklet", "index");
 
 	/**
-	 * A built-in datapack switched on when {@code modId} is loaded. {@code optional} packs are
-	 * enabled by default but can be turned off with {@code /datapack disable}; chapters cannot.
+	 * A built-in datapack switched on when every one of {@code mods} is loaded. {@code optional} packs
+	 * are enabled by default but can be turned off with {@code /datapack disable}; chapters cannot.
 	 */
-	public record Hook(String modId, String pack, boolean optional) {
+	public record Hook(List<String> mods, String pack, boolean optional) {
+		public Hook(String modId, String pack, boolean optional) {
+			this(List.of(modId), pack, optional);
+		}
+
 		public Identifier id() {
 			return Identifier.fromNamespaceAndPath(MOD_ID, pack);
+		}
+
+		public boolean loaded() {
+			return mods.stream().allMatch(FabricLoader.getInstance()::isModLoaded);
 		}
 	}
 
@@ -57,17 +65,21 @@ public final class MetacraftBooklet implements ModInitializer {
 			new Hook("ovvar", "ovvar", false),
 			new Hook("polydecorations", "decorating", false),
 			new Hook("polydecorations", "polydecorations_s6", true),
-			new Hook("metacraft-qol", "qol", false));
+			new Hook("metacraft-qol", "qol", false),
+			// Brewery's own book, rewritten as a chapter (its recipe is switched off here); the
+			// recipe pages are written by tools/brewing_recipes.py.
+			new Hook("brewery", "brewing", false),
+			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false));
 
 	@Override
 	public void onInitialize() {
 		ModContainer self = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow();
 		for (Hook hook : HOOKS) {
-			if (!FabricLoader.getInstance().isModLoaded(hook.modId())) continue;
+			if (!hook.loaded()) continue;
 			boolean ok = ResourceLoader.registerBuiltinPack(hook.id(), self,
 					Component.literal("METAcraft Booklet: " + hook.pack()),
 					hook.optional() ? PackActivationType.DEFAULT_ENABLED : PackActivationType.ALWAYS_ENABLED);
-			LOGGER.info("[{}] {} is here: {} {}", MOD_ID, hook.modId(), hook.pack(), ok ? "on" : "could not be registered");
+			LOGGER.info("[{}] {} here: {} {}", MOD_ID, String.join(" and ", hook.mods()), hook.pack(), ok ? "on" : "could not be registered");
 		}
 		if (FabricLoader.getInstance().isModLoaded("polydecorations")) {
 			// its feature switches, as a METAcraft config (/meta-config-screen polydecorations)

@@ -1,0 +1,13 @@
+### Section: PageInfo
+title=Brewing
+external_title=Brewing
+description=Beer, wine, vodka and the chapters' drinks: cooked in a cauldron, distilled, aged in barrels.
+category=booklet:main_page
+icon=brewery:barrel_spigot
+order=40
+### EndSection: PageInfo
+Drinks are brewed in three steps, and most need only one or two of them: <bold>cook</bold> the ingredients in a cauldron, <bold>distil</bold> the brew in a brewing stand, and <bold>age</bold> it in a barrel. The closer you keep to a drink's times, the better it comes out.
+
+### Category Entries: metacraft:brewing
+
+<gray>Brewery's drinks are on <pagelink 'metacraft:brewing/drinks'><u>Drinks</u></pagelink>; IT's own, from PolymITer, on <pagelink 'metacraft:brewing/chapter_drinks'><u>Chapter drinks</u></pagelink>.</gray>

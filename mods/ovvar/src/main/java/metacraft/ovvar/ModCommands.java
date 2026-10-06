@@ -91,7 +91,7 @@ public final class ModCommands {
 						// Anyone: the guidebook, "How to ovvar".
 						.then(Commands.literal("guide").executes(ctx -> {
 							ServerPlayer player = ctx.getSource().getPlayerOrException();
-							if (!Guide.open(player)) throw NOT_AN_OVVE.create("the guide is missing (see the server log)");
+							if (!Guide.open(player)) throw NOT_AN_OVVE.create("this server has no guidebook");
 							return 1;
 						}))
 						// Anyone: a look at somebody's ovve, theirs or their own, read-only.

@@ -40,7 +40,7 @@ public final class GuideTests {
 		Map<Identifier, String> out = new LinkedHashMap<>();
 		var self = FabricLoader.getInstance().getModContainer(MetacraftBooklet.MOD_ID).orElseThrow();
 		for (MetacraftBooklet.Hook hook : MetacraftBooklet.HOOKS) {
-			if (!FabricLoader.getInstance().isModLoaded(hook.modId())) continue;
+			if (!hook.loaded()) continue;
 			var data = self.findPath("resourcepacks/" + hook.pack() + "/data");
 			if (data.isEmpty()) {
 				helper.fail("hook " + hook.pack() + " has no resourcepacks/" + hook.pack() + "/data folder");

@@ -39,7 +39,8 @@
 		"sgui": "*"
 	},
 	"mixins": [
-		"moredyes.mixins.json"
+		"moredyes.mixins.json",
+		"moredyes-polydecorations.mixins.json"
 	],
 	"accessWidener": "moredyes.accesswidener"
 }

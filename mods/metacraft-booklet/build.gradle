@@ -31,6 +31,9 @@ dependencies {
 	// item icons resolve. None of them is a dependency of the shipped mod.
 	runtimeOnly(project(path: ":mods:ovvar"))
 	runtimeOnly(project(path: ":mods:metacraft-qol"))
+	runtimeOnly(project(path: ":mods:metacraft-kultur"))
+	runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
+	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
 	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
 	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
 	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")

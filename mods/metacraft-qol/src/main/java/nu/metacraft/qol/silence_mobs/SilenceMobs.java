@@ -3,18 +3,18 @@ package nu.metacraft.qol.silence_mobs;
 import eu.pb4.polymer.core.api.item.SimplePolymerItem;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -36,7 +36,6 @@ import java.util.function.Function;
  */
 public final class SilenceMobs {
 
-	private static final int GLOW_TICKS = 60;
 
 	/** The muffler: right-click a mob to silence it, again to undo it. Never used up. */
 	public static final Item MUFFLER = register(
@@ -92,7 +91,12 @@ public final class SilenceMobs {
 
 	private static void apply(ServerPlayer player, LivingEntity mob, boolean silence) {
 		mob.setSilent(silence);
-		mob.addEffect(new MobEffectInstance(MobEffects.GLOWING, GLOW_TICKS, 0, true, false));
+		// A puff of sparks to show it worked. Not Glowing: its outline is a post-processing pass that
+		// breaks many Iris shader packs.
+		if (mob.level() instanceof ServerLevel level) {
+			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, mob.getX(), mob.getY(0.6), mob.getZ(),
+					16, mob.getBbWidth() * 0.4, mob.getBbHeight() * 0.3, mob.getBbWidth() * 0.4, 0.08);
+		}
 		mob.level().playSound(null, mob.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.NEUTRAL, 0.8f, 2.0f);
 		player.sendOverlayMessage(Component.translatableWithFallback(
 				silence ? "qol.metacraft.silence_mobs.silenced" : "qol.metacraft.silence_mobs.unsilenced",
