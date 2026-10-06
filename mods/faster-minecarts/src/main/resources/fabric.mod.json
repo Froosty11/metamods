@@ -32,7 +32,8 @@
     "fabric-api": "*",
     "minecraft": "~${minecraft_version}",
     "metacraft-lib": "*",
-    "metacraft-config": "*"
+    "metacraft-config": "*",
+    "polymer-resource-pack": "*"
   },
   "suggests": {
     "another-mod": "*"
