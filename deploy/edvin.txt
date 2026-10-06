@@ -1,5 +1,5 @@
 # edvin (branch edvin-test): Edvin Private, e906b112. Edvin's test server: METAcraft Season 6 as tried
-# so far. test.txt's mods, plus ovvar, the guidebook, kultur, moredyes and the config dialog; Tectonic +
+# so far. test.txt's mods, plus ovvar, the guidebook, kultur (with Brewery), moredyes and the config dialog; Tectonic +
 # Terralith worldgen, the performance mods, Distant Horizons and BlueMap. BlueMapPolymerPatch is on
 # the server by hand until it has a release to pin.
 # One per line: a folder under mods/, or external <mod-id> <url> sha256:<hex>
@@ -56,5 +56,7 @@ external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluema
 external tectonic https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar sha256:33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046
 external terralith https://cdn.modrinth.com/data/8oi3bsk5/versions/aGE3hYAA/Terralith_26.3_v2.6.5%2B26.3.jar sha256:ad953bdd258d23b85c6e5955d14fed89a525e50c68a80ac5cd652573068d0ca4
 external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar sha256:b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466
+# Patbox's Brewery: brews kultur's drinks
+external brewery https://cdn.modrinth.com/data/nr7cSJlY/versions/fYQfdDNZ/brewery-0.17.0%2B26.3-rc-1.jar sha256:7eb4c5491db14763549b932f41a37e911137577f31de43d10755b65c0441b9e9
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.2/danse-2.6.0-metacraft.2%2B26.3.jar sha256:b7d9f6fdeb992e036af85d03cd3b80476d5783ebf04fb015954dabd95ff94f34
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
