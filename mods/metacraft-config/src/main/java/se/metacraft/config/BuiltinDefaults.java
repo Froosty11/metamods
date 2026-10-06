@@ -4,10 +4,12 @@ import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
+import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.network.chat.contents.data.BlockDataSource;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.util.random.Weighted;
@@ -99,6 +101,12 @@ public class BuiltinDefaults {
 		if (element.getUnderlying(codec -> codec.codec() == ExtraCodecs.UNTRUSTED_URI).isPresent()) {
 			return DataResult.success("https://minecraft.wiki");
 		}
+		if (element.getUnderlying(codec -> codec.codec() == BlockDataSource.BLOCK_POS_CODEC).isPresent()) {
+			return DataResult.success("0 0 0");
+		}
+		if (element.getUnderlying(codec -> codec.codec() == EntitySelector.COMPILABLE_CODEC).isPresent()) {
+			return DataResult.success("@s");
+		}
 		var timeFormatter = element.nestedMetadata(MetadataKey.REMAINDER).flatMap(
 			param -> param.parameters().stream().filter(
 				e -> e instanceof DateTimeFormatter
@@ -169,8 +177,12 @@ public class BuiltinDefaults {
 		DataResult<PMap<String, Object>> r = DataResult.success(result);
 		for (var subElement : CodecInternalsHelper.getNamedElements(element)) {
 			var name = subElement.nestedMetadata(MetadataKey.NAMED_FIELD);
-			var dispatch = handleDispatch(subElement, result, ctx, lookup);
-			if (dispatch.isPresent()) return dispatch.get();
+			if (name.isEmpty()) {
+				r = r.flatMap(currentResult -> {
+					var dispatch = handleDispatch(subElement, currentResult, ctx, lookup);
+					return dispatch.orElseGet(() -> DataResult.success(currentResult));
+				});
+			}
 			if (name.isEmpty() || !name.get().required()) continue;
 			var type = CodecInternalsHelper.getUnnamed(subElement);
 			DataResult<Object> foundDefaultValue = CodecInternalsHelper.defaultValue(type, lookup);
