@@ -1,5 +1,5 @@
 # edvin (branch edvin-test): Edvin Private, e906b112. Edvin's test server: METAcraft Season 6 as tried
-# so far. test.txt's mods, plus ovvar, the guidebook, moredyes and the config dialog; Tectonic +
+# so far. test.txt's mods, plus ovvar, the guidebook, kultur, moredyes and the config dialog; Tectonic +
 # Terralith worldgen, the performance mods, Distant Horizons and BlueMap. BlueMapPolymerPatch is on
 # the server by hand until it has a release to pin.
 # One per line: a folder under mods/, or external <mod-id> <url> sha256:<hex>
@@ -34,6 +34,7 @@ metacraft-qol
 portal-opening
 ovvar
 metacraft-booklet
+metacraft-kultur
 moredyes
 metacraft-config-gui
 

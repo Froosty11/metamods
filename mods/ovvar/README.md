@@ -519,6 +519,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
+    /ovvar guide                               (any player) the guidebook, "How to ovvar"
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -743,6 +744,76 @@ other mods' boots have layers we don't know: over those the channel is off and t
 back to three. The boots pass is
 inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
 (squeezed in x and y) and the two layers' pixels line up.
+
+## Danse gestures
+
+[Danse](https://github.com/tomalbrc/danse) plays gestures (`/gesture wave`, …) by hiding the real
+player and animating a stand-in built of item displays. We run **our fork**
+([Froosty11/danse](https://github.com/Froosty11/danse), branch `metacraft`, AGPL-3.0; the jar and
+its notice are in `libs/danse/`), which adds *body layers*: any mod can put an ordinary textured
+item model on each part of the stand-in, just inside Danse's armour.
+
+Upstream Danse draws skin and armour as one tinted square per skin texel. Ovvar's layer textures
+have four pixels per texel, so the old compat layer had to average each 4×4 block into one square
+and patches blurred (IT's one-pixel lilac line vanished). Now `metacraft.ovvar.compat.danse`
+draws the ovve as body layers instead:
+
+- `DanseModels` writes one item definition per piece and part (`ovvar:danse/top/body`, …) into the
+  pack: the base cloth chosen by `custom_model_data` string 0, then one `select` per cell on the
+  part, patch chosen by string `1 + Spot.cells(piece).indexOf(cell)`. Every model is a
+  `BodyLayerModels.shell` over ovvar's own equipment texture, the same 256×128 art a real client's
+  armour shows, cropped at pack build to the one part it draws on and put under `item/danse/`,
+  where the vanilla items atlas already looks. Full sheets would grow every player's items atlas
+  to 8192×4096; the crops keep it at 2048×2048, and a crop with nothing on it is left out.
+- `DanseLayers` answers Danse per part and pass (bottom = inner, body and legs; top = outer, body
+  and arms, including under a real chestplate) and tells Danse not to draw its own pixels for an ovve.
+- `DanseHooks` and `GestureControllerMixin` keep ovvar from re-dressing a player mid-gesture and
+  put the cuffs back afterwards.
+
+Ovvar never depends on Danse: the package is reached only behind `isModLoaded("danse")`, and
+`-Dovvar.danse.compat=false` switches it off. With upstream Danse (no body-layer API) ovvar still
+holds still during gestures, but the stand-in wears no ovve, and the log says so. Players can find the fork's source with
+`/danse source`.
+
+| Compat off | Compat on | After the gesture |
+|---|---|---|
+| ![](docs/danse/before.png) | ![](docs/danse/after.png) | ![](docs/danse/after_gesture_end.png) |
+
+Clips: [zombie](docs/danse/gesture.mp4), [helicopter](docs/danse/helicopter.mp4),
+[handstand](docs/danse/handstand.mp4). `OVVAR_DANSE_FILM=1` makes the client test photograph every
+other tick instead of once, and ffmpeg stitches the frames at 7 fps. The in-process server runs in
+real time while each screenshot holds the client up, so the gesture ends about halfway through the
+frames; a clip is the frames that still show the stand-in. Other gestures:
+`OVVAR_DANSE_GESTURE=helicopter OVVAR_DANSE_GESTURE_TICKS=228`, `handstand` / `140`; the pixel
+assertions only run on the default gesture (`zombie`).
+
+Tests: `DanseShellParityTests` (a shell shows each texel where Danse's pixels do),
+`DanseModelsTests`, `DanseLayersTests`, and the client test `OvvarDanseClientTests`
+(`./gradlew :mods:ovvar:runClientGameTest`; with `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false`
+for the "before" frame).
+
+## The guidebook
+
+`/ovvar guide` (any player) opens "How to ovvar": a [Booklet](https://github.com/Patbox/booklet)
+guidebook — Patbox's server-side, data-driven one, a dialog on a vanilla client — written as text in
+`src/main/resources/data/ovvar/booklet/pages/en_us/` (`Guide.java` names the pages). The main page,
+`ovvar:guide`, is one entry of the server's encyclopedia: Booklet's own index lists every page in its
+`booklet:main_page` category, so the other mods on the server add their chapters the same way and
+the book grows without anything here changing. Its four chapters, in `ovvar:guide`, are the ovve
+(wearing it, the top, the pockets, whose it is), patches (earning them, where they go), sewing (the
+stand, the aim, the stitching, shears) and the wardrobe (`/ovvar stash`, sessions, minigame servers,
+`/ovvar look`). `booklet:guidebook[booklet:page='ovvar:guide']` is the same book as an item. Booklet
+is bundled jar-in-jar (`booklet_version` in `gradle.properties`) and is a `depends`.
+
+A page is a `### Section: PageInfo` block (`title`, `description`, `category`, `icon`, `order`) and
+then prose in Booklet's QuickText/markdown: `### Header:` lines, `-` lines for lists, a blank line
+for a paragraph, `<citem 'ovvar:patch_itk'>` for an item's name in yellow, `<pagelink 'ovvar:guide/sewing'>…</pagelink>`
+for a link. A page that fails to parse is only a stack trace in the log, a link to a missing page a
+button that does nothing and an unknown item id silently a stone, so `GuideTests` checks the pages
+against the running server's Booklet: every page loads with a title, description and icon, the main
+page is on the bookshelf and the chapters are in `Guide.CHAPTERS`' order, and every page link and
+item id in the text exists. Other languages go beside `en_us/` under their own code; a missing
+translation falls back to English.
 
 ## Reloads only when asked for
 

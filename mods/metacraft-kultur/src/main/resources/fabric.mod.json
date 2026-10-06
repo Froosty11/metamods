@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "kultur",
+	"version": "${version}",
+	"name": "Kultur",
+	"description": "Chapter culture for METAcraft: banner and shield patterns and paintings for vanilla clients, via Polymer. Players only need the auto-served resource pack.",
+	"authors": [
+		"Edvin"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"metacraft.kultur.Kultur"
+		],
+		"fabric-gametest": [
+			"metacraft.kultur.gametest.KulturGameTests"
+		],
+		"fabric-datagen": [
+			"metacraft.kultur.datagen.KulturDataGenerator"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": ">=26.3-rc.1 <26.4",
+		"java": ">=25",
+		"fabric-api": "*",
+		"polymer-core": "*",
+		"polymer-resource-pack": "*"
+	}
+}

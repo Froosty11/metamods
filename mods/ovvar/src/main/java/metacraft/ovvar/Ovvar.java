@@ -1,6 +1,8 @@
 package metacraft.ovvar;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import metacraft.ovvar.compat.danse.DanseCompat;
+import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveFeet;
@@ -46,6 +48,9 @@ public class Ovvar implements ModInitializer {
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();
+		// Gestures in an ovve. The only reference to the compat package, behind the only check that
+		// Danse is here; nothing else in ovvar knows the mod exists.
+		if (DanseHooks.active()) DanseCompat.init();
 
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();
