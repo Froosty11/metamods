@@ -159,11 +159,12 @@ public final class BlockbenchManifestTests {
 						chapter.nercabbadOverlay == null ? null : chapter.nercabbadOverlay + ".png");
 				check(wrong, chapter.id, "tint", num(c, "tint"), chapter.tint);
 				check(wrong, chapter.id, "rollable", c.get("rollable").getAsBoolean(), chapter.rollable);
+				check(wrong, chapter.id, "slot", c.get("slot").getAsString(), chapter.slot.getName());
 				JsonObject layers = c.getAsJsonObject("layers");
 				check(wrong, chapter.id, "layers.top", layers.get("top").getAsString(),
 						Piece.TOP.layer + "/" + chapter.id + "/top.png");
-				check(wrong, chapter.id, "layers.bottom", layers.get("bottom").getAsString(),
-						Piece.BOTTOM.layer + "/" + chapter.id + "/bottom.png");
+				check(wrong, chapter.id, "layers.bottom", str(layers, "bottom"),
+						chapter.pieces().contains(Piece.BOTTOM) ? Piece.BOTTOM.layer + "/" + chapter.id + "/bottom.png" : null);
 				check(wrong, chapter.id, "layers.bottomNercabbad", str(layers, "bottomNercabbad"), chapter.rollable
 						? Piece.BOTTOM.layer + "/" + chapter.id + "/bottom_nercabbad.png" : null);
 			}

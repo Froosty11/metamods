@@ -126,9 +126,10 @@ public final class EquipmentJson {
 		return "assets/" + Ovvar.MOD_ID + "/equipment/" + metacraft.ovvar.content.Looks.assetPath(chapter, piece, nercabbad, combo.key()) + ".json";
 	}
 
-	/** All (chapter, nercabbad) variants a piece's combination needs. */
+	/** All (chapter, nercabbad) variants a piece's combination needs: none for a half the garment lacks (a frack's legs). */
 	public static List<boolean[]> variants(Chapter chapter, Piece piece) {
 		List<boolean[]> out = new ArrayList<>();
+		if (!chapter.pieces().contains(piece)) return out;
 		out.add(new boolean[]{false});
 		if (piece == Piece.BOTTOM && chapter.rollable) out.add(new boolean[]{true});
 		return out;

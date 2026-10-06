@@ -223,7 +223,8 @@ public final class ModCommands {
 	private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) throws CommandSyntaxException {
 		ItemStack stack = new ItemStack(ModContent.ovve(chapter));
 		OvveItem.setTopUp(stack, topUp && chapter.rollable || !chapter.rollable);
-		Looks.setSewn(stack, fromList(patches));
+		// Cells the garment does not have (a frack's legs) are dropped rather than sewn on nothing.
+		Looks.setSewn(stack, fromList(patches.stream().filter(p -> chapter.pieces().contains(p.piece())).toList()));
 		return stack;
 	}
 
@@ -255,7 +256,7 @@ public final class ModCommands {
 		if (!Placement.isKey(key)) throw UNKNOWN_PATCH.create(key + " (want cell.patch)");
 		Placement placement = Placement.parse(key);
 		ArmorStand stand = player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(8)).stream()
-				.filter(s -> s.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)
+				.filter(OvveItem::wears)
 				.min(java.util.Comparator.comparingDouble(s -> s.distanceToSqr(player))).orElse(null);
 		if (stand == null) throw NOT_AN_OVVE.create("no stand wearing one within 8 blocks");
 		SewingGame.start(player, stand, placement, placement.patch());
@@ -323,7 +324,7 @@ public final class ModCommands {
 			stand.setLeftArmPose(poses[i][1]);
 			stand.setRightLegPose(poses[i][2]);
 			stand.setLeftLegPose(poses[i][3]);
-			stand.setItemSlot(EquipmentSlot.LEGS, ovve(chapter, true, List.of()));
+			OvveItem.wear(stand, ovve(chapter, true, List.of()));
 			stand.setCustomName(Component.literal(labels[i]));
 			stand.setCustomNameVisible(true);
 			level.addFreshEntity(stand);
@@ -359,12 +360,7 @@ public final class ModCommands {
 			double y = Math.floor(pos.y);
 			ItemStack ovve = looks.get(i);
 			// The companion top is placed by hand so it shows before the first tick.
-			ItemStack top = null;
-			if (OvveItem.topUp(ovve)) {
-				top = new ItemStack(ModContent.top(chapter));
-				var patches = ovve.get(ModComponents.PATCHES);
-				if (patches != null) top.set(ModComponents.PATCHES, patches);
-			}
+			ItemStack top = companionTop(ovve);
 
 			// A mannequin renders like a player, so the ovve and its patches show as worn; an armour
 			// stand uses a different model and misplaces them. Default on; pass false for stands.
@@ -378,7 +374,7 @@ public final class ModCommands {
 				stand.setShowArms(true);
 				stand.setLeftArmPose(new Rotations(-10, 0, -10));
 				stand.setRightArmPose(new Rotations(-10, 0, 10));
-				stand.setItemSlot(EquipmentSlot.LEGS, ovve);
+				OvveItem.wear(stand, ovve);
 				if (top != null) stand.setItemSlot(EquipmentSlot.CHEST, top);
 				display = stand;
 			}
@@ -394,7 +390,7 @@ public final class ModCommands {
 
 	/** The companion top an ovve's item pass needs beside it (the top is up, and its patches), or null. */
 	private static @Nullable ItemStack companionTop(ItemStack ovve) {
-		if (!OvveItem.topUp(ovve) || !(ovve.getItem() instanceof OvveItem item)) return null;
+		if (!OvveItem.needsCompanionTop(ovve) || !(ovve.getItem() instanceof OvveItem item)) return null;
 		ItemStack top = new ItemStack(ModContent.top(item.chapter));
 		var patches = ovve.get(ModComponents.PATCHES);
 		if (patches != null) top.set(ModComponents.PATCHES, patches);
@@ -413,7 +409,7 @@ public final class ModCommands {
 		m.setYRot(yaw + 180);
 		m.setYBodyRot(yaw + 180);
 		m.setYHeadRot(yaw + 180);
-		m.setItemSlot(EquipmentSlot.LEGS, ovve);
+		OvveItem.wear(m, ovve);
 		if (top != null) m.setItemSlot(EquipmentSlot.CHEST, top);
 		return m;
 	}
