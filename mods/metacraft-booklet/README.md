@@ -71,8 +71,12 @@ to fence, lanterns and hanging signs under rope). The furniture, statues and the
 The server runs our PolyDecorations fork
 ([Froosty11/PolyDecorations](https://github.com/Froosty11/PolyDecorations/releases), 0.13.1+26.3-rc-1.metacraft.1),
 which can switch features off completely: no blocks, items, Polymer block states or resource-pack assets.
-`server-config/polydecorations.json` is the file that goes in the server's `config/` folder; the dev runs
-copy it into theirs before starting, so they match the server.
+Which features are on is a METAcraft config: `config/polydecorations.json`, editable in game with
+`/meta-config-screen polydecorations` (applies at the next restart). Its defaults are Season 6's
+(`src/main/resources/metacraft-booklet/polydecorations-s6.json`): on a server's first start the
+booklet writes them there before PolyDecorations reads the file (from the booklet's own mixin
+plugin, which loads before PolyDecorations' plugin reads it), so no file has to be copied by hand. The dev runs
+copy the same file into theirs before starting.
 
 With upstream PolyDecorations, which has no such config, `polydecorations_s6` still hides the rest: it
 overrides every other recipe and recipe advancement with a file whose only content is a `fabric:false`

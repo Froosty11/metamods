@@ -69,6 +69,10 @@ public final class MetacraftBooklet implements ModInitializer {
 					hook.optional() ? PackActivationType.DEFAULT_ENABLED : PackActivationType.ALWAYS_ENABLED);
 			LOGGER.info("[{}] {} is here: {} {}", MOD_ID, hook.modId(), hook.pack(), ok ? "on" : "could not be registered");
 		}
+		if (FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			// its feature switches, as a METAcraft config (/meta-config-screen polydecorations)
+			nu.metacraft.booklet.polydecorations.PolyDecorationsConfig.init();
+		}
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				dispatcher.register(Commands.literal("guide").executes(ctx -> {
