@@ -34,6 +34,7 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.DyeColor;
@@ -132,6 +133,19 @@ public final class MoreDyesGameTests {
 		});
 	}
 
+	/** Four candles in one block drop four candles (the loot table's set_count, in 26.3's shape). */
+	@GameTest
+	public void candlesDropTheirCount(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, block(Family.CANDLE).defaultBlockState().setValue(CandleBlock.CANDLES, 4));
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			int n = helper.getEntities(EntityTypes.ITEM, pos, 2.0).stream().mapToInt(e -> e.getItem().getCount()).sum();
+			helper.assertValueEqual(n, 4, "candles dropped");
+		});
+	}
+
 	/** A shulker box in our colour keeps its contents when broken (vanilla block entity + loot). */
 	@GameTest
 	public void shulkerKeepsContents(GameTestHelper helper) {
@@ -196,6 +210,29 @@ public final class MoreDyesGameTests {
 			helper.assertValueEqual(painted.get(), eu.pb4.mapcanvas.api.core.CanvasColor.from(color.mapColor(),
 					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
 		}
+	}
+
+	/** A happy ghast takes our harness, and wears it as our equipment asset. */
+	@GameTest
+	public void harnessFitsTheHappyGhast(GameTestHelper helper) {
+		var ghast = helper.spawnWithNoFreeWill(EntityTypes.HAPPY_GHAST, new BlockPos(2, 4, 2));
+		ItemStack harness = new ItemStack(ModContent.harness(first()));
+		helper.assertTrue(ghast.isEquippableInSlot(harness, EquipmentSlot.BODY), "a happy ghast does not take " + first().name() + " harness");
+		var asset = harness.get(DataComponents.EQUIPPABLE).assetId().orElseThrow().identifier();
+		helper.assertValueEqual(asset, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, first().id() + "_harness"), "the harness's equipment asset");
+		helper.succeed();
+	}
+
+	/** A llama wears our carpet as its decor. */
+	@GameTest
+	public void carpetDecoratesTheLlama(GameTestHelper helper) {
+		floor(helper);
+		var llama = helper.spawnWithNoFreeWill(EntityTypes.LLAMA, new BlockPos(2, 1, 2));
+		ItemStack carpet = new ItemStack(block(Family.CARPET));
+		helper.assertTrue(llama.isEquippableInSlot(carpet, EquipmentSlot.BODY), "a llama does not take " + first().name() + " carpet");
+		var asset = carpet.get(DataComponents.EQUIPPABLE).assetId().orElseThrow().identifier();
+		helper.assertValueEqual(asset, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, first().id() + "_carpet"), "the carpet's equipment asset");
+		helper.succeed();
 	}
 
 	/** Our candles can be lit (block tag) and are not cake-able (item tag deliberately absent). */
@@ -342,8 +379,8 @@ public final class MoreDyesGameTests {
 		ItemStack out = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), dye));
 		helper.assertTrue(out.is(Items.LEATHER_CHESTPLATE), "no dyed chestplate, got " + out);
 		DyedItemColor color = out.get(DataComponents.DYED_COLOR);
-		helper.assertTrue(color != null && (color.rgb() & 0xFFFFFF) == first().rgb(),
-				"expected " + Integer.toHexString(first().rgb()) + ", got " + color);
+		helper.assertTrue(color != null && (color.rgb() & 0xFFFFFF) == (first().rgb() & 0xFFFFFF),
+				"expected " + Integer.toHexString(first().rgb() & 0xFFFFFF) + ", got " + color);
 
 		ItemStack mixed = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), dye, new ItemStack(Items.DYE.white())));
 		DyedItemColor mixedColor = mixed.get(DataComponents.DYED_COLOR);

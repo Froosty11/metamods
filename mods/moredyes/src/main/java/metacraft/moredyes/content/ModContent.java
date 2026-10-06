@@ -17,6 +17,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.equipment.EquipmentAssets;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.block.Block;
@@ -31,6 +34,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -40,6 +44,7 @@ import java.util.Set;
 public final class ModContent {
 	private static final Map<ModColor, ModDyeItem> DYES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModBundleItem> BUNDLES = new LinkedHashMap<>();
+	private static final Map<ModColor, ModHarnessItem> HARNESSES = new LinkedHashMap<>();
 	private static final Map<ModColor, Map<Family, Block>> BLOCKS = new LinkedHashMap<>();
 
 	private ModContent() {}
@@ -61,11 +66,26 @@ public final class ModContent {
 		return BUNDLES.get(color);
 	}
 
+	public static ModHarnessItem harness(ModColor color) {
+		return HARNESSES.get(color);
+	}
+
+	/**
+	 * Vanilla's {@code equippable} for the white variant of something, worn as our equipment asset
+	 * {@code moredyes:<id>}: same slot, sounds and wearers, our look.
+	 */
+	static Equippable wornAs(Equippable white, Identifier asset) {
+		return new Equippable(white.slot(), white.equipSound(), Optional.of(ResourceKey.create(EquipmentAssets.ROOT_ID, asset)),
+				white.cameraOverlay(), white.allowedEntities(), white.dispensable(), white.swappable(), white.damageOnHurt(),
+				white.equipOnInteract(), white.canBeSheared(), white.shearingSound());
+	}
+
 	/** Every item of a colour, in creative-tab order. */
 	public static List<Item> items(ModColor color) {
 		List<Item> items = new ArrayList<>();
 		items.add(DYES.get(color));
 		items.add(BUNDLES.get(color));
+		items.add(HARNESSES.get(color));
 		for (Family family : Family.values()) {
 			if (family.hasItem()) items.add(BLOCKS.get(color).get(family).asItem());
 		}
@@ -101,6 +121,13 @@ public final class ModContent {
 				.stacksTo(1).component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
 				.setId(ResourceKey.create(Registries.ITEM, bundleId)), bundleId)));
 
+		// Harness: vanilla's, on our equipment asset (the ghast wears what its equippable names).
+		Identifier harnessId = id(color.id() + "_harness");
+		requireAsset("items/" + harnessId.getPath() + ".json", harnessId);
+		HARNESSES.put(color, Registry.register(BuiltInRegistries.ITEM, harnessId, new ModHarnessItem(new Item.Properties()
+				.stacksTo(1).component(DataComponents.EQUIPPABLE, wornAs(Equippable.harness(DyeColor.WHITE), harnessId))
+				.setId(ResourceKey.create(Registries.ITEM, harnessId)), harnessId)));
+
 		// Blocks. Concrete must exist before its powder.
 		Map<Family, Block> blocks = new EnumMap<>(Family.class);
 		BLOCKS.put(color, blocks);
@@ -131,6 +158,8 @@ public final class ModContent {
 				Item.Properties itemProps = new Item.Properties().useBlockDescriptionPrefix()
 						.setId(ResourceKey.create(Registries.ITEM, blockId));
 				if (family.kind == Family.Kind.SHULKER_BOX) itemProps.stacksTo(1);
+				// a llama wears a carpet as its decor, drawn from the equippable's asset
+				if (family.kind == Family.Kind.CARPET) itemProps.component(DataComponents.EQUIPPABLE, wornAs(Equippable.llamaSwag(DyeColor.WHITE), blockId));
 				Registry.register(BuiltInRegistries.ITEM, blockId, new ColoredBlockItem(block, itemProps, blockId, family.clientItem));
 			}
 			blocks.put(family, block);

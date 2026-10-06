@@ -89,6 +89,10 @@ public final class GeneratedAssets implements DataProvider {
 		TEXTURES.put("item/{c}_bundle", "item/white_bundle");
 		TEXTURES.put("item/{c}_bundle_open_front", "item/white_bundle_open_front");
 		TEXTURES.put("item/{c}_bundle_open_back", "item/white_bundle_open_back");
+		TEXTURES.put("item/{c}_harness", "item/white_harness");
+		// worn: the happy ghast's harness and the llama's carpet decor, drawn from the equippable's asset
+		TEXTURES.put("entity/equipment/happy_ghast_body/{c}_harness", "entity/equipment/happy_ghast_body/white_harness");
+		TEXTURES.put("entity/equipment/llama_body/{c}", "entity/equipment/llama_body/white");
 	}
 
 	/** Block models: name (with {c}) -> model. */
@@ -148,6 +152,7 @@ public final class GeneratedAssets implements DataProvider {
 		ITEM_MODELS.put("{c}_candle", generated(MOD + ":item/{c}_candle"));
 		ITEM_MODELS.put("{c}_stained_glass_pane", generated(t("{c}_stained_glass")));
 		ITEM_MODELS.put("{c}_bundle", generated(MOD + ":item/{c}_bundle"));
+		ITEM_MODELS.put("{c}_harness", generated(MOD + ":item/{c}_harness"));
 		ITEM_MODELS.put("{c}_bundle_open_front", obj("parent", "minecraft:item/template_bundle_open_front",
 				"textures", obj("layer0", MOD + ":item/{c}_bundle_open_front")));
 		ITEM_MODELS.put("{c}_bundle_open_back", obj("parent", "minecraft:item/template_bundle_open_back",
@@ -374,45 +379,53 @@ public final class GeneratedAssets implements DataProvider {
 
 	// ---------------------------------------------------------------- data builders
 
+	/**
+	 * A block's loot table in 26.3's shape (modifiers and conditions are typed objects; the 1.21 form,
+	 * {@code functions}/{@code conditions} lists, is silently ignored), matching vanilla's white block.
+	 */
 	private static JsonObject lootTable(String kind, String item) {
 		JsonObject entry = obj("type", "minecraft:item", "name", item);
+		JsonObject pool = obj("rolls", 1);
 		switch (kind) {
-			case "slab" -> entry.add("functions", arr(obj("function", "minecraft:set_count", "count", 2.0, "add", false,
-					"conditions", arr(obj("condition", "minecraft:block_state_property", "block", item,
-							"properties", obj("type", "double"))))));
-			case "bed" -> entry.add("conditions", arr(obj("condition", "minecraft:block_state_property", "block", item,
-					"properties", obj("part", "head"))));
-			case "shulker" -> entry.add("functions", arr(obj("function", "minecraft:copy_components", "source", "block_entity",
-					"include", arr("minecraft:custom_name", "minecraft:container", "minecraft:lock", "minecraft:container_loot"))));
-			case "silk_touch" -> {
-				return obj("type", "minecraft:block", "pools", arr(obj("rolls", 1, "entries", arr(entry), "conditions", arr(
-						obj("condition", "minecraft:match_tool", "predicate", obj("predicates", obj("minecraft:enchantments", arr(
-								obj("enchantments", "minecraft:silk_touch", "levels", obj("min", 1))))))))));
+			case "slab" -> entry.add("modifier", arr(
+					obj("type", "minecraft:set_count", "count", 2, "condition", matchBlock(item, obj("type", "double"))),
+					obj("type", "minecraft:explosion_decay")));
+			case "bed" -> {
+				entry.add("condition", matchBlock(item, obj("part", "head")));
+				pool.add("condition", obj("type", "minecraft:survives_explosion"));
 			}
+			case "shulker" -> entry.add("modifier", obj("type", "minecraft:copy_components", "source", "block_entity",
+					"include", arr("minecraft:custom_name", "minecraft:container", "minecraft:lock", "minecraft:container_loot")));
+			case "silk_touch" -> pool.addProperty("condition", "minecraft:tool/can_silk_touch");
 			case "candle_cake" -> // eating or breaking a candle cake gives the candle back
 					entry = obj("type", "minecraft:item", "name", item.substring(0, item.length() - "_candle_cake".length()) + "_candle");
 			case "candle" -> {
-				List<Object> fns = new ArrayList<>();
+				List<Object> modifiers = new ArrayList<>();
 				for (int n = 2; n <= 4; n++) {
-					fns.add(obj("function", "minecraft:set_count", "count", (double) n, "add", false,
-							"conditions", arr(obj("condition", "minecraft:block_state_property", "block", item,
-									"properties", obj("candles", String.valueOf(n))))));
+					modifiers.add(obj("type", "minecraft:set_count", "count", n, "condition", matchBlock(item, obj("candles", String.valueOf(n)))));
 				}
-				entry.add("functions", arr(fns.toArray()));
+				modifiers.add(obj("type", "minecraft:explosion_decay"));
+				entry.add("modifier", arr(modifiers.toArray()));
 			}
-			default -> {}
+			default -> pool.add("condition", obj("type", "minecraft:survives_explosion"));
 		}
-		return obj("type", "minecraft:block", "pools", arr(obj("rolls", 1, "entries", arr(entry),
-				"conditions", arr(obj("condition", "minecraft:survives_explosion")))));
+		pool.add("entries", arr(entry));
+		return obj("type", "minecraft:block", "pools", arr(pool));
+	}
+
+	private static JsonObject matchBlock(String block, JsonObject state) {
+		return obj("type", "minecraft:match_block", "blocks", block, "state", state);
 	}
 
 	/** Sheep death loot: vanilla's mutton pool, plus our wool when unshorn (the choice is made in MobMixin). */
 	private static Map<String, JsonObject> sheepLoot(String cid) {
-		JsonObject mutton = obj("rolls", 1, "entries", arr(obj("type", "minecraft:item", "name", "minecraft:mutton", "functions", arr(
-				obj("function", "minecraft:set_count", "count", obj("type", "minecraft:uniform", "min", 1.0, "max", 2.0), "add", false),
-				obj("function", "minecraft:furnace_smelt", "conditions", arr(obj("condition", "minecraft:entity_properties",
-						"entity", "this", "predicate", obj("flags", obj("is_on_fire", true))))),
-				obj("function", "minecraft:enchanted_count_increase", "enchantment", "minecraft:looting",
+		JsonObject mutton = obj("rolls", 1, "entries", arr(obj("type", "minecraft:item", "name", "minecraft:mutton", "modifier", arr(
+				obj("type", "minecraft:set_count", "count", obj("type", "minecraft:uniform", "min", 1, "max", 2)),
+				obj("type", "minecraft:furnace_smelt", "condition", obj("type", "minecraft:any_of", "terms", arr(
+						obj("type", "minecraft:entity_properties", "entity", "this", "predicate", obj("minecraft:flags", obj("is_on_fire", true))),
+						obj("type", "minecraft:entity_properties", "entity", "direct_attacker", "predicate", obj("minecraft:equipment",
+								obj("mainhand", obj("predicates", obj("minecraft:enchantments", arr(obj("enchantments", "#minecraft:smelts_loot")))))))))),
+				obj("type", "minecraft:enchanted_count_increase", "enchantment", "minecraft:looting",
 						"count", obj("type", "minecraft:uniform", "min", 0.0, "max", 1.0))))));
 		JsonObject wool = obj("rolls", 1, "entries", arr(obj("type", "minecraft:item", "name", MOD + ":" + cid + "_wool")));
 		Map<String, JsonObject> out = new LinkedHashMap<>();
@@ -450,6 +463,11 @@ public final class GeneratedAssets implements DataProvider {
 		// transmute keeps the box's contents, like vanilla's shulker dye recipes
 		r.put(cid + "_shulker_box", obj("type", "minecraft:crafting_transmute", "category", "misc", "group", "shulker_box_dye",
 				"input", "#minecraft:shulker_boxes", "material", dye, "result", obj("id", m.apply("shulker_box"))));
+		r.put(cid + "_harness", obj("type", "minecraft:crafting_shaped", "category", "equipment", "group", "harness",
+				"pattern", arr("LLL", "G#G"), "key", obj("#", m.apply("wool"), "G", "minecraft:glass", "L", "minecraft:leather"),
+				"result", obj("id", MOD + ":" + cid + "_harness")));
+		r.put("dye_" + cid + "_harness", obj("type", "minecraft:crafting_transmute", "category", "equipment", "group", "harness_dye",
+				"input", "#minecraft:harnesses", "material", dye, "result", obj("id", MOD + ":" + cid + "_harness")));
 		r.put(cid + "_bundle", obj("type", "minecraft:crafting_transmute", "category", "equipment", "group", "bundle_dye",
 				"input", "#minecraft:bundles", "material", dye, "result", obj("id", MOD + ":" + cid + "_bundle")));
 		r.put(cid + "_stained_glass", obj("type", "minecraft:crafting_shaped", "category", "building", "group", "stained_glass",
@@ -528,6 +546,7 @@ public final class GeneratedAssets implements DataProvider {
 		BLOCK_TAGS.keySet().forEach(k -> blockTags.put(k, new ArrayList<>()));
 		ITEM_TAGS.keySet().forEach(k -> itemTags.put(k, new ArrayList<>()));
 		itemTags.put("bundles", new ArrayList<>());
+		itemTags.put("harnesses", new ArrayList<>());
 		List<String> ourDyes = new ArrayList<>();
 
 		for (ModColor color : colors) {
@@ -552,6 +571,15 @@ public final class GeneratedAssets implements DataProvider {
 					JsonParser.parseString(bundleItemDef.replace("minecraft:item/white_bundle", MOD + ":item/" + cid + "_bundle")));
 			lang.put("item." + MOD + "." + cid + "_bundle", cname + " Bundle");
 			itemTags.get("bundles").add(MOD + ":" + cid + "_bundle");
+			// harness: worn by the happy ghast as our equipment asset
+			json(assets.resolve("items/" + cid + "_harness.json"), itemDef(MOD + ":item/" + cid + "_harness"));
+			json(assets.resolve("equipment/" + cid + "_harness.json"),
+					obj("layers", obj("happy_ghast_body", arr(obj("texture", MOD + ":" + cid + "_harness")))));
+			lang.put("item." + MOD + "." + cid + "_harness", cname + " Harness");
+			itemTags.get("harnesses").add(MOD + ":" + cid + "_harness");
+			// carpet: a llama's decor
+			json(assets.resolve("equipment/" + cid + "_carpet.json"),
+					obj("layers", obj("llama_body", arr(obj("texture", MOD + ":" + cid)))));
 			DISPLAY_ITEM_DEFS.forEach((name, model) -> json(assets.resolve("items/" + name.replace("{c}", cid) + ".json"), itemDef(model.replace("{c}", cid))));
 			sheepLoot(cid).forEach((name, table) -> json(data.resolve(MOD + "/loot_table/entities/sheep/" + name + ".json"), table));
 
