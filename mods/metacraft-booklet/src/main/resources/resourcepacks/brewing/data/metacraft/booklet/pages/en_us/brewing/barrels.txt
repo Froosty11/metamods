@@ -6,7 +6,7 @@ icon=minecraft:oak_stairs
 order=3
 ### EndSection: PageInfo
 ### Header: Building one
-A barrel lies on its side, 4 blocks long and 3 by 3 across, all of one wood:
+### Image: metacraft:beside/brewing/barrel A barrel lies on its side, 4 blocks long and 3 by 3 across, all of one wood:
 - each slice across is round: <bold>stairs</bold> on the four corners, <bold>planks</bold> on the four sides;
 - the two end slices are filled in, with a plank in the middle; the two middle ones are hollow;
 - it stands on four <bold>fences</bold>, one under each bottom corner of the end slices.
