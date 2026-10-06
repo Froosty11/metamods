@@ -49,6 +49,7 @@ public final class ModContent {
 	private static final Map<ModColor, ModBundleItem> BUNDLES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModHarnessItem> HARNESSES = new LinkedHashMap<>();
 	private static final Map<ModColor, Item> TORCHFLOWERS = new LinkedHashMap<>();
+	private static final Map<ModColor, Item> CUSHIONS = new LinkedHashMap<>();
 	private static final Map<ModColor, Map<Family, Block>> BLOCKS = new LinkedHashMap<>();
 
 	private ModContent() {}
@@ -72,6 +73,10 @@ public final class ModContent {
 
 	public static ModHarnessItem harness(ModColor color) {
 		return HARNESSES.get(color);
+	}
+
+	public static Item cushion(ModColor color) {
+		return CUSHIONS.get(color);
 	}
 
 	public static Item torchflower(ModColor color) {
@@ -99,6 +104,7 @@ public final class ModContent {
 		items.add(BUNDLES.get(color));
 		items.add(HARNESSES.get(color));
 		items.add(TORCHFLOWERS.get(color));
+		items.add(CUSHIONS.get(color));
 		for (Family family : Family.values()) {
 			if (family.hasItem()) items.add(BLOCKS.get(color).get(family).asItem());
 		}
@@ -150,6 +156,14 @@ public final class ModContent {
 		TORCHFLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
 				new Item.Properties().useBlockDescriptionPrefix().setId(ResourceKey.create(Registries.ITEM, flowerId)),
 				flowerId, Items.TORCHFLOWER)));
+
+		// Cushion: vanilla's white cushion item and entity, carrying our colour (see cushion.Cushions).
+		Identifier cushionId = id(color.id() + "_cushion");
+		requireAsset("items/" + cushionId.getPath() + ".json", cushionId);
+		CUSHIONS.put(color, Registry.register(BuiltInRegistries.ITEM, cushionId, new ModCushionItem(new Item.Properties()
+				.component(DataComponents.CUSHION_COLOR, DyeColor.WHITE)
+				.component(metacraft.moredyes.cushion.Cushions.ITEM_COLOR, color.id())
+				.setId(ResourceKey.create(Registries.ITEM, cushionId)), cushionId)));
 
 		// Blocks. Concrete must exist before its powder.
 		Map<Family, Block> blocks = new EnumMap<>(Family.class);
