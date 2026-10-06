@@ -94,7 +94,7 @@ public final class StandSewing {
 			if (hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof ArmorStand stand)) {
 				return InteractionResult.PASS;
 			}
-			if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return InteractionResult.PASS;
+			if (!(OvveItem.worn(stand).getItem() instanceof OvveItem)) return InteractionResult.PASS;
 			return click(serverPlayer, stand, aim(serverPlayer, stand), true);
 		});
 		UseItemCallback.EVENT.register((player, level, hand) -> {
@@ -115,7 +115,7 @@ public final class StandSewing {
 		StandAim.Hit bestHit = null;
 		double bestDistance = maxDistance;
 		for (ArmorStand stand : player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(REACH))) {
-			if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) continue;
+			if (!(OvveItem.worn(stand).getItem() instanceof OvveItem)) continue;
 			StandAim.Hit hit = aim(player, stand);
 			if (hit == null) continue;
 			double distance = player.getEyePosition().distanceTo(hit.where());
@@ -146,16 +146,17 @@ public final class StandSewing {
 	 *   would be a surprise.
 	 */
 	private static InteractionResult click(ServerPlayer player, ArmorStand stand, StandAim.Hit aimed, boolean onStand) {
-		ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+		ItemStack ovve = OvveItem.worn(stand);
 		ItemStack held = player.getMainHandItem();
 		ServerLevel level = player.level();
 		boolean session = StashSession.isSessionStand(stand);
 		boolean sewing = held.getItem() instanceof PatchItem || held.is(ConventionalItemTags.SHEAR_TOOLS);
 		if (session && !StashSession.mayUse(player, stand)) return InteractionResult.FAIL;   // someone else's stand
 		if (session && !sewing) return InteractionResult.FAIL;   // nothing else happens to a session stand (no taking the ovve)
-		if (onStand && !sewing && held.isEmpty() && aimed != null && TOP_PARTS.contains(aimed.part())) {
+		if (onStand && !sewing && held.isEmpty() && aimed != null && TOP_PARTS.contains(aimed.part()) && OvveItem.needsCompanionTop(ovve)) {
 			ItemStack chest = stand.getItemBySlot(EquipmentSlot.CHEST);
-			// Real chest armour over the ovve is the stand's own business: vanilla swaps that out.
+			// Real chest armour over the ovve is the stand's own business: vanilla swaps that out. (A
+			// frack is the chest slot's own item, so vanilla's swap already hands it over: not this.)
 			if (chest.isEmpty() || chest.getItem() instanceof OvveTopItem) return takeOff(player, stand, ovve);
 		}
 		if (sewing) {
@@ -175,7 +176,7 @@ public final class StandSewing {
 			logAim("click " + patchItem.patch.id(), player, stand, aimed, spot);
 			if (spot == null) return InteractionResult.FAIL;
 			Placement placement = new Placement(spot, patchItem.patch);
-			if (!Looks.canSew(stand.getItemBySlot(EquipmentSlot.LEGS), placement)) {
+			if (!Looks.canSew(OvveItem.worn(stand), placement)) {
 				onSewFail(level, player, aimed.where());
 				return InteractionResult.FAIL;
 			}
@@ -229,7 +230,7 @@ public final class StandSewing {
 	 */
 	private static InteractionResult takeOff(ServerPlayer player, ArmorStand stand, ItemStack ovve) {
 		ItemStack taken = ovve.copy();
-		stand.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+		OvveItem.takeOff(stand);
 		if (stand.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem) {
 			stand.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
 		}
@@ -247,7 +248,7 @@ public final class StandSewing {
 	 * comes back. The preview is dropped, particles at {@code where}.
 	 */
 	static void finish(ServerPlayer player, ArmorStand stand, Placement placement, PatchItem patchItem, Vec3 where) {
-		ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+		ItemStack ovve = OvveItem.worn(stand);
 		if (!(ovve.getItem() instanceof OvveItem)) throw new IllegalStateException("[ovvar] finishing a seam on a stand without an ovve");
 		ItemStack held = player.getMainHandItem();
 		boolean fromStash = held.has(ModComponents.SESSION);
@@ -288,7 +289,7 @@ public final class StandSewing {
 			StandAim.Hit lastHit = null;
 			if (player.getMainHandItem().getItem() instanceof PatchItem patchItem) {
 				for (ArmorStand stand : player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(REACH))) {
-					ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+					ItemStack ovve = OvveItem.worn(stand);
 					if (!(ovve.getItem() instanceof OvveItem)) continue;
 					StandAim.Hit hit = aim(player, stand);
 					aimedStand = stand;
@@ -325,7 +326,7 @@ public final class StandSewing {
 
 	private static void clearPreview(net.minecraft.world.level.Level level, UUID standId) {
 		if (level instanceof ServerLevel server && server.getEntity(standId) instanceof ArmorStand stand) {
-			ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+			ItemStack ovve = OvveItem.worn(stand);
 			if (ovve.getItem() instanceof OvveItem) Looks.setPreview(ovve, null);
 		}
 	}
