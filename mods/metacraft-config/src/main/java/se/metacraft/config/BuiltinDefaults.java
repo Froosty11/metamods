@@ -126,54 +126,61 @@ public class BuiltinDefaults {
 		return dispatchData.decoderByKey().apply(d);
 	}
 
-	private static DataResult<PMap<String, Object>> appendElements(
-		AbstractCodecResult element, DataResult<PMap<String, Object>> result, DynamicOps<?> ctx, HolderLookup.Provider lookup
+	private static Optional<DataResult<PMap<String, Object>>> handleDispatch(
+		AbstractCodecResult element, PMap<String, Object> result, DynamicOps<?> ctx, HolderLookup.Provider lookup
 	) {
+		var eitherDispatch = element.getContainer(ContainerType.DISPATCHED_EITHER);
+		if (eitherDispatch.isPresent()) {
+			var name = eitherDispatch.get().components().getFirst().nestedMetadata(MetadataKey.NAMED_FIELD);
+			if (name.isEmpty()) return Optional.empty();
+
+			var k = CodecInternalsHelper.defaultValue(eitherDispatch.get().components().getFirst(), lookup);
+			var dispatchData = element.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
+			return Optional.of(
+				k.flatMap(key -> compilerHack(key, dispatchData).flatMap(decoder -> {
+					if (decoder instanceof MapCodec<?> c) {
+						return CodecInternalsHelper.forceEncode(
+							eitherDispatch.get().components().getFirst().codec(), ctx, key
+						).map(
+							encoded -> {
+								//noinspection unchecked
+								return encoded instanceof Map<?, ?> ? result.plusAll((Map<String, ?>) encoded) : result;
+							}
+						).flatMap(
+							r -> appendElements(
+								CodecParser.parse(c, lookup),
+								r, ctx, lookup
+							)
+						);
+					}
+					return DataResult.error(() -> decoder + " is not a MapCodec");
+				})).setPartial(result)
+			);
+		}
+		return Optional.empty();
+	}
+
+	private static DataResult<PMap<String, Object>> appendElements(
+		AbstractCodecResult element, PMap<String, Object> result, DynamicOps<?> ctx, HolderLookup.Provider lookup
+	) {
+		DataResult<PMap<String, Object>> r = DataResult.success(result);
 		for (var subElement : CodecInternalsHelper.getNamedElements(element)) {
-			boolean hasDispatch = false;
 			var name = subElement.nestedMetadata(MetadataKey.NAMED_FIELD);
-			var eitherDispatch = subElement.getContainer(ContainerType.DISPATCHED_EITHER);
-			if (name.isEmpty() && eitherDispatch.isPresent()) {
-				name = eitherDispatch.get().components().getFirst().nestedMetadata(MetadataKey.NAMED_FIELD);
-				hasDispatch = true;
-			}
+			var dispatch = handleDispatch(subElement, result, ctx, lookup);
+			if (dispatch.isPresent()) return dispatch.get();
 			if (name.isEmpty() || !name.get().required()) continue;
 			var type = CodecInternalsHelper.getUnnamed(subElement);
 			var n = name;
 			DataResult<Object> foundDefaultValue = CodecInternalsHelper.defaultValue(type, lookup);
-			if (hasDispatch) {
-				var k = CodecInternalsHelper.defaultValue(eitherDispatch.get().components().getFirst(), lookup);
-				var dispatchData = subElement.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
-				var r = result;
-				result = k.flatMap(key -> compilerHack(key, dispatchData).flatMap(decoder -> {
-					if (decoder instanceof MapCodec<?> c) {
-						return appendElements(
-							CodecParser.parse(c, lookup), r.flatMap(
-								currentResult -> CodecInternalsHelper.forceEncode(
-									eitherDispatch.get().components().getFirst().codec(), ctx, key
-								).map(
-									encoded -> {
-										//noinspection unchecked
-										return encoded instanceof Map<?, ?> ? currentResult.plusAll((Map<String, ?>) encoded) : currentResult;
-									}
-								).setPartial(currentResult)
-							),
-							ctx, lookup
-						);
-					}
-					return r;
-				}));
-			} else {
-				result = result.flatMap(
-					currentResult -> foundDefaultValue.flatMap(v ->
-						CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
-					).map(
-						encoded -> currentResult.plus(n.get().name(), encoded)
-					).setPartial(currentResult)
-				);
-			}
+			r = r.flatMap(
+				currentResult -> foundDefaultValue.flatMap(v ->
+					CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
+				).map(
+					encoded -> currentResult.plus(n.get().name(), encoded)
+				).setPartial(currentResult)
+			);
 		}
-		return result;
+		return r;
 	}
 
 	public static final CodecDefaultValueEvent BUILTIN = (element, lookup) -> {
@@ -194,10 +201,18 @@ public class BuiltinDefaults {
 				return map;
 			}
 
-			DataResult<PMap<String, Object>> result = appendElements(
-				element, DataResult.success(HashTreePMap.empty()), ctx, lookup
+			DataResult<PMap<String, Object>> result = handleDispatch(
+				element, HashTreePMap.empty(), ctx, lookup
+			).orElseGet(
+				() -> appendElements(
+					element, HashTreePMap.empty(), ctx, lookup
+				)
 			);
-			if (element.hasContainerType(ContainerType.RECORD) || element.hasContainerType(ContainerType.UNIT) || result.hasResultOrPartial()) {
+
+			if (
+				element.hasContainerType(ContainerType.RECORD) || element.hasContainerType(ContainerType.UNIT) ||
+				element.hasContainerType(ContainerType.DISPATCHED_EITHER) || result.hasResultOrPartial()
+			) {
 				return Optional.of(result.flatMap(r -> mapCodec.codec().parse(ctx, r).map(BuiltinDefaults::handleDefaultObject)));
 			}
 			return Optional.empty();
