@@ -797,13 +797,18 @@ public final class GeneratedAssets implements DataProvider {
 		return Tex.art(name);
 	}
 
-	/** {@code art/ovvar/icon_<overlay>.png}, the chapter's own 16×16 icon, or null if it has none. */
+	/**
+	 * The chapter's own 16×16 icon, or null if it has none: {@code art/ovvar/icon_<chapter id>.png},
+	 * else {@code icon_<overlay>.png} (shared by the chapters on that overlay).
+	 */
 	private static @Nullable Tex ownIcon(Chapter chapter) {
-		String name = "icon_" + chapter.overlay;
-		if (Tex.class.getResource("/art/" + MOD + "/" + name + ".png") == null) return null;
-		Tex tex = art(name);
-		require(tex.width == 16 && tex.height == 16, name + ".png is not 16×16");
-		return tex;
+		for (String name : List.of("icon_" + chapter.id, "icon_" + chapter.overlay)) {
+			if (Tex.class.getResource("/art/" + MOD + "/" + name + ".png") == null) continue;
+			Tex tex = art(name);
+			require(tex.width == 16 && tex.height == 16, name + ".png is not 16×16");
+			return tex;
+		}
+		return null;
 	}
 
 	private static Tex overlay(String name, Chapter chapter) {
