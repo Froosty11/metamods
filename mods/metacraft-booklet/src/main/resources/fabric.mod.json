@@ -33,7 +33,8 @@
 		"fabric-api": "*",
 		"polymer-core": "*",
 		"polymer-resource-pack": "*",
-		"booklet": "*"
+		"booklet": "*",
+		"metacraft-config": "*"
 	},
 	"suggests": {
 		"ovvar": "*",

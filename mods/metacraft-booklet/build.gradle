@@ -16,6 +16,7 @@ fabricApi {
 }
 
 addPolymerDependency()
+addConfigDependency()
 dependencies {
 	// Booklet itself, and the Polymer module it builds its page fonts with but does not bundle
 	// (without it the resource pack fails to build and a client never finishes joining).
@@ -60,8 +61,8 @@ loom {
 	}
 }
 
-// Dev runs switch PolyDecorations' features the way Season 6's server does: server-config/ holds the
-// file that goes in the server's config folder, and it is copied into each run's before it starts.
+// Dev runs switch PolyDecorations' features the way Season 6's server does: each run's config folder
+// gets Season 6's file before it starts (on a real server S6Defaults writes it on the first start).
 def runConfigDirs = [
 	runServer: "${project.findProperty('runDir') ?: 'run'}/config",
 	runClientGameTest: "build/run/clientGameTest/config",
@@ -70,8 +71,9 @@ tasks.matching { it.name in runConfigDirs.keySet() }.configureEach { task ->
 	def configDir = file(runConfigDirs[task.name])
 	task.doFirst {
 		project.copy {
-			from "server-config/polydecorations.json"
+			from "src/main/resources/metacraft-booklet/polydecorations-s6.json"
 			into configDir
+			rename { "polydecorations.json" }
 		}
 	}
 }

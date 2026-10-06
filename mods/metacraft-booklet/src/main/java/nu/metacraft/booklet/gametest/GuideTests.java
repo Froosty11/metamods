@@ -164,4 +164,36 @@ public final class GuideTests {
 		}
 		helper.succeed();
 	}
+
+	/**
+	 * PolyDecorations' feature switches as a METAcraft config: they read as Season 6's (the dev run's
+	 * file is Season 6's), and the file metacraft-config keeps writing still reads the way
+	 * PolyDecorations reads it (Gson, from its mixin plugin), with the same switches.
+	 */
+	@GameTest
+	public void polyDecorationsConfigIsSeason6AndStillReadable(GameTestHelper helper) {
+		if (!FabricLoader.getInstance().isModLoaded("polydecorations")) { helper.succeed(); return; }
+		var config = nu.metacraft.booklet.polydecorations.PolyDecorationsConfig.get();
+		if (!config.equals(nu.metacraft.booklet.polydecorations.PolyDecorationsConfig.S6)) {
+			helper.fail("PolyDecorations' features are not Season 6's: " + config.features());
+		}
+		try {
+			var path = nu.metacraft.booklet.polydecorations.S6Defaults.path();
+			var features = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(path)).getAsJsonObject().getAsJsonObject("features");
+			for (var entry : config.features().entrySet()) {
+				var value = features.get(entry.getKey());
+				var expected = switch (entry.getValue()) {
+					case ON -> "true";
+					case OFF -> "false";
+					case HARD -> "\"hard\"";
+				};
+				if (value == null || !value.toString().equals(expected)) {
+					helper.fail("config/polydecorations.json reads " + entry.getKey() + " = " + value + " to PolyDecorations, not " + expected);
+				}
+			}
+		} catch (Exception e) {
+			helper.fail("PolyDecorations can't read config/polydecorations.json as metacraft-config writes it: " + e);
+		}
+		helper.succeed();
+	}
 }
