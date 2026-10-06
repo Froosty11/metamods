@@ -11,7 +11,7 @@ on:
         description: Server to roll back
         required: true
         type: choice
-        options: [test, survival, event] # must match deploy/servers.json
+        options: [test, survival, event, edvin] # must match deploy/servers.json
       release:
         description: Release tag to deploy, e.g. deploy-test-20261001-abc1234
         required: true
