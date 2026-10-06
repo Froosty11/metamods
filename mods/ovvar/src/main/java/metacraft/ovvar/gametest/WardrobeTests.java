@@ -517,43 +517,43 @@ public final class WardrobeTests {
 				.thenSucceed();
 	}
 
-	// ---- the config file's _help
+	// ---- the config file
 
 	/**
-	 * {@code config/ovvar.json} and its {@code designs}, {@code stash} and {@code server} blocks
-	 * each carry a {@code _help} object with an entry for every key they write, plus {@code _about};
-	 * this is the only comment JSON gets, so a key silently missing its line is worth failing on.
+	 * The config file shows every setting: each block and each key in it is written even at its
+	 * default (a key missing from the file would hide a setting), and written through metacraft-config
+	 * it carries the comments that explain them.
 	 */
 	@GameTest
-	public void configHelpCoversEveryKey(GameTestHelper helper) {
-		// The plain factory-default config, not nudged off default anywhere: server/designs/stash
-		// (and jdbc inside designs) use optionalFieldOf(key).xmap(...) precisely so a block equal to
-		// its own default is still written (and so is its _help), unlike the scalar keys inside each
-		// block, which optionalFieldOf(key, default) still omits when they equal that default.
+	public void configFileShowsEverySetting(GameTestHelper helper) {
 		OvvarConfig config = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT);
-		JsonElement json = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config)
-				.getOrThrow(message -> new IllegalStateException("config does not encode: " + message));
-		JsonObject root = json.getAsJsonObject();
-		assertHelpCoversKeys(helper, root, OvvarConfig.HELP, "root");
-		assertHelpCoversKeys(helper, root.getAsJsonObject("server"), ServerConfig.HELP, "server");
+		JsonObject root = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config)
+				.getOrThrow(message -> new IllegalStateException("config does not encode: " + message)).getAsJsonObject();
+		assertEveryKey(helper, root, OvvarConfig.class, "root");
+		assertEveryKey(helper, root.getAsJsonObject("server"), ServerConfig.class, "server");
 		JsonObject designs = root.getAsJsonObject("designs");
-		assertHelpCoversKeys(helper, designs, DesignStoreConfig.HELP, "designs");
-		assertHelpCoversKeys(helper, designs == null ? null : designs.getAsJsonObject("jdbc"), DesignStoreConfig.Jdbc.HELP, "designs.jdbc");
-		assertHelpCoversKeys(helper, root.getAsJsonObject("stash"), StashConfig.HELP, "stash");
+		assertEveryKey(helper, designs, DesignStoreConfig.class, "designs");
+		assertEveryKey(helper, designs == null ? null : designs.getAsJsonObject("jdbc"), DesignStoreConfig.Jdbc.class, "designs.jdbc");
+		assertEveryKey(helper, root.getAsJsonObject("stash"), StashConfig.class, "stash");
+		try {
+			java.nio.file.Path file = java.nio.file.Files.createTempFile("ovvar-config", ".json");
+			se.metacraft.config.util.helper.JanksonHelper.save(file, OvvarConfig.CODEC.codec(), config);
+			String text = java.nio.file.Files.readString(file);
+			for (String said : List.of("stitching dialog", "wardrobe", "jdbc backend", "minigame server")) {
+				if (!text.contains(said)) helper.fail("the written config file has no comment mentioning \"" + said + "\"");
+			}
+		} catch (java.io.IOException e) {
+			helper.fail("couldn't write the config file: " + e);
+		}
 		helper.succeed();
 	}
 
-	private static void assertHelpCoversKeys(GameTestHelper helper, JsonObject block, Map<String, String> help, String name) {
+	/** Every component of the record is a key in its block. */
+	private static void assertEveryKey(GameTestHelper helper, JsonObject block, Class<? extends Record> type, String name) {
 		if (block == null) { helper.fail(name + " block was not written at all"); return; }
-		if (!block.has("_help")) helper.fail(name + " has no _help");
-		JsonObject written = block.getAsJsonObject("_help");
-		if (!written.has("_about")) helper.fail(name + "._help has no _about");
-		for (String key : block.keySet()) {
-			if (key.equals("_help")) continue;
-			if (!written.has(key)) helper.fail(name + "._help is missing an entry for " + key);
-		}
-		for (String key : help.keySet()) {
-			if (!written.has(key)) helper.fail(name + "._help does not match its HELP map: missing " + key);
+		int components = type.getRecordComponents().length;
+		if (block.size() != components) {
+			helper.fail(name + " writes " + block.size() + " key(s) " + block.keySet() + " for " + components + " setting(s)");
 		}
 	}
 

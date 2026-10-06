@@ -1,6 +1,7 @@
 package metacraft.ovvar.store;
 
 import com.mojang.serialization.Codec;
+import metacraft.ovvar.ConfigFields;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.StringRepresentable;
@@ -37,21 +38,6 @@ public record DesignStoreConfig(
 		boolean editRequiresOwner, boolean sewWhenUnreachable, boolean unpickWhenUnreachable, int retrySeconds,
 		boolean logQueries
 ) {
-	/** Written into the file as {@code _help}, one line per key, since JSON has no comments. */
-	public static final Map<String, String> HELP = new LinkedHashMap<>();
-	static {
-		HELP.put("_about", "Where every player's wardrobe (their sewn patches per chapter and their stash of unsewn patches) is kept. All servers should point at the same store.");
-		HELP.put("backend", "\"file\": one JSON file per player in file_directory. \"jdbc\": a table in a shared database (MariaDB/MySQL or PostgreSQL drivers are bundled). Use jdbc for a network of servers.");
-		HELP.put("file_directory", "For the file backend: an absolute directory, or \"\" for <world>/ovvar/wardrobes.");
-		HELP.put("jdbc", "For the jdbc backend: the connection settings. See its own _help.");
-		HELP.put("bind_on_pickup", "An ovve nobody owns becomes the property of the first player whose inventory holds it.");
-		HELP.put("others_ovve", "An ovve owned by someone else in a player's inventory: \"block\" (the default; it cannot be worn — the armour slot refuses it, and a forced one is taken off again — and nothing may be sewn on or off it), \"rebind\" (it becomes the holder's, showing THEIR design; the previous owner keeps their patches), or \"allow\" (anyone may wear it, still showing its owner's design).");
-		HELP.put("edit_requires_owner", "Only an owned ovve's owner may sew on it or unpick from it (the default). false lets anyone with shears change somebody else's design.");
-		HELP.put("sew_when_unreachable", "If the store is down, still sew and write it later (retried every retry_seconds). false: refuse and keep the patch in hand. Default false.");
-		HELP.put("unpick_when_unreachable", "If the store is down, still hand the patch back and write it later. This is the direction a duplicate could sneak in, so default false.");
-		HELP.put("retry_seconds", "How often failed loads and queued writes are retried.");
-		HELP.put("log_queries", "Log every load and store at INFO. For debugging.");
-	}
 
 	/** What somebody else's ovve is to this player: unwearable (the default), theirs to take over, or free to wear. */
 	public enum OthersOvve implements StringRepresentable {
@@ -100,33 +86,19 @@ public record DesignStoreConfig(
 			String url, String user, String password, String passwordEnv, String table, String driverClass,
 			int connectTimeoutSeconds, int queryTimeoutSeconds
 	) {
-		/** Written into the file as {@code _help}, since JSON has no comments. */
-		public static final Map<String, String> HELP = new LinkedHashMap<>();
-		static {
-			HELP.put("_about", "The jdbc backend's connection settings; only read when designs.backend is \"jdbc\".");
-			HELP.put("url", "jdbc:mariadb://host:3306/db or jdbc:postgresql://host/db (drivers for both are bundled).");
-			HELP.put("user", "The database user.");
-			HELP.put("password", "Its password, in this file; leave \"\" to use password_env instead.");
-			HELP.put("password_env", "Name of an environment variable holding the password (preferred over the file).");
-			HELP.put("table", "The table; created if missing: owner CHAR(36) PRIMARY KEY, version, data (JSON), updated_at.");
-			HELP.put("driver_class", "Forces a driver class; \"\" lets the URL pick one.");
-			HELP.put("connect_timeout_seconds", "Login timeout.");
-			HELP.put("query_timeout_seconds", "Per-statement timeout.");
-		}
 
 		public static final Jdbc DEFAULT = new Jdbc("jdbc:mariadb://localhost:3306/metacraft", "metacraft", "", "OVVAR_DB_PASSWORD",
 				"ovve_wardrobes", "", 5, 5);
 		public static final Codec<Jdbc> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", Map.<String, String>of()).forGetter(c -> HELP),
-				Codec.STRING.optionalFieldOf("url", DEFAULT.url).forGetter(Jdbc::url),
-				Codec.STRING.optionalFieldOf("user", DEFAULT.user).forGetter(Jdbc::user),
-				Codec.STRING.optionalFieldOf("password", DEFAULT.password).forGetter(Jdbc::password),
-				Codec.STRING.optionalFieldOf("password_env", DEFAULT.passwordEnv).forGetter(Jdbc::passwordEnv),
-				Codec.STRING.optionalFieldOf("table", DEFAULT.table).forGetter(Jdbc::table),
-				Codec.STRING.optionalFieldOf("driver_class", DEFAULT.driverClass).forGetter(Jdbc::driverClass),
-				Codec.intRange(1, 600).optionalFieldOf("connect_timeout_seconds", DEFAULT.connectTimeoutSeconds).forGetter(Jdbc::connectTimeoutSeconds),
-				Codec.intRange(1, 600).optionalFieldOf("query_timeout_seconds", DEFAULT.queryTimeoutSeconds).forGetter(Jdbc::queryTimeoutSeconds)
-		).apply(instance, (help, url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout) ->
+				ConfigFields.field(Codec.STRING, "url", DEFAULT.url, "jdbc:mariadb://host:3306/db or jdbc:postgresql://host/db (drivers for both are bundled).").forGetter(Jdbc::url),
+				ConfigFields.field(Codec.STRING, "user", DEFAULT.user, "The database user.").forGetter(Jdbc::user),
+				ConfigFields.field(Codec.STRING, "password", DEFAULT.password, "Its password, in this file; leave \"\" to use password_env instead.").forGetter(Jdbc::password),
+				ConfigFields.field(Codec.STRING, "password_env", DEFAULT.passwordEnv, "Name of an environment variable holding the password (preferred over the file).").forGetter(Jdbc::passwordEnv),
+				ConfigFields.field(Codec.STRING, "table", DEFAULT.table, "The table; created if missing: owner CHAR(36) PRIMARY KEY, version, data (JSON), updated_at.").forGetter(Jdbc::table),
+				ConfigFields.field(Codec.STRING, "driver_class", DEFAULT.driverClass, "Forces a driver class; \"\" lets the URL pick one.").forGetter(Jdbc::driverClass),
+				ConfigFields.field(Codec.intRange(1, 600), "connect_timeout_seconds", DEFAULT.connectTimeoutSeconds, "Login timeout.").forGetter(Jdbc::connectTimeoutSeconds),
+				ConfigFields.field(Codec.intRange(1, 600), "query_timeout_seconds", DEFAULT.queryTimeoutSeconds, "Per-statement timeout.").forGetter(Jdbc::queryTimeoutSeconds)
+		).apply(instance, (url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout) ->
 				new Jdbc(url, user, password, passwordEnv, table, driverClass, connectTimeout, queryTimeout)));
 
 		/** The password to use: the environment variable when named and set, else the file's. */
@@ -161,21 +133,16 @@ public record DesignStoreConfig(
 	}
 
 	public static final MapCodec<DesignStoreConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("_help", Map.<String, String>of()).forGetter(c -> HELP),
-			Backend.CODEC.optionalFieldOf("backend", DEFAULT.backend).forGetter(DesignStoreConfig::backend),
-			Codec.STRING.optionalFieldOf("file_directory", DEFAULT.fileDirectory).forGetter(DesignStoreConfig::fileDirectory),
-			// optionalFieldOf(key) (no default) always encodes the Optional it's given, unlike
-			// optionalFieldOf(key, default) which omits a value that equals the default — jdbc is a
-			// record and (unlike the scalar keys below) is never "equal to DEFAULT" by coincidence,
-			// but we want it written even when it genuinely is the default, so its own _help shows.
-			Jdbc.CODEC.optionalFieldOf("jdbc").xmap(o -> o.orElse(Jdbc.DEFAULT), Optional::of).forGetter(DesignStoreConfig::jdbc),
-			Codec.BOOL.optionalFieldOf("bind_on_pickup", DEFAULT.bindOnPickup).forGetter(DesignStoreConfig::bindOnPickup),
-			OthersOvve.CODEC.optionalFieldOf("others_ovve", DEFAULT.othersOvve).forGetter(DesignStoreConfig::othersOvve),
-			Codec.BOOL.optionalFieldOf("edit_requires_owner", DEFAULT.editRequiresOwner).forGetter(DesignStoreConfig::editRequiresOwner),
-			Codec.BOOL.optionalFieldOf("sew_when_unreachable", DEFAULT.sewWhenUnreachable).forGetter(DesignStoreConfig::sewWhenUnreachable),
-			Codec.BOOL.optionalFieldOf("unpick_when_unreachable", DEFAULT.unpickWhenUnreachable).forGetter(DesignStoreConfig::unpickWhenUnreachable),
-			Codec.intRange(1, 3600).optionalFieldOf("retry_seconds", DEFAULT.retrySeconds).forGetter(DesignStoreConfig::retrySeconds),
-			Codec.BOOL.optionalFieldOf("log_queries", DEFAULT.logQueries).forGetter(DesignStoreConfig::logQueries)
-	).apply(instance, (help, backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log) ->
+			ConfigFields.field(Backend.CODEC, "backend", DEFAULT.backend, "\"file\": one JSON file per player in file_directory. \"jdbc\": a table in a shared database", "(MariaDB/MySQL or PostgreSQL drivers are bundled). Use jdbc for a network of servers.").forGetter(DesignStoreConfig::backend),
+			ConfigFields.field(Codec.STRING, "file_directory", DEFAULT.fileDirectory, "For the file backend: an absolute directory, or \"\" for <world>/ovvar/wardrobes.").forGetter(DesignStoreConfig::fileDirectory),
+			ConfigFields.field(Jdbc.CODEC, "jdbc", Jdbc.DEFAULT, "The jdbc backend's connection settings; only read when designs.backend is \"jdbc\".").forGetter(DesignStoreConfig::jdbc),
+			ConfigFields.field(Codec.BOOL, "bind_on_pickup", DEFAULT.bindOnPickup, "An ovve nobody owns becomes the property of the first player whose inventory holds it.").forGetter(DesignStoreConfig::bindOnPickup),
+			ConfigFields.field(OthersOvve.CODEC, "others_ovve", DEFAULT.othersOvve, "An ovve owned by someone else in a player's inventory: \"block\" (the default; it cannot be worn", "— the armour slot refuses it, and a forced one is taken off again — and nothing may be sewn on", "or off it), \"rebind\" (it becomes the holder's, showing THEIR design; the previous owner keeps", "their patches), or \"allow\" (anyone may wear it, still showing its owner's design).").forGetter(DesignStoreConfig::othersOvve),
+			ConfigFields.field(Codec.BOOL, "edit_requires_owner", DEFAULT.editRequiresOwner, "Only an owned ovve's owner may sew on it or unpick from it (the default). false lets anyone with", "shears change somebody else's design.").forGetter(DesignStoreConfig::editRequiresOwner),
+			ConfigFields.field(Codec.BOOL, "sew_when_unreachable", DEFAULT.sewWhenUnreachable, "If the store is down, still sew and write it later (retried every retry_seconds). false: refuse", "and keep the patch in hand. Default false.").forGetter(DesignStoreConfig::sewWhenUnreachable),
+			ConfigFields.field(Codec.BOOL, "unpick_when_unreachable", DEFAULT.unpickWhenUnreachable, "If the store is down, still hand the patch back and write it later. This is the direction a", "duplicate could sneak in, so default false.").forGetter(DesignStoreConfig::unpickWhenUnreachable),
+			ConfigFields.field(Codec.intRange(1, 3600), "retry_seconds", DEFAULT.retrySeconds, "retry_seconds").forGetter(DesignStoreConfig::retrySeconds),
+			ConfigFields.field(Codec.BOOL, "log_queries", DEFAULT.logQueries, "Log every load and store at INFO. For debugging.").forGetter(DesignStoreConfig::logQueries)
+	).apply(instance, (backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log) ->
 			new DesignStoreConfig(backend, dir, jdbc, bind, others, edit, sew, unpick, retry, log)));
 }
