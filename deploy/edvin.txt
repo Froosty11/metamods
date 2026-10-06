@@ -1,4 +1,7 @@
-# edvin (branch edvin-test): Edvin Private, e906b112. Started as a copy of test.txt.
+# edvin (branch edvin-test): Edvin Private, e906b112. Edvin's test server: METAcraft Season 6 as tried
+# so far. test.txt's mods, plus ovvar, the guidebook, moredyes and the config dialog; Tectonic +
+# Terralith worldgen, the performance mods, Distant Horizons and BlueMap. BlueMapPolymerPatch is on
+# the server by hand until it has a release to pin.
 # One per line: a folder under mods/, or external <mod-id> <url> sha256:<hex>
 # How to change this: deploy/README.md
 better-pets
@@ -27,4 +30,30 @@ portal-blocker
 simple-custom-features
 metacraft-mob-modifiers
 metacraft-player-trading
+metacraft-qol
 portal-opening
+ovvar
+metacraft-booklet
+moredyes
+metacraft-config-gui
+
+# from outside the repo, pinned
+external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/bNnaTiuM/fabric-api-0.161.0%2B26.3.jar sha256:86f16178a3cecc887a85a4cfe9a79d92fa7341d8f39b5951a4d6ad800ab657a6
+external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/REBDssAz/polymer-bundled-0.18.2%2B26.3.jar sha256:3d79318e8202d0e87af308d7f232220714e5f1409d06c23db774877ec6f3848f
+external c2me https://cdn.modrinth.com/data/VSNURh3q/versions/FXjQDzq7/c2me-fabric-mc26.3-0.4.2-alpha.0.89.jar sha256:ee506e6bc68b03e8b2ef5548da8f7d09cede707e796a458e4e03a7e2107837b8
+external lithium https://cdn.modrinth.com/data/gvQqBUqZ/versions/xS0Q8LSi/lithium-fabric-0.26.2%2Bmc26.3.jar sha256:0be5b17ef9f6e9244cd07b24b227553a73aec0cf93158cf28099f3094c167f1b
+external ferritecore https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar sha256:213966c72ed967acc7392beb28a866fba301ff56b9976c2e7801c2db7de6bf22
+external krypton https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar sha256:0b4a648b9c2f048247f849712aff58b2bac5b27b60c0072bb6bf493ad8b79fef
+external scalablelux https://cdn.modrinth.com/data/Ps1zyz6x/versions/g4eqNSKd/ScalableLux-fabric-mc26.3-0.3.0-alpha.0.6-all.jar sha256:e9137a04fdefca4fd1f4740ab3dc6194b5ea7c15456c6691376b910053853a29
+external alternate-current https://cdn.modrinth.com/data/r0v8vy1s/versions/nSBWPz6x/alternate-current-mc26.3-1.9.0.jar sha256:5cef09f286936bbac1cbf173d11ce4b9dbe6278cee8bd8a347a87a2782c45d41
+external structure_layout_optimizer https://cdn.modrinth.com/data/ayPU0OHc/versions/crWm7jXS/structure_layout_optimizer-1.1.4%2B26.3-fabric.jar sha256:8c0386e9cdff2b049666ac8e076af87d56b4c6ce08b027783ef438a599876aee
+external resourcefulconfig https://cdn.modrinth.com/data/M1953qlQ/versions/IFB0XCI9/ResourcefulConfig-6.0.1.jar sha256:c5c20513fa5c832dac49fa3db104486195d0dea938313da5eb4a655d2f334ef9
+external spark https://cdn.modrinth.com/data/l6YH9Als/versions/e3hsPc1o/spark-1.10.187-fabric.jar sha256:3fc00663caa542b1e78333730609b4eb2568326628e3666a3938ad58cbc9acc6
+external chunky https://cdn.modrinth.com/data/fALzjamp/versions/4Eotm6ov/Chunky-Fabric-1.5.3.jar sha256:ecdfc55a0f67f3ec6f40850687615c941ae226bd88f4e06188a7b268fd3da942
+external distanthorizons https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9A/DistantHorizons-3.3.4-26.3-fabric-neoforge.jar sha256:ba3e5c85a765a109219831df99b99ef5cfcdee05b2dfa6796116993bd48d3947
+external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluemap-5.28-fabric.jar sha256:efb07ce31212a9d2d5464a9feab75eb3496ca38cc49f893062d39d0b3c87fbfa
+external tectonic https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar sha256:33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046
+external terralith https://cdn.modrinth.com/data/8oi3bsk5/versions/aGE3hYAA/Terralith_26.3_v2.6.5%2B26.3.jar sha256:ad953bdd258d23b85c6e5955d14fed89a525e50c68a80ac5cd652573068d0ca4
+external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar sha256:b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466
+external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.2/danse-2.6.0-metacraft.2%2B26.3.jar sha256:b7d9f6fdeb992e036af85d03cd3b80476d5783ebf04fb015954dabd95ff94f34
+external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
