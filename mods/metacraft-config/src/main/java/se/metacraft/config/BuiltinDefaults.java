@@ -5,7 +5,6 @@ import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
-import it.unimi.dsi.fastutil.bytes.ByteList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -24,6 +23,7 @@ import org.pcollections.PMap;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.metacraft.config.event.CodecDefaultValueEvent;
+import se.metacraft.config.mixin.TranslatableContentsAccessor;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataKey;
 import se.metacraft.config.parser.metadata.Container;
@@ -392,6 +392,9 @@ public class BuiltinDefaults {
 				return Optional.of(defaultString(element).flatMap(string -> simple.parse(ctx, string)));
 			}
 			if (element.getUnderlying(c -> c.codec() == Codec.PASSTHROUGH).isPresent()) {
+				if (element.getUnderlying(c -> c.codec() == TranslatableContentsAccessor.getPrimitiveArgCodec()).isPresent()) {
+					return Optional.of(DataResult.success(""));
+				}
 				return Optional.of(simple.parse(ctx, Map.of()));
 			}
 			if (!element.underlying().isEmpty()) {
