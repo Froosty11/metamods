@@ -17,6 +17,7 @@
 		"DimensionStorageFileFixMixin",
 		"EntityAccessor",
 		"FabricRecipeProviderMixin",
+		"FieldDecoderAccessor",
 		"GameTestServerMixin",
 		"ItemEntityAccessor",
 		"MinecraftServerAccessor",

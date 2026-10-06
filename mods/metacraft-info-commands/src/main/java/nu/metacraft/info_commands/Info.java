@@ -7,14 +7,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import nu.metacraft.lib.config.container.ConfigContainer;
+import se.metacraft.config.container.ConfigContainer;
 
 import java.nio.file.Path;
 import java.util.HashMap;
 
 public class Info implements ModInitializer {
-
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("metacraft-info-commands.json");
 	private static final ConfigContainer<InfoConfig> config = ConfigContainer.Builder.create(
 			InfoConfig.CODEC, () -> {
 				var config = new InfoConfig();
@@ -32,7 +30,7 @@ public class Info implements ModInitializer {
 				config.infoMessages().add(new InfoMessage("example", Component.literal("Did you know? You can use /example1 to see information!")));
 				return config;
 			}
-	).reloadBeforeServer().build(configPath);
+	).reloadBeforeServer().build("metacraft-info-commands");
 
 	public static final Logger LOGGER = LogManager.getLogger("METAcraft-info-commands");
 

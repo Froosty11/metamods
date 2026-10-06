@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=Quality of life
+external_title=Quality of life
+description=A way back from the End's void, concrete by the stack, and quiet mobs.
+category=booklet:main_page
+icon=metacraft:void_anchor
+order=30
+### EndSection: PageInfo
+### Image: metacraft:beside/qol/rift Small things that save you a fall, a chore or a headache, made to fit in with the blocks and items you know.<nl2>Everything here is crafted in survival.
+
+### Category Entries: metacraft:qol

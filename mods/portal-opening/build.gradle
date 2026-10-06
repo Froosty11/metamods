@@ -1,1 +1,2 @@
 version = project.portal_opening_version
+addConfigDependency()
