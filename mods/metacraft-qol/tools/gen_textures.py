@@ -168,24 +168,55 @@ def flash():
 	return Image.new("RGBA", (128, 16), (255, 255, 255, 255))
 
 
+MUFFLER_OUT=(38,22,30)
+MUFFLER_CU={"hi":(240,170,120),"lt":(214,128,88),"base":(178,92,64),"dk":(128,60,44),"dkr":(88,40,32)}
+MUFFLER_WOOL={"hi":(246,243,238),"lt":(226,221,214),"base":(198,192,184),"dk":(160,152,146)}
+MUFFLER_AM={"hi":(244,220,255),"lt":(206,150,255),"base":(160,96,228),"dk":(104,58,170),"dkr":(70,36,120)}
+MUFFLER_STR=(232,228,214); MUFFLER_STRD=(170,160,140)
+
+
 def muffler():
-	"""A puff of grey-white wool bound with string, an amethyst shard tucked in it."""
-	img = Image.new("RGBA", (16, 16))
-	rng = random.Random(31)
-	wool = [(232, 232, 228), (214, 214, 210), (196, 196, 194), (244, 244, 240)]
+	"""A tinkerer's hush gadget: a wool-padded copper cup with an amethyst set in it, on a
+	string-wrapped copper handle, humming a little. (Its recipe: wool, an amethyst shard, string.)"""
+	img=Image.new("RGBA",(16,16))
+	def p(x,y,c):
+		if 0<=x<16 and 0<=y<16: img.putpixel((x,y),c+(255,))
+	# handle, bottom left to the cup
+	for i in range(6):
+		x,y=1+i,14-i
+		p(x-1,y,MUFFLER_OUT); p(x+1,y+1,MUFFLER_OUT)
+	for i in range(6):
+		x,y=1+i,14-i
+		p(x,y,MUFFLER_CU["base"]); p(x+1,y,MUFFLER_CU["dk"]); p(x,y-1,MUFFLER_CU["lt"])
+	p(0,15,MUFFLER_OUT); p(1,15,MUFFLER_OUT); p(0,14,MUFFLER_OUT)
+	# string wrapped round the grip
+	for (x,y) in [(2,12),(3,11),(4,10)]:
+		p(x,y,MUFFLER_STR); p(x+1,y,MUFFLER_STRD)
+	# the cup: a copper rim round a wool pad
+	cx,cy=10.5,5.5
 	for y in range(16):
 		for x in range(16):
-			d = ((x - 7.5) / 6.2) ** 2 + ((y - 8.5) / 5.4) ** 2
-			if d <= 1.0:
-				shade = rng.choice(wool)
-				if d > 0.7:
-					shade = (176, 176, 174)
-				img.putpixel((x, y), shade + (255,))
-	for x in range(2, 14):
-		img.putpixel((x, 9), (120, 96, 70, 255))
-	for (x, y), c in {(7, 4): (186, 128, 255), (8, 4): (150, 90, 230), (7, 5): (150, 90, 230), (8, 5): (110, 60, 190),
-			(8, 3): (220, 180, 255), (9, 4): (110, 60, 190)}.items():
-		img.putpixel((x, y), c + (255,))
+			d=((x-cx)**2+(y-cy)**2)**0.5; shade=(x-cx)+(y-cy)
+			if d<3.3:
+				p(x,y,MUFFLER_WOOL["hi"] if shade<-2 else MUFFLER_WOOL["lt"] if shade<0.5 else MUFFLER_WOOL["base"] if shade<2.5 else MUFFLER_WOOL["dk"])
+			elif d<4.3:
+				p(x,y,MUFFLER_CU["hi"] if shade<-2.5 else MUFFLER_CU["lt"] if shade<0 else MUFFLER_CU["base"] if shade<2.5 else MUFFLER_CU["dk"])
+			elif d<5.0:
+				p(x,y,MUFFLER_OUT)
+	# two gear teeth on the rim
+	for (x,y,c) in [(15,4,MUFFLER_CU["base"]),(15,5,MUFFLER_CU["dk"]),(13,0,MUFFLER_CU["lt"]),(14,0,MUFFLER_CU["base"])]:
+		p(x,y,c)
+	# a coil collar where handle meets cup
+	for (x,y,c) in [(6,9,MUFFLER_CU["hi"]),(7,9,MUFFLER_CU["dk"]),(7,8,MUFFLER_CU["base"]),(6,10,MUFFLER_CU["dkr"])]:
+		p(x,y,c)
+	# the amethyst, set in the pad, held by two copper prongs
+	for (x,y,c) in [(10,3,MUFFLER_AM["lt"]),(10,4,MUFFLER_AM["hi"]),(11,4,MUFFLER_AM["lt"]),(10,5,MUFFLER_AM["lt"]),(11,5,MUFFLER_AM["base"]),(10,6,MUFFLER_AM["base"]),(11,6,MUFFLER_AM["dk"]),(10,7,MUFFLER_AM["dk"]),(11,7,MUFFLER_AM["dkr"])]:
+		p(x,y,c)
+	for (x,y,c) in [(9,7,MUFFLER_CU["base"]),(12,7,MUFFLER_CU["dk"]),(9,6,MUFFLER_CU["lt"]),(12,6,MUFFLER_CU["base"])]:
+		p(x,y,c)
+	# a hum of magic off the cup
+	for (x,y,c) in [(15,1,MUFFLER_AM["lt"]),(14,2,MUFFLER_AM["hi"]),(15,11,MUFFLER_AM["lt"])]:
+		p(x,y,c)
 	return img
 
 
