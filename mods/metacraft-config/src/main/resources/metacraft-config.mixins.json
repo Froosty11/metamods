@@ -3,6 +3,7 @@
 	"package": "se.metacraft.config.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"ComponentSerializationMixin",
 		"codec.CodecMixin",
 		"codec.EitherMapCodecAccessor",
 		"codec.KeyDispatchCodecAccessor",

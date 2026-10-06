@@ -6,6 +6,8 @@ import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.util.random.Weighted;
@@ -20,6 +22,7 @@ import se.metacraft.config.parser.metadata.Container;
 import se.metacraft.config.parser.metadata.ContainerType;
 import se.metacraft.config.parser.metadata.Entries;
 import se.metacraft.config.parser.result.AbstractCodecResult;
+import se.metacraft.config.util.CapturedCodecs;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 
 import java.time.*;
@@ -170,13 +173,12 @@ public class BuiltinDefaults {
 			if (dispatch.isPresent()) return dispatch.get();
 			if (name.isEmpty() || !name.get().required()) continue;
 			var type = CodecInternalsHelper.getUnnamed(subElement);
-			var n = name;
 			DataResult<Object> foundDefaultValue = CodecInternalsHelper.defaultValue(type, lookup);
 			r = r.flatMap(
 				currentResult -> foundDefaultValue.flatMap(v ->
 					CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
 				).map(
-					encoded -> currentResult.plus(n.get().name(), encoded)
+					encoded -> currentResult.plus(name.get().name(), encoded)
 				).setPartial(currentResult)
 			);
 		}
@@ -188,6 +190,18 @@ public class BuiltinDefaults {
 		if (recursion.isPresent()) {
 			return Optional.of(CodecInternalsHelper.defaultValue(recursion.get().wrapped().get(), lookup));
 		}
+
+		// Force Component codec to return literal. It returns keybind otherwise.
+		if (
+			element.getUnderlying(
+				codec -> codec.mapCodec().stream().anyMatch(
+					c -> c == CapturedCodecs.CAPTURED_CODECS.get(CapturedCodecs.COMPONENT_TYPE)
+				)
+			).isPresent()
+		) {
+			return Optional.of(DataResult.success(PlainTextContents.MAP_CODEC));
+		}
+
 		if (element.mapCodec().isPresent()) {
 			var mapCodec = element.mapCodec().get();
 			var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
