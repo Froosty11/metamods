@@ -243,6 +243,7 @@ public final class BookletRenders implements FabricClientGameTest {
 		RECIPES.put("void_anchor", List.of("crying_obsidian", "crying_obsidian", "crying_obsidian",
 				"ender_eye", "ender_eye", "ender_eye", "crying_obsidian", "crying_obsidian", "crying_obsidian"));
 		RECIPES.put("muffler", List.of("", "", "", "white_wool", "amethyst_shard", "string", "", "", ""));
+		RECIPES.put("barrel_spigot", List.of("stick", "stone", "", "oak_planks", "", "", "", "", ""));
 	}
 
 	/**
@@ -303,6 +304,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("brewing/cauldron", new BlockPos(20, -60, 28), new BlockPos(22, -57, 30), 80),
 			new Scene("brewing/distilling", new BlockPos(25, -60, 28), new BlockPos(27, -59, 30), 90),
 			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
+			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 70),
 			new Scene("brewing/drinks", new BlockPos(39, -60, 30), new BlockPos(43, -59, 30), 85),
 			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90));
 
@@ -492,28 +494,12 @@ public final class BookletRenders implements FabricClientGameTest {
 			powder.setNeverPickUp();
 			level.addFreshEntity(powder);
 			// a barrel's frame, as Brewery checks it: four slices along x, each round (stairs on the
-			// corners, planks on the sides), the end slices closed, standing on four fences
-			for (int x = 31; x <= 34; x++) {
-				boolean end = x == 31 || x == 34;
-				for (int y = -59; y <= -57; y++) for (int z = 28; z <= 30; z++) {
-					BlockPos at = new BlockPos(x, y, z);
-					boolean corner = (y != -58) && (z != 29);
-					if (corner) {
-						// round off the outside: the full half and the raised back toward the barrel's middle
-						level.setBlockAndUpdate(at, Blocks.SPRUCE_STAIRS.defaultBlockState()
-								.setValue(StairBlock.HALF, y == -57 ? Half.BOTTOM : Half.TOP)
-								.setValue(StairBlock.FACING, z == 28 ? Direction.SOUTH : Direction.NORTH));
-					} else if (y == -58 && z == 29 && !end) {
-						level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState());
-					} else {
-						level.setBlockAndUpdate(at, Blocks.SPRUCE_PLANKS.defaultBlockState());
-					}
-				}
-				if (end) {
-					level.setBlockAndUpdate(new BlockPos(x, -60, 28), Blocks.SPRUCE_FENCE.defaultBlockState());
-					level.setBlockAndUpdate(new BlockPos(x, -60, 30), Blocks.SPRUCE_FENCE.defaultBlockState());
-				}
-			}
+			// corners, planks on the sides), the end slices closed, standing on four fences (the spigot
+			// below makes it Brewery's finished barrel)
+			for (int x = 31; x <= 34; x++) slice(level, x, 28, x == 31 || x == 34);
+			// and for the page on building one, an end slice beside a middle one, both faces in view
+			slice(level, 52, 28, true);
+			slice(level, 52, 32, false);
 		});
 		// the spigot on the middle plank of the east end, facing into the barrel
 		server.runCommand("setblock 35 -58 29 brewery:barrel_spigot[facing=west]");
@@ -527,6 +513,28 @@ public final class BookletRenders implements FabricClientGameTest {
 		item.setNoGravity(true);
 		item.setNeverPickUp();
 		level.addFreshEntity(item);
+	}
+
+	/** One slice across a barrel, at x from z0 to z0 + 2: closed with a plank and on fences at the ends, hollow between. */
+	private static void slice(ServerLevel level, int x, int z0, boolean end) {
+		for (int y = -59; y <= -57; y++) for (int z = z0; z <= z0 + 2; z++) {
+			BlockPos at = new BlockPos(x, y, z);
+			boolean corner = (y != -58) && (z != z0 + 1);
+			if (corner) {
+				// round off the outside: the full half and the raised back toward the barrel's middle
+				level.setBlockAndUpdate(at, Blocks.SPRUCE_STAIRS.defaultBlockState()
+						.setValue(StairBlock.HALF, y == -57 ? Half.BOTTOM : Half.TOP)
+						.setValue(StairBlock.FACING, z == z0 ? Direction.SOUTH : Direction.NORTH));
+			} else if (y == -58 && z == z0 + 1 && !end) {
+				level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState());
+			} else {
+				level.setBlockAndUpdate(at, Blocks.SPRUCE_PLANKS.defaultBlockState());
+			}
+		}
+		if (end) {
+			level.setBlockAndUpdate(new BlockPos(x, -60, z0), Blocks.SPRUCE_FENCE.defaultBlockState());
+			level.setBlockAndUpdate(new BlockPos(x, -60, z0 + 2), Blocks.SPRUCE_FENCE.defaultBlockState());
+		}
 	}
 
 	/**

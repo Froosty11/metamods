@@ -67,6 +67,7 @@ def recipe(name, drink, names):
     sentence = ", then ".join(steps) + "." + ("" if aged else " No barrel.")
     if str(drink.get("alcoholic_value", "0")).strip() in ("0", "0.0"):
         sentence += " <gray>No alcohol.</gray>"
+    lines.append("")   # a paragraph of its own, not the last ingredient's line
     lines.append(sentence)
     return "\n".join(lines)
 
