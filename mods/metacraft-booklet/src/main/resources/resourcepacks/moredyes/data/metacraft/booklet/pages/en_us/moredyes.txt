@@ -1,0 +1,27 @@
+### Section: PageInfo
+title=More dyes
+external_title=More dyes
+description=Cerise and Laserviolet: where the dyes come from and everything they colour.
+category=booklet:main_page
+icon=moredyes:cerise_dye
+order=50
+### EndSection: PageInfo
+Two colours vanilla does not have: <citem 'moredyes:cerise_dye'> and <citem 'moredyes:laserviolet_dye'>. They work like any dye, on almost everything a dye works on.
+
+### Header: Finding them
+A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'moredyes:cerise_torchflower'> or a <citem 'moredyes:laserviolet_torchflower'>, as often as its own torchflower seeds and pitcher pods. One flower makes one dye; plant the rest. Sniffers hatch from a <citem 'minecraft:sniffer_egg'>, found in the suspicious sand of warm ocean ruins.
+
+### Header: What they colour
+- Wool, carpet, beds, candles, banners and shields
+- Terracotta, glazed terracotta, concrete and concrete powder
+- Stained glass and panes, shulker boxes, bundles
+- Wool and concrete stairs and slabs, cushions
+- A happy ghast's harness, a llama's carpet
+- Sheep: use the dye on one
+- Leather and wolf armour and firework stars, mixed with other dyes as usual
+- Sign text, in exactly the colour; editing the sign keeps it
+- A canvas, in the nearest colour a canvas has
+- A pet's collar, in the nearest vanilla colour
+
+### Header: Banners and shields
+Hold a banner or a shield in the other hand and use the dye: the <bold>dye loom</bold> opens with every pattern in that colour. Patterns that need a pattern item at a loom need it in your inventory here too; it is not used up.

@@ -69,7 +69,8 @@ public final class MetacraftBooklet implements ModInitializer {
 			// Brewery's own book, rewritten as a chapter (its recipe is switched off here); the
 			// recipe pages are written by tools/brewing_recipes.py.
 			new Hook("brewery", "brewing", false),
-			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false));
+			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false),
+			new Hook("moredyes", "moredyes", false));
 
 	@Override
 	public void onInitialize() {
