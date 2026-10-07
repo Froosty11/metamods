@@ -75,6 +75,13 @@ public final class GuideClientTests implements FabricClientGameTest {
 					ctx.getInput().setCursorPos(0, 0);
 					ctx.waitTicks(2);
 					ctx.takeScreenshot(TestScreenshotOptions.of(name + "_more"));
+					// and its foot
+					ctx.getInput().setCursorPos(960, 540);
+					ctx.getInput().scroll(-60);
+					ctx.waitTicks(3);
+					ctx.getInput().setCursorPos(0, 0);
+					ctx.waitTicks(2);
+					ctx.takeScreenshot(TestScreenshotOptions.of(name + "_end"));
 					ctx.runOnClient(client -> client.gui.setScreen(null));
 					ctx.waitTicks(5);
 				}
