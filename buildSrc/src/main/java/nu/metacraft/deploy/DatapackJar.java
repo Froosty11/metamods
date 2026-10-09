@@ -41,9 +41,14 @@ public final class DatapackJar {
     private DatapackJar() {
     }
 
-    /** @return the jar's mod version: the first 12 hex digits of the zip's sha256 */
-    public static String version(String zipSha256) {
+    /** The first 12 hex digits of the zip's sha256: the pack's version, which a zip doesn't have. */
+    public static String shortHash(String zipSha256) {
         return zipSha256.substring(0, 12);
+    }
+
+    /** The jar's mod version: {@link #shortHash} as build metadata, so Fabric Loader parses it as SemVer. */
+    public static String version(String zipSha256) {
+        return "0+" + shortHash(zipSha256);
     }
 
     public static void pack(Path zip, String modId, String zipSha256, URI source, Path jar) throws IOException {
