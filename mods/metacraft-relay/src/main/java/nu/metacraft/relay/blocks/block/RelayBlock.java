@@ -116,6 +116,12 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 		return Blocks.STONE.defaultBlockState();
 	}
 
+	/** Breaks in purple-black crumbs like its texture (stone, the client block, sounds the same but looks grey). */
+	@Override
+	public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
+		return Blocks.CRYING_OBSIDIAN.defaultBlockState();
+	}
+
 	@Override
 	public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new RelayBlockEntity(pos, state);
@@ -182,7 +188,11 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 						))
 				).ifPresent(
 						target -> {
+							world.playSound(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+									SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS, 1.0F, 1.0F);
 							player.teleport(target);
+							player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+									SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.0F);
 							world.setBlockAndUpdate(pos, state.setValue(CHARGED, false));
 						}
 				);

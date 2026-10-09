@@ -155,6 +155,7 @@ public final class ModContent {
 		Block flower = Registry.register(BuiltInRegistries.BLOCK, flowerId, new ModTorchflower(
 				BlockBehaviour.Properties.ofFullCopy(Blocks.TORCHFLOWER).mapColor(color.mapColor())
 						.setId(ResourceKey.create(Registries.BLOCK, flowerId)), flowerId));
+		collectDonorSounds(flower);
 		TORCHFLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
 				new Item.Properties().useBlockDescriptionPrefix().setId(ResourceKey.create(Registries.ITEM, flowerId)),
 				flowerId, Items.TORCHFLOWER)));
@@ -190,8 +191,8 @@ public final class ModContent {
 				case CANDLE_CAKE -> new ColoredBlocks.CandleCake((ColoredBlocks.Candle) blocks.get(family.materialFamily()),
 						props, id(color.id() + "_" + family.materialFamily().id));
 			};
-			collectDonorSounds(block);
 			Registry.register(BuiltInRegistries.BLOCK, blockId, block);
+			collectDonorSounds(block);
 			if (family.hasItem()) {
 				requireAsset("items/" + blockId.getPath() + ".json", blockId);
 				Item.Properties itemProps = new Item.Properties().useBlockDescriptionPrefix()
