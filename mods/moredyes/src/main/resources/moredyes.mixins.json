@@ -7,6 +7,7 @@
 		"BlockEntityTypeAccessor",
 		"CatAccessor",
 		"CushionMixin",
+		"FlintAndSteelItemMixin",
 		"MobMixin",
 		"RegistryLoadTaskMixin",
 		"SheepAccessor",

@@ -15,7 +15,9 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Rotations;
 import net.minecraft.core.component.DataComponents;
@@ -72,6 +74,11 @@ public final class StashSession {
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(StashSession::tick);
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> end(handler.player, null));
+		// The stand cannot be hurt, but a punch still wobbles it.
+		AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+			if (!level.isClientSide() && BY_STAND.containsKey(entity.getUUID())) StandEffects.hit(entity);
+			return InteractionResult.PASS;
+		});
 		// After a crash mid-session the fake items are still in the saved inventory: sweep them.
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			var inventory = handler.player.getInventory();
@@ -179,6 +186,7 @@ public final class StashSession {
 		OvveItem.refresh(ovve);
 		OvveItem.wear(stand, ovve);
 		level.addFreshEntity(stand);
+		StandEffects.appear(stand);
 
 		var inventory = player.getInventory();
 		StashSession session = new StashSession(player.getUUID(), stand.getUUID(),
@@ -226,7 +234,10 @@ public final class StashSession {
 		if (session == null) return;
 		BY_STAND.remove(session.stand);
 		ServerLevel level = player.level();
-		if (level.getEntity(session.stand) instanceof ArmorStand stand) stand.discard();
+		if (level.getEntity(session.stand) instanceof ArmorStand stand) {
+			StandEffects.vanish(stand);
+			stand.discard();
+		}
 		var inventory = player.getInventory();
 		if (inventory.getItem(SHEARS_SLOT).has(ModComponents.SESSION)) inventory.setItem(SHEARS_SLOT, session.savedShearsSlot);
 		if (inventory.getItem(PATCH_SLOT).has(ModComponents.SESSION) || inventory.getItem(PATCH_SLOT).isEmpty()) inventory.setItem(PATCH_SLOT, session.savedPatchSlot);

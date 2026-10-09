@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import nu.metacraft.core.block.PolymerBlockSounds;
 import nu.metacraft.lib.util.RegistrationPair;
 import nu.metacraft.qol.void_anchor.block.VoidAnchorBlock;
 
@@ -25,7 +26,10 @@ public class VoidAnchorBlocks {
 
 	private static RegistrationPair<Block> register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
 		var key = ResourceKey.create(Registries.BLOCK, Qol.getID(id));
-		return new RegistrationPair<>(key, Registry.register(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key))));
+		Block block = Registry.register(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key)));
+		// shown as a note block, which would make it sound like wood
+		PolymerBlockSounds.patch(block);
+		return new RegistrationPair<>(key, block);
 	}
 
 }

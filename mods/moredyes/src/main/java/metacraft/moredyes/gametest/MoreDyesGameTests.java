@@ -1,6 +1,9 @@
 package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.sounds.SoundEvent;
+import eu.pb4.polymer.soundpatcher.impl.SoundRemapperImpl;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.content.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
@@ -112,6 +115,39 @@ public final class MoreDyesGameTests {
 			}
 		}
 		MoreDyes.LOGGER.info("[gametest] {} client states resolved", states);
+		helper.succeed();
+	}
+
+	/**
+	 * Wherever the vanilla block the client is shown (or breaks) sounds different from ours, every
+	 * one of both blocks' sounds is server-driven: the client's guess silenced, ours sent.
+	 */
+	@GameTest
+	public void soundsAreServerDriven(GameTestHelper helper) {
+		int patched = 0;
+		for (ModColor color : ModColors.all()) {
+			for (Family family : Family.values()) {
+				Block block = ModContent.block(color, family);
+				for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+					SoundType ours = state.getSoundType();
+					for (BlockState shown : List.of(ModContent.clientState(state), ModContent.breakEventClientState((PolymerBlock) block, state))) {
+						if (ModContent.sameSounds(shown.getSoundType(), ours)) continue;
+						for (SoundEvent event : ModContent.soundEvents(shown.getSoundType())) {
+							helper.assertTrue(SoundRemapperImpl.ignoreExceptions(event), state + " shown as " + shown + " lets the client play " + event.location());
+						}
+						for (SoundEvent event : ModContent.soundEvents(ours)) {
+							helper.assertTrue(SoundRemapperImpl.ignoreExceptions(event), state + " never sends its own " + event.location());
+						}
+						patched++;
+					}
+				}
+			}
+		}
+		// wool really is one of them: it is shown as a note block, which sounds like wood
+		BlockState wool = block(Family.WOOL).defaultBlockState();
+		helper.assertFalse(ModContent.sameSounds(ModContent.clientState(wool).getSoundType(), SoundType.WOOL), "wool is already shown as something woolly");
+		helper.assertTrue(SoundRemapperImpl.ignoreExceptions(SoundType.WOOL.getBreakSound()), "wool's break sound is not server-driven");
+		MoreDyes.LOGGER.info("[gametest] {} (state, shown) pairs sound like our block", patched);
 		helper.succeed();
 	}
 
