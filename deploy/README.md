@@ -54,6 +54,29 @@ external ovvar https://github.com/Froosty11/ovvar/releases/download/v1.4.0/ovvar
   so a changed or tampered download never reaches a server.
 - To update it, change the URL and hash in the same line.
 
+## Adding a datapack
+
+```
+datapack planked_chests https://example.org/planked-chests-1.0.0.zip sha256:9c1e…
+datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief sha256:0cbd…
+```
+
+- The build packs the zip into a mod jar with that mod id (`planked_chests-<hash>.jar`), and from there
+  it deploys, updates and is removed like any other mod. It loads on every world, a fresh one too, and
+  is never put in `world/datapacks`.
+- The id must be a valid Fabric mod id: a lower-case letter, then letters, digits, `_` or `-`.
+- The hash is the zip's (`shasum -a 256 pack.zip`), as for a jar.
+- Fabric doesn't apply a pack's overlays, so the build copies in the overlays for the pack's newest
+  format. A pack made for one version (as Vanilla Tweaks makes them) gets exactly the files it would
+  have as a datapack.
+- A pack with `assets/` (textures for Filament or Polymer) goes into the server's resource pack.
+
+Vanilla Tweaks has no download URL that lasts, so `vanillatweaks:<version>/<category>/<pack>` fetches
+one of their packs at build time, by the names their datapack picker shows: lower-case, `%20` for a
+space, `%2F` for the slash in `decorative%2Fcosmetic`. Their terms don't allow sharing the packs
+unchanged, so never commit their zips here. To get a pack's hash, download that pack from
+vanillatweaks.net for the same version and run `shasum -a 256` on its zip (inside the `UNZIP_ME` zip).
+
 ## Changing one of our mods
 
 Nothing to do beyond pushing the change: the deploy works out which jars differ from what the server
