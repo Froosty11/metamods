@@ -72,10 +72,10 @@ datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20end
 - A pack with `assets/` (textures for Filament or Polymer) goes into the server's resource pack.
 
 Vanilla Tweaks has no download URL that lasts, so `vanillatweaks:<version>/<category>/<pack>` fetches
-one of their packs at build time, by the names their datapack picker shows (lower-case, `%20` for a
-space). Their terms don't allow sharing the packs unchanged, so never commit their zips here. To get
-a pack's hash, download that pack from vanillatweaks.net for the same version and run
-`shasum -a 256` on its zip (inside the `UNZIP_ME` zip).
+one of their packs at build time, by the names their datapack picker shows: lower-case, `%20` for a
+space, `%2F` for the slash in `decorative%2Fcosmetic`. Their terms don't allow sharing the packs
+unchanged, so never commit their zips here. To get a pack's hash, download that pack from
+vanillatweaks.net for the same version and run `shasum -a 256` on its zip (inside the `UNZIP_ME` zip).
 
 ## Changing one of our mods
 
