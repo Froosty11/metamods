@@ -88,7 +88,7 @@ public final class SetBuilder {
     /** A datapack line: the pinned zip, packed into {@code <mod-id>-<version>.jar} ({@link DatapackJar}). */
     private static void addDatapack(String server, SortedMap<String, Manifest.Entry> entries, Map<String, ModInfo> infos,
                                     DeployList.External datapack, Path outDir, Fetcher fetcher) throws IOException {
-        String file = datapack.modId() + "-" + DatapackJar.version(datapack.sha256()) + ".jar";
+        String file = datapack.modId() + "-" + DatapackJar.shortHash(datapack.sha256()) + ".jar";
         Path jar = outDir.resolve(file);
         if (Files.exists(jar)) {
             throw new DeployException(datapack.url() + ": another jar in " + server + "'s set is already called " + file);

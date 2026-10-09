@@ -83,7 +83,7 @@ class SetBuilderTest {
 
         Manifest.Entry entry = m.entries().get("more_heads");
         assertEquals("more_heads-" + sha256.substring(0, 12) + ".jar", entry.file());
-        assertEquals(sha256.substring(0, 12), entry.version());
+        assertEquals("0+" + sha256.substring(0, 12), entry.version());
         assertEquals(zip.toUri().toString(), entry.source());
         Path jar = out().resolve(entry.file());
         assertEquals(entry.sha256(), Sha256.of(jar));

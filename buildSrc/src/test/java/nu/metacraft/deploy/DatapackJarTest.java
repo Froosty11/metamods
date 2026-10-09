@@ -48,7 +48,7 @@ class DatapackJarTest {
         assertTrue(files.containsKey("data/my/function/"), "directories are entries too");
         Map<?, ?> json = (Map<?, ?>) new JsonSlurper().parseText(files.get("fabric.mod.json"));
         assertEquals("my_pack", json.get("id"));
-        assertEquals(SHA.substring(0, 12), json.get("version"));
+        assertEquals("0+" + SHA.substring(0, 12), json.get("version"));
         assertNull(json.get("custom"), "no assets, so nothing for Polymer");
         assertFalse(files.containsKey("credits.txt"));
     }
