@@ -2,7 +2,8 @@ package metacraft.moredyes.content;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
-import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
 import eu.pb4.polymer.soundpatcher.api.SoundPatcher;
 import metacraft.moredyes.MoreDyes;
@@ -15,6 +16,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -33,8 +35,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -217,34 +219,64 @@ public final class ModContent {
 		PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(tabId, tab);
 	}
 
-	private static final Set<SoundType> DONOR_SOUNDS = new HashSet<>();
+	private static final Set<SoundType> SERVER_SOUNDS = new LinkedHashSet<>();
 
 	/**
-	 * Step, mining-hit and fall sounds are predicted client-side from the donor block (tripwire,
-	 * sculk sensor, an invisible copper stair), which no per-packet override can reach. Collect the
-	 * donors whose sounds differ from ours so polymer-sound-patcher can silence the client's guess
-	 * and have the server send the real sound. Blast radius: every vanilla block sharing that donor
-	 * sound type becomes server-driven for those three sounds (same sound, just from the server).
+	 * The client plays step, mining, fall, break and place sounds from the vanilla block it is shown
+	 * (a note block for wool, a tripwire for carpet, leaves for glass), which no per-packet override
+	 * can reach. Wherever that differs from our block's own sounds, both sound types go server-driven:
+	 * polymer-sound-patcher silences the client's guess and has the server send ours, on every break
+	 * and mining hit (it watches levelEvent), step, fall and placement. Ours goes too because polymer
+	 * 0.18.2 only sends a player's break sound when it is, and because the placer's client predicts
+	 * ours from the client item. Blast radius: every vanilla block sharing one of those sound types
+	 * gets it from the server as well (the same sound, a tick later).
 	 */
 	private static void collectDonorSounds(Block block) {
-		if (!(block instanceof PolymerTexturedBlock textured)) return;
+		if (!(block instanceof PolymerBlock polymer)) return;
 		for (BlockState state : block.getStateDefinition().getPossibleStates()) {
-			BlockState donor = textured.getPolymerBlockState(state, null);
-			if (donor != null && donor.getSoundType() != state.getSoundType()) {
-				if (DONOR_SOUNDS.add(donor.getSoundType())) {
-					MoreDyes.LOGGER.info("[{}] {} uses donor {} whose sounds differ", MoreDyes.MOD_ID, block, donor);
+			SoundType ours = state.getSoundType();
+			boolean differs = false;
+			for (BlockState shown : List.of(clientState(state), breakEventClientState(polymer, state))) {
+				if (!sameSounds(shown.getSoundType(), ours)) {
+					if (SERVER_SOUNDS.add(shown.getSoundType())) {
+						MoreDyes.LOGGER.info("[{}] {} is shown as {} whose sounds differ", MoreDyes.MOD_ID, state, shown);
+					}
+					differs = true;
 				}
 			}
+			if (differs) SERVER_SOUNDS.add(ours);
 		}
 	}
 
+	/** The vanilla state the client sees for {@code state}. */
+	public static BlockState clientState(BlockState state) {
+		return PolymerBlockUtils.getPolymerBlockState(state, null);
+	}
+
+	/** The vanilla state whose break sound and particles the client shows when {@code state} breaks. */
+	public static BlockState breakEventClientState(PolymerBlock polymer, BlockState state) {
+		BlockState sent = PolymerBlockUtils.getBlockBreakBlockStateSafely(polymer, state, PolymerBlockUtils.NESTED_DEFAULT_DISTANCE, null);
+		return PolymerBlockUtils.getPolymerBlockState(sent, null);
+	}
+
+	public static boolean sameSounds(SoundType a, SoundType b) {
+		return a == b || soundEvents(a).stream().map(SoundEvent::location).toList()
+				.equals(soundEvents(b).stream().map(SoundEvent::location).toList());
+	}
+
+	public static List<SoundEvent> soundEvents(SoundType type) {
+		return List.of(type.getStepSound(), type.getHitSound(), type.getFallSound(), type.getBreakSound(), type.getPlaceSound());
+	}
+
 	private static void patchDonorSounds() {
-		for (SoundType donor : DONOR_SOUNDS) {
-			SoundPatcher.convertIntoServerSound(donor.getStepSound());
-			SoundPatcher.convertIntoServerSound(donor.getHitSound());
-			SoundPatcher.convertIntoServerSound(donor.getFallSound());
-			MoreDyes.LOGGER.info("[{}] donor sound '{}' made server-authoritative for step/hit/fall",
-					MoreDyes.MOD_ID, donor.getStepSound().location());
+		for (SoundType type : SERVER_SOUNDS) {
+			for (SoundEvent event : soundEvents(type)) {
+				// the patcher only moves vanilla sounds; a modded one is never predicted by the client anyway
+				if (event.location().getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) {
+					SoundPatcher.convertIntoServerSound(event);
+				}
+			}
+			MoreDyes.LOGGER.info("[{}] sound type '{}' made server-driven", MoreDyes.MOD_ID, type.getBreakSound().location());
 		}
 	}
 
