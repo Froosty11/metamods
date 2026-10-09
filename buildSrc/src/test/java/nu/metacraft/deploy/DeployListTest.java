@@ -67,6 +67,30 @@ class DeployListTest {
     }
 
     @Test
+    void parsesDatapacks() {
+        DeployList list = DeployList.parse("test", List.of(
+                "datapack planked_chests https://example.org/planked.zip sha256:" + HASH,
+                "datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief sha256:" + HASH));
+        assertEquals(List.of(
+                new DeployList.External("planked_chests", URI.create("https://example.org/planked.zip"), HASH, true),
+                new DeployList.External("vt_anti_enderman_grief",
+                        URI.create("vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief"), HASH, true)),
+                list.externals());
+    }
+
+    @Test
+    void refusesADatapackIdFabricWouldRefuse() {
+        assertTrue(failure(List.of("datapack 9lives https://example.org/p.zip sha256:" + HASH)).contains("is not a Fabric mod id"));
+        assertTrue(failure(List.of("datapack more.heads https://example.org/p.zip sha256:" + HASH)).contains("is not a Fabric mod id"));
+    }
+
+    @Test
+    void onlyADatapackMayComeFromVanillaTweaks() {
+        assertTrue(failure(List.of("external vt vanillatweaks:26.3/a/b sha256:" + HASH)).contains("is not an https URL"));
+        assertTrue(failure(List.of("datapack vt https://example.org/p.zip")).contains("expected 'datapack <mod-id> <url> sha256:<hex>'"));
+    }
+
+    @Test
     void refusesTwoWordsOnAProjectLine() {
         assertTrue(failure(List.of("better-pets faster-minecarts")).contains("one project name per line"));
     }

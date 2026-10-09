@@ -12,7 +12,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** A parsed {@code deploy/<server>.txt}: project names under {@code mods/} and external jars. */
+/** A parsed {@code deploy/<server>.txt}: project names under {@code mods/}, external jars and datapacks. */
 public record DeployList(String server, List<String> projects, List<External> externals) {
 
     /** The mod id of the old all-in-one jar. It is never on a list; the first deploy removes it. */
@@ -20,10 +20,21 @@ public record DeployList(String server, List<String> projects, List<External> ex
 
     private static final Pattern NAME = Pattern.compile("[a-z0-9][a-z0-9._-]*");
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
+    /** Fabric's own rule for a mod id; a datapack's id becomes the id of the jar it is packed into. */
+    private static final Pattern FABRIC_ID = Pattern.compile("[a-z][a-z0-9_-]{1,63}");
     private static final Set<String> SCHEMES = Set.of("https", "http", "file");
+    private static final Set<String> DATAPACK_SCHEMES = Set.of("https", "http", "file", VanillaTweaks.SCHEME);
 
-    /** An {@code external <mod-id> <url> sha256:<hex>} line; {@code sha256} is lower-case hex. */
-    public record External(String modId, URI url, String sha256) {}
+    /**
+     * An {@code external <mod-id> <url> sha256:<hex>} line, or with {@code datapack}, a
+     * {@code datapack <mod-id> <url> sha256:<hex>} line: a datapack zip that the set packs into a
+     * jar of that mod id ({@link DatapackJar}). {@code sha256} is lower-case hex, of the jar or zip.
+     */
+    public record External(String modId, URI url, String sha256, boolean datapack) {
+        public External(String modId, URI url, String sha256) {
+            this(modId, url, sha256, false);
+        }
+    }
 
     public static DeployList read(String server, Path file) {
         if (!Files.isRegularFile(file)) {
@@ -48,12 +59,16 @@ public record DeployList(String server, List<String> projects, List<External> ex
             }
             String[] words = line.split("\\s+");
             String id;
-            if (words[0].equals("external")) {
+            if (words[0].equals("external") || words[0].equals("datapack")) {
+                boolean datapack = words[0].equals("datapack");
                 if (words.length != 4) {
-                    throw new DeployException(where + ": expected 'external <mod-id> <url> sha256:<hex>', got '" + line + "'");
+                    throw new DeployException(where + ": expected '" + words[0] + " <mod-id> <url> sha256:<hex>', got '" + line + "'");
                 }
                 id = checkId(where, words[1]);
-                URI url = parseUrl(where, words[2]);
+                if (datapack && !FABRIC_ID.matcher(id).matches()) {
+                    throw new DeployException(where + ": '" + id + "' is not a Fabric mod id (a-z first, then a-z, 0-9, _ or -)");
+                }
+                URI url = parseUrl(where, words[2], datapack ? DATAPACK_SCHEMES : SCHEMES);
                 if (!words[3].startsWith("sha256:")) {
                     throw new DeployException(where + ": write the hash as sha256:<hex>, got '" + words[3] + "'");
                 }
@@ -61,7 +76,7 @@ public record DeployList(String server, List<String> projects, List<External> ex
                 if (!SHA256.matcher(hex).matches()) {
                     throw new DeployException(where + ": a sha256 is 64 hex digits, got '" + hex + "'");
                 }
-                externals.add(new External(id, url, hex));
+                externals.add(new External(id, url, hex, datapack));
             } else {
                 if (words.length != 1) {
                     throw new DeployException(where + ": expected one project name per line, got '" + line + "'");
@@ -96,14 +111,14 @@ public record DeployList(String server, List<String> projects, List<External> ex
         return id;
     }
 
-    private static URI parseUrl(String where, String text) {
+    private static URI parseUrl(String where, String text, Set<String> schemes) {
         URI url;
         try {
             url = new URI(text);
         } catch (URISyntaxException e) {
             throw new DeployException(where + ": '" + text + "' is not a URL");
         }
-        if (url.getScheme() == null || !SCHEMES.contains(url.getScheme().toLowerCase(Locale.ROOT))) {
+        if (url.getScheme() == null || !schemes.contains(url.getScheme().toLowerCase(Locale.ROOT))) {
             throw new DeployException(where + ": '" + text + "' is not an https URL");
         }
         return url;

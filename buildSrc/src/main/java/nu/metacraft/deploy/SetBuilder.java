@@ -12,15 +12,18 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-/** Fills {@code build/deploy/<server>/} with a set's jars and its manifest.json. */
+/** Fills {@code build/deploy/<server>/} with a set's jars (datapacks packed into jars) and its manifest.json. */
 public final class SetBuilder {
     @FunctionalInterface
     public interface Fetcher {
         InputStream open(URI url) throws IOException;
     }
 
-    /** https (following redirects within https, as GitHub release downloads need) and file URLs. */
-    public static final Fetcher URL_FETCHER = url -> url.toURL().openStream();
+    /**
+     * https (following redirects within https, as GitHub release downloads need) and file URLs, and
+     * {@code vanillatweaks:} packs ({@link VanillaTweaks}).
+     */
+    public static final Fetcher URL_FETCHER = url -> VanillaTweaks.is(url) ? VanillaTweaks.open(url) : url.toURL().openStream();
 
     private SetBuilder() {
     }
@@ -43,26 +46,22 @@ public final class SetBuilder {
                 Files.copy(jar, outDir.resolve(file));
             }
             for (DeployList.External external : list.externals()) {
+                if (external.datapack()) {
+                    addDatapack(server, entries, infos, external, outDir, fetcher);
+                    continue;
+                }
                 String file = fileNameOf(external.url());
                 Path target = outDir.resolve(file);
                 if (Files.exists(target)) {
                     throw new DeployException(external.url() + ": another jar in " + server + "'s set is already called " + file);
                 }
-                try (InputStream in = fetcher.open(external.url())) {
-                    Files.copy(in, target);
-                }
-                String sha256 = Sha256.of(target);
-                if (!sha256.equals(external.sha256())) {
-                    Files.delete(target);
-                    throw new DeployException("sha256 mismatch for " + external.url() + ": deploy/" + server
-                            + ".txt pins " + external.sha256() + ", the download is " + sha256);
-                }
+                fetch(server, external, target, fetcher);
                 ModInfo info = ModInfo.read(target);
                 if (!info.id().equals(external.modId())) {
                     throw new DeployException(external.url() + " is mod " + info.id() + ", but deploy/" + server
                             + ".txt calls it " + external.modId());
                 }
-                add(server, entries, infos, info, file, sha256, external.url().toString());
+                add(server, entries, infos, info, file, external.sha256(), external.url().toString());
             }
             DependsCheck.check(server, infos, repoModIds);
             Manifest manifest = new Manifest(entries);
@@ -71,6 +70,37 @@ public final class SetBuilder {
         } catch (IOException e) {
             throw new DeployException("building " + server + "'s set failed: " + e.getMessage(), e);
         }
+    }
+
+    /** Downloads {@code external} to {@code target}; a download whose sha256 isn't the pinned one is deleted. */
+    private static void fetch(String server, DeployList.External external, Path target, Fetcher fetcher) throws IOException {
+        try (InputStream in = fetcher.open(external.url())) {
+            Files.copy(in, target);
+        }
+        String sha256 = Sha256.of(target);
+        if (!sha256.equals(external.sha256())) {
+            Files.delete(target);
+            throw new DeployException("sha256 mismatch for " + external.url() + ": deploy/" + server
+                    + ".txt pins " + external.sha256() + ", the download is " + sha256);
+        }
+    }
+
+    /** A datapack line: the pinned zip, packed into {@code <mod-id>-<version>.jar} ({@link DatapackJar}). */
+    private static void addDatapack(String server, SortedMap<String, Manifest.Entry> entries, Map<String, ModInfo> infos,
+                                    DeployList.External datapack, Path outDir, Fetcher fetcher) throws IOException {
+        String file = datapack.modId() + "-" + DatapackJar.version(datapack.sha256()) + ".jar";
+        Path jar = outDir.resolve(file);
+        if (Files.exists(jar)) {
+            throw new DeployException(datapack.url() + ": another jar in " + server + "'s set is already called " + file);
+        }
+        Path zip = outDir.resolve(datapack.modId() + ".datapack.zip");
+        fetch(server, datapack, zip, fetcher);
+        try {
+            DatapackJar.pack(zip, datapack.modId(), datapack.sha256(), datapack.url(), jar);
+        } finally {
+            Files.delete(zip);
+        }
+        add(server, entries, infos, ModInfo.read(jar), file, Sha256.of(jar), datapack.url().toString());
     }
 
     private static void add(String server, SortedMap<String, Manifest.Entry> entries, Map<String, ModInfo> infos,

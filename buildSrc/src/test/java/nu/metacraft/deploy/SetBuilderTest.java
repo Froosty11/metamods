@@ -73,6 +73,35 @@ class SetBuilderTest {
     }
 
     @Test
+    void packsADatapackIntoAJarOfItsModId() throws IOException {
+        Path zip = TestJars.datapackZip(tmp.resolve("downloads/heads.zip"), "{\"pack\":{\"pack_format\":81}}",
+                "data/heads/function/load.mcfunction", "say hi");
+        String sha256 = Sha256.of(zip);
+        DeployList list = new DeployList("test", List.of(),
+                List.of(new DeployList.External("more_heads", zip.toUri(), sha256, true)));
+        Manifest m = build(list, Map.of());
+
+        Manifest.Entry entry = m.entries().get("more_heads");
+        assertEquals("more_heads-" + sha256.substring(0, 12) + ".jar", entry.file());
+        assertEquals(sha256.substring(0, 12), entry.version());
+        assertEquals(zip.toUri().toString(), entry.source());
+        Path jar = out().resolve(entry.file());
+        assertEquals(entry.sha256(), Sha256.of(jar));
+        assertEquals("more_heads", ModInfo.read(jar).id());
+        assertEquals(Set.of("manifest.json", entry.file()), TestJars.namesIn(out()));
+    }
+
+    @Test
+    void aWrongDatapackHashFailsAndLeavesNothing() throws IOException {
+        Path zip = TestJars.datapackZip(tmp.resolve("downloads/heads.zip"), "{\"pack\":{\"pack_format\":81}}");
+        DeployList list = new DeployList("test", List.of(),
+                List.of(new DeployList.External("more_heads", zip.toUri(), "0".repeat(64), true)));
+        DeployException e = assertThrows(DeployException.class, () -> build(list, Map.of()));
+        assertTrue(e.getMessage().startsWith("sha256 mismatch for " + zip.toUri()), e.getMessage());
+        assertEquals(Set.of(), TestJars.namesIn(out()));
+    }
+
+    @Test
     void refusesAJarWhoseModIdIsMetacraft() throws IOException {
         Path bundle = TestJars.modJar(tmp.resolve("libs/metacraft-1.0.0.jar"), "metacraft", "1.0.0");
         DeployList list = new DeployList("test", List.of("dist"), List.of());
