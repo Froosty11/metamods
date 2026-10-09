@@ -3,7 +3,7 @@
 # Terralith worldgen, the performance mods, Distant Horizons and BlueMap. BlueMapPolymerPatch is on
 # the server by hand until it has a release to pin. edvin2.txt is this list without Terralith, to
 # compare the two worldgens on the same seed.
-# One per line: a folder under mods/, or external <mod-id> <url> sha256:<hex>
+# One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <mod-id> <url> sha256:<hex>
 # How to change this: deploy/README.md
 better-pets
 discord-chat-fixer
@@ -61,3 +61,29 @@ external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/
 external brewery https://cdn.modrinth.com/data/nr7cSJlY/versions/fYQfdDNZ/brewery-0.17.0%2B26.3-rc-1.jar sha256:7eb4c5491db14763549b932f41a37e911137577f31de43d10755b65c0441b9e9
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.2/danse-2.6.0-metacraft.2%2B26.3.jar sha256:b7d9f6fdeb992e036af85d03cd3b80476d5783ebf04fb015954dabd95ff94f34
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
+
+# Season 6 community picks (the "METAcraft Season 6 mods list" doc)
+external filament https://cdn.modrinth.com/data/yANxwqSX/versions/hx9B6uTQ/filament-1.8.5%2B26.3.jar sha256:bb6c7f4dc3560907c52f1ff21ff5349a0dc8295edd0170688b3aafff1684f3f8
+# Planked Chests: a chest per wood type, a Filament datapack in its "as a mod" jar
+external mr_planked_chests https://cdn.modrinth.com/data/aLRp13nZ/versions/hq12SxWd/planked-chests-1.0.1.jar sha256:7f27b3da6347a1e4f960f3ed7cc764dc543911adf69e56c2a2453751e8eeddbc
+external ledger https://cdn.modrinth.com/data/LVN9ygNV/versions/pxv5cN0d/ledger-1.3.25.jar sha256:d2433b5c314bfd2a04bc41d77007a0382e219c9173a6de541184c8da6851f260
+external fabric-language-kotlin https://cdn.modrinth.com/data/Ha28R6CL/versions/SKW1BTL3/fabric-language-kotlin-1.14.2%2Bkotlin.2.4.21.jar sha256:fbdbf5286ab9d65fedb49e6e01c15e338ae303eb7b9d8c7423d0a9bcfe526ef9
+external fabrictailor https://cdn.modrinth.com/data/g8w1NapE/versions/UfZLJmX7/fabrictailor-2.11.0.jar sha256:d80d0378491df4e3a8c94198a6f1acf53c33967d8a92bd06a8c1f19dff06cf0c
+# Simple Voice Chat on the game port over UDP (config/voicechat/voicechat-server.properties port=-1), and
+# its sculk sensor addon
+external voicechat https://cdn.modrinth.com/data/9eGKb6K1/versions/OLnMVWXy/voicechat-fabric-2.6.24%2B26.3.jar sha256:97074fa1d094a22f17d5ac11282176965a45137950b66627d3813618810c3d00
+external vcinteraction https://cdn.modrinth.com/data/qsSP2ZZ0/versions/AuH4GjYn/vcinteraction-fabric-1.0.8%2B26.3.jar sha256:291595897a9a1445aa3500daeb51ccbaff296ebcc408773294622a0bea393ad7
+external worldedit https://cdn.modrinth.com/data/1u6JkXh5/versions/E7sbeRFx/worldedit-mod-7.4.6-beta-02.jar sha256:4bf170e934a73bbc0bc60a4169517a45be2ee83a0883132a96dd5975e1dc06af
+external vanish https://cdn.modrinth.com/data/UL4bJFDY/versions/KgeCcJWw/vanish-1.6.16%2B26.3.jar sha256:e518a65aa629935d4e0e4f90829835c17783f04d7e11ec7a8c2e65a0e69f5484
+external carpet https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-carpet-26.3%2Bv260915.jar sha256:7c40b93e807ed914064176898037117097446c6cc76e6a80a856c8bf7f7659f9
+external nochatreports https://cdn.modrinth.com/data/qQyHxfxd/versions/6g96avt2/NoChatReports-FABRIC-26.3-v2.21.0.jar sha256:d346391bea7991ba5d5eb3c8308a414bfc6734d6d220bece84e76966c834b5bf
+external antixray https://cdn.modrinth.com/data/sml2FMaA/versions/8CvHIf1r/antixray-fabric-1.4.16%2B26.3.jar sha256:20171e2b2ada25505b9b1c2370192470c074423678974679548ccf27fa205521
+external luckperms https://cdn.modrinth.com/data/Vebnzrzj/versions/DzQPkkXY/LuckPerms-Fabric-5.5.85.jar sha256:18598fcb95a83f6723d8bc68a905500ed5ecac92e9909ce1f25409cdebe2df49
+
+# Johan's Vanilla Tweaks datapacks (Silence Mobs is metacraft-qol's)
+datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief sha256:0cbd1bc8ec748f5ba09fd108f42b8272175e59f4504697b1f699be0f1427365f
+datapack vt_husks_drop_sand vanillatweaks:26.3/gameplay%20changes/husks%20drop%20sand sha256:54b7ff921d506eb43b953d3dd7ac3e51fc6cd75768758dba3d930ec901e72831
+datapack vt_armor_statues vanillatweaks:26.3/decorative%2Fcosmetic/armor%20statues sha256:e3e6a2428241d513868fd98c7d8c6a80a7c5186c03461ebbaf332fe3c3cf5488
+datapack vt_more_mob_heads vanillatweaks:26.3/decorative%2Fcosmetic/more%20mob%20heads sha256:0d393660372f81fa7a885e5e22632a8ecf0921aa26239e14ce064eb354c14e84
+datapack vt_player_head_drops vanillatweaks:26.3/decorative%2Fcosmetic/player%20head%20drops sha256:b616fa81c642238996fef71adce2ab09df68b9a3c28980f2e978f2c6b7ac25d6
+datapack vt_wandering_trades vanillatweaks:26.3/decorative%2Fcosmetic/wandering%20trades sha256:7c931000269ce9d7b716f8f142eed2e3e99966960141e1d236bf11a2af8533d5
