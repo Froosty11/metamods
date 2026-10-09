@@ -5,7 +5,9 @@ import metacraft.ovvar.OvvarConfig;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -58,6 +60,11 @@ public final class WardrobeMannequin {
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(WardrobeMannequin::tick);
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> despawn(handler.player));
+		// It cannot be hurt, but a punch still sounds like one.
+		AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+			if (!level.isClientSide() && entity.entityTags().contains(TAG)) StandEffects.hit(entity);
+			return InteractionResult.PASS;
+		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(WardrobeMannequin::despawnAll);
 		// Belt and braces beyond SERVER_STOPPING (a crash never fires it): anything still tagged
 		// from a previous run, in any level, is an orphan and goes.
@@ -85,6 +92,7 @@ public final class WardrobeMannequin {
 		Mannequin mannequin = ModCommands.spawnMannequinWearing(player, copy, 2);
 		mannequin.setPermanentlyInvulnerable(true);
 		mannequin.addTag(TAG);
+		StandEffects.appear(mannequin);
 		BY_PLAYER.put(player.getUUID(), new Shown(mannequin, player.level().getGameTime()));
 		return null;
 	}
@@ -103,13 +111,18 @@ public final class WardrobeMannequin {
 
 	private static void despawn(ServerPlayer player) {
 		Shown shown = BY_PLAYER.remove(player.getUUID());
-		if (shown != null) shown.mannequin().discard();
+		if (shown != null) gone(shown.mannequin());
 	}
 
 	/** Every tracked mannequin, gone; the map cleared — shutdown, so none is ever saved into the level. */
 	private static void despawnAll(MinecraftServer server) {
-		for (Shown shown : new ArrayList<>(BY_PLAYER.values())) shown.mannequin().discard();
+		for (Shown shown : new ArrayList<>(BY_PLAYER.values())) gone(shown.mannequin());
 		BY_PLAYER.clear();
+	}
+
+	private static void gone(Mannequin mannequin) {
+		StandEffects.vanish(mannequin);
+		mannequin.discard();
 	}
 
 	private static void tick(MinecraftServer server) {
@@ -124,7 +137,7 @@ public final class WardrobeMannequin {
 			boolean tooOld = player.level().getGameTime() - shown.spawnedAt() > LIFETIME_TICKS;
 			boolean tooFar = player.level() != shown.mannequin().level() || player.distanceToSqr(shown.mannequin()) > REACH * REACH;
 			if (tooOld || tooFar) {
-				shown.mannequin().discard();
+				gone(shown.mannequin());
 				BY_PLAYER.remove(playerId);
 			}
 		}
