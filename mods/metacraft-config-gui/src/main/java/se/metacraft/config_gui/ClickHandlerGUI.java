@@ -20,9 +20,14 @@ public interface ClickHandlerGUI extends DialogGUI {
 		return this;
 	}
 
-	record ParentInfo(ClickHandlerGUI gui, SubMenu.SubMenuKey position) {
-		public ClickHandlerGUI withUpdatedGUI(ClickHandlerGUI childGUI, HolderLookup.Provider lookup) {
-			return gui.updateFromChild(lookup, childGUI, position);
+	@FunctionalInterface
+	interface ParentInfo {
+		ClickHandlerGUI withUpdatedGUI(ClickHandlerGUI childGUI, ServerPlayer player);
+	}
+
+	record SubMenuParentInfo(ClickHandlerGUI gui, SubMenu.SubMenuKey position) implements ParentInfo {
+		public ClickHandlerGUI withUpdatedGUI(ClickHandlerGUI childGUI, ServerPlayer player) {
+			return gui.updateFromChild(player.registryAccess(), childGUI, position);
 		}
 	}
 

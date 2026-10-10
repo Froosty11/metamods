@@ -95,6 +95,10 @@ public interface ConfirmScreen extends ClickHandlerGUI {
 
 	record Simple(List<DialogBody> body, ClickHandlerGUI onConfirm, ParentInfo source) implements ConfirmScreen {
 
+		public Simple(List<DialogBody> body, ClickHandlerGUI onConfirm, ClickHandlerGUI onCancel) {
+			this(body, onConfirm, (childGUI, player) -> onCancel);
+		}
+
 		@Override
 		public List<DialogBody> body(ServerPlayer player) {
 			return body;

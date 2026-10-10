@@ -9,7 +9,11 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.contents.objects.AtlasSprite;
+import net.minecraft.network.chat.contents.objects.ObjectInfo;
 import net.minecraft.network.chat.contents.objects.PlayerSprite;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
@@ -42,6 +46,7 @@ import se.metacraft.config_gui.gui.value_editor.click.ClickHandler;
 import se.metacraft.config_gui.gui.value_editor.click.handlers.SubMenu;
 import se.metacraft.config_gui.message.DialogGUIHandler;
 import se.metacraft.config_gui.mixin.IntegerPropertyAccessor;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.*;
 import java.util.function.Function;
@@ -84,9 +89,10 @@ public class CodecDialog {
 
 	private static InputControl forNumericRange(
 		Component name, int width, @Nullable Range range,
-		boolean onlyWholeNumbers, @Nullable Number currentValue
+		boolean onlyWholeNumbers, @Nullable Number currentValue,
+		EditorGUIPreferences preferences
 	) {
-		if (range == null || isRangeTooLarge(range)) {
+		if (range == null || isRangeTooLarge(range) || !preferences.get(EditorGUIPreferences.USE_NUMBER_SLIDERS)) {
 			return new TextInput(
 				width, name, true,
 				currentValue != null ? currentValue.toString() : "", 200, Optional.empty()
@@ -178,17 +184,18 @@ public class CodecDialog {
 
 	private static Optional<InputControl> createInput(
 		Component label, Codec<?> codec,
-		@Nullable Range range, @Nullable Remainder remainder, @Nullable Object currentValue, HolderLookup.Provider lookup
+		@Nullable Range range, @Nullable Remainder remainder, @Nullable Object currentValue, HolderLookup.Provider lookup,
+		EditorGUIPreferences preferences
 	) {
 		if (currentValue != null) {
 			currentValue = CodecInternalsHelper.forceEncode(codec, lookup.createSerializationContext(JavaOps.INSTANCE), currentValue).getOrThrow();
 		}
 		int width = 200;
 		if (isInt(codec, remainder, lookup)) {
-			return Optional.of(forNumericRange(label, width, getRange(range, remainder), true, asNumber(currentValue)));
+			return Optional.of(forNumericRange(label, width, getRange(range, remainder), true, asNumber(currentValue), preferences));
 		}
 		if (CodecInternalsHelper.isOneOfPrimitiveCodecs(codec, lookup, Codec.FLOAT, Codec.DOUBLE)) {
-			return Optional.of(forNumericRange(label, width, range, false, asNumber(currentValue)));
+			return Optional.of(forNumericRange(label, width, range, false, asNumber(currentValue), preferences));
 		}
 		if (isBool(codec, remainder, lookup)) {
 			return Optional.of(
@@ -625,11 +632,12 @@ public class CodecDialog {
 		List<DialogBody> body,
 		List<ActionButton> buttons,
 		List<Input> inputs,
-		Optional<Component> tooltip
+		Optional<Component> tooltip,
+		EditorGUIPreferences preferences
 	) {
 		var recursion = type.element().getContainerData(ContainerType.RECURSIVE);
 		if (recursion.isPresent()) {
-			addInput(key, label, Type.from(recursion.get().wrapped().get()), value, registries, body, buttons, inputs, tooltip);
+			addInput(key, label, Type.from(recursion.get().wrapped().get()), value, registries, body, buttons, inputs, tooltip, preferences);
 			return;
 		}
 		type.element().mapCodec().ifPresentOrElse(
@@ -650,7 +658,7 @@ public class CodecDialog {
 						type.element().codec(),
 						type.element().nestedMetadata(MetadataKey.RANGE).orElse(null),
 						type.element().nestedMetadata(MetadataKey.REMAINDER).orElse(null),
-						value, registries
+						value, registries, preferences
 					).ifPresent(input -> {
 						inputs.add(new Input(key, input));
 						tooltip.ifPresent(t -> body.add(new PlainMessage(label.copy().append(": ").append(t), 200)));
@@ -660,11 +668,16 @@ public class CodecDialog {
 		);
 	}
 
+	private static final ObjectInfo ACCESSIBILITY_ICON = new AtlasSprite(
+		Identifier.parse("gui"), Identifier.parse("icon/accessibility")
+	);
+
 	public static <T> Holder<Dialog> createDialog(
 		Map<String, Object> object,
 		Map<String, Type> types,
 		Map<String, Component> tooltips,
-		HolderLookup.Provider registries
+		HolderLookup.Provider registries,
+		EditorGUIPreferences preferences
 	) {
 		List<DialogBody> body = new ArrayList<>();
 		List<ActionButton> buttons = new ArrayList<>();
@@ -673,9 +686,29 @@ public class CodecDialog {
 			addInput(
 				value.getKey(), Component.literal(value.getKey()),
 				value.getValue(), object.get(value.getKey()), registries, body, buttons, inputs,
-				Optional.ofNullable(tooltips.get(value.getKey()))
+				Optional.ofNullable(tooltips.get(value.getKey())), preferences
 			);
 		}
+
+		buttons.add(
+			new ActionButton(
+				new CommonButtonData(
+					Component.literal("").append(
+						Component.translatable("options.video.preferences.header").withColor(TextColor.GREEN)
+					).append(
+						" "
+					).append(
+						Component.object(ACCESSIBILITY_ICON)
+					),
+					CommonButtonData.DEFAULT_WIDTH
+				),
+				Optional.of(
+					ClickHandler.click(
+						registries, new SubMenu(EditorGUIPreferences.PreferencePointer.INSTANCE), true
+					)
+				)
+			)
+		);
 
 		return template(body, inputs, buttons, registries, 1);
 	}

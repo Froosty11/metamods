@@ -17,6 +17,7 @@ import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.ConfigGUI;
 import se.metacraft.config_gui.gui.value_editor.click.handlers.SubMenu;
 import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,7 @@ public record MapCodecEditor<T>(
 
 	@Override
 	public Holder<Dialog> createDialog(ServerPlayer player) {
-		return CodecDialog.createDialog(object, types, tooltips, player.registryAccess());
+		return CodecDialog.createDialog(object, types, tooltips, player.registryAccess(), EditorGUIPreferences.get(player));
 	}
 
 	public MapCodecEditor<T> withObject(PMap<String, Object> object) {

@@ -25,6 +25,7 @@ import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.ConfigGUI;
 import se.metacraft.config_gui.gui.value_editor.click.handlers.SubMenu;
 import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -140,7 +141,7 @@ public record DispatchedEitherEditor<T>(
 		});
 		CodecDialog.addInput(
 			keyField(), Component.literal(keyField()), keyType, key, player.registryAccess(),
-			body, buttons, inputs, Optional.empty()
+			body, buttons, inputs, Optional.empty(), EditorGUIPreferences.get(player)
 		);
 		buttons.add(
 			CodecDialog.submenu(

@@ -459,7 +459,7 @@ public record MapEditor<T>(
 				return new ConfirmScreen.Simple(
 					fullMessage,
 					newEditor(source),
-					new ParentInfo(source, position)
+					source
 				);
 			} else {
 				return newEditor(source);
@@ -509,7 +509,7 @@ public record MapEditor<T>(
 				return new PopupScreen(
 					PopupScreen.FAILED,
 					info,
-					new ParentInfo(source, position)
+					new SubMenuParentInfo(source, position)
 				);
 			}
 			var valueType = valueType().getOrThrow();
@@ -524,7 +524,7 @@ public record MapEditor<T>(
 				value -> toSimple(
 					value, defaultValue.error().map(DataResult.Error::message)
 				).nextGUI(source, position, lookup),
-				Optional.of(new ParentInfo(source, position)),
+				Optional.of(new SubMenuParentInfo(source, position)),
 				defaultValue.error().map(DataResult.Error::message)
 			);
 		}
