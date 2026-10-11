@@ -107,19 +107,18 @@ public record DispatchedEitherEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
+	public MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
 		var keyField = keyField();
-		if (!tag.contains(keyField)) return this;
-		var result = keyType.parse(player.registryAccess(), tag.get(keyField)).resultOrPartial(
-			err -> player.sendSystemMessage(Component.literal(err))
-		);
-		return result.map(
+		if (!tag.contains(keyField)) return MessageUpdate.simple(this);
+		return MessageUpdate.dataResult(
+			keyType.parse(player.registryAccess(), tag.get(keyField)),
 			o -> new DispatchedEitherEditor<>(
 				keyType, o, valueTypeProvider,
 				prevValueType,
 				value, wrappingCodec, parent
-			)
-		).orElse(this);
+			),
+			this
+		);
 	}
 
 	@Override

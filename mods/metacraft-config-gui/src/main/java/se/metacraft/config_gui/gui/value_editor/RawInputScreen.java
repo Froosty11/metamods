@@ -44,13 +44,15 @@ public interface RawInputScreen extends ClickHandlerGUI {
 	String TYPE = "type";
 
 	@Override
-	default ClickHandlerGUI updateFromMessage(ServerPlayer player, CompoundTag tag) {
-		return tag.read(TYPE, REGISTRY.byNameCodec()).map(type -> {
-			var value = tag.getString(DATA);
-			if (value.isEmpty()) return null;
-			var result = type.parse(decoder(), value.get(), player.registryAccess());
-			return onInputReceived(player, result, type);
-		}).orElse(this);
+	default MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
+		return MessageUpdate.simple(
+			tag.read(TYPE, REGISTRY.byNameCodec()).map(type -> {
+				var value = tag.getString(DATA);
+				if (value.isEmpty()) return null;
+				var result = type.parse(decoder(), value.get(), player.registryAccess());
+				return onInputReceived(player, result, type);
+			}).orElse(this)
+		);
 	}
 
 	Decoder<?> decoder();

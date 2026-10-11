@@ -5,7 +5,6 @@ import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.dialog.ActionButton;
@@ -50,11 +49,6 @@ public record MapEditor<T>(
 				codec, parent
 			)
 		);
-	}
-
-	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
-		return this;
 	}
 
 	private Object parseKey(Object k, HolderLookup.Provider lookup) {

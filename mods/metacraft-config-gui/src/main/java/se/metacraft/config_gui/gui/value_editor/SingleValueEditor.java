@@ -39,13 +39,12 @@ public record SingleValueEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
-		var result = type.parse(player.registryAccess(), tag.get(VALUE)).resultOrPartial(
-			err -> player.sendSystemMessage(Component.literal(err))
+	public MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
+		return MessageUpdate.dataResult(
+			type.parse(player.registryAccess(), tag.get(VALUE)),
+			result -> new SingleValueEditor<>(result, type, codec, parent, tooltip),
+			this
 		);
-		return result.map(
-			o -> new SingleValueEditor<>(o, type, codec, parent, tooltip)
-		).orElse(this);
 	}
 
 	@Override
