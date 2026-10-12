@@ -6,8 +6,10 @@ through in waves, built on vanilla raids (small / medium / large portals raid li
 They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. From wave 2 a War
 Drummer leads each wave, drumming a beat every half second: every 4th, its War Beat gives rift piglins within
 12 blocks Speed and Strength, and its Shock Beat knocks back players within 4 blocks. In Large waves 5 and
-later, Ghast Bombardiers ride war ghasts on bombing runs, each bomb's landing spot marked on the ground a
-second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands or loot on the ground. The Rift Captain, in a large raid's
+later come war ghasts: in a harness, a deck slung under them on chains with a crew of a Ghast Bombardier and two
+crossbow piglins. They make bombing runs, the Bombardier dropping magma bombs from the deck, each bomb's landing
+spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
+or loot on the ground. When a war ghast dies, its crew jump off and glide down to fight on foot. The Rift Captain, in a large raid's
 last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
@@ -21,8 +23,8 @@ OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, st
 their shaderpack went through ovvar's shader patcher, which puts the same drawing into the pack (seen working
 in Complementary Reimagined and Unbound, BSL and Bliss).
 
-Config: `config/nether-rifts.json5`; its `mobs` section tunes the War Drummer and the Ghast Bombardier (ranges,
-effect and fire durations, bomb power, the bombing run's heights and timing). Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
+Config: `config/nether-rifts.json5`; its `mobs` section tunes the War Drummer and the war ghast's bombing (ranges,
+effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing). Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
 
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and
 metacraft-lib's fail in a fresh checkout until its data is generated, so run

@@ -35,7 +35,7 @@ public final class Roster {
 			Slot.CAPTAIN, one("{id:\"minecraft:piglin_brute\",CustomName:\"Rift Captain\",Health:100f,"
 					+ "attributes:[{id:\"minecraft:max_health\",base:100d}],"
 					+ "equipment:{head:{id:\"minecraft:red_banner\",count:1},mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
-			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\",Passengers:[{id:\"nether_rifts:ghast_bombardier\"}]}")
+			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}")
 	);
 
 	private Roster() {}

@@ -9,6 +9,7 @@ Re-running gives byte-identical files; edit this script, not the .bbmodel files.
 They open in Blockbench (File > Open) for a look; to keep a hand edit, port it back here."""
 import base64
 import json
+import math
 import random
 import struct
 import uuid
@@ -123,8 +124,18 @@ def texture_from_jar(path):
 	return _TEXTURES[path]
 
 
+def stick_tile():
+	"""The stick item's 3-pixel-wide diagonal, straightened and stretched over a 16x16 tile: a stick's wood, for a cube."""
+	_, _, rows = texture_from_jar("item/stick.png")
+	strip = [[px for px in row if px[3]] for row in rows]
+	strip = [row for row in strip if len(row) == 3]
+	return [[strip[y * len(strip) // 16][x * 3 // 16] for x in range(16)] for y in range(16)]
+
+
 def block_tile(material):
 	"""The material's block texture: its first 16x16 frame, made opaque (stained glass reads as solid lenses)."""
+	if material == "stick":
+		return stick_tile()
 	path = BLOCK_TEXTURE.get(material, f"block/{material}.png")
 	w, h, rows = texture_from_jar(path)
 	return [[(r, g, b, 255) for r, g, b, _ in row[:w]] for row in rows[:w]]
@@ -141,6 +152,7 @@ class Model:
 		self.children, self.roots = {}, []
 		self.atlas = [[(0, 0, 0, 0)] * size for _ in range(size)]
 		self.reserved = []
+		self.used = []
 		self.painted = {}
 		self.shift = (0, 0, 0)
 		self._x = self._y = self._row = 0
@@ -156,6 +168,12 @@ class Model:
 		return name
 
 	def element(self, group, name, frm, to, faces, inflate=0):
+		# two templates merged into one group can both have a cube of this name: keep their ids apart
+		taken = {ref for kind, ref in self.children[group] if kind == "c"}
+		base, n = name, 1
+		while uid(self.name, "c", group, name) in taken:
+			n += 1
+			name = f"{base}_{n}"
 		cid = uid(self.name, "c", group, name)
 		element = {"name": name, "export": True, "from": self._at(frm), "to": self._at(to), "autouv": 0,
 			"origin": self._at(frm), "faces": faces, "type": "cube", "uuid": cid}
@@ -165,18 +183,31 @@ class Model:
 		self.children[group].append(("c", cid))
 
 	def sheet(self, rows, origin):
-		"""Copies a texture into the atlas at origin and keeps prop faces off it."""
+		"""Copies a texture into the atlas at origin and keeps prop faces off it (sheet before painting props)."""
 		ox, oy = origin
+		box = (ox, oy, ox + len(rows[0]), oy + len(rows))
+		hit = next((r for r in self.used if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3]), None)
+		assert hit is None, f"{self.name}: a sheet at {origin} would paint over the prop face at {hit}"
 		for y, row in enumerate(rows):
 			self.atlas[oy + y][ox:ox + len(row)] = row
 		self.reserved.append((ox, oy, ox + len(rows[0]), oy + len(rows)))
 
-	def cube(self, group, name, frm, to, material, decorate=None, inflate=0):
-		"""A prop cube; each face is painted from the material's block texture (or flat colour)."""
+	def cube(self, group, name, frm, to, material, decorate=None, inflate=0, only=None):
+		"""A prop cube; each face is painted from the material's block texture (or flat colour). material is one
+		name for every face or {face: name}, with "side" standing for the four sides; only keeps just those faces."""
 		dx, dy, dz = (to[i] - frm[i] for i in range(3))
 		sizes = {"north": (dx, dy), "east": (dz, dy), "south": (dx, dy), "west": (dz, dy), "up": (dx, dz), "down": (dx, dz)}
-		faces = {face: {"uv": list(self._face(material, face, w, h, decorate)), "texture": 0} for face, (w, h) in sizes.items()}
+		def of(face):
+			if isinstance(material, str):
+				return material
+			return material.get(face, material.get("side"))
+		faces = {face: {"uv": list(self._face(of(face), face, w, h, decorate)), "texture": 0} for face, (w, h) in sizes.items()
+			if only is None or face in only}
 		self.element(group, name, frm, to, faces, inflate)
+
+	def plane(self, group, name, frm, to, faces):
+		"""A flat element (zero thickness on one axis) showing only the given faces, {face: atlas rect}."""
+		self.element(group, name, frm, to, {face: {"uv": list(rect), "texture": 0} for face, rect in faces.items()})
 
 	def _face(self, material, face, w, h, decorate):
 		"""A face's texture rect: one texel a unit (16 at most a side, 1 at least), shared between faces that look alike."""
@@ -202,9 +233,12 @@ class Model:
 			hit = next((r for r in self.reserved if rect[0] < r[2] and r[0] < rect[2] and rect[1] < r[3] and r[1] < rect[3]), None)
 			if hit is None:
 				break
+			# step past it, and let the next row start below it
 			self._x = hit[2]
+			self._row = max(self._row, hit[3] - self._y)
 		self._x += tw
 		self._row = max(self._row, th)
+		self.used.append(rect)
 		return rect
 
 	def _paint(self, rect, material, face):
@@ -309,21 +343,6 @@ def import_java_entity(model, template_json, texture_origin, scale=1.0, rename={
 				(-x * scale, (y + h) * scale, (z + d) * scale), faces, round(grow, 4))
 
 
-def snout_emblem(face, rows, rect):
-	"""A gold piglin snout, two nostrils, on the banner's faces (gold sampled from the gold block)."""
-	if face not in ("north", "south"):
-		return
-	gold = block_tile("gold_block")
-	x0, y0, x1, y1 = rect
-	cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-	shape = [".####.", "#o##o#", "#o##o#", ".####."]
-	for j, line in enumerate(shape):
-		for i, ch in enumerate(line):
-			x, y = cx - 3 + i, cy - 2 + j
-			if ch == "#":
-				rows[y][x] = gold[4 + j][4 + i]
-			elif ch == "o":
-				rows[y][x] = (110, 20, 24, 255)
 
 
 def mirrored(frm, to):
@@ -331,13 +350,53 @@ def mirrored(frm, to):
 	return (-to[0], frm[1], frm[2]), (-frm[0], to[1], to[2])
 
 
+def wave(length, amplitude, phase=0.0, steps=8):
+	"""Keyframes of a sine over one loop: amplitude (x, y, z) scaled by sin, phase in loops."""
+	points = []
+	for i in range(steps + 1):
+		t = length * i / steps
+		k = math.sin(2 * math.pi * (i / steps + phase))
+		points.append((round(t, 4), tuple(round(a * k, 3) for a in amplitude)))
+	return points
+
+
+def tinted(dst, src, tint):
+	"""src's white mask, tinted by a dye colour, laid over dst (as the game draws a banner layer)."""
+	a = src[3] / 255
+	return tuple(round(src[i] * tint[i] / 255 * a + dst[i] * (1 - a)) for i in range(3)) + (255,)
+
+
+# Dye colours as the game tints banner layers with them.
+BLACK_DYE = (0x1D, 0x1D, 0x21)
+YELLOW_DYE = (0xFE, 0xD8, 0x3D)
+
+
+def piglin_banner():
+	"""The 20x40 front of a black banner with vanilla's piglin snout pattern in gold (yellow dye): the banner's cloth,
+	then the base layer and the pattern, each a white mask tinted by its dye."""
+	_, _, cloth = texture_from_jar("entity/banner/banner_base.png")
+	_, _, base = texture_from_jar("entity/banner/base.png")
+	_, _, snout = texture_from_jar("entity/banner/piglin.png")
+	return [[tinted(tinted(cloth[y][x], base[y][x], BLACK_DYE), snout[y][x], YELLOW_DYE) for x in range(1, 21)]
+		for y in range(1, 41)]
+
+
+# The drummer's arms rest forward, hands over the drum; the sticks counter-turn to lie level (positive X swings forward).
+DRUMMING_ARMS = (55, 0, 0)
+
+
 def war_drummer():
-	"""A vanilla piglin in a horned gold helm, a war drum at the waist, bone drumsticks, a war banner on the back."""
+	"""A vanilla piglin in a horned gold helm wearing a war banner (as a raid captain wears one), a drum at its belly
+	and a stick in each hand."""
 	m = Model("war_drummer")
 	import_java_entity(m, "piglin.json", (0, 0), skip={"leftItem"},
 		rename={"Body": "body", "RightArm": "arm_right", "LeftArm": "arm_left", "RightLeg": "leg_right", "LeftLeg": "leg_left"},
 		# The legs stay at the root, so the body's bob doesn't lift the feet off the ground.
-		parents={"head": "body", "arm_right": "body", "arm_left": "body"})
+		parents={"head": "body", "arm_right": "body", "arm_left": "body"},
+		rotations={"arm_right": DRUMMING_ARMS, "arm_left": DRUMMING_ARMS})
+	# the banner's front and back, in the atlas before any prop face takes the space
+	m.sheet(piglin_banner(), (64, 0))
+	m.sheet([row[::-1] for row in piglin_banner()], (84, 0))
 	# The helm: a gold cap over the brow (the eyes, a row lower, stay clear) on a wider brim, and bone horns.
 	m.cube("head", "helm", (-5.5, 30, -4.5), (5.5, 33, 4.5), "gold_block")
 	m.cube("head", "helm_brim", (-5.75, 29.5, -4.75), (5.75, 30.5, 4.75), "gold_block")
@@ -345,106 +404,221 @@ def war_drummer():
 	for i, (frm, to) in enumerate(horn):
 		m.cube("head", f"horn_right_{i}", frm, to, "bone_block_side")
 		m.cube("head", f"horn_left_{i}", *mirrored(frm, to), "bone_block_side")
-	# Drumsticks lie along the drum's skin with the arms hanging; positive X rotation lifts them.
+	# The banner, part of the head: a 13x26 flag behind it, its snout showing above the helm, hung
+	# from a crossbar on a pole behind it that a gold clip holds to the helm's back.
+	edge = (64, 0, 65, 40)
+	m.element("head", "banner_flag", (-6.5, 24, 5), (6.5, 50, 6), {
+		"north": {"uv": [64, 0, 84, 40], "texture": 0}, "south": {"uv": [84, 0, 104, 40], "texture": 0},
+		"east": {"uv": list(edge), "texture": 0}, "west": {"uv": list(edge), "texture": 0},
+		"up": {"uv": [64, 0, 84, 1], "texture": 0}, "down": {"uv": [64, 39, 84, 40], "texture": 0}})
+	m.cube("head", "banner_bar", (-7.5, 50, 4.75), (7.5, 51, 5.75), "stick")
+	m.cube("head", "banner_pole", (-0.5, 30, 6), (0.5, 52, 7), "stick")
+	m.cube("head", "banner_clip", (-1, 31, 4.5), (1, 33, 7), "gold_block")
+	# The drum: one block-like barrel at the waist, a hide top and a gold band round its top and bottom; 9 wide, so
+	# the hands over it stay clear of its sides.
+	m.group("drum", (0, 11, -8), parent="body")
+	m.cube("drum", "shell", (-4.5, 7, -13), (4.5, 15, -3), {"side": "barrel_side", "up": "white_wool", "down": "barrel_bottom"})
+	sides = {"north", "east", "south", "west"}
+	m.cube("drum", "band_top", (-4.5, 13.5, -13), (4.5, 15, -3), "gold_block", inflate=0.25, only=sides)
+	m.cube("drum", "band_bottom", (-4.5, 7, -13), (4.5, 8.5, -3), "gold_block", inflate=0.25, only=sides)
+	# A stick in each fist (at its inner side), turned back by the arms' rest angle so it lies level over the drum's
+	# skin, and in a little, so its tip comes down on the skin rather than beside the drum.
 	for side, s in (("right", 1), ("left", -1)):
-		frm, to = (5.5, 13, -8.5), (6.5, 14, -1)
-		m.cube(f"arm_{side}", "stick", *(mirrored(frm, to) if s < 0 else (frm, to)), "bone_block_side")
-		frm, to = (5.25, 12.75, -9.5), (6.75, 14.25, -8)
-		m.cube(f"arm_{side}", "stick_tip", *(mirrored(frm, to) if s < 0 else (frm, to)), "bone_block_top")
-	# A snare at the waist, its skin just under the sticks and its bottom clear of the knees: each part is two
-	# crossed boxes, so it reads round.
-	m.group("drum", (0, 11, -6), parent="body")
-	for part, (y0, y1, grow, material) in {"shell": (9, 12, 0, "red_wool"), "rim_top": (11.5, 12.75, 0.5, "gold_block"),
-			"rim_bottom": (8.5, 9.75, 0.5, "gold_block"), "skin": (12.75, 13, 0, "bone_block_top")}.items():
-		m.cube("drum", f"{part}_wide", (-6.5 - grow, y0, -8.5 - grow), (6.5 + grow, y1, -3.5 + grow), material)
-		m.cube("drum", f"{part}_deep", (-5.5 - grow, y0, -9.5 - grow), (5.5 + grow, y1, min(-2.5 + grow, -2.25)), material)
-	m.group("banner", (0, 14, 5.25), parent="body")
-	m.cube("banner", "pole", (-0.5, 14, 4.75), (0.5, 44, 5.75), "stripped_dark_oak_log")
-	m.cube("banner", "collar", (-1, 17, 2.25), (1, 19, 6.25), "gold_block")
-	m.cube("banner", "finial", (-1, 44, 4.25), (1, 46, 6.25), "gold_block")
-	m.cube("banner", "flag", (0.5, 31, 5), (10.5, 42, 5.5), "red_wool", decorate=snout_emblem)
+		m.group(f"stick_{side}", (4.75 * s, 13, 0), parent=f"arm_{side}", rotation=(-DRUMMING_ARMS[0], 14 * s, 0))
+		m.cube(f"stick_{side}", "stick", (4.75 * s - 0.5, 12.5, -6), (4.75 * s + 0.5, 13.5, 1), "stick")
 
-	# Positive X rotation swings an arm forward (checked in game).
+	# Positive X rotation swings an arm forward and tips a level stick up (checked in game); from the rest pose,
+	# arms at -2 and sticks at -12 put the stick tips on the skin.
 	still = (0, 0, 0)
+	up, hit = (25, 0, 0), (-2, 0, 0)
+	stick_up, stick_hit = (10, 0, 0), (-12, 0, 0)
 	m.animation("idle", 2.0, "loop", {
-		"arm_right": {"rotation": [(0, still), (0.5, (20, 0, 0)), (1.0, still), (2.0, still)]},
-		"arm_left": {"rotation": [(0, still), (1.0, still), (1.5, (20, 0, 0)), (2.0, still)]},
-		"body": {"position": [(0, still), (0.5, (0, 0.25, 0)), (1.0, still), (1.5, (0, 0.25, 0)), (2.0, still)]},
-		"banner": {"rotation": [(0, (0, 0, -4)), (1.0, (0, 0, 4)), (2.0, (0, 0, -4))]},
+		"body": {"position": [(0, still), (0.5, (0, 0.5, 0)), (1.0, still), (1.5, (0, 0.5, 0)), (2.0, still)],
+			"rotation": [(0, (0, 0, -2)), (1.0, (0, 0, 2)), (2.0, (0, 0, -2))]},
+		"head": {"rotation": [(0, still), (0.5, (4, 0, 0)), (1.0, still), (1.5, (4, 0, 0)), (2.0, still)]},
+		"arm_right": {"rotation": [(0, still), (0.35, (12, 0, 0)), (0.5, hit), (0.7, still), (2.0, still)]},
+		"stick_right": {"rotation": [(0, still), (0.35, (6, 0, 0)), (0.5, stick_hit), (0.7, still), (2.0, still)]},
+		"arm_left": {"rotation": [(0, still), (1.0, still), (1.35, (12, 0, 0)), (1.5, hit), (1.7, still), (2.0, still)]},
+		"stick_left": {"rotation": [(0, still), (1.0, still), (1.35, (6, 0, 0)), (1.5, stick_hit), (1.7, still), (2.0, still)]},
 	})
-	m.animation("beat", 0.25, "once", {
-		"arm_right": {"rotation": [(0, (20, 0, 0)), (0.1, (40, 0, 0)), (0.2, still), (0.25, (10, 0, 0))]},
-		"arm_left": {"rotation": [(0, (20, 0, 0)), (0.1, (40, 0, 0)), (0.2, still), (0.25, (10, 0, 0))]},
+	beat = {
+		"arm_right": {"rotation": [(0, still), (0.1, up), (0.2, hit), (0.25, still)]},
+		"arm_left": {"rotation": [(0, still), (0.1, up), (0.2, hit), (0.25, still)]},
+		"stick_right": {"rotation": [(0, still), (0.1, stick_up), (0.2, stick_hit), (0.25, still)]},
+		"stick_left": {"rotation": [(0, still), (0.1, stick_up), (0.2, stick_hit), (0.25, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.2, (1.06, 1.06, 1.06)), (0.25, (1, 1, 1))]},
-	})
+	}
+	m.animation("beat", 0.25, "once", beat)
+	high, stick_high = (85, 0, 0), (20, 0, 0)
 	m.animation("big_beat", 0.5, "once", {
-		"arm_right": {"rotation": [(0, still), (0.2, (110, 0, 0)), (0.3, still), (0.5, (10, 0, 0))]},
-		"arm_left": {"rotation": [(0, still), (0.2, (110, 0, 0)), (0.3, still), (0.5, (10, 0, 0))]},
+		"arm_right": {"rotation": [(0, still), (0.2, high), (0.3, hit), (0.5, still)]},
+		"arm_left": {"rotation": [(0, still), (0.2, high), (0.3, hit), (0.5, still)]},
+		"stick_right": {"rotation": [(0, still), (0.2, stick_high), (0.3, stick_hit), (0.5, still)]},
+		"stick_left": {"rotation": [(0, still), (0.2, stick_high), (0.3, stick_hit), (0.5, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.3, (1.15, 1.15, 1.15)), (0.5, (1, 1, 1))]},
 		"body": {"position": [(0, still), (0.3, (0, -1, 0)), (0.5, still)]},
-		"head": {"rotation": [(0, still), (0.3, (-15, 0, 0)), (0.5, still)]},
 	})
 	m.write()
 
 
-# The seated legs' rest rotation: forward, so the thighs lie along the saddle (checked in game).
-SEATED_LEGS = (90, 0, 0)
+def bombardier_kit(m, head, body, arm):
+	"""Goggles, a satchel of fire charges on the back of the left hip, a charge in the right hand (piglin space)."""
+	m.cube(head, "goggle_band", (-5.25, 28, -4.25), (5.25, 30, 4.25), "brown_wool")
+	m.cube(head, "lens_right", (1, 28, -4.75), (4, 30, -4.25), "light_blue_stained_glass")
+	m.cube(head, "lens_left", (-4, 28, -4.75), (-1, 30, -4.25), "light_blue_stained_glass")
+	m.cube(body, "satchel", (-7, 13, 2.25), (-3, 18, 5.25), "brown_wool")
+	m.cube(body, "satchel_charge", (-6, 18, 3), (-4, 20, 5), "magma_block")
+	m.cube(arm, "charge", (4.5, 9, -1.5), (7.5, 12, 1.5), "magma_block")
 
 
 def ghast_bombardier():
-	"""A vanilla piglin, seated: goggles, a satchel of fire charges on the back of the left hip, a charge in the right hand."""
+	"""The Bombardier on foot (after its war ghast falls): a vanilla piglin with the bombardier's kit."""
 	m = Model("ghast_bombardier")
-	# Seated, the thighs' underside (pivot 12 less half the leg and its 0.25 overlay) rests half a unit above the
-	# entity's feet, which the war ghast puts on the harness's top (see ghast_harness).
-	m.shift = (0, 0.5 - (12 - 2.25), 0)
 	import_java_entity(m, "piglin.json", (0, 0), skip={"leftItem"},
-		rename={"Body": "body", "RightArm": "arm_right", "LeftArm": "arm_left", "RightLeg": "legs", "LeftLeg": "legs"},
-		parents={"head": "body", "arm_right": "body", "arm_left": "body", "legs": "body"},
-		rotations={"legs": SEATED_LEGS})
-	m.cube("head", "goggle_band", (-5.25, 28, -4.25), (5.25, 30, 4.25), "brown_wool")
-	m.cube("head", "lens_right", (1, 28, -4.75), (4, 30, -4.25), "light_blue_stained_glass")
-	m.cube("head", "lens_left", (-4, 28, -4.75), (-1, 30, -4.25), "light_blue_stained_glass")
-	m.cube("body", "satchel", (-7, 13, 2.25), (-3, 18, 5.25), "brown_wool")
-	m.cube("body", "satchel_charge", (-6, 18, 3), (-4, 20, 5), "magma_block")
-	m.cube("arm_right", "charge", (4.5, 9, -1.5), (7.5, 12, 1.5), "magma_block")
+		rename={"Body": "body", "RightArm": "arm_right", "LeftArm": "arm_left", "RightLeg": "leg_right", "LeftLeg": "leg_left"},
+		parents={"head": "body", "arm_right": "body", "arm_left": "body"})
+	bombardier_kit(m, "head", "body", "arm_right")
 
 	still = (0, 0, 0)
 	m.animation("idle", 1.6, "loop", {
 		"head": {"rotation": [(0, (0, -10, 0)), (0.8, (0, 10, 0)), (1.6, (0, -10, 0))]},
 		"body": {"position": [(0, still), (0.8, (0, 0.3, 0)), (1.6, still)]},
 	})
-	m.animation("drop_bomb", 0.4, "once", {
-		"arm_right": {"rotation": [(0, still), (0.15, (150, 0, 0)), (0.3, (20, 0, 0)), (0.4, still)]},
-	})
 	m.write()
 
 
-# Vanilla draws the ghast's 16-unit body at 4.5x (GhastModel's mesh scaling), from 7.128 units below its feet to
-# 64.872 above (centre 28.872), +-36 across. The happy ghast's harness is the same 16-unit box, at 4x.
-GHAST_SCALE = 4.5
-GHAST_BODY_CENTRE = 28.872
+# The ghast's 16-unit body at 4x fills its 4-block box (vanilla draws it at 4.5x, overhanging the box).
+GHAST_SCALE = 4
+# The deck hangs under the longest tentacle (13 px, down to 48 units under the body). Its underside, 56 units
+# (3.5 blocks) under the ghast's feet, is WarGhast.DECK_DROP.
+DECK_TOP, DECK_BOTTOM = -52, -56
+# The crew stand in a row at the deck's front, in the gaps between the front tentacles (x -29..-21, -9..-1, 11..19),
+# just ahead of them (z -24): crossbowmen on the left and right, the Bombardier in the middle. WarGhast.CREW matches.
+CREW_Z = -28
+CREW = {"crossbow_left": -15, "bomber": 5, "crossbow_right": 25.5}
+# The crossbowmen hold theirs aimed forward and down, at whatever is under the ghast.
+CROSSBOW_HOLD = (60, 0, 0)
+TNT = {"side": "tnt_side", "up": "tnt_top", "down": "tnt_bottom"}
+CHAIN_SHEET = (96, 64)
 
 
-def ghast_harness():
-	"""The happy ghast's harness and goggles, in red, scaled up to a vanilla ghast's body (ghast-entity space)."""
-	m = Model("ghast_harness")
-	# The template's harness box is y 0.5..16.5 (centre 8.5); put its centre on the ghast's.
-	m.shift = (0, GHAST_BODY_CENTRE - 8.5 * GHAST_SCALE, 0)
-	# Vanilla draws the harness flush with the body and the goggles 0.15 proud of it; the template pads both by 0.5.
-	# Drawn apart from the ghast, the harness keeps half a unit off its skin (no z-fighting, still hugging) and the
-	# goggles stay proud of the harness by the scaled 0.15. Its top, the seat, is 65.37 up.
-	import_java_entity(m, "happy_ghast_harness.json", (0, 0), scale=GHAST_SCALE,
-		texture="entity/equipment/happy_ghast_body/red_harness.png", rename={"body": "harness"},
+def chain(m, group, name, x, z, top, bottom, size=2):
+	"""A vanilla chain hanging from top to bottom at size times vanilla's: two crossed planes of the chain texture
+	(as the chain block draws it), one 16-pixel tile every 16 * size units."""
+	cx, cy = CHAIN_SHEET
+	half, tile = 1.5 * size, 16 * size
+	y, i = top, 0
+	while y > bottom:
+		low = max(bottom, y - tile)
+		v = 16 * (y - low) / tile
+		m.plane(group, f"{name}_{i}_a", (x - half, low, z), (x + half, y, z),
+			{"north": (cx, cy, cx + 3, cy + v), "south": (cx, cy, cx + 3, cy + v)})
+		m.plane(group, f"{name}_{i}_b", (x, low, z - half), (x, y, z + half),
+			{"east": (cx + 3, cy, cx + 6, cy + v), "west": (cx + 3, cy, cx + 6, cy + v)})
+		y, i = low, i + 1
+
+
+def war_ghast():
+	"""A vanilla ghast in the happy ghast's red harness, a wooden deck slung under it on chains with a crew of three
+	piglins (the Bombardier and two crossbowmen), and explosives: TNT on the deck, TNT and a magma bomb dangling
+	from the harness. All one model, so nothing drifts apart as it turns."""
+	m = Model("war_ghast", size=256)
+	# every sheet goes in before any prop face is painted, so none lands on a prop's
+	m.sheet(texture_from_jar("entity/piglin/piglin.png")[2], (0, 64))
+	import_java_entity(m, "ghast.json", (0, 0), scale=GHAST_SCALE,
+		rename={f"tentacles_{i}": f"tentacle_{i}" for i in range(9)})
+	# The harness's box sits half a unit up in its template (y 0.5..16.5): bring it down onto the body. Vanilla draws
+	# it flush with the body; it keeps half a unit off the skin here (no z-fighting, still hugging). The goggles would
+	# hide the face, so they're left off.
+	m.shift = (0, -0.5 * GHAST_SCALE, 0)
+	import_java_entity(m, "happy_ghast_harness.json", (128, 0), scale=GHAST_SCALE, skip={"goggles"},
+		texture="entity/equipment/happy_ghast_body/red_harness.png",
 		inflate=lambda grow: round((grow - 0.5) * GHAST_SCALE + 0.5, 4))
+	m.shift = (0, 0, 0)
+	# The shooting face (red eyes, open mouth): a plane just inside the body's front, which the shoot animation brings
+	# out in front of it.
+	_, _, shooting = texture_from_jar("entity/ghast/ghast_shooting.png")
+	m.sheet([row[32:64] for row in shooting[32:64]], (64, 64))
+	m.group("face", (0, 32, -31.5), parent="body")
+	m.plane("face", "shooting_face", (-32, 0, -31.5), (32, 64, -31.5), {"north": (64, 64, 96, 96)})
+	_, _, links = texture_from_jar("block/iron_chain.png")
+	m.sheet(links, CHAIN_SHEET)
+
+	# The deck: crimson planks in 16-unit boards with a low rim, hung from four chains that run up the body's sides
+	# under the harness; a TNT cargo on its back corners, clear of the tentacles.
+	m.group("deck", (0, 0, 0), parent="body")
+	for i in range(4):
+		for j in range(4):
+			x, z = -32 + 16 * i, -32 + 16 * j
+			m.cube("deck", f"board_{i}_{j}", (x, DECK_BOTTOM, z), (x + 16, DECK_TOP, z + 16), "crimson_planks")
+	rim = DECK_TOP + 3
+	m.cube("deck", "rim_front", (-32, DECK_TOP, -32), (32, rim, -30.5), "stripped_crimson_stem")
+	m.cube("deck", "rim_back", (-32, DECK_TOP, 30.5), (32, rim, 32), "stripped_crimson_stem")
+	m.cube("deck", "rim_right", (30.5, DECK_TOP, -30.5), (32, rim, 30.5), "stripped_crimson_stem")
+	m.cube("deck", "rim_left", (-32, DECK_TOP, -30.5), (-30.5, rim, 30.5), "stripped_crimson_stem")
+	for sx in (1, -1):
+		for sz in (1, -1):
+			tag = f"{'right' if sx > 0 else 'left'}_{'back' if sz > 0 else 'front'}"
+			chain(m, "deck", f"chain_{tag}", 33 * sx, 20 * sz, 22, rim)
+			m.cube("deck", f"bracket_{tag}", (33 * sx - 2.5, DECK_TOP, 20 * sz - 2.5), (33 * sx + 2.5, rim + 1, 20 * sz + 2.5), "gold_block")
+	m.cube("deck", "tnt_left", (-19, DECK_TOP, 22.5), (-11, DECK_TOP + 8, 30.5), TNT)
+	m.cube("deck", "tnt_right", (21, DECK_TOP, 22.5), (29, DECK_TOP + 8, 30.5), TNT)
+
+	# Explosives on chains from the harness, one each side between the deck's chains, swinging on their own.
+	for side, sx, material in (("left", -1, TNT), ("right", 1, "magma_block")):
+		m.group(f"bomb_{side}", (34 * sx, 22, 0), parent="body")
+		chain(m, f"bomb_{side}", "chain", 34 * sx, 0, 22, -6)
+		m.cube(f"bomb_{side}", "bomb", (34 * sx - 4, -14, -4), (34 * sx + 4, -6, 4), material)
+
+	# The crew: vanilla piglins standing on the deck, a few bones each (body, arms that move, the ears' tilt).
+	crew_bones = []
+	for name, x in CREW.items():
+		m.shift = (x, DECK_TOP, CREW_Z)
+		bomber = name == "bomber"
+		arm = f"{name}_arm" if bomber else f"{name}_arms"
+		import_java_entity(m, "piglin.json", (0, 64), skip={"leftItem"},
+			rename={"Body": name, "head": name, "RightLeg": name, "LeftLeg": name, "RightArm": arm,
+				"LeftArm": name if bomber else arm, "leftear": f"{name}_ear_left", "rightear": f"{name}_ear_right"},
+			parents={name: "deck", arm: name}, rotations={} if bomber else {arm: CROSSBOW_HOLD})
+		if bomber:
+			bombardier_kit(m, name, name, arm)
+		else:
+			# a crossbow across both fists: the stock runs on ahead of the hands (down the arms), the bow at its end
+			m.cube(arm, "crossbow_grip", (-6, 11, -1), (6, 12.5, 1), "spruce_planks")
+			m.cube(arm, "crossbow_stock", (-1, 4, -1), (1, 12.5, 1), "spruce_planks")
+			m.cube(arm, "crossbow_bow", (-6, 4, -1.5), (6, 5.5, 0), "dark_oak_log")
+			m.cube(arm, "crossbow_bolt", (-0.5, 2.5, -0.5), (0.5, 4, 0.5), "iron_block")
+		crew_bones += [name, arm, f"{name}_ear_left", f"{name}_ear_right"]
+	m.shift = (0, 0, 0)
 
 	still = (0, 0, 0)
-	m.animation("idle", 2.0, "loop", {
-		"harness": {"position": [(0, still), (2.0, still)]},
+	idle = {
+		"body": {"position": [(0, still), (1.5, (0, 1.5, 0)), (3.0, still)]},
+		"deck": {"rotation": [(0, (1, 0, -1.5)), (1.5, (-1, 0, 1.5)), (3.0, (1, 0, -1.5))]},
+		"bomb_left": {"rotation": wave(3.0, (6, 0, 2))},
+		"bomb_right": {"rotation": wave(3.0, (6, 0, -2), 0.5)},
+		"bomber": {"position": [(0, still), (0.75, (0, 0.3, 0)), (1.5, still), (2.25, (0, 0.3, 0)), (3.0, still)]},
+		"crossbow_left_arms": {"rotation": wave(3.0, (3, 6, 0), 0.25)},
+		"crossbow_right_arms": {"rotation": wave(3.0, (3, -6, 0), 0.6)},
+	}
+	# the tentacles sway out of step with each other
+	for i in range(9):
+		idle[f"tentacle_{i}"] = {"rotation": [(t, (x, 0, z)) for (t, (x, _, _)), (_, (_, _, z))
+			in zip(wave(3.0, (9, 0, 0), i * 0.37), wave(3.0, (0, 0, 6), i * 0.21 + 0.25))]}
+	m.animation("idle", 3.0, "loop", idle)
+	# Positive position z moves a bone back, so the face comes out with negative z.
+	out = (0, 0, -0.9)
+	m.animation("shoot", 1.0, "once", {"face": {"position": [(0, out), (0.95, out), (1.0, still)]}})
+	m.animation("drop_bomb", 0.4, "once", {
+		"bomber_arm": {"rotation": [(0, still), (0.15, (150, 0, 0)), (0.3, (20, 0, 0)), (0.4, still)]},
 	})
+	# Once the ghast dies its crew jump off as real mobs: this shrinks their figures away for the death animation.
+	gone = (0.01, 0.01, 0.01)
+	m.animation("crew_gone", 0.1, "loop", {bone: {"scale": [(0, gone), (0.1, gone)]} for bone in crew_bones})
 	m.write()
 
 
-MODELS = [war_drummer, ghast_bombardier, ghast_harness]
+MODELS = [war_drummer, ghast_bombardier, war_ghast]
 
 if __name__ == "__main__":
 	for build in MODELS:

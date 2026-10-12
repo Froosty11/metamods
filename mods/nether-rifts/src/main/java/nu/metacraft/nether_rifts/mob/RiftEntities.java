@@ -14,16 +14,16 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.monster.Ghast;
 import nu.metacraft.nether_rifts.NetherRifts;
 
-/** The rift's own entities: server-side (Polymer), shown to vanilla clients as display models or vanilla mobs. */
+/** The rift's own entities: server-side (Polymer), shown to vanilla clients as display models or vanilla items. */
 public final class RiftEntities {
 
 	public static final EntityType<WarDrummer> WAR_DRUMMER = living("war_drummer",
 			EntityType.Builder.of(WarDrummer::new, MobCategory.MONSTER).sized(0.6f, 2.3f).clientTrackingRange(10),
 			WarDrummer.createAttributes());
 
-	/** Eye height and rider seat as the vanilla ghast's, which is what clients draw (and seat the rider on). */
+	/** A vanilla ghast's box and eye height; its deck hangs below the box (see {@link WarGhast#stackBox}). */
 	public static final EntityType<WarGhast> WAR_GHAST = living("war_ghast",
-			EntityType.Builder.of(WarGhast::new, MobCategory.MONSTER).sized(4.0f, 4.0f).eyeHeight(2.6f).passengerAttachments(4.0625f)
+			EntityType.Builder.of(WarGhast::new, MobCategory.MONSTER).sized(4.0f, 4.0f).eyeHeight(2.6f)
 					.fireImmune().clientTrackingRange(10),
 			Ghast.createAttributes());
 

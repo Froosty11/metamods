@@ -34,6 +34,7 @@ import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.RiftMessages;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
@@ -206,12 +207,12 @@ public final class RiftRaid {
 	}
 
 	/**
-	 * Where a mob and whatever rides it fit, clear of blocks and of the rift itself: in front of the rift (a few
-	 * blocks out on either side, ghasts higher and further), else the nearest spot within {@link #NEARBY_RANGE}
-	 * blocks of its centre, else the first spot straight above it, else the surface over it.
+	 * Where a mob and whatever rides it (or, for a war ghast, hangs under it) fit, clear of blocks and of the rift
+	 * itself: in front of the rift (a few blocks out on either side, ghasts higher and further), else the nearest spot
+	 * within {@link #NEARBY_RANGE} blocks of its centre, else the first spot straight above it, else the surface over it.
 	 */
 	private static BlockPos clearSpot(ServerLevel level, Rift rift, Entity root, Direction side) {
-		var stack = root.getBoundingBox();
+		var stack = root instanceof WarGhast ghast ? ghast.stackBox() : root.getBoundingBox();
 		for (var rider : root.getIndirectPassengers()) {
 			stack = stack.minmax(rider.getBoundingBox());
 		}
@@ -221,8 +222,10 @@ public final class RiftRaid {
 		var centre = rift.shape().centreBlock();
 		for (var dir : new Direction[] {side, side.getOpposite()}) {
 			if (root instanceof Ghast) {
+				// as high again as anything hanging under it (a war ghast's deck)
+				int below = (int) Math.ceil(-Math.min(0, shape.minY));
 				for (int out = 4; out <= 8; out += 2) {
-					var pos = centre.relative(dir, out).above(2);
+					var pos = centre.relative(dir, out).above(2 + below);
 					if (fits(level, rift, shape, pos)) {
 						return pos;
 					}
@@ -340,7 +343,7 @@ public final class RiftRaid {
 				level.sendParticles(ParticleTypes.PORTAL, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.4, 0.8, 0.4, 0.5);
 				mob.discard();
 			}
-			// bombs still falling go with the Bombardiers that dropped them, and so do their ground warnings and patches
+			// bombs still falling go with the war ghasts that dropped them, and so do their ground warnings and patches
 			for (var bomb : level.getEntities(RiftEntities.MAGMA_BOMB, reach(rift), b -> rift.id().equals(b.getAttached(RiftMobs.RIFT)))) {
 				bomb.discard();
 			}
