@@ -16,7 +16,7 @@ public class Back implements ClickHandler {
 	@Override
 	public DialogGUI onClick(ServerPlayer player, ClickHandlerGUI gui) {
 		return gui.parent().map(
-			parent -> parent.withUpdatedGUI(gui, player.registryAccess())
+			parent -> parent.withUpdatedGUI(gui, player)
 		).orElse(null);
 	}
 

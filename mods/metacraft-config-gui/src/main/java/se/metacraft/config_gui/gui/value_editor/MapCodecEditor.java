@@ -6,22 +6,23 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.dialog.Dialog;
+import net.minecraft.server.dialog.body.DialogBody;
+import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
-import org.pcollections.TreePMap;
 import se.metacraft.config.parser.metadata.Comments;
 import se.metacraft.config_gui.ClickHandlerGUI;
 import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.ConfigGUI;
 import se.metacraft.config_gui.gui.value_editor.click.handlers.SubMenu;
 import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public record MapCodecEditor<T>(
 	PMap<String, Object> object,
@@ -49,7 +50,7 @@ public record MapCodecEditor<T>(
 
 	@Override
 	public Holder<Dialog> createDialog(ServerPlayer player) {
-		return CodecDialog.createDialog(object, types, tooltips, player.registryAccess());
+		return CodecDialog.createDialog(object, types, tooltips, player.registryAccess(), EditorGUIPreferences.get(player));
 	}
 
 	public MapCodecEditor<T> withObject(PMap<String, Object> object) {
@@ -58,20 +59,33 @@ public record MapCodecEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
+	public MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
 		MapCodecEditor<T> toReturn = this;
+		List<String> errors = new ArrayList<>();
 		for (var key : types.keySet()) {
 			if (tag.contains(key)) {
 				var type = types.get(key);
-				var result = type.parse(player.registryAccess(), tag.get(key)).resultOrPartial(
-					err -> player.sendSystemMessage(Component.literal(err))
-				);
+				var result = type.parse(player.registryAccess(), tag.get(key)).ifError(
+					err -> errors.add(err.message())
+				).resultOrPartial();
 				if (result.isPresent()) {
 					toReturn = toReturn.withObject(toReturn.object.plus(key, result.get()));
 				}
 			}
 		}
-		return toReturn;
+		if (!errors.isEmpty()) {
+			return new MessageUpdate(
+				new PopupScreen(
+					PopupScreen.FAILED,
+					errors.stream().<DialogBody>map(
+						err -> new PlainMessage(Component.literal(err).withColor(TextColor.RED), PlainMessage.DEFAULT_WIDTH)
+					).toList(),
+					new SimpleSubMenuParentInfo(toReturn)
+				),
+				false
+			);
+		}
+		return MessageUpdate.simple(toReturn);
 	}
 
 	@Override
@@ -93,12 +107,26 @@ public record MapCodecEditor<T>(
 		Map<String, Object> map = new HashMap<>();
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		object.forEach((key, value) -> {
-			//noinspection unchecked
-			((Codec<Object>) types.get(key).element().codec()).encodeStart(
-				ctx, value
-			).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
-				map.put(key, result);
-			});
+			var type = types.get(key);
+			if (CodecDialog.isMapInlined(type)) {
+				//noinspection unchecked
+				((Codec<Object>) type.fieldElement().codec()).encodeStart(
+					ctx, value
+				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
+					if (result instanceof Map<?,?> m) {
+						m.forEach((k, v) -> {
+							map.put((String) k, v);
+						});
+					}
+				});
+			} else {
+				//noinspection unchecked
+				((Codec<Object>) type.element().codec()).encodeStart(
+					ctx, value
+				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
+					map.put(key, result);
+				});
+			}
 		});
 		return codec.parse(ctx, map).resultOrPartial();
 	}

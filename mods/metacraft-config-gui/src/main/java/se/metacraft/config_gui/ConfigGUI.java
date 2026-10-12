@@ -11,6 +11,7 @@ import se.metacraft.config_gui.gui.value_editor.RawInputScreen;
 import se.metacraft.config_gui.gui.value_editor.click.ClickHandlerRegistry;
 import se.metacraft.config_gui.gui.value_editor.click.handlers.SubMenu;
 import se.metacraft.config_gui.message.DialogGUIMessages;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import static net.minecraft.commands.Commands.literal;
 
@@ -32,6 +33,7 @@ public class ConfigGUI implements ModInitializer {
 				);
 			}
 		});
+		EditorGUIPreferences.init();
 		DialogGUIMessages.init();
 		ClickHandlerRegistry.init();
 		SubMenu.init();

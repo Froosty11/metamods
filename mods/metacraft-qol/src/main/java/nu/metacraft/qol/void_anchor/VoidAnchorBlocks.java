@@ -1,6 +1,7 @@
 package nu.metacraft.qol.void_anchor;
 
 import nu.metacraft.qol.Qol;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -9,14 +10,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import nu.metacraft.core.block.PolymerBlockSounds;
-import nu.metacraft.lib.util.RegistrationPair;
 import nu.metacraft.qol.void_anchor.block.VoidAnchorBlock;
 
 import java.util.function.Function;
 
 public class VoidAnchorBlocks {
 
-	public static final RegistrationPair<Block> VOID_ANCHOR = register(
+	public static final Holder.Reference<Block> VOID_ANCHOR = register(
 			"void_anchor", VoidAnchorBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.RESPAWN_ANCHOR)
 	);
 
@@ -24,12 +24,12 @@ public class VoidAnchorBlocks {
 
 	}
 
-	private static RegistrationPair<Block> register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
+	private static Holder.Reference<Block> register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
 		var key = ResourceKey.create(Registries.BLOCK, Qol.getID(id));
-		Block block = Registry.register(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key)));
+		var block = Registry.registerForHolder(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key)));
 		// shown as a note block, which would make it sound like wood
-		PolymerBlockSounds.patch(block);
-		return new RegistrationPair<>(key, block);
+		PolymerBlockSounds.patch(block.value());
+		return block;
 	}
 
 }

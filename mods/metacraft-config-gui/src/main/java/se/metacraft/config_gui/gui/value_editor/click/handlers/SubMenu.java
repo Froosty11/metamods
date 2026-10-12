@@ -26,6 +26,7 @@ import se.metacraft.config_gui.gui.value_editor.click.ClickHandler;
 import se.metacraft.config_gui.gui.value_editor.click.ClickHandlerRegistry;
 import se.metacraft.config_gui.gui.value_editor.click.ClickHandlerType;
 import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +50,10 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 		HolderLookup.Provider provider, ClickHandlerGUI parentGUI, SubMenuKey key
 	) {
 		if (type.element().hasContainerType(ContainerType.EITHER)) {
-			return AlternativesEditor.create(nonNullObject, type, provider, Optional.of(new ValueEditor.ParentInfo(parentGUI, key)));
+			return AlternativesEditor.create(
+				nonNullObject, type, provider,
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
+			);
 		}
 		if (type.element().hasContainerType(ContainerType.DISPATCHED_EITHER)) {
 			var data = type.element().getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
@@ -72,7 +76,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				}),
 				nonNullObject,
 				type.element().codec(),
-				Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			);
 		}
 		if (type.element().metadata(MetadataKey.ENTRIES).isPresent()) {
@@ -86,13 +90,13 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				),
 				type.element().metadata(MetadataKey.ENTRIES).get().strings().size() > CodecDialog.DROPDOWN_USE_SEARCH_BAR_THRESHOLD ?
 					Optional.of("") : Optional.empty(),
-				Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			);
 		}
 		if (type.element().hasContainerType(ContainerType.RECORD)) {
 			return MapCodecEditor.create(
 				(T) nonNullObject, (Codec<T>) type.element().codec(),
-				provider, Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+				provider, Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			);
 		}
 		if (type.element().hasContainerType(ContainerType.LIST)) {
@@ -100,7 +104,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				(T) nonNullObject,
 				(Codec<T>) type.element().codec(),
 				provider,
-				Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			).orElse(parentGUI);
 		}
 		if (type.element().hasContainerType(ContainerType.MAP) || type.element().hasContainerType(ContainerType.DISPATCHED_MAP)) {
@@ -108,7 +112,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				(T) nonNullObject,
 				(Codec<T>) type.element().codec(),
 				provider,
-				Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			).orElse(parentGUI);
 		}
 		if (type.optional()) {
@@ -117,7 +121,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				return OptionalValueEditor.create(
 					nonNullObject, type,
 					object != null,
-					Optional.of(new ValueEditor.ParentInfo(parentGUI, key))
+					Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 				);
 			}
 		}
@@ -131,20 +135,20 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 			return new PopupScreen(
 				Component.literal("Unit"),
 				List.of(new PlainMessage(Component.literal("This is a unit codec, it does not have any settings"), 300)),
-				new ValueEditor.ParentInfo(parentGUI, key)
+				new ValueEditor.SubMenuParentInfo(parentGUI, key)
 			);
 		}
 		if (type.element().getUnderlying(c -> c.codec() == Codec.PASSTHROUGH).isPresent()) {
 			return new RawInputScreen.Editor<>(
 				(Codec<T>) type.element().codec(),
 				(Optional<T>) Optional.ofNullable(object),
-				Optional.of(new ValueEditor.ParentInfo(parentGUI, key)),
+				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key)),
 				Optional.empty()
 			);
 		}
 		return new SingleValueEditor<>(
 			nonNullObject, type, type.element().codec(),
-			Optional.of(new ValueEditor.ParentInfo(parentGUI, key)), Optional.empty()
+			Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key)), Optional.empty()
 		);
 	}
 
@@ -164,7 +168,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				err -> new RawInputScreen.ScreenGenerator(
 					t.element().codec(),
 					value -> openInternal(null, value, t, provider, parentGUI, key),
-					Optional.of(new ValueEditor.ParentInfo(parentGUI, key)),
+					Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key)),
 					Optional.of(err.message())
 				)
 			);
@@ -173,6 +177,21 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 
 	@Override
 	public DialogGUI onClick(ServerPlayer player, ClickHandlerGUI gui) {
+		if (key == EditorGUIPreferences.PreferencePointer.INSTANCE) {
+			return MapEditor.create(
+				EditorGUIPreferences.get(player), EditorGUIPreferences.CODEC, player.registryAccess(),
+				Optional.of((childGUI, p) -> {
+					if (childGUI instanceof ValueEditor<?> editor) {
+						editor.getValue(p.registryAccess()).ifPresent(v -> {
+							if (v instanceof EditorGUIPreferences prefs) {
+								EditorGUIPreferences.update(p, prev -> prefs);
+							}
+						});
+					}
+					return gui;
+				})
+			).orElse(gui);
+		}
 		if (gui instanceof WithSubMenus c) {
 			var object = c.getObject(key, player);
 			var type = c.getType(key, player);
@@ -240,6 +259,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 		register("map_target", MapEditor.MapTarget.CODEC);
 		register("new_map_entry", MapEditor.New.CODEC);
 		register("optional", OptionalValueEditor.OptionalKey.CODEC);
+		register("preferences", EditorGUIPreferences.PreferencePointer.CODEC);
 	}
 
 	private static void register(String id, MapCodec<? extends SubMenuKey> codec) {

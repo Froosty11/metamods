@@ -12,6 +12,7 @@ import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.level.ServerPlayer;
 import se.metacraft.config_gui.CodecDialog;
+import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,8 @@ public record SingleValueEditor<T>(
 		List<Input> inputs = new ArrayList<>();
 		List<DialogBody> body = new ArrayList<>();
 		CodecDialog.addInput(
-			VALUE, Component.translatable("selectWorld.edit"), type, value, player.registryAccess(), body, buttons, inputs, tooltip
+			VALUE, Component.translatable("selectWorld.edit"), type, value, player.registryAccess(), body, buttons, inputs, tooltip,
+			EditorGUIPreferences.get(player)
 		);
 		return CodecDialog.template(
 			body, inputs, buttons, player.registryAccess(), 1
@@ -37,13 +39,12 @@ public record SingleValueEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
-		var result = type.parse(player.registryAccess(), tag.get(VALUE)).resultOrPartial(
-			err -> player.sendSystemMessage(Component.literal(err))
+	public MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
+		return MessageUpdate.dataResult(
+			type.parse(player.registryAccess(), tag.get(VALUE)),
+			result -> new SingleValueEditor<>(result, type, codec, parent, tooltip),
+			this
 		);
-		return result.map(
-			o -> new SingleValueEditor<>(o, type, codec, parent, tooltip)
-		).orElse(this);
 	}
 
 	@Override

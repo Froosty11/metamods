@@ -4,7 +4,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.server.dialog.CommonButtonData;
@@ -40,11 +39,6 @@ public record ListEditor<T>(
 				codec, parent
 			)
 		);
-	}
-
-	@Override
-	public ValueEditor<T> updateFromMessage(ServerPlayer player, CompoundTag tag) {
-		return this;
 	}
 
 	@Override

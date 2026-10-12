@@ -25,7 +25,7 @@ public record Confirmation(boolean confirmed) implements ClickHandler {
 			if (confirmed) {
 				return confirmScreen.onConfirm(player);
 			} else {
-				return confirmScreen.parent().map(ClickHandlerGUI.ParentInfo::gui).orElse(null);
+				return confirmScreen.parent().map(e -> e.withUpdatedGUI(gui, player)).orElse(null);
 			}
 		}
 		return gui;
