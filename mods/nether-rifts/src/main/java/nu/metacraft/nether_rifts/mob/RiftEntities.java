@@ -11,6 +11,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.monster.Ghast;
 import nu.metacraft.nether_rifts.NetherRifts;
 
 /** The rift's own entities: server-side (Polymer), shown to vanilla clients as display models or vanilla mobs. */
@@ -19,6 +20,16 @@ public final class RiftEntities {
 	public static final EntityType<WarDrummer> WAR_DRUMMER = living("war_drummer",
 			EntityType.Builder.of(WarDrummer::new, MobCategory.MONSTER).sized(0.6f, 2.3f).clientTrackingRange(10),
 			WarDrummer.createAttributes());
+
+	/** Eye height and rider seat as the vanilla ghast's, which is what clients draw (and seat the rider on). */
+	public static final EntityType<WarGhast> WAR_GHAST = living("war_ghast",
+			EntityType.Builder.of(WarGhast::new, MobCategory.MONSTER).sized(4.0f, 4.0f).eyeHeight(2.6f).passengerAttachments(4.0625f)
+					.fireImmune().clientTrackingRange(10),
+			Ghast.createAttributes());
+
+	public static final EntityType<GhastBombardier> GHAST_BOMBARDIER = living("ghast_bombardier",
+			EntityType.Builder.of(GhastBombardier::new, MobCategory.MONSTER).sized(0.6f, 1.4f).clientTrackingRange(10),
+			GhastBombardier.createAttributes());
 
 	public static final EntityType<MagmaBomb> MAGMA_BOMB = register("magma_bomb",
 			EntityType.Builder.<MagmaBomb>of(MagmaBomb::new, MobCategory.MISC).sized(0.25f, 0.25f).clientTrackingRange(4).updateInterval(10));

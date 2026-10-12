@@ -16,7 +16,8 @@ import java.util.Properties;
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
  * each stage, an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
- * void-anchor rift in the same run (the shared item shader must draw both).
+ * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer and a
+ * war ghast carrying a Ghast Bombardier.
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
@@ -120,6 +121,20 @@ public final class RiftClientTests implements FabricClientGameTest {
 				if (gold < 300) throw new AssertionError("the War Drummer's gold helm and drum rims aren't on screen: " + gold);
 				if (drumMoved < 200) throw new AssertionError("the War Drummer doesn't animate: " + drumMoved);
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
+
+				// a war ghast in its harness, a Ghast Bombardier in the saddle, 12 blocks off and both facing the camera
+				server.runCommand("summon nether_rifts:war_ghast -40.5 -52 0.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b,Passengers:[{id:\"nether_rifts:ghast_bombardier\",Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}]}");
+				server.runCommand("tp Tester -28.5 -50 0.5 90 5");
+				ctx.waitTicks(25);
+				var ghastShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast").withSize(1920, 1080)));
+				int strap = countAll(ghastShot, (r, g, b) -> r > 70 && r < 130 && g > 45 && g < 90 && b > 20 && b < 60);
+				// the lenses' sky blue as lit in game (about 90, 155, 185); the noon sky itself is brighter (b = 255)
+				int lens = countAll(ghastShot, (r, g, b) -> r < 130 && g > r + 40 && b > g + 10 && b < 225);
+				System.out.println("[nether-rifts-clienttest] war ghast strap=" + strap + " lens=" + lens);
+				if (strap < 300) throw new AssertionError("the harness isn't drawn on the war ghast: " + strap);
+				if (lens < 20) throw new AssertionError("the Bombardier's goggles aren't on screen: " + lens);
+				server.runCommand("kill @e[type=nether_rifts:war_ghast]");
+				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
 				server.runCommand("difficulty peaceful");
 				server.runCommand("time set midnight");
 
@@ -165,6 +180,18 @@ public final class RiftClientTests implements FabricClientGameTest {
 		int cx = img.getWidth() / 2, cy = img.getHeight() / 2;
 		for (int y = cy - 150; y < cy + 150; y++) {
 			for (int x = cx - 150; x < cx + 150; x++) {
+				int p = img.getRGB(x, y);
+				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
+			}
+		}
+		return n;
+	}
+
+	/** Pixels anywhere on screen that match. */
+	private static int countAll(BufferedImage img, Rgb rgb) {
+		int n = 0;
+		for (int y = 0; y < img.getHeight(); y++) {
+			for (int x = 0; x < img.getWidth(); x++) {
 				int p = img.getRGB(x, y);
 				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
 			}

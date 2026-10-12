@@ -17,9 +17,9 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -35,6 +35,7 @@ import nu.metacraft.nether_rifts.RiftMessages;
 import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
+import nu.metacraft.nether_rifts.rift.Tier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -121,8 +122,9 @@ public final class RiftRaid {
 		var counts = WaveTable.counts(rift.tier(), wave, players, level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
 		int spawned = 0;
 		for (var entry : counts.entrySet()) {
+			var spawnSlot = entry.getKey() == Slot.HEAVY && rift.tier() == Tier.LARGE && wave >= 5 ? Slot.BOMBARDIER : entry.getKey();
 			for (int i = 0; i < entry.getValue(); i++) {
-				spawned += spawnOne(level, rift, entry.getKey()).size();
+				spawned += spawnOne(level, rift, spawnSlot).size();
 			}
 		}
 		rift.setWave(wave, spawned);
@@ -190,7 +192,7 @@ public final class RiftRaid {
 		var random = level.getRandom();
 		var centre = rift.shape().centreBlock();
 		for (var dir : new Direction[] {side, side.getOpposite()}) {
-			if (root.getType() == EntityTypes.GHAST) {
+			if (root instanceof Ghast) {
 				for (int out = 4; out <= 8; out += 2) {
 					var pos = centre.relative(dir, out).above(2);
 					if (fits(level, rift, shape, pos)) {

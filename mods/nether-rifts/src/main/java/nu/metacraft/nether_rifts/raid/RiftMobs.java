@@ -20,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.mixin.MobAccessor;
+import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import org.jetbrains.annotations.Nullable;
@@ -97,11 +98,14 @@ public final class RiftMobs {
 		}
 	}
 
-	/** The drummer, piglins and brutes drop rift loot by role; ghasts, hoglins and striders keep their own. */
+	/** The drummer, the Bombardier, piglins and brutes drop rift loot by role; ghasts (war ghasts too), hoglins and striders keep their own. */
 	static Optional<ResourceKey<LootTable>> lootTable(Mob mob, Slot slot) {
 		String role;
 		if (mob instanceof WarDrummer) {
 			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/leader")));
+		}
+		if (mob instanceof GhastBombardier) {
+			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/trooper")));
 		}
 		if (mob instanceof PiglinBrute) {
 			role = slot == Slot.CAPTAIN ? "captain" : "elite";

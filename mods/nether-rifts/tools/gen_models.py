@@ -261,10 +261,12 @@ def ghast_harness():
 	for side, x0, x1 in (("east", half, half + 6), ("west", -half - 6, -half)):
 		m.cube("harness", f"crate_{side}", (x0, 24, -6), (x1, 34, 6), "wood")
 		m.cube("harness", f"crate_charges_{side}", (x0 + 1, 34, -4), (x1 - 1, 37, 4), "charge")
+	# A ghast seats its rider's feet at 4.0625 blocks (65 units, the body's top): the seat sinks into the body and
+	# shows half a unit above it, so the Bombardier sits on it rather than in it (checked against a client screenshot).
 	m.group("saddle", (0, 66, 0))
-	m.cube("saddle", "seat", (-10, top + 1, -8), (10, top + 3, 10), "saddle")
-	m.cube("saddle", "back", (-10, top + 3, 8), (10, top + 7, 10), "saddle")
-	m.cube("saddle", "trim", (-10.5, top + 1, -8.5), (10.5, top + 1.5, 10.5), "gold")
+	m.cube("saddle", "seat", (-10, top - 1.5, -8), (10, top + 0.5, 10), "saddle")
+	m.cube("saddle", "back", (-10, top + 0.5, 8), (10, top + 4.5, 10), "saddle")
+	m.cube("saddle", "trim", (-10.5, top - 1, -8.5), (10.5, top + 0.25, 10.5), "gold")
 
 	m.animation("idle", 2.0, "loop", {
 		"harness": {"position": [(0, (0, 0, 0)), (1.0, (0, 0.4, 0)), (2.0, (0, 0, 0))]},

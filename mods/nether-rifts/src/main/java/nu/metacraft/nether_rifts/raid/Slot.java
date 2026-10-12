@@ -18,7 +18,9 @@ public enum Slot implements StringRepresentable {
 	/** Vanilla's per-wave raid leader: one from wave 2. */
 	LEADER("leader"),
 	/** The Rift Captain: the last wave of a large raid. */
-	CAPTAIN("captain");
+	CAPTAIN("captain"),
+	/** Replaces HEAVY in a large raid's waves 5 and later: a war ghast with a Ghast Bombardier. */
+	BOMBARDIER("bombardier");
 
 	public static final Codec<Slot> CODEC = StringRepresentable.fromEnum(Slot::values);
 
