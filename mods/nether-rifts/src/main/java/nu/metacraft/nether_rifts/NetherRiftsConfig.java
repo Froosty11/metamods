@@ -1,6 +1,7 @@
 package nu.metacraft.nether_rifts;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
@@ -29,10 +30,17 @@ public record NetherRiftsConfig(
 
 	public record Tiers(int smallMax, int mediumMax) {
 		public static final Tiers DEFAULT = new Tiers(20, 60);
-		public static final Codec<Tiers> CODEC = RecordCodecBuilder.create(i -> i.group(
+		public static final Codec<Tiers> CODEC = RecordCodecBuilder.<Tiers>create(i -> i.group(
 				Codec.intRange(6, 441).fieldOf("small_max").forGetter(Tiers::smallMax),
 				Codec.intRange(6, 441).fieldOf("medium_max").forGetter(Tiers::mediumMax)
-		).apply(i, Tiers::new));
+		).apply(i, Tiers::new)).validate(Tiers::check);
+
+		/** Medium rifts must be reachable: no small rift may be bigger than the largest medium one. */
+		private static DataResult<Tiers> check(Tiers tiers) {
+			return tiers.smallMax() <= tiers.mediumMax()
+					? DataResult.success(tiers)
+					: DataResult.error(() -> "tiers: small_max (" + tiers.smallMax() + ") must not be above medium_max (" + tiers.mediumMax() + ")");
+		}
 	}
 
 	/** All in ticks. */
