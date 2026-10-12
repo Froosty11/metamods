@@ -13,9 +13,14 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * A ghast in a war harness. Clients see a vanilla ghast wearing the harness model. It floats and shoots
@@ -63,6 +68,23 @@ public class WarGhast extends Ghast implements PolymerEntity {
 		super.die(source);
 	}
 
+	/**
+	 * The Bombardier sits on top, above the ghast's own box, so the ghast moves as if its body reached up to the
+	 * rider's head: floating about or pushed, it never presses the rider into a roof. (Its move control only checks
+	 * the ghast's box; the bombing run plans for the rider itself.)
+	 */
+	@Override
+	public void move(MoverType type, Vec3 delta) {
+		if (!noPhysics && isVehicle()) {
+			var stack = getBoundingBox();
+			for (var rider : getIndirectPassengers()) {
+				stack = stack.minmax(rider.getBoundingBox());
+			}
+			delta = Entity.collideBoundingBox(this, delta, stack, level(), List.of());
+		}
+		super.move(type, delta);
+	}
+
 	/** The Bombardier sits facing the way its ghast does (vanilla only turns the riders of pathfinding mounts). */
 	@Override
 	protected void positionRider(Entity passenger, MoveFunction moveFunction) {
@@ -71,6 +93,16 @@ public class WarGhast extends Ghast implements PolymerEntity {
 			rider.setYRot(getYRot());
 			rider.setYBodyRot(yBodyRot);
 		}
+	}
+
+	/**
+	 * A war ghast always flies itself, whoever rides it: rift ghasts are covered by MobMixin, and this covers a staff
+	 * {@code /summon} with no rift (vanilla would hand control to the Bombardier, whose ground pathing can't fly it).
+	 */
+	@Nullable
+	@Override
+	public LivingEntity getControllingPassenger() {
+		return null;
 	}
 
 	@Nullable

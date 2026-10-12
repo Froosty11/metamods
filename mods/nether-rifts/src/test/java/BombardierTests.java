@@ -55,6 +55,83 @@ public class BombardierTests {
 				FormingTests.cleanUp(ctx);
 			});
 		});
+		NetherRiftsTests.register("bombardier/rider_clear_of_low_roof", ctx -> {
+			// A roof 10 blocks over the target: room for the ghast alone to run and climb, not for the rider on top of it.
+			stoneFloor(ctx);
+			for (int x = 0; x < 24; x++) {
+				for (int z = 0; z < 24; z++) {
+					for (int y = 11; y <= 13; y++) {
+						ctx.setBlock(new BlockPos(x, y, z), Blocks.STONE);
+					}
+				}
+			}
+			var buried = new AtomicInteger();
+			var bombs = new AtomicInteger();
+			ctx.onEachTick(() -> {
+				bombs.addAndGet(ctx.getEntities(RiftEntities.MAGMA_BOMB).size());
+				ctx.getEntities(RiftEntities.GHAST_BOMBARDIER).forEach(rider -> {
+					if (rider.isInWall()) {
+						buried.incrementAndGet();
+					}
+				});
+			});
+			FormingTests.lightFrame(ctx, 2, 3);
+			var player = StageTests.player(ctx);
+			ctx.runAtTickTime(3, () -> {
+				var floor = ctx.absolutePos(new BlockPos(16, 1, 16));
+				player.teleportTo(floor.getX() + 0.5, floor.getY(), floor.getZ() + 0.5);
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(8, 1, 8)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				ghast.setTarget(player);
+			});
+			ctx.runAtTickTime(300, () -> {
+				ctx.assertTrue(buried.get() == 0, "the Bombardier's head was in the roof for " + buried.get() + " ticks");
+				// the stack fits at run height (4 above the target), so the run goes ahead, below the roof
+				ctx.assertTrue(bombs.get() > 0, "no bombing run under the roof");
+				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("bombardier/rider_does_not_pathfind", ctx -> {
+			// Riding, the Bombardier leaves the moving to its ghast: no walking goal makes paths for it.
+			stoneFloor(ctx);
+			var pathing = new AtomicInteger();
+			ctx.onEachTick(() -> ctx.getEntities(RiftEntities.GHAST_BOMBARDIER).forEach(rider -> {
+				if (rider.isPassenger() && !rider.getNavigation().isDone()) {
+					pathing.incrementAndGet();
+				}
+			}));
+			FormingTests.lightFrame(ctx, 2, 3);
+			var player = StageTests.player(ctx);
+			ctx.runAtTickTime(3, () -> {
+				var floor = ctx.absolutePos(new BlockPos(20, 1, 20));
+				player.teleportTo(floor.getX() + 0.5, floor.getY(), floor.getZ() + 0.5);
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(10, 1, 10)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				ghast.setNoAi(true);
+				ghast.bombardier().setTarget(player);
+			});
+			ctx.runAtTickTime(60, () -> {
+				ctx.assertTrue(pathing.get() == 0, "the riding Bombardier had a path for " + pathing.get() + " ticks");
+				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("bombardier/summoned_ghast_steers_itself", ctx -> {
+			// A staff /summon: a war ghast and its Bombardier with no rift. The ghast still flies itself.
+			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 2, 12));
+			var rider = ctx.spawn(RiftEntities.GHAST_BOMBARDIER, new BlockPos(12, 2, 12));
+			rider.startRiding(ghast, true, false);
+			ctx.assertTrue(ghast.bombardier() == rider, "the Bombardier didn't mount");
+			ctx.assertFalse(RiftMobs.isRiftMob(ghast), "a summoned war ghast is a rift mob");
+			ctx.assertTrue(ghast.getControllingPassenger() == null, "a summoned war ghast's Bombardier steers it");
+			ctx.killAllEntities();
+			ctx.succeed();
+		});
 		NetherRiftsTests.register("bombardier/rider_survives_ghast", ctx -> {
 			// Review focus 2.
 			FormingTests.lightFrame(ctx, 2, 3);

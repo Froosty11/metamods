@@ -46,8 +46,29 @@ public class GhastBombardier extends Monster implements AnimatedEntity {
 	@Override
 	protected void registerGoals() {
 		goalSelector.addGoal(0, new FloatGoal(this));
-		goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0, false));
-		goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8));
+		// riding, it leaves the moving to its ghast: walking goals would only make paths from the saddle
+		goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0, false) {
+			@Override
+			public boolean canUse() {
+				return !GhastBombardier.this.isPassenger() && super.canUse();
+			}
+
+			@Override
+			public boolean canContinueToUse() {
+				return !GhastBombardier.this.isPassenger() && super.canContinueToUse();
+			}
+		});
+		goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8) {
+			@Override
+			public boolean canUse() {
+				return !GhastBombardier.this.isPassenger() && super.canUse();
+			}
+
+			@Override
+			public boolean canContinueToUse() {
+				return !GhastBombardier.this.isPassenger() && super.canContinueToUse();
+			}
+		});
 		goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0f));
 		targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
 	}

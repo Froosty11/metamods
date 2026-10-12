@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,8 +15,9 @@ import java.util.EnumSet;
  * dives to 4 blocks above the start of a 20-block line across the target; runs along it while the rider
  * drops a bomb every 6 ticks (when within 8 blocks of the target); climbs back to 14 above the target;
  * waits 100 ticks. Low over the line is its weak window. Where a wall or roof is in the way, the line and the
- * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit. With no room for
- * the ghast over the target at all, the run is given up until the cooldown has passed.
+ * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit, and the rider on
+ * top must fit too. With no room for the ghast and its rider over the target at all, the run is given up until
+ * the cooldown has passed.
  */
 public class BombingRunGoal extends Goal {
 
@@ -131,10 +133,14 @@ public class BombingRunGoal extends Goal {
 		Ghast.faceMovementDirection(ghast);
 	}
 
-	/** The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast's body fits; null if it doesn't fit at {@code from}. */
+	/**
+	 * The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast and its rider fit;
+	 * null if they don't fit at {@code from}.
+	 */
 	@Nullable
 	private Vec3 clear(Vec3 from, Vec3 to) {
-		if (!fits(from)) {
+		var stack = stack();
+		if (!fits(stack, from)) {
 			return null;
 		}
 		var path = to.subtract(from);
@@ -142,7 +148,7 @@ public class BombingRunGoal extends Goal {
 		var fit = from;
 		for (int i = 1; i <= steps; i++) {
 			var at = from.add(path.scale(i / (double) steps));
-			if (!fits(at)) {
+			if (!fits(stack, at)) {
 				break;
 			}
 			fit = at;
@@ -150,8 +156,17 @@ public class BombingRunGoal extends Goal {
 		return fit;
 	}
 
-	private boolean fits(Vec3 at) {
-		return ghast.level().noBlockCollision(ghast, ghast.getDimensions(ghast.getPose()).makeBoundingBox(at));
+	/** The ghast's box and its riders' (the Bombardier sits above it), with the ghast's feet at the origin. */
+	private AABB stack() {
+		var box = ghast.getDimensions(ghast.getPose()).makeBoundingBox(Vec3.ZERO);
+		for (var rider : ghast.getIndirectPassengers()) {
+			box = box.minmax(rider.getBoundingBox().move(-ghast.getX(), -ghast.getY(), -ghast.getZ()));
+		}
+		return box;
+	}
+
+	private boolean fits(AABB stack, Vec3 at) {
+		return ghast.level().noBlockCollision(ghast, stack.move(at));
 	}
 
 	private static double horizontalDistance(Vec3 a, Vec3 b) {
