@@ -1,90 +1,5 @@
-// Vanilla 26.3 item.fsh with one addition (metacraft-qol, the void anchor): where item.vsh flagged a
-// void-anchor rift, the painted sprite is replaced. The main crack (1) shows the End's void through
-// its split with glowing edges, a glowing crack (2) is all light, both using the sprite's alpha as
-// the crack's shape; the core (3) is a white-hot disc drawn like them. Every other item takes the vanilla
-// path. Re-diff against vanilla on every Minecraft update.
-#version 330
-#extension GL_ARB_separate_shader_objects : require
-
-#include <minecraft:globals.glsl>
-#include <minecraft:fog.glsl>
-#include <minecraft:dynamictransforms.glsl>
-#include <minecraft:oit.glsl>
-
-uniform sampler2D Sampler0;
-
-#ifdef GLINT
-uniform sampler2D GlintSampler;
-#endif
-
-#ifndef OIT_ALPHA_ONLY
-layout(location = 0) in float sphericalVertexDistance;
-layout(location = 1) in float cylindricalVertexDistance;
-#endif
-layout(location = 2) in vec4 vertexColor;
-#ifndef OIT_ALPHA_ONLY
-layout(location = 3) in vec4 lightMapColor;
-layout(location = 4) in vec4 overlayColor;
-#endif
-layout(location = 5) in vec2 texCoord0;
-layout(location = 7) in vec2 riftUv;
-layout(location = 8) in float riftFlag;
-#ifdef GLINT
-layout(location = 6) in vec2 texCoordGlint;
-#endif
-
-#ifndef OIT_ALPHA_ONLY
-layout(location = 0) out vec4 fragColor;
-#endif
-
-#ifndef OIT_ALPHA_ONLY
-vec4 calculateFinalColor(vec4 color) {
-    color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
-    color *= lightMapColor;
-
-    #ifdef GLINT
-    vec4 glintColor = GlintAlpha * texture(GlintSampler, texCoordGlint);// Glint color modulator?
-    // Matches BlendFuntion.GLINT
-    color.rgb += glintColor.rgb * glintColor.rgb;
-    #endif
-
-    #ifdef OIT_ACCUMULATE
-    color = sampleColorForAccumulation(color);
-    vec4 fogColor = vec4(FogColor.rgb * color.a, FogColor.a);
-    #else
-    vec4 fogColor = FogColor;
-    #endif
-
-    return apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, fogColor);
-}
-#endif
-
-float riftHash(vec2 p) {
-    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-float riftNoise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(riftHash(i), riftHash(i + vec2(1.0, 0.0)), u.x),
-               mix(riftHash(i + vec2(0.0, 1.0)), riftHash(i + vec2(1.0, 1.0)), u.x), u.y);
-}
-
-float riftFbm(vec2 p) {
-    float v = 0.0, a = 0.5;
-    for (int i = 0; i < 4; i++) {
-        v += a * riftNoise(p);
-        p = p * 2.03 + vec2(1.7, 9.2);
-        a *= 0.5;
-    }
-    return v;
-}
-
-mat2 riftRot(float a) {
-    float c = cos(a), s = sin(a);
-    return mat2(c, -s, s, c);
-}
-
+// The void anchor (metacraft-qol): a crack in space with the End's void showing through, its glowing cracks and its core.
+// Needs rift_common.glsl, Globals (GameTime, ScreenSize) and Sampler0.
 // The End portal's colours, one per layer, as vanilla's rendertype_end_portal has them.
 const vec3 RIFT_LAYER_COLORS[16] = vec3[](
     vec3(0.022087, 0.098399, 0.110818), vec3(0.011892, 0.095924, 0.089485), vec3(0.027636, 0.101689, 0.100326),
@@ -117,21 +32,6 @@ vec3 riftVoid() {
         color += riftSpecks(p, layer * 13.0) * RIFT_LAYER_COLORS[i] * 2.4;
     }
     return color;
-}
-
-// Where on the sprite this fragment is, 0..1 along the sprite's own axes. riftUv numbers the quad's
-// corners from wherever its draw starts in a shared buffer, so it can come out turned by a quarter;
-// texCoord0 cannot. The derivatives of both give the map from one to the other, and from it the
-// sprite's box in the atlas, so the result doesn't depend on which corner came first.
-vec2 riftLocal() {
-    mat2 dUv = mat2(dFdx(riftUv), dFdy(riftUv));
-    mat2 dTex = mat2(dFdx(texCoord0), dFdy(texCoord0));
-    if (abs(determinant(dUv)) < 1e-12) return riftUv;
-    mat2 m = dTex * inverse(dUv);
-    vec2 o = texCoord0 - m * riftUv;
-    vec2 c1 = o + m[0], c2 = o + m[1], c3 = o + m[0] + m[1];
-    vec2 lo = min(min(o, c1), min(c2, c3)), hi = max(max(o, c1), max(c2, c3));
-    return (texCoord0 - lo) / max(hi - lo, vec2(1e-9));
 }
 
 // The rift: a crack in space (the sprite's alpha). Through the split, the End's void; along its
@@ -188,37 +88,4 @@ vec4 riftCore() {
     vec3 color = mix(tint * 1.4, vec3(1.0, 0.92, 1.0), hot);
     float alpha = clamp(max(hot, max(rim * flicker, swirl * 0.7)), 0.0, 1.0);
     return vec4(color, alpha);
-}
-
-void main() {
-    vec4 color = texture(Sampler0, texCoord0);
-    #ifdef ALPHA_CUTOUT
-    if (color.a < ALPHA_CUTOUT) {
-        discard;
-    }
-    #endif
-
-    color *= vertexColor * ColorModulator;
-
-    if (riftFlag > 2.5) {
-        color = riftCore();
-    } else if (riftFlag > 1.5) {
-        color = riftGlow(texture(Sampler0, texCoord0));
-    } else if (riftFlag > 0.5) {
-        color = riftColor(texture(Sampler0, texCoord0));
-    }
-    // Nothing to draw: leave no depth behind either, or a rift's empty corners hide its other parts.
-    if (riftFlag > 0.5 && color.a < 0.02) {
-        discard;
-    }
-
-    #ifdef GLINT
-    color.a = max(color.a, GlintAlpha);
-    #endif
-
-    #ifdef OIT_ALPHA_ONLY
-    executeAlphaOnlyPhase(gl_FragCoord.z, color.a);
-    #else
-    fragColor = calculateFinalColor(color);
-    #endif
 }

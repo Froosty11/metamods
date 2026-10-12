@@ -1,7 +1,8 @@
-// Vanilla 26.3 item.vsh with one addition (metacraft-qol, the void anchor): a vertex tinted exactly
-// #FEFEFD, #FEFEFC or #FEFEFB belongs to a void-anchor rift (its main crack, a glowing crack, its
-// core), and gets that part's number (1, 2, 3) as a flag plus a corner index for its place on the quad.
-// Re-diff against vanilla on every Minecraft update.
+// Vanilla 26.3 item.vsh with one addition (metacraft-core, shared by every rift drawn with item displays):
+// a vertex whose tint is a rift marker gets the part as riftFlag, its stage as riftStage and a corner index
+// for its place on the quad. Markers: void anchor #FEFEFD crack (1), #FEFEFC glowing crack (2), #FEFEFB
+// core (3); nether rift #FE{G}{B} with B FA body (11) / F9 edge (12) and G FD/FC/FB stage 1/2/3.
+// Re-diff against vanilla on every Minecraft update. 26.3 compiles to SPIR-V, hence gl_VertexIndex.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
@@ -37,6 +38,7 @@ layout(location = 4) out vec4 overlayColor;
 layout(location = 5) out vec2 texCoord0;
 layout(location = 7) out vec2 riftUv;
 layout(location = 8) out float riftFlag;
+layout(location = 9) out float riftStage;
 #ifdef GLINT
 layout(location = 6) out vec2 texCoordGlint;
 #endif
@@ -56,15 +58,20 @@ void main() {
 
     texCoord0 = UV0;
 
-    vec3 tint = Color.rgb * 255.0;
-    if (all(lessThan(abs(tint.rg - vec2(254.0)), vec2(0.5))) && tint.b > 250.5 && tint.b < 253.5) {
-        // Quads are drawn as four vertices in order round the face; which one this is gives its corner.
-        int corner = gl_VertexIndex % 4;
-        riftFlag = 254.0 - floor(tint.b + 0.5);
-        riftUv = vec2((corner == 1 || corner == 2) ? 1.0 : 0.0, corner >= 2 ? 1.0 : 0.0);
-    } else {
-        riftFlag = 0.0;
-        riftUv = vec2(0.0);
+    vec3 tint = floor(Color.rgb * 255.0 + 0.5);
+    // Quads are drawn as four vertices in order round the face; which one this is gives its corner.
+    int corner = gl_VertexIndex % 4;
+    vec2 cornerUv = vec2((corner == 1 || corner == 2) ? 1.0 : 0.0, corner >= 2 ? 1.0 : 0.0);
+    riftFlag = 0.0;
+    riftStage = 0.0;
+    riftUv = vec2(0.0);
+    if (tint.r == 254.0 && tint.g == 254.0 && tint.b >= 251.0 && tint.b <= 253.0) {
+        riftFlag = 254.0 - tint.b;
+        riftUv = cornerUv;
+    } else if (tint.r == 254.0 && tint.g >= 251.0 && tint.g <= 253.0 && tint.b >= 249.0 && tint.b <= 250.0) {
+        riftFlag = 11.0 + (250.0 - tint.b);
+        riftStage = 254.0 - tint.g;
+        riftUv = cornerUv;
     }
     #ifdef GLINT
     #ifdef GLINT_SPECIAL

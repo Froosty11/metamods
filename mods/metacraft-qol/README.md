@@ -45,10 +45,11 @@ The `void_anchor` section of `config/metacraft-qol.json`:
 ### The rift shader
 
 The rift is an item display of `metacraft:rift`, a flat quad with a painted, animated sprite
-tinted exactly `#FEFEFD`. The mod's pack overrides `minecraft:shaders/core/item.vsh` and
-`item.fsh`: a vertex with that tint is flagged, and its fragments draw a moving swirl of stars
-instead of the sprite. Every other item takes the vanilla path. A client without the shader still
-sees the painted sprite.
+tinted exactly `#FEFEFD`. The item shader override lives in **metacraft-core**
+(`assets/minecraft/shaders/core/item.{vsh,fsh}`), shared with nether-rifts; the void anchor's drawing
+is `assets/metacraft/shaders/include/void_rift.glsl` there. A vertex with that tint is flagged, and
+its fragments draw a moving swirl of stars instead of the sprite. Every other item takes the vanilla
+path. A client without the shader still sees the painted sprite.
 
 The overrides are vanilla 26.3's shaders plus that one branch, so **re-diff them against vanilla on
 every Minecraft update**. 26.3 compiles shaders to SPIR-V, hence `gl_VertexIndex`, not `gl_VertexID`.
