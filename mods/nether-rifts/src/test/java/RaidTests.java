@@ -37,7 +37,7 @@ public class RaidTests {
 				ctx.getLevel().addFreshEntity(stray);
 				var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(8, 8, 8)), Vec3.ZERO);
 				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
-				ghast.bombardier().dropBomb(ctx.getLevel());
+				ghast.dropBomb(ctx.getLevel());
 				BurningPatches.burn(ctx.getLevel(), Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(16, 1, 16))), rift.id());
 				var strayWarning = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(18, 1, 18)));
 				BurningPatches.warn(ctx.getLevel(), strayWarning, null);

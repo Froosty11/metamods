@@ -102,7 +102,7 @@ public record NetherRiftsConfig(
 		).apply(i, DrummerTuning::new));
 	}
 
-	/** The Ghast Bombardier, its bombing runs and its magma bombs. Ticks (20 a second) and blocks. */
+	/** The war ghast's bombing runs and its Ghast Bombardier's magma bombs. Ticks (20 a second) and blocks. */
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
 			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius
@@ -115,11 +115,11 @@ public record NetherRiftsConfig(
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("dive_height", Codec.doubleRange(1, 64), DEFAULT.diveHeight()),
-						"The run flies this many blocks above the target."
+						"On a run the war ghast's deck (hung 3.5 blocks under it) flies this many blocks above the target."
 				).forGetter(BombardierTuning::diveHeight),
 				CommentCodec.comment(
 						Sections.section("climb_height", Codec.doubleRange(1, 128), DEFAULT.climbHeight()),
-						"After a run the ghast climbs back to this many blocks above the target."
+						"After a run the ghast climbs till its deck is this many blocks above the target."
 				).forGetter(BombardierTuning::climbHeight),
 				CommentCodec.comment(
 						Sections.section("run_length", Codec.doubleRange(1, 128), DEFAULT.runLength()),
@@ -169,7 +169,7 @@ public record NetherRiftsConfig(
 				).forGetter(Mobs::drummer),
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
-						"The Ghast Bombardier, on its war ghast in Large waves 5 and later."
+						"War ghasts, crewed by a Ghast Bombardier and two crossbow piglins, in Large waves 5 and later."
 				).forGetter(Mobs::bombardier)
 		).apply(i, Mobs::new));
 	}

@@ -21,7 +21,7 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Dropped by the Ghast Bombardier. Clients see a thrown magma cream (a snowball carrying that item).
+ * Dropped from a war ghast's deck by its Ghast Bombardier. Clients see a thrown magma cream (a snowball carrying that item).
  * On impact it blasts (damage and knockback, power 1.5) with ExplosionInteraction.NONE, so no block changes
  * and nothing is set alight, and leaves a burning patch for 2 s. The power is config ({@code mobs.bombardier.bomb_power}).
  */

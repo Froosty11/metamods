@@ -82,7 +82,20 @@ public final class RiftMobs {
 			}
 			spawned.add(entity);
 		}));
+		// a war ghast brings its own crew: riders put on it (an old config's bombardier entry) would double it
+		spawned.removeIf(entity -> {
+			if (entity.getVehicle() instanceof WarGhast) {
+				entity.discard();
+				return true;
+			}
+			return false;
+		});
 		return spawned;
+	}
+
+	/** Makes a mob one of the rift's, in the slot's role (as if it had come through it): a war ghast's crew. */
+	public static void enlist(Entity entity, UUID rift, Slot slot) {
+		apply(entity, rift, slot);
 	}
 
 	static void apply(Entity entity, UUID rift, Slot slot) {

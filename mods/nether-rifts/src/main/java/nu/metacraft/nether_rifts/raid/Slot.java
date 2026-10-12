@@ -19,7 +19,7 @@ public enum Slot implements StringRepresentable {
 	LEADER("leader"),
 	/** The Rift Captain: the last wave of a large raid. */
 	CAPTAIN("captain"),
-	/** Replaces HEAVY in a large raid's waves 5 and later: a war ghast with a Ghast Bombardier. */
+	/** Replaces HEAVY in a large raid's waves 5 and later: a war ghast, its deck crewed by a Ghast Bombardier and two crossbow piglins. */
 	BOMBARDIER("bombardier");
 
 	public static final Codec<Slot> CODEC = StringRepresentable.fromEnum(Slot::values);

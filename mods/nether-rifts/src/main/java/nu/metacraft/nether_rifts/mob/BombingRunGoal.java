@@ -12,13 +12,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 
 /**
- * A war ghast with a Bombardier picks its target and goes through four phases:
- * dives to 4 blocks above the start of a 20-block line across the target; runs along it while the rider
- * drops a bomb every 6 ticks (when within 8 blocks of the target); climbs back to 14 above the target;
- * waits 100 ticks. Low over the line is its weak window. Where a wall or roof is in the way, the line and the
- * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit, and the rider on
- * top must fit too. With no room for the ghast and its rider over the target at all, the run is given up until
- * the cooldown has passed. The numbers are the defaults of the config's {@code mobs.bombardier} section.
+ * A war ghast picks its target and goes through four phases: dives till its deck is 4 blocks above the start of
+ * a 20-block line across the target; runs along it while the Bombardier drops a bomb from the deck every 6 ticks
+ * (when within 8 blocks of the target); climbs back till the deck is 14 above the target; waits 100 ticks. Low
+ * over the line is its weak window. Where a wall, roof or the ground is in the way, the line and the climb stop
+ * short of it: a ghast's move control won't fly at a point its body doesn't fit, and the deck hanging under it
+ * must fit too. With no room for the ghast and its deck over the target at all, the run is given up until the
+ * cooldown has passed. The numbers are the defaults of the config's {@code mobs.bombardier} section.
  */
 public class BombingRunGoal extends Goal {
 
@@ -54,12 +54,12 @@ public class BombingRunGoal extends Goal {
 			return false;
 		}
 		var t = ghast.getTarget();
-		return ghast.bombardier() != null && t != null && t.isAlive() && ghast.distanceTo(t) < 48;
+		return t != null && t.isAlive() && ghast.distanceTo(t) < 48;
 	}
 
 	@Override
 	public boolean canContinueToUse() {
-		return phase != null && ghast.bombardier() != null && target != null && target.isAlive();
+		return phase != null && target != null && target.isAlive();
 	}
 
 	@Override
@@ -73,7 +73,8 @@ public class BombingRunGoal extends Goal {
 		var tuning = tuning();
 		var across = new Vec3(target.getX() - ghast.getX(), 0, target.getZ() - ghast.getZ());
 		across = across.lengthSqr() < 1e-4 ? new Vec3(1, 0, 0) : across.normalize();
-		var above = target.position().add(0, tuning.diveHeight(), 0);
+		// the heights are the deck's, which hangs DECK_DROP under the ghast's feet
+		var above = target.position().add(0, tuning.diveHeight() + WarGhast.DECK_DROP, 0);
 		runStart = clear(above, above.subtract(across.scale(tuning.runLength() / 2)));
 		runEnd = clear(above, above.add(across.scale(tuning.runLength() / 2)));
 		ticks = 0;
@@ -105,13 +106,13 @@ public class BombingRunGoal extends Goal {
 			case RUN -> {
 				moveTo(runEnd);
 				var tuning = tuning();
-				var rider = ghast.bombardier();
-				if (rider != null && ticks % tuning.bombEvery() == 0 && horizontalDistance(ghast.position(), target.position()) < tuning.bombRange()
+				if (ticks % tuning.bombEvery() == 0 && horizontalDistance(ghast.position(), target.position()) < tuning.bombRange()
 						&& ghast.level() instanceof ServerLevel level) {
-					rider.dropBomb(level);
+					ghast.dropBomb(level);
 				}
 				if (ghast.position().distanceTo(runEnd) < 2 || ticks > PHASE_TIMEOUT) {
-					climbTo = clear(target.position().add(0, tuning.diveHeight(), 0), target.position().add(0, tuning.climbHeight(), 0));
+					climbTo = clear(target.position().add(0, tuning.diveHeight() + WarGhast.DECK_DROP, 0),
+							target.position().add(0, tuning.climbHeight() + WarGhast.DECK_DROP, 0));
 					next(climbTo == null ? null : Phase.CLIMB);
 				}
 			}
@@ -133,7 +134,7 @@ public class BombingRunGoal extends Goal {
 	private void moveTo(Vec3 at) {
 		ghast.getMoveControl().setWantedPosition(at.x, at.y, at.z, 1.0);
 		ghast.getLookControl().setLookAt(at.x, at.y, at.z);
-		// what the ghast's own look goal would do (this goal holds LOOK): face the target, so the harness and rider turn too
+		// what the ghast's own look goal would do (this goal holds LOOK): face where it flies, deck and crew with it
 		Ghast.faceMovementDirection(ghast);
 	}
 
@@ -142,7 +143,7 @@ public class BombingRunGoal extends Goal {
 	}
 
 	/**
-	 * The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast and its rider fit;
+	 * The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast and its deck fit;
 	 * null if they don't fit at {@code from}.
 	 */
 	@Nullable
@@ -164,13 +165,9 @@ public class BombingRunGoal extends Goal {
 		return fit;
 	}
 
-	/** The ghast's box and its riders' (the Bombardier sits above it), with the ghast's feet at the origin. */
+	/** The ghast's box down to its deck's underside, with the ghast's feet at the origin. */
 	private AABB stack() {
-		var box = ghast.getDimensions(ghast.getPose()).makeBoundingBox(Vec3.ZERO);
-		for (var rider : ghast.getIndirectPassengers()) {
-			box = box.minmax(rider.getBoundingBox().move(-ghast.getX(), -ghast.getY(), -ghast.getZ()));
-		}
-		return box;
+		return ghast.stackBox().move(-ghast.getX(), -ghast.getY(), -ghast.getZ());
 	}
 
 	private boolean fits(AABB stack, Vec3 at) {
