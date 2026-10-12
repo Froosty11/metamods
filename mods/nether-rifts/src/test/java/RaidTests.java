@@ -8,7 +8,9 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.MagmaBomb;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
 import nu.metacraft.nether_rifts.raid.Slot;
@@ -22,7 +24,8 @@ public class RaidTests {
 
 	static void registerTests() {
 		NetherRiftsTests.register("raid/end_discards_bombs", ctx -> {
-			// A bomb still falling when its raid ends goes with the raid's mobs; a bomb of no rift stays.
+			// A bomb still falling when its raid ends goes with the raid's mobs, and so do the rift's ground warnings and
+			// burning patches; a bomb or warning of no rift stays.
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
 				var rift = FormingTests.riftIn(ctx);
@@ -32,9 +35,21 @@ public class RaidTests {
 				ctx.getLevel().addFreshEntity(ours);
 				var stray = hangingBomb(ctx, new BlockPos(18, 10, 18));
 				ctx.getLevel().addFreshEntity(stray);
+				var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(8, 8, 8)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				ghast.bombardier().dropBomb(ctx.getLevel());
+				BurningPatches.burn(ctx.getLevel(), Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(16, 1, 16))), rift.id());
+				var strayWarning = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(18, 1, 18)));
+				BurningPatches.warn(ctx.getLevel(), strayWarning, null);
+				ctx.assertTrue(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.warning() && rift.id().equals(p.rift())),
+						"the Bombardier's ground warning isn't the rift's");
 				RiftRaid.collapse(ctx.getLevel(), rift, RiftData.get(ctx.getLevel()));
 				ctx.assertTrue(ours.isRemoved(), "the rift's bomb outlived its raid");
 				ctx.assertFalse(stray.isRemoved(), "a bomb of no rift went with the raid");
+				ctx.assertFalse(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> rift.id().equals(p.rift())),
+						"a ground warning or burning patch of the rift outlived its raid");
+				ctx.assertTrue(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.at().equals(strayWarning)),
+						"a ground warning of no rift went with the raid");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();

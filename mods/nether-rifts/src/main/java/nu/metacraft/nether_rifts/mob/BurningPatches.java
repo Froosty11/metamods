@@ -14,16 +14,19 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.WeakHashMap;
 
 /**
  * The ground under a falling magma bomb: a 1 s warning (a ring of ember particles and a whistle) where it
  * will land, then a 2 s burning patch where it did (lava particles; players standing in it catch fire).
- * Neither touches blocks. The numbers are the defaults of the config's {@code mobs.bombardier} section.
+ * Neither touches blocks. Each belongs to the rift whose bomb it is (if any), and goes when that raid ends.
+ * The numbers are the defaults of the config's {@code mobs.bombardier} section.
  */
 public final class BurningPatches {
 
@@ -33,7 +36,7 @@ public final class BurningPatches {
 	public static final int PLAYER_FIRE_TICKS = 60;
 	public static final double RADIUS = 1.5;
 
-	public record Patch(Vec3 at, long endsAt, boolean warning) {}
+	public record Patch(Vec3 at, long endsAt, boolean warning, @Nullable UUID rift) {}
 
 	private static final Map<ServerLevel, List<Patch>> PATCHES = new WeakHashMap<>();
 
@@ -44,13 +47,21 @@ public final class BurningPatches {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> PATCHES.clear());
 	}
 
-	public static void warn(ServerLevel level, Vec3 at) {
-		add(level, new Patch(at, level.getGameTime() + tuning().warnTicks(), true));
+	public static void warn(ServerLevel level, Vec3 at, @Nullable UUID rift) {
+		add(level, new Patch(at, level.getGameTime() + tuning().warnTicks(), true, rift));
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 1.0f, 0.5f);
 	}
 
-	public static void burn(ServerLevel level, Vec3 at) {
-		add(level, new Patch(at, level.getGameTime() + tuning().burnTicks(), false));
+	public static void burn(ServerLevel level, Vec3 at, @Nullable UUID rift) {
+		add(level, new Patch(at, level.getGameTime() + tuning().burnTicks(), false, rift));
+	}
+
+	/** Drops the rift's warnings and patches: its raid is over, and its bombs are gone with it. */
+	public static void clear(ServerLevel level, UUID rift) {
+		var patches = PATCHES.get(level);
+		if (patches != null) {
+			patches.removeIf(p -> rift.equals(p.rift()));
+		}
 	}
 
 	/** Where something falling straight down from {@code from} lands: the first solid surface below, roofs and overhangs included. */

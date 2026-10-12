@@ -88,9 +88,12 @@ public class GhastBombardier extends Monster implements AnimatedEntity {
 		bomb.setPos(from.x, from.y, from.z);
 		int warnTicks = NetherRiftsConfig.getInstance().mobs().bombardier().warnTicks();
 		bomb.setDeltaMovement(0, MagmaBomb.launchSpeed(from.y - ground.y, warnTicks), 0);
-		RiftMobs.riftOf(this).ifPresent(id -> bomb.setAttached(RiftMobs.RIFT, id));
+		var rift = RiftMobs.riftOf(this).orElse(null);
+		if (rift != null) {
+			bomb.setAttached(RiftMobs.RIFT, rift);
+		}
 		level.addFreshEntity(bomb);
-		BurningPatches.warn(level, ground);
+		BurningPatches.warn(level, ground, rift);
 		level.playSound(null, from.x, from.y, from.z, SoundEvents.GHAST_SHOOT, SoundSource.HOSTILE, 1.0f, 1.6f);
 	}
 }

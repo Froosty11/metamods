@@ -111,7 +111,7 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 		if (level() instanceof ServerLevel level) {
 			float power = NetherRiftsConfig.getInstance().mobs().bombardier().bombPower();
 			level.explode(this, null, SPARE_ALL_BUT_PLAYERS, getX(), getY(), getZ(), power, false, Level.ExplosionInteraction.NONE);
-			BurningPatches.burn(level, BurningPatches.groundBelow(level, position()));
+			BurningPatches.burn(level, BurningPatches.groundBelow(level, position()), getAttached(RiftMobs.RIFT));
 			discard();
 		}
 	}

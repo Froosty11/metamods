@@ -32,6 +32,7 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.RiftMessages;
+import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
@@ -339,10 +340,11 @@ public final class RiftRaid {
 				level.sendParticles(ParticleTypes.PORTAL, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.4, 0.8, 0.4, 0.5);
 				mob.discard();
 			}
-			// bombs still falling go with the Bombardiers that dropped them
+			// bombs still falling go with the Bombardiers that dropped them, and so do their ground warnings and patches
 			for (var bomb : level.getEntities(RiftEntities.MAGMA_BOMB, reach(rift), b -> rift.id().equals(b.getAttached(RiftMobs.RIFT)))) {
 				bomb.discard();
 			}
+			BurningPatches.clear(level, rift.id());
 		}
 		rift.clearBlocks(level);
 		var collapse = NetherRiftsConfig.getInstance().frameCollapse();

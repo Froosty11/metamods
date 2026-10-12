@@ -143,7 +143,7 @@ public class BombTests {
 		});
 		NetherRiftsTests.register("bomb/warning_then_gone", ctx -> {
 			var at = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 12)));
-			BurningPatches.warn(ctx.getLevel(), at);
+			BurningPatches.warn(ctx.getLevel(), at, null);
 			ctx.assertTrue(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.warning() && p.at().equals(at)), "no warning recorded");
 			ctx.runAtTickTime(BurningPatches.WARN_TICKS + 2, () -> {
 				ctx.assertFalse(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.at().equals(at)), "the warning outlived its 20 ticks");
