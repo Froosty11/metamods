@@ -17,7 +17,7 @@ Re-run it when you install or update a shaderpack.
 From a terminal: java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]
 
 The patch splices Ovvar's and the rifts' shader code into the pack's entity program, keeps rifts
-out of the pack's shadows, and adds two custom uniforms to shaders.properties; everything else is
+out of the pack's shadows, and adds four custom uniforms to shaders.properties; everything else is
 copied as-is. Tested with BSL, Bliss, Complementary Reimagined/Unbound, MakeUp Ultra Fast,
 Solas, Photon and Super Duper Vanilla. If a pack reports "skipped" or "nothing patched",
 tell the METAcraft project group which pack and version.

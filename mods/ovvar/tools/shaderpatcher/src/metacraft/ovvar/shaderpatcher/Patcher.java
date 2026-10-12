@@ -45,7 +45,7 @@ import java.util.zip.ZipOutputStream;
  * </ul>
  * It does the same for metacraft-core's rifts (rift_common/void_rift/nether_rift.glsl, bundled
  * too): see {@link #patchRifts}. Rifts also drop out of the pack's shadow pass, and
- * shaders.properties gains two custom uniforms. Nothing else in the pack is touched; originals
+ * shaders.properties gains four custom uniforms. Nothing else in the pack is touched; originals
  * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
  *
  * Double-click: patches every pack in the Minecraft shaderpacks folder and shows a summary.
@@ -58,10 +58,17 @@ public final class Patcher {
 	private static final String RIFT_TAG = "metacraft_rift_sample";
 	/** The rifts' drawing, the very files metacraft-core's item shader includes. */
 	private static final String RIFT_GLSL = readResource("/rift_common.glsl") + readResource("/void_rift.glsl") + readResource("/nether_rift.glsl");
-	/** Iris/OptiFine custom uniforms under names no pack uses, so the rift code never redeclares the pack's own. */
-	private static final String RIFT_UNIFORMS = "\n# Metacraft rifts (added by the shader patcher): time and screen height under names of their own\n"
-			+ "uniform.float.metacraftRiftTime = frameTimeCounter\n"
-			+ "uniform.float.metacraftRiftHeight = viewHeight\n";
+	/**
+	 * Iris custom uniforms under names no pack uses, so the rift code never redeclares the pack's own: time, screen
+	 * height, and the camera's position split into whole blocks and the rest (Iris's exact, unshifted
+	 * cameraPositionInt and cameraPositionFract), which nether rifts lay their world-fixed pixel grid by.
+	 */
+	private static final String[][] RIFT_UNIFORMS = {
+			{"metacraftRiftTime", "uniform.float.metacraftRiftTime = frameTimeCounter"},
+			{"metacraftRiftHeight", "uniform.float.metacraftRiftHeight = viewHeight"},
+			{"metacraftRiftCameraInt", "uniform.vec3.metacraftRiftCameraInt = vec3(cameraPositionInt.x, cameraPositionInt.y, cameraPositionInt.z)"},
+			{"metacraftRiftCameraFract", "uniform.vec3.metacraftRiftCameraFract = cameraPositionFract"},
+	};
 
 	/** Texture-coordinate varying names, most likely first. */
 	private static final List<String> UV_NAMES = Arrays.asList(
@@ -208,8 +215,13 @@ public final class Patcher {
 		if (rifts) {
 			patchRiftShadows(files);
 			String props = files.containsKey("shaders/shaders.properties") ? text(files, "shaders/shaders.properties") : "";
-			if (!props.contains("metacraftRiftTime")) {
-				files.put("shaders/shaders.properties", (props + RIFT_UNIFORMS).getBytes(StandardCharsets.UTF_8));
+			StringBuilder added = new StringBuilder();
+			for (String[] uniform : RIFT_UNIFORMS) {
+				if (!props.contains(uniform[0])) added.append(uniform[1]).append('\n');
+			}
+			if (added.length() > 0) {
+				String header = "\n# Metacraft rifts (added by the shader patcher): time, screen height and camera under names of their own\n";
+				files.put("shaders/shaders.properties", (props + header + added).getBytes(StandardCharsets.UTF_8));
 			}
 		}
 		if (patched == 0) {
@@ -367,6 +379,11 @@ public final class Patcher {
 	 * the marker and the quad corner (gl_VertexID, as vanilla's gl_VertexIndex), and the program's first
 	 * albedo sample in main() goes through metacraft_rift_sample, which returns the rift's colour for a
 	 * rift and the plain sample for anything else. The pack then lights and fogs it like any albedo.
+	 * A nether rift's vertex also passes on where it is, as metacraft-core's item.vsh does: its position
+	 * relative to the camera (the vertex position itself: entity vertices arrive camera-relative, in world
+	 * axes) for the view direction, and that plus the camera's fraction of a block for the world-fixed
+	 * pixel grid; the fragment adds the camera's whole blocks back as integers. The code needs GLSL 1.30
+	 * (uint, bit operations, texelFetch); Iris compiles every pack as 3.30 core, whatever its #version says.
 	 * Returns [fragment text, vertex text] or null (with a reason logged).
 	 */
 	private String[] patchRifts(Map<String, byte[]> files, String fragPath, String fragText, String vertPath, String vertText) {
@@ -410,14 +427,21 @@ public final class Patcher {
 				+ in + " vec2 metacraft_rift_tex;\n"
 				+ in + " float metacraft_rift_flag;\n"
 				+ in + " float metacraft_rift_stage;\n"
+				+ in + " vec3 metacraft_rift_world;\n"
+				+ in + " vec3 metacraft_rift_view;\n"
 				+ "uniform float metacraftRiftTime;\n"
 				+ "uniform float metacraftRiftHeight;\n"
+				+ "uniform vec3 metacraftRiftCameraInt;\n"
 				+ "float metacraft_rift_det(mat2 m) { return m[0][0] * m[1][1] - m[1][0] * m[0][1]; }\n"
 				+ "mat2 metacraft_rift_inverse(mat2 m) { return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0]) / metacraft_rift_det(m); }\n"
 				+ "#define texCoord0 metacraft_rift_tex\n"
 				+ "#define riftUv metacraft_rift_corner\n"
 				+ "#define GameTime (metacraftRiftTime / 1200.0)\n"
 				+ "#define ScreenSize vec2(1.0, metacraftRiftHeight)\n"
+				+ "#define riftWorld metacraft_rift_world\n"
+				+ "#define riftView metacraft_rift_view\n"
+				+ "#define CameraBlockPos ivec3(metacraftRiftCameraInt)\n"
+				+ "#define Sampler0 " + samplerName + "\n"
 				+ "#define determinant metacraft_rift_det\n"
 				+ "#define inverse metacraft_rift_inverse\n"
 				+ RIFT_GLSL
@@ -434,7 +458,8 @@ public final class Patcher {
 				+ "	if (rift.a < 0.02) discard;\n"
 				+ "	return rift;\n"
 				+ "}\n"
-				+ "#undef texCoord0\n#undef riftUv\n#undef GameTime\n#undef ScreenSize\n#undef determinant\n#undef inverse\n"
+				+ "#undef texCoord0\n#undef riftUv\n#undef GameTime\n#undef ScreenSize\n#undef riftWorld\n#undef riftView\n#undef CameraBlockPos\n"
+				+ "#undef Sampler0\n#undef determinant\n#undef inverse\n"
 				+ "// --- end Metacraft rifts\n\n";
 		StringBuilder out = new StringBuilder(frag);
 		out.insert(callEnd, ")");
@@ -453,12 +478,17 @@ public final class Patcher {
 		String dir = in.equals("in") ? "out" : "varying";
 		boolean core = vert.contains("vaColor") || vert.contains("vaPosition");
 		String colorAttr = core ? "vaColor" : "gl_Color", uvAttr = core ? "vaUV0" : "gl_MultiTexCoord0.st";
+		String position = core ? "vaPosition" : "gl_Vertex.xyz";
 		String newVert = vert.substring(0, vmain.start())
-				+ "\n// --- Metacraft rifts: the tint marker, the quad corner and the raw sprite coordinate\n"
+				+ "\n// --- Metacraft rifts: the tint marker, the quad corner, the raw sprite coordinate and, for a nether\n"
+				+ "// rift, where the vertex is: relative to the camera, and in the world less the camera's whole blocks\n"
 				+ dir + " vec2 metacraft_rift_corner;\n"
 				+ dir + " vec2 metacraft_rift_tex;\n"
 				+ dir + " float metacraft_rift_flag;\n"
-				+ dir + " float metacraft_rift_stage;\n\n"
+				+ dir + " float metacraft_rift_stage;\n"
+				+ dir + " vec3 metacraft_rift_world;\n"
+				+ dir + " vec3 metacraft_rift_view;\n"
+				+ "uniform vec3 metacraftRiftCameraFract;\n\n"
 				+ vert.substring(vmain.start(), vmain.end())
 				+ "\n	{\n"
 				+ "		vec3 tint = floor(" + colorAttr + ".rgb * 255.0 + 0.5);\n"
@@ -468,6 +498,8 @@ public final class Patcher {
 				+ "		metacraft_rift_flag = 0.0;\n"
 				+ "		metacraft_rift_stage = 0.0;\n"
 				+ "		metacraft_rift_corner = vec2(0.0);\n"
+				+ "		metacraft_rift_world = vec3(0.0);\n"
+				+ "		metacraft_rift_view = vec3(0.0);\n"
 				+ "		if (tint.r == 254.0 && tint.g == 254.0 && tint.b >= 251.0 && tint.b <= 253.0) {\n"
 				+ "			metacraft_rift_flag = 254.0 - tint.b;\n"
 				+ "			metacraft_rift_corner = cornerUv;\n"
@@ -475,11 +507,14 @@ public final class Patcher {
 				+ "			metacraft_rift_flag = 11.0 + (250.0 - tint.b);\n"
 				+ "			metacraft_rift_stage = 254.0 - tint.g;\n"
 				+ "			metacraft_rift_corner = cornerUv;\n"
+				+ "			metacraft_rift_view = " + position + ";\n"
+				+ "			metacraft_rift_world = " + position + " + metacraftRiftCameraFract;\n"
 				+ "		}\n"
 				+ "	}\n"
 				+ vert.substring(vmain.end());
 		String vertOut = vertSource.substring(0, vr[0]) + newVert + vertSource.substring(vr[1]);
-		say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": rifts drawn through " + sampleFn + "(" + samplerName + "), marker from " + colorAttr);
+		say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": rifts drawn through " + sampleFn + "(" + samplerName + "), marker from " + colorAttr
+				+ ", position from " + position);
 		return unified ? new String[]{vertOut, vertOut} : new String[]{fragOut, vertOut};
 	}
 

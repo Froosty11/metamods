@@ -892,9 +892,13 @@ own entity program (the texture-coordinate and vertex-colour varyings are shadow
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
 MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's
 rifts (void anchor, nether rifts): the pack's first albedo sample in its entity program is wrapped
-so a rift-marked quad gets the rift's colour, rifts are dropped from the shadow pass, and two custom
-uniforms (time, screen height) go into `shaders.properties`. Super Duper Vanilla samples inside a
-shared include, so its rifts stay the flat fallback sprite. Check a pack in game with
+so a rift-marked quad gets the rift's colour, rifts are dropped from the shadow pass, and four custom
+uniforms (time, screen height, the camera's whole blocks and fraction of a block, which nether rifts
+lay their world-fixed pixel grid by) go into `shaders.properties`. Nether rifts' world-fixed pixel art and nether
+panorama draw under Complementary Reimagined and Unbound, BSL and Bliss (checked with the client tests on
+Iris 1.11.7). Super Duper Vanilla samples inside a shared include, so its rifts stay the flat fallback
+sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Solas don't start on macOS
+(OpenGL 4.1), so they are unchecked. Check a pack in game with
 `./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
 
 ## Credits

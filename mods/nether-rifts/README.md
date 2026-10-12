@@ -13,7 +13,9 @@ when the raid ends).
 A rift is drawn by metacraft-core's item shader as pixel art fixed to the world (16 pixels a block): a
 purple membrane in the nether portal's colours, glitching, with cracks that widen as the rift tears, and
 through them a far-off nether (a panorama captured in game). Players whose core shaders are replaced (Iris,
-OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, stretched over the rift.
+OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, stretched over the rift; unless
+their shaderpack went through ovvar's shader patcher, which puts the same drawing into the pack (seen working
+in Complementary Reimagined and Unbound, BSL and Bliss).
 
 Config: `config/nether-rifts.json5`. Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
 
