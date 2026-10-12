@@ -304,7 +304,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 		return b > g + 40 && r > g + 20;
 	}
 
-	/** The panorama's nether through the cracks: lava, netherrack, crimson, the red fog; red over blue, green not far under blue. */
+	/** The panorama's nether through the cracks: lava, nether brick and netherrack, the red fog; red over blue, green not far under blue. */
 	static boolean netherPixel(int r, int g, int b) {
 		return r > b + 25 && g + 12 >= b && r > 40 && r < 240;
 	}
