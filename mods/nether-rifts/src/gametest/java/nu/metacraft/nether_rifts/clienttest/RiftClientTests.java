@@ -127,11 +127,14 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand("tp Tester -28.5 -50 0.5 90 5");
 				ctx.waitTicks(25);
 				var ghastShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast").withSize(1920, 1080)));
-				int strap = countAll(ghastShot, (r, g, b) -> r > 70 && r < 130 && g > 45 && g < 90 && b > 20 && b < 60);
-				// the lenses' sky blue as lit in game (about 90, 155, 185); the noon sky itself is brighter (b = 255)
-				int lens = countAll(ghastShot, (r, g, b) -> r < 130 && g > r + 40 && b > g + 10 && b < 225);
-				System.out.println("[nether-rifts-clienttest] war ghast strap=" + strap + " lens=" + lens);
-				if (strap < 300) throw new AssertionError("the harness isn't drawn on the war ghast: " + strap);
+				// the red harness's drapes as lit in game (about 80..105, 22..33, 21..25); the rider's own brown would pass a
+				// brown-strap check on its own, and neither the ghast, the sky nor the grass has this red
+				int harness = countAll(ghastShot, (r, g, b) -> r > 90 && r > 2 * g && r > 2 * b);
+				// the light-blue stained glass lenses as lit in game (about 53, 79, 112), around the rider on top (screen
+				// x 930..990, y 365..450); the box keeps out the noon sky (b = 255) and the translucent panel top left
+				int lens = countIn(ghastShot, 760, 250, 1160, 550, (r, g, b) -> r < 100 && g > r + 15 && b > g + 20 && b < 160);
+				System.out.println("[nether-rifts-clienttest] war ghast harness=" + harness + " lens=" + lens);
+				if (harness < 1000) throw new AssertionError("the harness isn't drawn on the war ghast: " + harness);
 				if (lens < 20) throw new AssertionError("the Bombardier's goggles aren't on screen: " + lens);
 				server.runCommand("kill @e[type=nether_rifts:war_ghast]");
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
@@ -192,6 +195,18 @@ public final class RiftClientTests implements FabricClientGameTest {
 		int n = 0;
 		for (int y = 0; y < img.getHeight(); y++) {
 			for (int x = 0; x < img.getWidth(); x++) {
+				int p = img.getRGB(x, y);
+				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
+			}
+		}
+		return n;
+	}
+
+	/** Pixels in the box [x0, x1) × [y0, y1) that match. */
+	private static int countIn(BufferedImage img, int x0, int y0, int x1, int y1, Rgb rgb) {
+		int n = 0;
+		for (int y = y0; y < y1; y++) {
+			for (int x = x0; x < x1; x++) {
 				int p = img.getRGB(x, y);
 				if (rgb.test((p >> 16) & 255, (p >> 8) & 255, p & 255)) n++;
 			}
