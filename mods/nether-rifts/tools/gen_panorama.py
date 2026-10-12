@@ -1,8 +1,10 @@
 """Builds the nether rift's panorama sprite (rift_panel.png) from the six faces PanoramaCapture took.
-Run from the module: python3 tools/gen_panorama.py [face size, default 96]
+Run from the module: python3 tools/gen_panorama.py [face size, default 512]
 
-Reads tools/panorama/panorama_0..5.png (Minecraft's own panorama, 1024 px a face, taken facing south),
-box-downsamples each face, lifts its shadows, posterises it lightly toward pixel art and lays the faces out 3×2:
+Reads tools/panorama/panorama_0..5.png (Minecraft's own panorama, 1024 px a face, taken facing south, looking
+into the Eskmorra fortress build: see PanoramaCapture and the README), box-downsamples each face to 512 (sharp
+enough that the fortress reads through a crack; the shader takes the face size from the sprite, so any size
+works), lifts its shadows, posterises it lightly toward pixel art and lays the faces out 3×2:
 
 	row 0: face 0 | face 1 | face 2
 	row 1: face 3 | face 4 | face 5
@@ -96,7 +98,7 @@ def posterise(c):
 	return tuple(min(255, int(round(round(255 * (v / 255) ** GAMMA / step) * step))) for v in c)
 
 def main():
-	size = int(sys.argv[1]) if len(sys.argv) > 1 else 96
+	size = int(sys.argv[1]) if len(sys.argv) > 1 else 512
 	atlas = [[(0, 0, 0)] * (size * 3) for _ in range(size * 2)]
 	for face in range(6):
 		w, h, rows = read_png(FACES / f"panorama_{face}.png")

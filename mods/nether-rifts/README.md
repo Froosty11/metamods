@@ -16,7 +16,7 @@ when the raid ends).
 
 A rift is drawn by metacraft-core's item shader as pixel art fixed to the world (16 pixels a block): a
 purple membrane in the nether portal's colours, glitching, with cracks that widen as the rift tears, and
-through them a far-off nether (a panorama captured in game). Players whose core shaders are replaced (Iris,
+through them a far-off nether fortress (a panorama captured in game, of Eskmorra: credits below). Players whose core shaders are replaced (Iris,
 OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, stretched over the rift; unless
 their shaderpack went through ovvar's shader patcher, which puts the same drawing into the pack (seen working
 in Complementary Reimagined and Unbound, BSL and Bliss).
@@ -38,6 +38,19 @@ The mob models: `python3 tools/gen_models.py` builds the `.bbmodel` files in
 `src/main/resources/model/nether_rifts/` from vanilla geometry (`tools/vanilla/`) and textures read from the
 local Minecraft jar. They open in Blockbench.
 
-The panorama: `./gradlew :mods:nether-rifts:runClientGameTest -PcapturePanorama` takes it again (a fixed
-seed, an open spot over lava by a crimson forest) into `tools/panorama/`; `python3 tools/gen_panorama.py`
-turns it into the panel's sprite.
+The panorama looks into **Eskmorra - Nether Fortress** by Bluespartan, built by zombiespartan456 and shiiiner
+(2014), <https://www.planetminecraft.com/project/eskmorra---nether-fortress-download/>. Its terms, from that page:
+"If you want to use the build for anything [go] ahead. but DO NOT take credit, repost it, claim [it] was made by
+someone else or just for you." So: credit to them, and the world itself isn't in this repo. To take the panorama
+again, download the world from that page into an empty folder outside the repo, then point the capture at its
+`region` folder (it copies the region files into the test server's nether, over a fixed-seed nether, and turns
+the build's biomes into nether wastes):
+
+```
+./gradlew :mods:nether-rifts:runClientGameTest -PcapturePanorama "-PpanoramaWorld=/path/to/eskmorra download/region"
+python3 tools/gen_panorama.py
+```
+
+The first writes `tools/panorama/` (1024 px a face, from over the lava sea at x 394, y 42, z 672; add
+`-PpanoramaSpots="x,y,z;x,y,z"` to try other spots, each into its own folder); the second turns it into the
+panel's sprite (512 px a face).
