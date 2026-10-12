@@ -9,6 +9,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
@@ -22,6 +23,7 @@ import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.mixin.MobAccessor;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import org.jetbrains.annotations.Nullable;
 
@@ -104,9 +106,15 @@ public final class RiftMobs {
 		}
 	}
 
-	/** The drummer, the Bombardier, piglins and brutes drop rift loot by role; ghasts (war ghasts too), hoglins and striders keep their own. */
+	/**
+	 * The drummer, the Bombardier, piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's;
+	 * ghasts, hoglins and striders keep their own.
+	 */
 	static Optional<ResourceKey<LootTable>> lootTable(Mob mob, Slot slot) {
 		String role;
+		if (mob instanceof WarGhast) {
+			return EntityTypes.GHAST.getDefaultLootTable();
+		}
 		if (mob instanceof WarDrummer) {
 			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/leader")));
 		}

@@ -10,6 +10,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.Slot;
 
@@ -30,6 +31,18 @@ public class LootTests {
 			ctx.assertTrue(head.get().getItem().get(DataComponents.ITEM_NAME).getString().equals("Rift Captain"),
 					"the head is called " + head.get().getItem().get(DataComponents.ITEM_NAME));
 		}));
+		NetherRiftsTests.register("loot/war_ghast_drops_ghast_loot", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				ctx.assertTrue(ghast.getLootTable().equals(EntityTypes.GHAST.getDefaultLootTable()), "a war ghast carries the loot table " + ghast.getLootTable());
+				ctx.killAllEntities();
+				// ten war ghasts killed by a player: the vanilla ghast's tears and gunpowder (a ghast drops neither one time in six)
+				killTen(ctx, Slot.BOMBARDIER, true, () -> ctx.assertTrue(count(ctx, Items.GHAST_TEAR) + count(ctx, Items.GUNPOWDER) > 0,
+						"ten war ghasts dropped no ghast tear or gunpowder"));
+			});
+		});
 		NetherRiftsTests.register("loot/victory_tables_exist", ctx -> {
 			for (var tier : new String[] {"small", "medium", "large"}) {
 				var key = ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("victory/" + tier));
@@ -42,24 +55,27 @@ public class LootTests {
 	/** Spawns ten of a slot, kills them (by a mock player or not), then checks after the drops land. */
 	static void killMany(GameTestHelper ctx, Slot slot, boolean byPlayer, Runnable check) {
 		FormingTests.lightFrame(ctx, 2, 3);
-		ctx.runAtTickTime(3, () -> {
-			var rift = FormingTests.riftIn(ctx);
-			var player = StageTests.player(ctx);
-			for (int i = 0; i < 10; i++) {
-				for (var entity : RiftMobs.spawn(ctx.getLevel(), rift.id(), slot, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO)) {
-					if (entity instanceof LivingEntity living) {
-						var source = byPlayer ? ctx.getLevel().damageSources().playerAttack(player) : ctx.getLevel().damageSources().generic();
-						living.hurtServer(ctx.getLevel(), source, 1000f);
-					}
+		ctx.runAtTickTime(3, () -> killTen(ctx, slot, byPlayer, check));
+	}
+
+	/** Spawns and kills ten of a slot now, in a room whose rift is already lit, then checks after the drops land. */
+	static void killTen(GameTestHelper ctx, Slot slot, boolean byPlayer, Runnable check) {
+		var rift = FormingTests.riftIn(ctx);
+		var player = StageTests.player(ctx);
+		for (int i = 0; i < 10; i++) {
+			for (var entity : RiftMobs.spawn(ctx.getLevel(), rift.id(), slot, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO)) {
+				if (entity instanceof LivingEntity living) {
+					var source = byPlayer ? ctx.getLevel().damageSources().playerAttack(player) : ctx.getLevel().damageSources().generic();
+					living.hurtServer(ctx.getLevel(), source, 1000f);
 				}
 			}
-			ctx.runAfterDelay(5, () -> {
-				check.run();
-				StageTests.remove(ctx, player);
-				ctx.killAllEntities();
-				FormingTests.cleanUp(ctx);
-				ctx.succeed();
-			});
+		}
+		ctx.runAfterDelay(5, () -> {
+			check.run();
+			StageTests.remove(ctx, player);
+			ctx.killAllEntities();
+			FormingTests.cleanUp(ctx);
+			ctx.succeed();
 		});
 	}
 
