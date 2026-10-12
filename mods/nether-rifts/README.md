@@ -3,8 +3,12 @@
 While **rift mode** is on (a new world starts with it on), lighting a nether portal in the overworld opens a
 flickering rift instead of a portal. Light it twice more and it tears open: a raid of nether mobs comes
 through in waves, built on vanilla raids (small / medium / large portals raid like easy / normal / hard).
-They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. Winning closes the rift
-and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
+They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. From wave 2 a War
+Drummer leads each wave, drumming a beat every half second: every 4th, its War Beat gives rift piglins within
+12 blocks Speed and Strength, and its Shock Beat knocks back players within 4 blocks. In Large waves 5 and
+later, Ghast Bombardiers ride war ghasts on bombing runs, each bomb's landing spot marked on the ground a
+second before it hits; the bombs don't break blocks or hurt rift mobs. The Rift Captain, in a large raid's
+last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles
@@ -28,6 +32,10 @@ metacraft-lib's fail in a fresh checkout until its data is generated, so run
 ```
 
 Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
+
+The mob models: `python3 tools/gen_models.py` builds the `.bbmodel` files in
+`src/main/resources/model/nether_rifts/` from vanilla geometry (`tools/vanilla/`) and textures read from the
+local Minecraft jar. They open in Blockbench.
 
 The panorama: `./gradlew :mods:nether-rifts:runClientGameTest -PcapturePanorama` takes it again (a fixed
 seed, an open spot over lava by a crimson forest) into `tools/panorama/`; `python3 tools/gen_panorama.py`

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -22,7 +23,7 @@ import java.util.Properties;
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
  * each stage (and its membrane staying put on the world as the camera steps aside), an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
  * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer and a
- * war ghast carrying a Ghast Bombardier.
+ * war ghast carrying a Ghast Bombardier, and from the side at each of their swings, which must go forward.
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
@@ -131,6 +132,25 @@ public final class RiftClientTests implements FabricClientGameTest {
 				check(drumMoved >= 200, "the War Drummer doesn't animate: " + drumMoved);
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 
+				// the War Drummer from its side, mid big beat, away from the first one's death puff: it faces east and the
+				// camera looks north from 4 blocks, eye at its shoulders, so its front is right of the screen centre (about
+				// 12 px a model unit). Held on frame 4 (0.2 s, arms at 110 degrees), the arms and sticks stand out ahead of
+				// its snout and above the drum; a backward swing would put them behind its back. Frame 0 (arms still) is
+				// the shot to compare with.
+				server.runCommand("tp Tester -20.5 -60.37 -26.5 180 0");
+				server.runCommand("summon nether_rifts:war_drummer -20.5 -60 -30.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(20);
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "big_beat", 0);
+				ctx.waitTicks(10);
+				var drumRest = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_side_rest").withSize(1920, 1080)));
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "big_beat", 4);
+				ctx.waitTicks(10);
+				var drumBeat = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_side_beat").withSize(1920, 1080)));
+				AnimationHold.release(server);
+				swingsForward("the War Drummer's big beat", drumRest, drumBeat, 60, 290, 300, 590);
+				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
+
 				// a war ghast in its harness, a Ghast Bombardier in the saddle, 12 blocks off and both facing the camera
 				server.runCommand("summon nether_rifts:war_ghast -40.5 -52 0.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b,Passengers:[{id:\"nether_rifts:ghast_bombardier\",Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}]}");
 				server.runCommand("tp Tester -28.5 -50 0.5 90 5");
@@ -139,12 +159,27 @@ public final class RiftClientTests implements FabricClientGameTest {
 				// the red harness's drapes as lit in game (about 80..105, 22..33, 21..25); the rider's own brown would pass a
 				// brown-strap check on its own, and neither the ghast, the sky nor the grass has this red
 				int harness = countAll(ghastShot, (r, g, b) -> r > 90 && r > 2 * g && r > 2 * b);
-				// the light-blue stained glass lenses as lit in game (about 53, 79, 112), around the rider on top (screen
+				// the light-blue stained glass lenses as lit in game (about 53, 79, 112), on the rider's face (screen
 				// x 930..990, y 365..450); the box keeps out the noon sky (b = 255) and the translucent panel top left
-				int lens = countIn(ghastShot, 760, 250, 1160, 550, (r, g, b) -> r < 100 && g > r + 15 && b > g + 20 && b < 160);
+				int lens = countIn(ghastShot, 900, 360, 1020, 450, (r, g, b) -> r < 100 && g > r + 15 && b > g + 20 && b < 160);
 				System.out.println("[nether-rifts-clienttest] war ghast harness=" + harness + " lens=" + lens);
 				check(harness >= 1000, "the harness isn't drawn on the war ghast: " + harness);
 				check(lens >= 20, "the Bombardier's goggles aren't on screen: " + lens);
+
+				// the same pair from its side, mid drop_bomb: the camera looks north from 5 blocks, eye at the rider's
+				// shoulders (about 10 px a model unit), its front right of the centre. Held on frame 4 (0.2 s, on the
+				// way down from 150 degrees, the arm at 107), the arm and its magma charge stand out ahead of the snout,
+				// above the seated legs; a backward swing would put them behind its back. Frame 0 is the shot to compare with.
+				server.runCommand("tp Tester -40.5 -48.77 5.5 180 0");
+				ctx.waitTicks(20);
+				AnimationHold.hold(server, RiftEntities.GHAST_BOMBARDIER, "drop_bomb", 0);
+				ctx.waitTicks(10);
+				var throwRest = read(ctx.takeScreenshot(TestScreenshotOptions.of("bombardier_side_rest").withSize(1920, 1080)));
+				AnimationHold.hold(server, RiftEntities.GHAST_BOMBARDIER, "drop_bomb", 4);
+				ctx.waitTicks(10);
+				var throwShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("bombardier_side_throw").withSize(1920, 1080)));
+				AnimationHold.release(server);
+				swingsForward("the Bombardier's drop_bomb", throwRest, throwShot, 58, 200, 380, 600);
 				server.runCommand("kill @e[type=nether_rifts:war_ghast]");
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
 				server.runCommand("difficulty peaceful");
@@ -328,6 +363,37 @@ public final class RiftClientTests implements FabricClientGameTest {
 		int cx = a.getWidth() / 2, cy = a.getHeight() / 2;
 		for (int y = cy - 150; y < cy + 150; y++) {
 			for (int x = cx - 150; x < cx + 150; x++) {
+				int p = a.getRGB(x, y), q = b.getRGB(x, y);
+				for (int s = 0; s <= 16; s += 8) {
+					if (Math.abs(((p >> s) & 255) - ((q >> s) & 255)) > step) {
+						n++;
+						break;
+					}
+				}
+			}
+		}
+		return n;
+	}
+
+	/**
+	 * A swing seen from the side, the mob facing right of the screen centre: the pixels that moved between the
+	 * still shot and the swing, in a box {@code near..far} pixels ahead of the centre, must far outnumber those in
+	 * the same box mirrored behind it. Forward swings moved 4200 (drummer) and 2043 (Bombardier) ahead, 238 and 0
+	 * behind; a backward one leaves only the head's nod ahead.
+	 */
+	private static void swingsForward(String what, BufferedImage still, BufferedImage swing, int near, int far, int y0, int y1) {
+		int cx = still.getWidth() / 2;
+		int ahead = changedIn(still, swing, cx + near, y0, cx + far, y1, 24);
+		int behind = changedIn(still, swing, cx - far, y0, cx - near, y1, 24);
+		System.out.println("[nether-rifts-clienttest] " + what + " ahead=" + ahead + " behind=" + behind);
+		check(ahead >= 1000 && behind * 4 <= ahead, what + " doesn't swing forward: " + ahead + " px moved ahead of it, " + behind + " behind");
+	}
+
+	/** Pixels in the box [x0, x1) × [y0, y1) that changed by more than {@code step} in some channel. */
+	private static int changedIn(BufferedImage a, BufferedImage b, int x0, int y0, int x1, int y1, int step) {
+		int n = 0;
+		for (int y = y0; y < y1; y++) {
+			for (int x = x0; x < x1; x++) {
 				int p = a.getRGB(x, y), q = b.getRGB(x, y);
 				for (int s = 0; s <= 16; s += 8) {
 					if (Math.abs(((p >> s) & 255) - ((q >> s) & 255)) > step) {
