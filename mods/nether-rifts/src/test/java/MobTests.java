@@ -117,15 +117,77 @@ public class MobTests {
 			});
 		});
 		NetherRiftsTests.register("mobs/orphan_discarded", ctx -> {
-			// Review focus 3: a rift mob whose rift no longer exists goes away when it (re)loads.
+			// Review focus 3: a rift mob whose rift no longer exists never enters the level. It is vetoed at load, not
+			// discarded afterwards, which would leave it registered with the entity manager and ticking forever.
 			var piglin = EntityTypes.PIGLIN.create(ctx.getLevel(), net.minecraft.world.entity.EntitySpawnReason.EVENT);
 			piglin.setAttached(RiftMobs.RIFT, UUID.randomUUID());
 			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
 			piglin.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
-			ctx.getLevel().addFreshEntity(piglin);
-			ctx.runAtTickTime(3, () -> {
-				ctx.assertTrue(piglin.isRemoved(), "a mob of a missing rift stayed");
+			ctx.assertFalse(ctx.getLevel().addFreshEntity(piglin), "a mob of a missing rift was added");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(ctx.getLevel().getEntity(piglin.getUUID()) == null, "a mob of a missing rift is in the level");
+				ctx.assertTrue(piglin.tickCount == 0, "a mob of a missing rift ticked");
+				ctx.assertTrue(ctx.getEntities(EntityTypes.PIGLIN).isEmpty(), "a mob of a missing rift is in the room");
 				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/fireball_from_dead_ghast_no_fire", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			for (int x = 8; x < 16; x++) {
+				for (int z = 8; z < 16; z++) {
+					ctx.setBlock(new BlockPos(x, 1, z), Blocks.OAK_PLANKS);
+				}
+			}
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(12, 8, 12)), Vec3.ZERO);
+				var ghast = (Ghast) spawned.stream().filter(e -> e instanceof Ghast).findFirst().orElseThrow();
+				var fireball = new LargeFireball(ctx.getLevel(), ghast, new Vec3(0, -1, 0), 1);
+				var from = ctx.absolutePos(new BlockPos(12, 4, 12));
+				fireball.setPos(from.getX() + 0.5, from.getY(), from.getZ() + 0.5);
+				ctx.getLevel().addFreshEntity(fireball);
+				ctx.assertTrue(RiftMobs.isRiftMob(fireball), "the fireball of a rift ghast isn't marked");
+				// the shooter dies before the fireball lands, so the owner can no longer vouch for it
+				spawned.forEach(net.minecraft.world.entity.Entity::discard);
+				ctx.assertTrue(fireball.getOwner() == null, "the owner is still around: the test proves nothing");
+			});
+			ctx.runAtTickTime(40, () -> {
+				for (var pos : BlockPos.betweenClosed(ctx.absolutePos(new BlockPos(6, 1, 6)), ctx.absolutePos(new BlockPos(18, 5, 18)))) {
+					ctx.assertFalse(ctx.getLevel().getBlockState(pos).is(Blocks.FIRE), "fire at " + pos.toShortString());
+				}
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/no_bartering", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var player = StageTests.player(ctx);
+				var spot = ctx.absolutePos(new BlockPos(12, 1, 12));
+				player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+				var rift = FormingTests.riftIn(ctx);
+				var riftPiglin = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(12, 1, 13)), Vec3.ZERO).getFirst();
+				var plainPiglin = ctx.spawn(EntityTypes.PIGLIN, new BlockPos(8, 1, 13));
+				var ingot = new ItemStack(Items.GOLD_INGOT);
+				player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ingot);
+				player.interactOn(plainPiglin, net.minecraft.world.InteractionHand.MAIN_HAND, Vec3.ZERO);
+				ctx.assertTrue(plainPiglin.getOffhandItem().is(Items.GOLD_INGOT), "control: a plain piglin didn't take the gold, so the interaction proves nothing");
+				var ingot2 = new ItemStack(Items.GOLD_INGOT);
+				player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ingot2);
+				player.interactOn(riftPiglin, net.minecraft.world.InteractionHand.MAIN_HAND, Vec3.ZERO);
+				ctx.assertTrue(riftPiglin.getOffhandItem().isEmpty(), "the rift piglin took the gold");
+				ctx.assertTrue(player.getMainHandItem().is(Items.GOLD_INGOT), "the player lost the gold to a rift piglin");
+				ctx.runAfterDelay(10, () -> {
+					ctx.assertTrue(riftPiglin.getOffhandItem().isEmpty(), "the rift piglin took the gold");
+					ctx.assertTrue(player.getMainHandItem().is(Items.GOLD_INGOT), "the player lost the gold to a rift piglin");
+					ctx.assertTrue(riftPiglin.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ADMIRING_ITEM).isEmpty(),
+							"the rift piglin is admiring");
+					StageTests.remove(ctx, player);
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
 			});
 		});
 	}

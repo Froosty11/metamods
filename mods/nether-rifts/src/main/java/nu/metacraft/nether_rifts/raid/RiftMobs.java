@@ -14,6 +14,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.PiglinBrute;
+import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
@@ -38,11 +39,17 @@ public final class RiftMobs {
 	private RiftMobs() {}
 
 	public static void init() {
-		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+		// Vetoed rather than discarded: discarding inside ENTITY_LOAD leaves the entity manager half-registered.
+		ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) -> {
 			var id = entity.getAttached(RIFT);
-			if (id != null && RiftData.get(level).byId(id).isEmpty()) {
-				entity.discard();
+			if (id == null && entity instanceof LargeFireball fireball) {
+				// A fireball from a rift mob is marked at birth, so it stays ours after the shooter is gone.
+				id = fireball.getOwner() == null ? null : fireball.getOwner().getAttached(RIFT);
+				if (id != null) {
+					fireball.setAttached(RIFT, id);
+				}
 			}
+			return id == null || RiftData.get(level).byId(id).isPresent();
 		});
 	}
 
