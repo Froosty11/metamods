@@ -108,6 +108,20 @@ public class RiftData extends SavedData {
 		return Optional.ofNullable(framing);
 	}
 
+	/** Whether a live rift other than {@code rift} claims the position: a frame block two rifts share. */
+	public boolean claimedByOther(BlockPos pos, Rift rift) {
+		var ids = index.get(pos);
+		if (ids == null) {
+			return false;
+		}
+		for (var id : ids) {
+			if (!id.equals(rift.id()) && rifts.containsKey(id)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public Optional<Rift> byId(UUID id) {
 		return Optional.ofNullable(rifts.get(id));
 	}

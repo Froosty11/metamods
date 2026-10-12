@@ -297,7 +297,8 @@ public final class RiftRaid {
 
 	/**
 	 * Takes the rift down: its mobs (if asked), blocks, frame (as config says), boss bar and visual. Only frame
-	 * positions still holding a frame material change: whatever a player put in a broken frame stays.
+	 * positions still holding a frame material change: whatever a player put in a broken frame stays. A frame
+	 * block another live rift shares stays too (its frame must stay whole); the last rift using it converts it.
 	 */
 	public static void end(ServerLevel level, Rift rift, RiftData data, boolean discardMobs) {
 		if (discardMobs) {
@@ -310,7 +311,7 @@ public final class RiftRaid {
 		var collapse = NetherRiftsConfig.getInstance().frameCollapse();
 		for (var pos : rift.shape().frame()) {
 			var block = level.getBlockState(pos).getBlock();
-			if (!rift.shape().frameMaterials().contains(block)) {
+			if (!rift.shape().frameMaterials().contains(block) || data.claimedByOther(pos, rift)) {
 				continue;
 			}
 			var to = rift.crying() ? Blocks.AIR : collapse.getOrDefault(block, Blocks.AIR);

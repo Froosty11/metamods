@@ -165,6 +165,50 @@ public class RaidTests {
 				finish(ctx, player);
 			}));
 		});
+		NetherRiftsTests.register("raid/shared_frame_spares_neighbour", ctx -> {
+			// Two portals sharing the obsidian column at x = 3 (as in forming/shared_frame_indexed).
+			var won = FormingTests.lightFrame(ctx, 2, 3);
+			for (int x = 3; x <= 6; x++) {
+				ctx.setBlock(new BlockPos(x, 1, 5), Blocks.OBSIDIAN);
+				ctx.setBlock(new BlockPos(x, 5, 5), Blocks.OBSIDIAN);
+			}
+			for (int y = 1; y <= 5; y++) {
+				ctx.setBlock(new BlockPos(6, y, 5), Blocks.OBSIDIAN);
+			}
+			var neighbourInside = new BlockPos(4, 2, 5);
+			ctx.setBlock(neighbourInside, Blocks.FIRE);
+			var torn = new Rift[1];
+			var participant = new ServerPlayer[1];
+			ctx.onEachTick(() -> {
+				if (torn[0] != null && torn[0].stage() == Stage.RAID) {
+					killAll(ctx, torn[0], participant[0]);
+				}
+			});
+			ctx.runAtTickTime(3, () -> {
+				ctx.assertTrue(FormingTests.riftsIn(ctx).size() == 2, FormingTests.riftsIn(ctx).size() + " rifts");
+				var data = RiftData.get(ctx.getLevel());
+				var rift = data.at(ctx.absolutePos(won)).orElseThrow();
+				var neighbour = data.at(ctx.absolutePos(neighbourInside)).orElseThrow();
+				var player = participant(ctx);
+				participant[0] = player;
+				torn[0] = rift;
+				rift.tear(ctx.getLevel());
+				ctx.succeedWhen(() -> {
+					ctx.assertTrue(data.byId(rift.id()).isEmpty(), "the won rift is still open");
+					ctx.assertTrue(data.byId(neighbour.id()).isPresent(), "the neighbour went with it");
+					ctx.assertTrue(neighbour.stage() == Stage.LIT, "the neighbour is " + neighbour.stage());
+					for (int y = 2; y <= 4; y++) {
+						ctx.assertBlockPresent(Blocks.OBSIDIAN, new BlockPos(3, y, 5));
+					}
+					ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, won.offset(-1, 0, 0));
+					ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, won.below());
+					ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, won.offset(1, 3, 0));
+					StageTests.remove(ctx, player);
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+				});
+			});
+		});
 		NetherRiftsTests.register("raid/unloaded_advances_after_grace", ctx -> torn(ctx, (rift, player) -> ctx.runAfterDelay(25, () -> {
 			// A cleared wave whose surroundings never load still moves on once the grace runs out: no stalled raid.
 			var data = RiftData.get(ctx.getLevel());
