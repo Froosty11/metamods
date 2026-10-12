@@ -10,9 +10,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.Slot;
+
+import java.util.Optional;
 
 public class LootTests {
 
@@ -41,6 +44,23 @@ public class LootTests {
 				// ten war ghasts killed by a player: the vanilla ghast's tears and gunpowder (a ghast drops neither one time in six)
 				killTen(ctx, Slot.BOMBARDIER, true, () -> ctx.assertTrue(count(ctx, Items.GHAST_TEAR) + count(ctx, Items.GUNPOWDER) > 0,
 						"ten war ghasts dropped no ghast tear or gunpowder"));
+			});
+		});
+		NetherRiftsTests.register("loot/summoned_war_ghast_drops_ghast_loot", ctx -> {
+			// A /summon or spawn-egg war ghast has no rift, so it keeps its own table, which hands out a ghast's.
+			var key = ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/war_ghast"));
+			ctx.assertTrue(ctx.getLevel().getServer().reloadableRegistries().getLootTable(key) != LootTable.EMPTY, "no entities/war_ghast");
+			var player = StageTests.player(ctx);
+			for (int i = 0; i < 10; i++) {
+				var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 1, 12));
+				ctx.assertTrue(ghast.getLootTable().equals(Optional.of(key)), "a summoned war ghast carries the loot table " + ghast.getLootTable());
+				ghast.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().playerAttack(player), 1000f);
+			}
+			ctx.runAfterDelay(5, () -> {
+				ctx.assertTrue(count(ctx, Items.GHAST_TEAR) + count(ctx, Items.GUNPOWDER) > 0, "ten summoned war ghasts dropped no ghast tear or gunpowder");
+				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				ctx.succeed();
 			});
 		});
 		NetherRiftsTests.register("loot/victory_tables_exist", ctx -> {

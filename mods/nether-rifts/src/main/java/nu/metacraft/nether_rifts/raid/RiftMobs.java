@@ -107,8 +107,9 @@ public final class RiftMobs {
 	}
 
 	/**
-	 * The drummer, the Bombardier, piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's;
-	 * ghasts, hoglins and striders keep their own.
+	 * The drummer, the Bombardier, piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
+	 * (a summoned one gets the same from its own table, {@code entities/war_ghast}); ghasts, hoglins and striders
+	 * keep their own.
 	 */
 	static Optional<ResourceKey<LootTable>> lootTable(Mob mob, Slot slot) {
 		String role;
