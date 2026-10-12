@@ -1,7 +1,10 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.phys.Vec3;
@@ -75,11 +78,18 @@ public class BombTests {
 			ctx.succeed();
 		});
 		NetherRiftsTests.register("bomb/spares_rift_mobs", ctx -> {
+			// a floor, so nothing falls and any movement is the blast's
+			BombardierTests.stoneFloor(ctx);
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
 				var rift = FormingTests.riftIn(ctx);
 				var at = ctx.absolutePos(new BlockPos(12, 1, 12));
 				var piglin = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, at, Vec3.ZERO).getFirst();
+				// a block and a half off the blast's centre, where vanilla would push it hard; still, so any push shows
+				piglin.setNoAi(true);
+				piglin.teleportTo(at.getX() + 2.0, at.getY(), at.getZ() + 0.5);
+				piglin.setDeltaMovement(Vec3.ZERO);
+				var piglinAt = piglin.position();
 				var player = StageTests.player(ctx);
 				player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
 				player.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
@@ -92,11 +102,43 @@ public class BombTests {
 				ctx.runAfterDelay(25, () -> {
 					ctx.assertTrue(player.getHealth() < playerBefore, "the blast didn't hurt the player, so the test proves nothing");
 					ctx.assertTrue(piglin.getHealth() == piglinBefore, "the blast hurt a rift piglin");
+					ctx.assertTrue(piglin.getDeltaMovement().horizontalDistance() < 0.01, "the blast pushed a rift piglin: " + piglin.getDeltaMovement());
+					ctx.assertTrue(piglin.position().distanceTo(piglinAt) < 0.01, "the blast moved a rift piglin from " + piglinAt + " to " + piglin.position());
 					StageTests.remove(ctx, player);
 					ctx.killAllEntities();
 					FormingTests.cleanUp(ctx);
 					ctx.succeed();
 				});
+			});
+		});
+		NetherRiftsTests.register("bomb/spares_things", ctx -> {
+			// Rift loot on the ground and players' armour stands outlast a bombing run: no damage, no push.
+			BombardierTests.stoneFloor(ctx);
+			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
+			var player = StageTests.player(ctx);
+			player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+			player.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+			var stand = ctx.spawn(EntityTypes.ARMOR_STAND, new BlockPos(13, 1, 12));
+			stand.setDeltaMovement(Vec3.ZERO);
+			var item = new ItemEntity(ctx.getLevel(), at.getX() + 0.5, at.getY(), at.getZ() + 1.5, new ItemStack(Items.GOLD_INGOT));
+			item.setDeltaMovement(Vec3.ZERO);
+			ctx.getLevel().addFreshEntity(item);
+			var bomb = new MagmaBomb(ctx.getLevel(), null);
+			bomb.setPos(at.getX() + 0.5, at.getY() + 3, at.getZ() + 0.5);
+			bomb.setDeltaMovement(0, -0.3, 0);
+			ctx.getLevel().addFreshEntity(bomb);
+			float before = player.getHealth();
+			ctx.runAtTickTime(25, () -> {
+				ctx.assertTrue(player.getHealth() < before, "the blast didn't hurt the player, so the test proves nothing");
+				ctx.assertTrue(stand.isAlive(), "the blast broke an armour stand");
+				ctx.assertTrue(item.isAlive(), "the blast destroyed an item on the ground");
+				ctx.assertTrue(stand.getDeltaMovement().horizontalDistance() < 0.01 && Math.abs(stand.getX() - (at.getX() + 1.5)) < 0.01,
+						"the blast pushed an armour stand: " + stand.position());
+				ctx.assertTrue(Math.abs(item.getZ() - (at.getZ() + 1.5)) < 0.01 && Math.abs(item.getX() - (at.getX() + 0.5)) < 0.01,
+						"the blast pushed an item: " + item.position());
+				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				ctx.succeed();
 			});
 		});
 		NetherRiftsTests.register("bomb/warning_then_gone", ctx -> {
