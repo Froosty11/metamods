@@ -24,3 +24,24 @@ dependencies {
 	// the void anchor in the same client run: the shared shader must draw both rifts
 	gametestRuntimeOnly project(":mods:metacraft-qol")
 }
+
+// The same client tests under a shaderpack: -Piris=<shaderpack .zip> adds Iris and Sodium to the test client and
+// turns that pack on. Iris replaces the vanilla item shader, so the rifts show whatever the pack does with them;
+// the test then logs what it measures instead of failing (RIFTS_SHADERPACK names the pack).
+if (project.hasProperty('iris')) {
+	def pack = file(project.property('iris'))
+	dependencies {
+		gametestRuntimeOnly("maven.modrinth:iris:1.11.7+26.3-fabric")
+		gametestRuntimeOnly("maven.modrinth:sodium:mc26.3-0.9.3-alpha.1-fabric")
+	}
+	tasks.named('runClientGameTest') {
+		def runDir = file('build/run/clientGameTest')
+		environment('RIFTS_SHADERPACK', pack.name)
+		doFirst {
+			delete fileTree("$runDir/shaderpacks")
+			project.copy { from pack; into "$runDir/shaderpacks" }
+			file("$runDir/config").mkdirs()
+			file("$runDir/config/iris.properties").text = "enableShaders=true\nshaderPack=${pack.name}\n"
+		}
+	}
+}

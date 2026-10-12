@@ -887,7 +887,12 @@ mirrored overalls without patches — nothing breaks. Shaderpack users run `Ovva
 `+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
-MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
+MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's
+rifts (void anchor, nether rifts): the pack's first albedo sample in its entity program is wrapped
+so a rift-marked quad gets the rift's colour, rifts are dropped from the shadow pass, and two custom
+uniforms (time, screen height) go into `shaders.properties`. Super Duper Vanilla samples inside a
+shared include, so its rifts stay the flat fallback sprite. Check a pack in game with
+`./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
 
 ## Credits
 

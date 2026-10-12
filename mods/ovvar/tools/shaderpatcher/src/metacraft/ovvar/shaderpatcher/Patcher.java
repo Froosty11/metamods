@@ -43,8 +43,10 @@ import java.util.zip.ZipOutputStream;
  *   <li>vertex stage: varyings carry the raw vertex colour (the dye colour, which holds the
  *	   patch bits), position and normal to the fragment stage.</li>
  * </ul>
- * Nothing else in the pack is touched; originals are kept. Textures that are not Ovvar's are
- * sampled exactly as before.
+ * It does the same for metacraft-core's rifts (rift_common/void_rift/nether_rift.glsl, bundled
+ * too): see {@link #patchRifts}. Rifts also drop out of the pack's shadow pass, and
+ * shaders.properties gains two custom uniforms. Nothing else in the pack is touched; originals
+ * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
  *
  * Double-click: patches every pack in the Minecraft shaderpacks folder and shows a summary.
  * Command line: {@code java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]}.
@@ -53,6 +55,13 @@ public final class Patcher {
 	private static final String SUFFIX = "+ovvar";
 	private static final String TAG = "ovvar_uv";
 	private static final String GLSL = readResource("/ovvar.glsl");
+	private static final String RIFT_TAG = "metacraft_rift_sample";
+	/** The rifts' drawing, the very files metacraft-core's item shader includes. */
+	private static final String RIFT_GLSL = readResource("/rift_common.glsl") + readResource("/void_rift.glsl") + readResource("/nether_rift.glsl");
+	/** Iris/OptiFine custom uniforms under names no pack uses, so the rift code never redeclares the pack's own. */
+	private static final String RIFT_UNIFORMS = "\n# Metacraft rifts (added by the shader patcher): time and screen height under names of their own\n"
+			+ "uniform.float.metacraftRiftTime = frameTimeCounter\n"
+			+ "uniform.float.metacraftRiftHeight = viewHeight\n";
 
 	/** Texture-coordinate varying names, most likely first. */
 	private static final List<String> UV_NAMES = Arrays.asList(
@@ -156,23 +165,52 @@ public final class Patcher {
 		say(name + ":");
 		Set<String> done = new HashSet<>();
 		int patched = 0;
+		boolean rifts = false;
 		for (String[] pair : entityPrograms(files)) {
 			String frag = pair[0], vert = pair[1];
 			if (!done.add(frag)) continue;
 			String fragText = text(files, frag);
-			if (fragText.contains(TAG)) {
-				say("  " + frag + ": already patched");
+			String vertText = vert == null ? null : text(files, vert);
+			if (vert == null) {
+				say("  " + frag + ": no matching vertex program found; skipped");
 				continue;
 			}
-			String vertText = vert == null ? null : text(files, vert);
-			String[] result = patchProgram(files, frag, fragText, vert, vertText);
-			if (result == null) continue;
-			files.put(frag, result[0].getBytes(StandardCharsets.UTF_8));
-			if (vert != null && !vert.equals(frag)) {
-				files.put(vert, result[1].getBytes(StandardCharsets.UTF_8));
+			boolean changed = false;
+			if (fragText.contains(TAG)) {
+				say("  " + frag + ": ovvar already patched");
+			} else {
+				String[] result = patchProgram(files, frag, fragText, vert, vertText);
+				if (result != null) {
+					fragText = result[0];
+					vertText = result[1];
+					changed = true;
+				}
+			}
+			if (fragText.contains(RIFT_TAG)) {
+				say("  " + frag + ": rifts already patched");
+			} else {
+				String[] result = patchRifts(files, frag, fragText, vert, vertText);
+				if (result != null) {
+					fragText = result[0];
+					vertText = result[1];
+					changed = true;
+					rifts = true;
+				}
+			}
+			if (!changed) continue;
+			files.put(frag, fragText.getBytes(StandardCharsets.UTF_8));
+			if (!vert.equals(frag)) {
+				files.put(vert, vertText.getBytes(StandardCharsets.UTF_8));
 				done.add(vert);
 			}
 			patched++;
+		}
+		if (rifts) {
+			patchRiftShadows(files);
+			String props = files.containsKey("shaders/shaders.properties") ? text(files, "shaders/shaders.properties") : "";
+			if (!props.contains("metacraftRiftTime")) {
+				files.put("shaders/shaders.properties", (props + RIFT_UNIFORMS).getBytes(StandardCharsets.UTF_8));
+			}
 		}
 		if (patched == 0) {
 			say("  nothing patched");
@@ -237,10 +275,6 @@ public final class Patcher {
 
 	/** Returns [patched fragment text, patched vertex text] or null (with a reason logged). */
 	private String[] patchProgram(Map<String, byte[]> files, String fragPath, String fragText, String vertPath, String vertText) {
-		if (vertPath == null) {
-			say("  " + fragPath + ": no matching vertex program found; skipped");
-			return null;
-		}
 		boolean unified = vertPath.equals(fragPath);
 		int[] fr = region(fragText, FRAGMENT_MARKER, VERTEX_MARKER);
 		String frag = fragText.substring(fr[0], fr[1]);
@@ -324,6 +358,178 @@ public final class Patcher {
 		say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": '" + uv.name + "' and '" + color.name
 				+ "' shadowed, art via " + sampleFn + "(" + samplerName + "), colour from " + colorAttr);
 		return unified ? new String[]{vertOut, vertOut} : new String[]{fragOut, vertOut};
+	}
+
+	/**
+	 * Metacraft's rifts (the void anchor's, nether rifts) are item-display quads whose vertex tint is a
+	 * marker; metacraft-core's item shader draws them in place of their sprite. A shaderpack draws item
+	 * displays with its entity program instead, so this puts the same code there: the vertex stage reads
+	 * the marker and the quad corner (gl_VertexID, as vanilla's gl_VertexIndex), and the program's first
+	 * albedo sample in main() goes through metacraft_rift_sample, which returns the rift's colour for a
+	 * rift and the plain sample for anything else. The pack then lights and fogs it like any albedo.
+	 * Returns [fragment text, vertex text] or null (with a reason logged).
+	 */
+	private String[] patchRifts(Map<String, byte[]> files, String fragPath, String fragText, String vertPath, String vertText) {
+		boolean unified = vertPath.equals(fragPath);
+		int[] fr = region(fragText, FRAGMENT_MARKER, VERTEX_MARKER);
+		String frag = fragText.substring(fr[0], fr[1]);
+		String samplerName = albedoSampler(files, fragPath, fragText, new HashSet<>(), 0);
+		if (samplerName == null) {
+			say("  " + fragPath + ": rifts: no albedo sampler; skipped");
+			return null;
+		}
+		Decl uv = findVarying(frag, "in|varying", UV_NAMES, false, "texcoord");
+		Matcher main = MAIN.matcher(frag);
+		if (uv == null || !main.find()) {
+			say("  " + fragPath + ": rifts: no texture-coordinate varying or no void main(); skipped");
+			return null;
+		}
+		// The first call in main() that reads the albedo sampler, whatever it is (texture2D, a pack's own
+		// sampling function or macro); textureSize and the like return no colour.
+		Matcher sample = Pattern.compile("\\b(\\w+)\\s*\\(\\s*" + Pattern.quote(samplerName) + "\\s*[,)]").matcher(frag);
+		int callStart = -1, callEnd = -1;
+		String sampleFn = null;
+		int from = main.end();
+		while (sample.find(from)) {
+			from = sample.end();
+			if (sample.group(1).matches("textureSize|textureQueryLod|textureQueryLevels")) continue;
+			int close = closingParen(frag, frag.indexOf('(', sample.start()));
+			if (close < 0) break;
+			callStart = sample.start();
+			callEnd = close + 1;
+			sampleFn = sample.group(1);
+			break;
+		}
+		if (sampleFn == null) {
+			say("  " + fragPath + ": rifts: main() never samples " + samplerName + "; skipped");
+			return null;
+		}
+		String in = uv.direction;
+		String helper = "\n// --- Metacraft rifts (metacraft.se): the void anchor's and nether rifts, drawn as in metacraft-core's item shader\n"
+				+ in + " vec2 metacraft_rift_corner;\n"
+				+ in + " vec2 metacraft_rift_tex;\n"
+				+ in + " float metacraft_rift_flag;\n"
+				+ in + " float metacraft_rift_stage;\n"
+				+ "uniform float metacraftRiftTime;\n"
+				+ "uniform float metacraftRiftHeight;\n"
+				+ "float metacraft_rift_det(mat2 m) { return m[0][0] * m[1][1] - m[1][0] * m[0][1]; }\n"
+				+ "mat2 metacraft_rift_inverse(mat2 m) { return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0]) / metacraft_rift_det(m); }\n"
+				+ "#define texCoord0 metacraft_rift_tex\n"
+				+ "#define riftUv metacraft_rift_corner\n"
+				+ "#define GameTime (metacraftRiftTime / 1200.0)\n"
+				+ "#define ScreenSize vec2(1.0, metacraftRiftHeight)\n"
+				+ "#define determinant metacraft_rift_det\n"
+				+ "#define inverse metacraft_rift_inverse\n"
+				+ RIFT_GLSL
+				+ "\n// the pack's own albedo sample goes through here: a rift's colour for a rift, else the sample\n"
+				+ "vec4 metacraft_rift_sample(vec4 sprite) {\n"
+				+ "	float flag = metacraft_rift_flag;\n"
+				+ "	if (flag < 0.5) return sprite;\n"
+				+ "	vec4 rift;\n"
+				+ "	if (flag > 11.5) rift = netherRiftEdge(metacraft_rift_stage);\n"
+				+ "	else if (flag > 10.5) rift = netherRiftBody(metacraft_rift_stage);\n"
+				+ "	else if (flag > 2.5) rift = riftCore();\n"
+				+ "	else if (flag > 1.5) rift = riftGlow(sprite);\n"
+				+ "	else rift = riftColor(sprite);\n"
+				+ "	if (rift.a < 0.02) discard;\n"
+				+ "	return rift;\n"
+				+ "}\n"
+				+ "#undef texCoord0\n#undef riftUv\n#undef GameTime\n#undef ScreenSize\n#undef determinant\n#undef inverse\n"
+				+ "// --- end Metacraft rifts\n\n";
+		StringBuilder out = new StringBuilder(frag);
+		out.insert(callEnd, ")");
+		out.insert(callStart, RIFT_TAG + "(");
+		out.insert(main.start(), helper);
+		String fragOut = fragText.substring(0, fr[0]) + out + fragText.substring(fr[1]);
+
+		String vertSource = unified ? fragOut : vertText;
+		int[] vr = unified ? region(vertSource, VERTEX_MARKER, FRAGMENT_MARKER) : new int[]{0, vertSource.length()};
+		String vert = vertSource.substring(vr[0], vr[1]);
+		Matcher vmain = MAIN.matcher(vert);
+		if (!vmain.find()) {
+			say("  " + fragPath + ": rifts: vertex side (" + vertPath + ") has no void main(); skipped");
+			return null;
+		}
+		String dir = in.equals("in") ? "out" : "varying";
+		boolean core = vert.contains("vaColor") || vert.contains("vaPosition");
+		String colorAttr = core ? "vaColor" : "gl_Color", uvAttr = core ? "vaUV0" : "gl_MultiTexCoord0.st";
+		String newVert = vert.substring(0, vmain.start())
+				+ "\n// --- Metacraft rifts: the tint marker, the quad corner and the raw sprite coordinate\n"
+				+ dir + " vec2 metacraft_rift_corner;\n"
+				+ dir + " vec2 metacraft_rift_tex;\n"
+				+ dir + " float metacraft_rift_flag;\n"
+				+ dir + " float metacraft_rift_stage;\n\n"
+				+ vert.substring(vmain.start(), vmain.end())
+				+ "\n	{\n"
+				+ "		vec3 tint = floor(" + colorAttr + ".rgb * 255.0 + 0.5);\n"
+				+ "		int corner = gl_VertexID - 4 * (gl_VertexID / 4);\n"
+				+ "		vec2 cornerUv = vec2((corner == 1 || corner == 2) ? 1.0 : 0.0, corner >= 2 ? 1.0 : 0.0);\n"
+				+ "		metacraft_rift_tex = " + uvAttr + ";\n"
+				+ "		metacraft_rift_flag = 0.0;\n"
+				+ "		metacraft_rift_stage = 0.0;\n"
+				+ "		metacraft_rift_corner = vec2(0.0);\n"
+				+ "		if (tint.r == 254.0 && tint.g == 254.0 && tint.b >= 251.0 && tint.b <= 253.0) {\n"
+				+ "			metacraft_rift_flag = 254.0 - tint.b;\n"
+				+ "			metacraft_rift_corner = cornerUv;\n"
+				+ "		} else if (tint.r == 254.0 && tint.g >= 251.0 && tint.g <= 253.0 && tint.b >= 249.0 && tint.b <= 250.0) {\n"
+				+ "			metacraft_rift_flag = 11.0 + (250.0 - tint.b);\n"
+				+ "			metacraft_rift_stage = 254.0 - tint.g;\n"
+				+ "			metacraft_rift_corner = cornerUv;\n"
+				+ "		}\n"
+				+ "	}\n"
+				+ vert.substring(vmain.end());
+		String vertOut = vertSource.substring(0, vr[0]) + newVert + vertSource.substring(vr[1]);
+		say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": rifts drawn through " + sampleFn + "(" + samplerName + "), marker from " + colorAttr);
+		return unified ? new String[]{vertOut, vertOut} : new String[]{fragOut, vertOut};
+	}
+
+	/**
+	 * A rift gives off light; it casts no shadow. The pack's shadow pass would draw its sprite as a
+	 * cutout, so each shadow vertex program's main() is renamed and wrapped by one that, after it,
+	 * moves a rift-marked vertex behind the near plane.
+	 */
+	private void patchRiftShadows(Map<String, byte[]> files) {
+		Set<String> done = new HashSet<>();
+		for (String path : new ArrayList<>(files.keySet())) {
+			String file = path.substring(path.lastIndexOf('/') + 1);
+			if (!path.startsWith("shaders/") || !file.startsWith("shadow") || !file.endsWith(".vsh")) continue;
+			String prog = program(files, path);
+			if (!done.add(prog)) continue;
+			String text = text(files, prog);
+			if (text.contains("metacraft_rift_shadow_main")) continue;
+			int[] vr = prog.equals(path) ? new int[]{0, text.length()} : region(text, VERTEX_MARKER, FRAGMENT_MARKER);
+			String vert = text.substring(vr[0], vr[1]);
+			Matcher main = MAIN.matcher(vert);
+			if (!main.find()) {
+				say("  " + prog + ": rift shadows: no void main(); left casting shadows");
+				continue;
+			}
+			String colorAttr = vert.contains("vaColor") || vert.contains("vaPosition") ? "vaColor" : "gl_Color";
+			String wrapper = "\n// --- Metacraft rifts: a rift casts no shadow\n"
+					+ "void metacraft_rift_shadow_main();\n"
+					+ "void main() {\n"
+					+ "	metacraft_rift_shadow_main();\n"
+					+ "	vec3 tint = floor(" + colorAttr + ".rgb * 255.0 + 0.5);\n"
+					+ "	if (tint.r == 254.0 && ((tint.g == 254.0 && tint.b >= 251.0 && tint.b <= 253.0)\n"
+					+ "			|| (tint.g >= 251.0 && tint.g <= 253.0 && tint.b >= 249.0 && tint.b <= 250.0))) {\n"
+					+ "		gl_Position = vec4(0.0, 0.0, -2.0, 1.0);\n"
+					+ "	}\n"
+					+ "}\n\n";
+			String newVert = vert.substring(0, main.start()) + wrapper + "void metacraft_rift_shadow_main() {" + vert.substring(main.end());
+			files.put(prog, (text.substring(0, vr[0]) + newVert + text.substring(vr[1])).getBytes(StandardCharsets.UTF_8));
+			say("  " + prog + ": rifts cast no shadow");
+		}
+	}
+
+	/** The index of the parenthesis closing the one at {@code open}, or -1. */
+	private static int closingParen(String text, int open) {
+		int depth = 0;
+		for (int i = open; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '(') depth++;
+			else if (c == ')' && --depth == 0) return i;
+		}
+		return -1;
 	}
 
 	private static String shadow(Decl d) {

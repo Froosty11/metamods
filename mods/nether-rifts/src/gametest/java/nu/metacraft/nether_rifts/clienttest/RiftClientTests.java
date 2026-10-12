@@ -60,16 +60,16 @@ public final class RiftClientTests implements FabricClientGameTest {
 					crimson[i] = count(first, RiftClientTests::crimsonPixel);
 					movement[i] = moved;
 					System.out.println("[nether-rifts-clienttest] " + stage + " purple=" + purple + " moved=" + moved + " crimson=" + crimson[i]);
-					if (purple < BOX / 20) throw new AssertionError("no rift on screen at " + stage + ": " + purple + " rift pixels");
-					if (moved < BOX / 200) throw new AssertionError("the rift doesn't move at " + stage + ": " + moved + " pixels changed");
+					check(purple >= BOX / 20, "no rift on screen at " + stage + ": " + purple + " rift pixels");
+					check(moved >= BOX / 200, "the rift doesn't move at " + stage + ": " + moved + " pixels changed");
 				}
 				// The fallback sprite looks the same at every stage (the marker tint barely changes it); only the
 				// shader reddens and churns more as the rift tears. Rising crimson and motion prove it ran.
 				if (crimson[2] < 2000 || crimson[2] < crimson[0] * 2) {
-					throw new AssertionError("the torn rift isn't redder than the lit one (shader not running?): crimson lit=" + crimson[0] + " torn=" + crimson[2]);
+					check(false, "the torn rift isn't redder than the lit one (shader not running?): crimson lit=" + crimson[0] + " torn=" + crimson[2]);
 				}
 				if (movement[2] * 2 < movement[0] * 3) {
-					throw new AssertionError("the torn rift doesn't churn more than the lit one: moved lit=" + movement[0] + " torn=" + movement[2]);
+					check(false, "the torn rift doesn't churn more than the lit one: moved lit=" + movement[0] + " torn=" + movement[2]);
 				}
 				server.runCommand("rifts collapse 0 -58 0");
 
@@ -86,7 +86,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 				var blob = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_blob").withSize(1920, 1080)));
 				int blobPurple = count(blob, RiftClientTests::riftPixel);
 				System.out.println("[nether-rifts-clienttest] blob before=" + blobBefore + " after=" + blobPurple);
-				if (blobPurple < blobBefore + BOX / 10) throw new AssertionError("forming didn't draw the L-shaped rift: " + blobBefore + " -> " + blobPurple);
+				check(blobPurple >= blobBefore + BOX / 10, "forming didn't draw the L-shaped rift: " + blobBefore + " -> " + blobPurple);
 
 				// a 2×3 portal on the Z plane (panels turned a quarter): frame z -21..-18 at x 20, inside z -20..-19, looked at from the east
 				server.runCommand("fill 20 -60 -21 20 -56 -18 minecraft:obsidian");
@@ -101,8 +101,8 @@ public final class RiftClientTests implements FabricClientGameTest {
 				int zPurple = count(zA, RiftClientTests::riftPixel);
 				int zMoved = changed(zA, zB, 24);
 				System.out.println("[nether-rifts-clienttest] z_plane purple=" + zPurple + " moved=" + zMoved);
-				if (zPurple < BOX / 20) throw new AssertionError("no Z-plane rift on screen: " + zPurple + " rift pixels");
-				if (zMoved < BOX / 200) throw new AssertionError("the Z-plane rift doesn't move: " + zMoved + " pixels changed");
+				check(zPurple >= BOX / 20, "no Z-plane rift on screen: " + zPurple + " rift pixels");
+				check(zMoved >= BOX / 200, "the Z-plane rift doesn't move: " + zMoved + " pixels changed");
 				server.runCommand("rifts collapse 20 -58 -20");
 
 				// the void anchor's rift, same shader file
@@ -113,12 +113,24 @@ public final class RiftClientTests implements FabricClientGameTest {
 				var voidShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("void_anchor_rift").withSize(1920, 1080)));
 				int voidPx = count(voidShot, (r, g, bl) -> r >= 28 && r <= 70 && g < r && g >= r - 18 && bl > r + 5 && bl < r + 30);
 				System.out.println("[nether-rifts-clienttest] void=" + voidPx);
-				if (voidPx < BOX / 100) throw new AssertionError("the void anchor's rift lost its shader: " + voidPx);
+				check(voidPx >= BOX / 100, "the void anchor's rift lost its shader: " + voidPx);
 			}
 		}
 	}
 
 	static final int BOX = 300 * 300;
+
+	/** Set when the client runs Iris with this shaderpack (-Piris): the rifts are the pack's to draw, so log, don't fail. */
+	static final String SHADERPACK = System.getenv("RIFTS_SHADERPACK");
+
+	private static void check(boolean ok, String failure) {
+		if (ok) return;
+		if (SHADERPACK != null) {
+			System.out.println("[nether-rifts-clienttest] under " + SHADERPACK + ": " + failure);
+		} else {
+			throw new AssertionError(failure);
+		}
+	}
 
 	/** The swirl's violet and crimson, the edge's hot pink; none of which a flat world at night has. */
 	static boolean riftPixel(int r, int g, int b) {
