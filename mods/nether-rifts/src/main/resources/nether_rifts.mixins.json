@@ -3,7 +3,10 @@
 	"minVersion": "0.8",
 	"package": "nu.metacraft.nether_rifts.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"mixins": [],
+	"mixins": [
+		"CrafterBlockMixin",
+		"CraftingMenuMixin"
+	],
 	"client": [],
 	"injectors": {
 		"defaultRequire": 1
