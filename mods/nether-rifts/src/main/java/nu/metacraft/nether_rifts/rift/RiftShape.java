@@ -119,7 +119,10 @@ public record RiftShape(Set<BlockPos> blocks, Direction.Axis axis, Set<BlockPos>
 		return Optional.of(new RiftShape(blocks, axis, frame, materials));
 	}
 
-	/** Flood-fills the open space at {@code start} on the X plane, then the Z plane; at most 21 across either way. */
+	/**
+	 * Flood-fills the open space at {@code start} on the X plane, then the Z plane; the shape may be at most
+	 * {@link #MAX_SIDE} blocks wide and {@link #MAX_SIDE} high, wherever in it {@code start} lies.
+	 */
 	public static Optional<RiftShape> fill(LevelReader level, BlockPos start, FrameTest isFrame) {
 		return fill(level, start, Direction.Axis.X, isFrame).or(() -> fill(level, start, Direction.Axis.Z, isFrame));
 	}
@@ -132,6 +135,8 @@ public record RiftShape(Set<BlockPos> blocks, Direction.Axis axis, Set<BlockPos>
 		var queue = new ArrayDeque<BlockPos>();
 		inside.add(start.immutable());
 		queue.add(start.immutable());
+		int minY = start.getY(), maxY = start.getY();
+		int minA = start.get(axis), maxA = start.get(axis);
 		while (!queue.isEmpty()) {
 			var pos = queue.poll();
 			for (var dir : inPlane(axis)) {
@@ -139,10 +144,14 @@ public record RiftShape(Set<BlockPos> blocks, Direction.Axis axis, Set<BlockPos>
 				if (inside.contains(n) || isFrame.isFrame(level, n)) {
 					continue;
 				}
-				if (!isOpen(level.getBlockState(n))
-						|| Math.abs(n.getY() - start.getY()) >= MAX_SIDE
-						|| Math.abs(n.get(axis) - start.get(axis)) >= MAX_SIDE
-						|| inside.size() >= MAX_SIDE * MAX_SIDE) {
+				if (!isOpen(level.getBlockState(n))) {
+					return Optional.empty();
+				}
+				minY = Math.min(minY, n.getY());
+				maxY = Math.max(maxY, n.getY());
+				minA = Math.min(minA, n.get(axis));
+				maxA = Math.max(maxA, n.get(axis));
+				if (maxY - minY + 1 > MAX_SIDE || maxA - minA + 1 > MAX_SIDE || inside.size() >= MAX_SIDE * MAX_SIDE) {
 					return Optional.empty();
 				}
 				inside.add(n);

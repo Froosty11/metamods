@@ -49,6 +49,18 @@ public class ShapeTests {
 			ctx.assertTrue(RiftShape.fill(ctx.getLevel(), ctx.absolutePos(inside), OBSIDIAN).isEmpty(), "a 22-wide frame made a shape");
 			ctx.succeed();
 		});
+		NetherRiftsTests.register("shape/too_wide_from_middle_rejected", ctx -> {
+			frame(ctx, 22, 3, Blocks.OBSIDIAN);
+			ctx.assertTrue(RiftShape.fill(ctx.getLevel(), ctx.absolutePos(new BlockPos(11, 3, 5)), OBSIDIAN).isEmpty(), "a 22-wide frame lit from its middle made a shape");
+			ctx.succeed();
+		});
+		NetherRiftsTests.register("shape/widest_from_middle_accepted", ctx -> {
+			frame(ctx, 21, 3, Blocks.OBSIDIAN);
+			var shape = RiftShape.fill(ctx.getLevel(), ctx.absolutePos(new BlockPos(11, 3, 5)), OBSIDIAN);
+			ctx.assertTrue(shape.isPresent(), "a 21-wide frame lit from its middle made no shape");
+			ctx.assertTrue(shape.get().size() == 21 * 3, "size " + shape.get().size());
+			ctx.succeed();
+		});
 		NetherRiftsTests.register("shape/frame_intact", ctx -> {
 			var inside = frame(ctx, 2, 3, Blocks.OBSIDIAN);
 			var shape = RiftShape.fill(ctx.getLevel(), ctx.absolutePos(inside), OBSIDIAN).orElseThrow();
