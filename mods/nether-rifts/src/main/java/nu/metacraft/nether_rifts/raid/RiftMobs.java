@@ -20,6 +20,7 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import nu.metacraft.nether_rifts.mixin.HoglinAccessor;
 import nu.metacraft.nether_rifts.mixin.MobAccessor;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
@@ -103,6 +104,8 @@ public final class RiftMobs {
 		}
 		if (entity instanceof Hoglin hoglin) {
 			hoglin.setImmuneToZombification(true);
+			// Piglins hunt hoglins; these come out beside them. A jockey's hoglin is the vehicle, so it gets here too.
+			((HoglinAccessor) hoglin).netherRifts$setCannotBeHunted(true);
 		}
 	}
 

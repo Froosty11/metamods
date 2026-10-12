@@ -5,6 +5,7 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
 import net.minecraft.world.item.ItemStack;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -184,6 +186,64 @@ public class MobTests {
 				for (var pos : BlockPos.betweenClosed(ctx.absolutePos(new BlockPos(6, 1, 6)), ctx.absolutePos(new BlockPos(18, 5, 18)))) {
 					ctx.assertFalse(ctx.getLevel().getBlockState(pos).is(Blocks.FIRE), "fire at " + pos.toShortString());
 				}
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/piglins_leave_hoglins_alone", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			var piglin = new Piglin[1];
+			var hoglins = new ArrayList<Hoglin>();
+			var healths = new ArrayList<Float>();
+			var done = new boolean[1];
+			// Up front: onEachTick from inside a scheduled runnable crashes 26.3.
+			ctx.onEachTick(() -> {
+				if (piglin[0] == null || done[0]) {
+					return;
+				}
+				var brain = piglin[0].getBrain();
+				ctx.assertTrue(piglin[0].getTarget() == null && brain.getMemory(MemoryModuleType.ATTACK_TARGET).isEmpty(),
+						"the rift piglin is going for something");
+				ctx.assertTrue(brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_HUNTABLE_HOGLIN).isEmpty(),
+						"the rift piglin sees a hoglin to hunt");
+				for (int i = 0; i < hoglins.size(); i++) {
+					ctx.assertTrue(hoglins.get(i).getHealth() >= healths.get(i), "a rift hoglin was hurt");
+				}
+			});
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				// The melee roster picks at random: keep spawning until there is a plain hoglin and a jockey one.
+				Hoglin plain = null;
+				Hoglin jockey = null;
+				for (int i = 0; i < 300 && (plain == null || jockey == null); i++) {
+					var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.MELEE, ctx.absolutePos(new BlockPos(12, 1, 16)), Vec3.ZERO);
+					var hoglin = spawned.stream().filter(e -> e instanceof Hoglin).map(e -> (Hoglin) e).findFirst().orElse(null);
+					if (hoglin != null && hoglin.isVehicle() && jockey == null) {
+						jockey = hoglin;
+					} else if (hoglin != null && !hoglin.isVehicle() && plain == null) {
+						plain = hoglin;
+					} else {
+						spawned.forEach(net.minecraft.world.entity.Entity::discard);
+					}
+				}
+				ctx.assertTrue(plain != null && jockey != null, "the melee roster never gave both a plain and a jockey hoglin");
+				ctx.assertTrue(jockey.getFirstPassenger() instanceof Piglin, "the jockey hoglin has no piglin rider");
+				for (var hoglin : List.of(plain, jockey)) {
+					ctx.assertTrue(RiftMobs.isRiftMob(hoglin), "a hoglin isn't a rift mob");
+					ctx.assertFalse(hoglin.canBeHunted(), "a rift hoglin can be hunted");
+					hoglins.add(hoglin);
+					healths.add(hoglin.getHealth());
+				}
+				var at = ctx.absolutePos(new BlockPos(12, 1, 10));
+				var hunter = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, at, Vec3.ZERO).getFirst();
+				piglin[0] = hunter;
+			});
+			// Vanilla piglins pick a hoglin within a second or two of seeing it.
+			ctx.runAtTickTime(200, () -> {
+				ctx.assertTrue(piglin[0].isAlive(), "the rift piglin died");
+				// the check above runs every tick, including after the cleanup kills the hoglins
+				done[0] = true;
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();
