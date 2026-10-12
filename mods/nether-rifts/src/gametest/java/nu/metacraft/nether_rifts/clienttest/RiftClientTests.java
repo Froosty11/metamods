@@ -44,7 +44,11 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand("tp Tester 0.5 -58 4 180 0");
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(30);
-				for (var stage : new String[] {"lit", "unstable", "torn"}) {
+				int[] crimson = new int[3];
+				int[] movement = new int[3];
+				String[] stages = {"lit", "unstable", "torn"};
+				for (int i = 0; i < stages.length; i++) {
+					String stage = stages[i];
 					server.runCommand("rifts stage 0 -58 0 " + stage);
 					ctx.waitTicks(10);
 					Path a = ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_a").withSize(1920, 1080));
@@ -53,23 +57,36 @@ public final class RiftClientTests implements FabricClientGameTest {
 					var first = read(a);
 					int purple = count(first, RiftClientTests::riftPixel);
 					int moved = changed(first, read(b), 24);
-					System.out.println("[nether-rifts-clienttest] " + stage + " purple=" + purple + " moved=" + moved);
+					crimson[i] = count(first, RiftClientTests::crimsonPixel);
+					movement[i] = moved;
+					System.out.println("[nether-rifts-clienttest] " + stage + " purple=" + purple + " moved=" + moved + " crimson=" + crimson[i]);
 					if (purple < BOX / 20) throw new AssertionError("no rift on screen at " + stage + ": " + purple + " rift pixels");
 					if (moved < BOX / 200) throw new AssertionError("the rift doesn't move at " + stage + ": " + moved + " pixels changed");
 				}
+				// The fallback sprite looks the same at every stage (the marker tint barely changes it); only the
+				// shader reddens and churns more as the rift tears. Rising crimson and motion prove it ran.
+				if (crimson[2] < 2000 || crimson[2] < crimson[0] * 2) {
+					throw new AssertionError("the torn rift isn't redder than the lit one (shader not running?): crimson lit=" + crimson[0] + " torn=" + crimson[2]);
+				}
+				if (movement[2] * 2 < movement[0] * 3) {
+					throw new AssertionError("the torn rift doesn't churn more than the lit one: moved lit=" + movement[0] + " torn=" + movement[2]);
+				}
 				server.runCommand("rifts collapse 0 -58 0");
 
-				// an L of crying obsidian at z 10, opened with /rifts form
-				server.runCommand("fill -2 -60 10 5 -53 10 minecraft:crying_obsidian");
+				// an L of plain obsidian at z 10 (the frame itself must score nothing), opened with /rifts form
+				server.runCommand("fill -2 -60 10 5 -53 10 minecraft:obsidian");
 				server.runCommand("fill -1 -59 10 1 -55 10 minecraft:air");
 				server.runCommand("fill 2 -59 10 4 -58 10 minecraft:air");
-				server.runCommand("rifts form 0 -58 10");
 				server.runCommand("tp Tester 1.5 -57 15 180 0");
+				ctx.waitTicks(30);
+				var before = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_blob_before").withSize(1920, 1080)));
+				int blobBefore = count(before, RiftClientTests::riftPixel);
+				server.runCommand("rifts form 0 -58 10");
 				ctx.waitTicks(30);
 				var blob = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_blob").withSize(1920, 1080)));
 				int blobPurple = count(blob, RiftClientTests::riftPixel);
-				System.out.println("[nether-rifts-clienttest] blob purple=" + blobPurple);
-				if (blobPurple < BOX / 20) throw new AssertionError("the L-shaped rift isn't drawn: " + blobPurple);
+				System.out.println("[nether-rifts-clienttest] blob before=" + blobBefore + " after=" + blobPurple);
+				if (blobPurple < blobBefore + BOX / 10) throw new AssertionError("forming didn't draw the L-shaped rift: " + blobBefore + " -> " + blobPurple);
 
 				// the void anchor's rift, same shader file
 				server.runCommand("tp Tester 30.5 -50 0.5 0 90");
@@ -89,6 +106,11 @@ public final class RiftClientTests implements FabricClientGameTest {
 	/** The swirl's violet and crimson, the edge's hot pink; none of which a flat world at night has. */
 	static boolean riftPixel(int r, int g, int b) {
 		return (b > g + 40 && r > g + 20) || (r > 150 && g < 70 && b < 110);
+	}
+
+	/** The torn stage's crimson veins: red well above green, not violet or blue-dominant. */
+	static boolean crimsonPixel(int r, int g, int b) {
+		return r > g + 80 && b < r;
 	}
 
 	/** The pack is accepted unasked (ServerPackAutoAcceptMixin); wait for it to download and apply. */
