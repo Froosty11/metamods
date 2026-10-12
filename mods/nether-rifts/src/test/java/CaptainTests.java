@@ -3,6 +3,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
+import nu.metacraft.nether_rifts.rift.Stage;
 
 public class CaptainTests {
 
@@ -15,11 +16,16 @@ public class CaptainTests {
 				var player = RaidTests.participant(ctx);
 				player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
 				rift.tear(ctx.getLevel());
+				// raiding, as the torn rift's countdown leaves it; still torn, the countdown would start wave 1 on top
+				rift.setStage(ctx.getLevel(), Stage.RAID);
 				RiftRaid.startWave(ctx.getLevel(), rift, 7);
 				var captain = (LivingEntity) RiftRaid.aliveMobs(ctx.getLevel(), rift).stream()
 						.filter(e -> e.entityTags().contains(RiftMobs.CAPTAIN_TAG)).findFirst()
 						.orElseThrow(() -> new AssertionError("no tagged Captain in Large wave 7"));
+				// the rest of the wave goes: a trooper's spear charge or a ghast's fireball would move the Captain's health
+				RiftRaid.aliveMobs(ctx.getLevel(), rift).stream().filter(e -> e != captain).forEach(e -> e.discard());
 				ctx.runAfterDelay(25, () -> {
+					ctx.assertTrue(rift.wave() == 7, "wave 7 gave way to wave " + rift.wave());
 					var bar = rift.captainBar();
 					ctx.assertTrue(bar != null && bar.getPlayers().contains(player), "the participant can't see the Captain's bar");
 					captain.setHealth(captain.getMaxHealth() / 2);
