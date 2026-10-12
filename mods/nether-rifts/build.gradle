@@ -7,7 +7,7 @@ addProjectDependency(":mods:portal-blocker")
 addProjectDependency(":mods:portal-opening")
 addProjectDependency(":mods:simple-custom-features")
 
-// Client screenshot tests (Task 13): a vanilla client joins an in-process server and looks at rifts.
+// Client screenshot tests (src/gametest, runClientGameTest): a vanilla client joins an in-process server and looks at rifts.
 fabricApi {
 	configureTests {
 		createSourceSet = true
