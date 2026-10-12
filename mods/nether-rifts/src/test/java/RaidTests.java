@@ -144,6 +144,27 @@ public class RaidTests {
 			ctx.assertTrue(rift.wave() == 1, "the wave moved on while the area was unloaded: " + rift.wave());
 			finish(ctx, player);
 		})));
+		NetherRiftsTests.register("raid/spawns_clear_of_walls", ctx -> {
+			// A rift against a hillside: stone fills the space in front of its north face, three deep.
+			for (int x = 0; x <= 5; x++) {
+				for (int y = 1; y <= 9; y++) {
+					for (int z = 2; z <= 4; z++) {
+						ctx.setBlock(new BlockPos(x, y, z), Blocks.STONE);
+					}
+				}
+			}
+			torn(ctx, (rift, player) -> ctx.runAfterDelay(25, () -> {
+				ctx.assertTrue(rift.stage() == Stage.RAID && rift.wave() == 1, "stage " + rift.stage() + " wave " + rift.wave());
+				var alive = RiftRaid.aliveMobs(ctx.getLevel(), rift);
+				ctx.assertFalse(alive.isEmpty(), "wave 1 brought nobody");
+				assertClear(ctx, alive, "wave 1");
+				// A ghast and its rider come through the same way.
+				var heavy = RiftRaid.spawnOne(ctx.getLevel(), rift, Slot.HEAVY);
+				ctx.assertFalse(heavy.isEmpty(), "no ghast spawned");
+				assertClear(ctx, heavy, "the ghast");
+				finish(ctx, player);
+			}));
+		});
 		NetherRiftsTests.register("raid/unloaded_advances_after_grace", ctx -> torn(ctx, (rift, player) -> ctx.runAfterDelay(25, () -> {
 			// A cleared wave whose surroundings never load still moves on once the grace runs out: no stalled raid.
 			var data = RiftData.get(ctx.getLevel());
@@ -155,6 +176,14 @@ public class RaidTests {
 			ctx.assertTrue(rift.wave() == 2, "the wave held past the grace: " + rift.wave());
 			finish(ctx, player);
 		})));
+	}
+
+	/** Every entity is clear of blocks: not in a wall, not overlapping anything solid. */
+	static void assertClear(GameTestHelper ctx, List<? extends net.minecraft.world.entity.Entity> entities, String what) {
+		for (var e : entities) {
+			ctx.assertFalse(e.isInWall(), what + ": " + e.getType().getDescriptionId() + " spawned in a wall at " + e.blockPosition());
+			ctx.assertTrue(ctx.getLevel().noCollision(e), what + ": " + e.getType().getDescriptionId() + " spawned overlapping blocks at " + e.blockPosition());
+		}
 	}
 
 	interface WithRift {

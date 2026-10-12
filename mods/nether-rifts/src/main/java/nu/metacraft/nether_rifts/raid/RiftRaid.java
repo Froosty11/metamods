@@ -16,11 +16,13 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -34,6 +36,8 @@ import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -42,6 +46,12 @@ public final class RiftRaid {
 
 	/** How long a wave may look cleared with its surroundings not entity-loaded before it counts as cleared anyway. */
 	public static final int UNLOADED_GRACE = 200;
+
+	/** How far from a rift's centre its mobs may come through when there's no room right in front of it. */
+	private static final int NEARBY_RANGE = 8;
+
+	/** Offsets within {@link #NEARBY_RANGE} blocks, nearest first. */
+	private static final List<BlockPos> NEARBY = nearby();
 
 	private RiftRaid() {}
 
@@ -112,7 +122,7 @@ public final class RiftRaid {
 		int spawned = 0;
 		for (var entry : counts.entrySet()) {
 			for (int i = 0; i < entry.getValue(); i++) {
-				spawned += spawnOne(level, rift, entry.getKey());
+				spawned += spawnOne(level, rift, entry.getKey()).size();
 			}
 		}
 		rift.setWave(wave, spawned);
@@ -124,62 +134,114 @@ public final class RiftRaid {
 		return Component.literal("Rift Raid: Wave " + rift.wave() + "/" + rift.tier().waves());
 	}
 
-	private static int spawnOne(ServerLevel level, Rift rift, Slot slot) {
-		var random = level.getRandom();
-		var normal = rift.shape().axis() == Direction.Axis.X ? Direction.SOUTH : Direction.EAST;
-		var side = random.nextBoolean() ? normal : normal.getOpposite();
-		BlockPos pos;
-		if (slot == Slot.HEAVY) {
-			pos = ghastSpot(level, rift, side);
-		} else {
-			pos = rift.randomBlock(random).relative(side);
+	/**
+	 * One pick for the slot, come through the rift where it fits (with whatever rides it), pushed away from the
+	 * rift; returns every entity spawned (a mount and its riders).
+	 */
+	public static List<Entity> spawnOne(ServerLevel level, Rift rift, Slot slot) {
+		var spawned = RiftMobs.spawn(level, rift.id(), slot, rift.shape().centreBlock(), Vec3.ZERO);
+		if (spawned.isEmpty()) {
+			return spawned;
 		}
-		var push = new Vec3(side.getStepX() * 0.35, 0.2, side.getStepZ() * 0.35);
-		return RiftMobs.spawn(level, rift.id(), slot, pos, push).size();
+		var root = spawned.getFirst().getRootVehicle();
+		// seats the riders, so the stack's whole height is known before it's placed
+		root.teleportTo(root.getX(), root.getY(), root.getZ());
+		var spot = clearSpot(level, rift, root, randomSide(level, rift));
+		root.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+		var normal = normal(rift);
+		var c = rift.centre();
+		double away = Math.signum((spot.getX() + 0.5 - c.x) * normal.getStepX() + (spot.getZ() + 0.5 - c.z) * normal.getStepZ());
+		root.setDeltaMovement(normal.getStepX() * away * 0.35, 0.2, normal.getStepZ() * away * 0.35);
+		return spawned;
 	}
 
-	/** A 4×4×4 clear box: in front of the rift on either side, then nearby, then straight above. */
-	private static BlockPos ghastSpot(ServerLevel level, Rift rift, Direction side) {
-		var centre = rift.shape().centreBlock();
-		for (var dir : new Direction[] {side, side.getOpposite()}) {
-			for (int out = 4; out <= 8; out += 2) {
-				var pos = centre.relative(dir, out).above(2);
-				if (level.noCollision(EntityTypes.GHAST.getSpawnAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5))) {
-					return pos;
-				}
-			}
-		}
-		return centre.above(6);
+	private static Direction normal(Rift rift) {
+		return rift.shape().axis() == Direction.Axis.X ? Direction.SOUTH : Direction.EAST;
+	}
+
+	private static Direction randomSide(ServerLevel level, Rift rift) {
+		var normal = normal(rift);
+		return level.getRandom().nextBoolean() ? normal : normal.getOpposite();
 	}
 
 	private static void tether(ServerLevel level, Rift rift, List<LivingEntity> alive, int range) {
 		var centre = rift.centre();
 		for (var mob : alive) {
 			if (mob.getVehicle() == null && mob.position().distanceToSqr(centre) > (double) range * range) {
-				var back = clearSpot(level, rift, mob);
+				var back = clearSpot(level, rift, mob, randomSide(level, rift));
 				level.sendParticles(ParticleTypes.PORTAL, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.4, 0.8, 0.4, 0.5);
 				mob.teleportTo(back.getX() + 0.5, back.getY(), back.getZ() + 0.5);
 			}
 		}
 	}
 
-	/** In front of the rift, on either side and a few blocks out, where the mob's whole body fits. */
-	private static BlockPos clearSpot(ServerLevel level, Rift rift, LivingEntity mob) {
-		var random = level.getRandom();
-		var normal = rift.shape().axis() == Direction.Axis.X ? Direction.SOUTH : Direction.EAST;
-		var side = random.nextBoolean() ? normal : normal.getOpposite();
-		if (mob.getType() == EntityTypes.GHAST) {
-			return ghastSpot(level, rift, side);
+	/**
+	 * Where a mob and whatever rides it fit, clear of blocks and of the rift itself: in front of the rift (a few
+	 * blocks out on either side, ghasts higher and further), else the nearest spot within {@link #NEARBY_RANGE}
+	 * blocks of its centre, else the first spot straight above it, else the surface over it.
+	 */
+	private static BlockPos clearSpot(ServerLevel level, Rift rift, Entity root, Direction side) {
+		var stack = root.getBoundingBox();
+		for (var rider : root.getIndirectPassengers()) {
+			stack = stack.minmax(rider.getBoundingBox());
 		}
+		// the stack's box with the root's feet at the origin
+		var shape = stack.move(-root.getX(), -root.getY(), -root.getZ());
+		var random = level.getRandom();
+		var centre = rift.shape().centreBlock();
 		for (var dir : new Direction[] {side, side.getOpposite()}) {
-			for (int out = 1; out <= 4; out++) {
-				var pos = rift.randomBlock(random).relative(dir, out);
-				if (level.noCollision(mob.getType().getSpawnAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5))) {
-					return pos;
+			if (root.getType() == EntityTypes.GHAST) {
+				for (int out = 4; out <= 8; out += 2) {
+					var pos = centre.relative(dir, out).above(2);
+					if (fits(level, rift, shape, pos)) {
+						return pos;
+					}
+				}
+			} else {
+				for (int out = 1; out <= 4; out++) {
+					var pos = rift.randomBlock(random).relative(dir, out);
+					if (fits(level, rift, shape, pos)) {
+						return pos;
+					}
 				}
 			}
 		}
-		return rift.randomBlock(random).relative(side);
+		for (var offset : NEARBY) {
+			var pos = centre.offset(offset);
+			if (fits(level, rift, shape, pos)) {
+				return pos;
+			}
+		}
+		int top = rift.shape().blocks().stream().mapToInt(BlockPos::getY).max().orElse(centre.getY());
+		for (int y = top + 1; y + shape.maxY < level.getMaxY(); y++) {
+			var pos = new BlockPos(centre.getX(), y, centre.getZ());
+			if (fits(level, rift, shape, pos)) {
+				return pos;
+			}
+		}
+		return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, centre);
+	}
+
+	/** Whether a stack's box, its root's feet at the middle of {@code pos}, touches no block and no rift block. */
+	private static boolean fits(ServerLevel level, Rift rift, AABB shape, BlockPos pos) {
+		var box = shape.move(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+		if (!level.noCollision(box)) {
+			return false;
+		}
+		// rift blocks don't collide, but nothing should come through standing in the rift's plane
+		return BlockPos.betweenClosedStream(box.deflate(1.0E-7)).noneMatch(rift.shape().blocks()::contains);
+	}
+
+	private static List<BlockPos> nearby() {
+		var out = new ArrayList<BlockPos>();
+		int r = NEARBY_RANGE;
+		for (var p : BlockPos.betweenClosed(-r, -r, -r, r, r, r)) {
+			if (p.distSqr(BlockPos.ZERO) <= r * r) {
+				out.add(p.immutable());
+			}
+		}
+		out.sort(Comparator.comparingDouble(p -> p.distSqr(BlockPos.ZERO)));
+		return List.copyOf(out);
 	}
 
 	/** Whether entities are loaded across the tether range (they follow view distance, not simulation distance). */
