@@ -22,8 +22,9 @@ import java.util.Properties;
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
  * each stage (and its membrane staying put on the world as the camera steps aside), an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
- * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer and a
- * war ghast carrying a Ghast Bombardier, and from the side at each of their swings, which must go forward.
+ * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer (its
+ * idle must play without AI) and a war ghast carrying a Ghast Bombardier, and from the side at each of their swings,
+ * which must go forward.
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
@@ -125,18 +126,51 @@ public final class RiftClientTests implements FabricClientGameTest {
 				var drummerA = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_a").withSize(1920, 1080)));
 				ctx.waitTicks(5);
 				var drummerB = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_b").withSize(1920, 1080)));
-				int gold = count(drummerA, (r, g, b) -> r > 200 && g > 150 && b < 110);
+				// anywhere on screen: with its AI on, it turns about as it keeps its distance
+				int gold = countAll(drummerA, (r, g, b) -> r > 160 && g > 120 && b < 70 && r > g + 20);
 				int drumMoved = changed(drummerA, drummerB, 24);
 				System.out.println("[nether-rifts-clienttest] drummer gold=" + gold + " moved=" + drumMoved);
-				check(gold >= 300, "the War Drummer's gold helm and drum rims aren't on screen: " + gold);
+				check(gold >= 300, "the War Drummer's gold helm and drum bands aren't on screen: " + gold);
 				check(drumMoved >= 200, "the War Drummer doesn't animate: " + drumMoved);
+				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
+
+				// a NoAI War Drummer (no beats: they come from its AI step) still breathes, sways and taps its sticks: its
+				// idle plays on BIL's own holder tick. Three shots a third of a second apart must differ.
+				server.runCommand("summon nether_rifts:war_drummer -20.5 -60 -12.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
+				server.runCommand("tp Tester -17.5 -59.1 -12.5 90 8");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(30);
+				var idleA = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_noai_a").withSize(1920, 1080)));
+				ctx.waitTicks(7);
+				var idleB = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_noai_b").withSize(1920, 1080)));
+				ctx.waitTicks(7);
+				var idleC = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_noai_c").withSize(1920, 1080)));
+				int idleMoved = Math.max(changed(idleA, idleB, 24), changed(idleA, idleC, 24));
+				System.out.println("[nether-rifts-clienttest] drummer noai idle moved=" + idleMoved);
+				check(idleMoved >= 150, "a NoAI War Drummer doesn't animate: " + idleMoved + " pixels changed");
+				// the same drummer from the front, held mid beat (frame 4: the sticks on the skin) and mid big beat (arms high)
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "beat", 4);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_front_beat").withSize(1920, 1080));
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "big_beat", 4);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_front_big_beat").withSize(1920, 1080));
+				AnimationHold.release(server);
+				// its banner up close, from its front right: black, a gold piglin snout, worn on the head
+				server.runCommand(tpLooking(-17.9, -57.6, -11.4, -20.5, -57.5, -12.5));
+				ctx.waitTicks(15);
+				var banner = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_banner").withSize(1920, 1080)));
+				int black = countAll(banner, (r, g, b) -> r < 45 && g < 45 && b < 50);
+				int snout = countAll(banner, (r, g, b) -> r > 170 && g > 130 && b < 90);
+				System.out.println("[nether-rifts-clienttest] drummer banner black=" + black + " gold=" + snout);
+				check(black >= 5000 && snout >= 500, "the War Drummer's banner isn't on its head: black " + black + ", gold " + snout);
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 
 				// the War Drummer from its side, mid big beat, away from the first one's death puff: it faces east and the
 				// camera looks north from 4 blocks, eye at its shoulders, so its front is right of the screen centre (about
-				// 12 px a model unit). Held on frame 4 (0.2 s, arms at 110 degrees), the arms and sticks stand out ahead of
-				// its snout and above the drum; a backward swing would put them behind its back. Frame 0 (arms still) is
-				// the shot to compare with.
+				// 12 px a model unit). Held on frame 4 (0.2 s, arms raised 85 degrees past their rest), the arms and sticks
+				// stand out ahead of its snout and above the drum; a backward swing would put them behind its back. Frame 0
+				// (arms at rest) is the shot to compare with.
 				server.runCommand("tp Tester -20.5 -60.37 -26.5 180 0");
 				server.runCommand("summon nether_rifts:war_drummer -20.5 -60 -30.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
 				conn.waitForClientboundPackets();
@@ -147,6 +181,9 @@ public final class RiftClientTests implements FabricClientGameTest {
 				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "big_beat", 4);
 				ctx.waitTicks(10);
 				var drumBeat = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_side_beat").withSize(1920, 1080)));
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "beat", 4);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_side_hit").withSize(1920, 1080));
 				AnimationHold.release(server);
 				swingsForward("the War Drummer's big beat", drumRest, drumBeat, 60, 290, 300, 590);
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
@@ -404,6 +441,14 @@ public final class RiftClientTests implements FabricClientGameTest {
 			}
 		}
 		return n;
+	}
+
+	/** A {@code tp} putting the Tester's eye (1.62 over its feet) at (x, y, z), looking at (tx, ty, tz). */
+	static String tpLooking(double x, double y, double z, double tx, double ty, double tz) {
+		double dx = tx - x, dy = ty - y, dz = tz - z;
+		double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+		double pitch = Math.toDegrees(-Math.atan2(dy, Math.hypot(dx, dz)));
+		return String.format(java.util.Locale.ROOT, "tp Tester %.3f %.3f %.3f %.2f %.2f", x, y - 1.62, z, yaw, pitch);
 	}
 
 	/** A port nothing listens on, so runs in several checkouts at once don't collide. */

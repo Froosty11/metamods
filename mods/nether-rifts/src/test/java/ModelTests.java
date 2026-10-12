@@ -29,7 +29,7 @@ public class ModelTests {
 
 	@Test
 	public void warDrummer() {
-		assertModel("war_drummer", Set.of("body", "head", "arm_left", "arm_right", "leg_left", "leg_right", "drum", "banner"),
+		assertModel("war_drummer", Set.of("body", "head", "arm_left", "arm_right", "leg_left", "leg_right", "drum", "stick_left", "stick_right"),
 			Set.of("idle", "beat", "big_beat"));
 	}
 

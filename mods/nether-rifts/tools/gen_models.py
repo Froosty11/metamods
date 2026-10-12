@@ -9,6 +9,7 @@ Re-running gives byte-identical files; edit this script, not the .bbmodel files.
 They open in Blockbench (File > Open) for a look; to keep a hand edit, port it back here."""
 import base64
 import json
+import math
 import random
 import struct
 import uuid
@@ -123,8 +124,18 @@ def texture_from_jar(path):
 	return _TEXTURES[path]
 
 
+def stick_tile():
+	"""The stick item's 3-pixel-wide diagonal, straightened and stretched over a 16x16 tile: a stick's wood, for a cube."""
+	_, _, rows = texture_from_jar("item/stick.png")
+	strip = [[px for px in row if px[3]] for row in rows]
+	strip = [row for row in strip if len(row) == 3]
+	return [[strip[y * len(strip) // 16][x * 3 // 16] for x in range(16)] for y in range(16)]
+
+
 def block_tile(material):
 	"""The material's block texture: its first 16x16 frame, made opaque (stained glass reads as solid lenses)."""
+	if material == "stick":
+		return stick_tile()
 	path = BLOCK_TEXTURE.get(material, f"block/{material}.png")
 	w, h, rows = texture_from_jar(path)
 	return [[(r, g, b, 255) for r, g, b, _ in row[:w]] for row in rows[:w]]
@@ -141,6 +152,7 @@ class Model:
 		self.children, self.roots = {}, []
 		self.atlas = [[(0, 0, 0, 0)] * size for _ in range(size)]
 		self.reserved = []
+		self.used = []
 		self.painted = {}
 		self.shift = (0, 0, 0)
 		self._x = self._y = self._row = 0
@@ -156,6 +168,12 @@ class Model:
 		return name
 
 	def element(self, group, name, frm, to, faces, inflate=0):
+		# two templates merged into one group can both have a cube of this name: keep their ids apart
+		taken = {ref for kind, ref in self.children[group] if kind == "c"}
+		base, n = name, 1
+		while uid(self.name, "c", group, name) in taken:
+			n += 1
+			name = f"{base}_{n}"
 		cid = uid(self.name, "c", group, name)
 		element = {"name": name, "export": True, "from": self._at(frm), "to": self._at(to), "autouv": 0,
 			"origin": self._at(frm), "faces": faces, "type": "cube", "uuid": cid}
@@ -165,18 +183,31 @@ class Model:
 		self.children[group].append(("c", cid))
 
 	def sheet(self, rows, origin):
-		"""Copies a texture into the atlas at origin and keeps prop faces off it."""
+		"""Copies a texture into the atlas at origin and keeps prop faces off it (sheet before painting props)."""
 		ox, oy = origin
+		box = (ox, oy, ox + len(rows[0]), oy + len(rows))
+		hit = next((r for r in self.used if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3]), None)
+		assert hit is None, f"{self.name}: a sheet at {origin} would paint over the prop face at {hit}"
 		for y, row in enumerate(rows):
 			self.atlas[oy + y][ox:ox + len(row)] = row
 		self.reserved.append((ox, oy, ox + len(rows[0]), oy + len(rows)))
 
-	def cube(self, group, name, frm, to, material, decorate=None, inflate=0):
-		"""A prop cube; each face is painted from the material's block texture (or flat colour)."""
+	def cube(self, group, name, frm, to, material, decorate=None, inflate=0, only=None):
+		"""A prop cube; each face is painted from the material's block texture (or flat colour). material is one
+		name for every face or {face: name}, with "side" standing for the four sides; only keeps just those faces."""
 		dx, dy, dz = (to[i] - frm[i] for i in range(3))
 		sizes = {"north": (dx, dy), "east": (dz, dy), "south": (dx, dy), "west": (dz, dy), "up": (dx, dz), "down": (dx, dz)}
-		faces = {face: {"uv": list(self._face(material, face, w, h, decorate)), "texture": 0} for face, (w, h) in sizes.items()}
+		def of(face):
+			if isinstance(material, str):
+				return material
+			return material.get(face, material.get("side"))
+		faces = {face: {"uv": list(self._face(of(face), face, w, h, decorate)), "texture": 0} for face, (w, h) in sizes.items()
+			if only is None or face in only}
 		self.element(group, name, frm, to, faces, inflate)
+
+	def plane(self, group, name, frm, to, faces):
+		"""A flat element (zero thickness on one axis) showing only the given faces, {face: atlas rect}."""
+		self.element(group, name, frm, to, {face: {"uv": list(rect), "texture": 0} for face, rect in faces.items()})
 
 	def _face(self, material, face, w, h, decorate):
 		"""A face's texture rect: one texel a unit (16 at most a side, 1 at least), shared between faces that look alike."""
@@ -202,9 +233,12 @@ class Model:
 			hit = next((r for r in self.reserved if rect[0] < r[2] and r[0] < rect[2] and rect[1] < r[3] and r[1] < rect[3]), None)
 			if hit is None:
 				break
+			# step past it, and let the next row start below it
 			self._x = hit[2]
+			self._row = max(self._row, hit[3] - self._y)
 		self._x += tw
 		self._row = max(self._row, th)
+		self.used.append(rect)
 		return rect
 
 	def _paint(self, rect, material, face):
@@ -309,21 +343,6 @@ def import_java_entity(model, template_json, texture_origin, scale=1.0, rename={
 				(-x * scale, (y + h) * scale, (z + d) * scale), faces, round(grow, 4))
 
 
-def snout_emblem(face, rows, rect):
-	"""A gold piglin snout, two nostrils, on the banner's faces (gold sampled from the gold block)."""
-	if face not in ("north", "south"):
-		return
-	gold = block_tile("gold_block")
-	x0, y0, x1, y1 = rect
-	cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-	shape = [".####.", "#o##o#", "#o##o#", ".####."]
-	for j, line in enumerate(shape):
-		for i, ch in enumerate(line):
-			x, y = cx - 3 + i, cy - 2 + j
-			if ch == "#":
-				rows[y][x] = gold[4 + j][4 + i]
-			elif ch == "o":
-				rows[y][x] = (110, 20, 24, 255)
 
 
 def mirrored(frm, to):
@@ -331,13 +350,53 @@ def mirrored(frm, to):
 	return (-to[0], frm[1], frm[2]), (-frm[0], to[1], to[2])
 
 
+def wave(length, amplitude, phase=0.0, steps=8):
+	"""Keyframes of a sine over one loop: amplitude (x, y, z) scaled by sin, phase in loops."""
+	points = []
+	for i in range(steps + 1):
+		t = length * i / steps
+		k = math.sin(2 * math.pi * (i / steps + phase))
+		points.append((round(t, 4), tuple(round(a * k, 3) for a in amplitude)))
+	return points
+
+
+def tinted(dst, src, tint):
+	"""src's white mask, tinted by a dye colour, laid over dst (as the game draws a banner layer)."""
+	a = src[3] / 255
+	return tuple(round(src[i] * tint[i] / 255 * a + dst[i] * (1 - a)) for i in range(3)) + (255,)
+
+
+# Dye colours as the game tints banner layers with them.
+BLACK_DYE = (0x1D, 0x1D, 0x21)
+YELLOW_DYE = (0xFE, 0xD8, 0x3D)
+
+
+def piglin_banner():
+	"""The 20x40 front of a black banner with vanilla's piglin snout pattern in gold (yellow dye): the banner's cloth,
+	then the base layer and the pattern, each a white mask tinted by its dye."""
+	_, _, cloth = texture_from_jar("entity/banner/banner_base.png")
+	_, _, base = texture_from_jar("entity/banner/base.png")
+	_, _, snout = texture_from_jar("entity/banner/piglin.png")
+	return [[tinted(tinted(cloth[y][x], base[y][x], BLACK_DYE), snout[y][x], YELLOW_DYE) for x in range(1, 21)]
+		for y in range(1, 41)]
+
+
+# The drummer's arms rest forward, hands over the drum; the sticks counter-turn to lie level (positive X swings forward).
+DRUMMING_ARMS = (55, 0, 0)
+
+
 def war_drummer():
-	"""A vanilla piglin in a horned gold helm, a war drum at the waist, bone drumsticks, a war banner on the back."""
+	"""A vanilla piglin in a horned gold helm wearing a war banner (as a raid captain wears one), a drum at its belly
+	and a stick in each hand."""
 	m = Model("war_drummer")
 	import_java_entity(m, "piglin.json", (0, 0), skip={"leftItem"},
 		rename={"Body": "body", "RightArm": "arm_right", "LeftArm": "arm_left", "RightLeg": "leg_right", "LeftLeg": "leg_left"},
 		# The legs stay at the root, so the body's bob doesn't lift the feet off the ground.
-		parents={"head": "body", "arm_right": "body", "arm_left": "body"})
+		parents={"head": "body", "arm_right": "body", "arm_left": "body"},
+		rotations={"arm_right": DRUMMING_ARMS, "arm_left": DRUMMING_ARMS})
+	# the banner's front and back, in the atlas before any prop face takes the space
+	m.sheet(piglin_banner(), (64, 0))
+	m.sheet([row[::-1] for row in piglin_banner()], (84, 0))
 	# The helm: a gold cap over the brow (the eyes, a row lower, stay clear) on a wider brim, and bone horns.
 	m.cube("head", "helm", (-5.5, 30, -4.5), (5.5, 33, 4.5), "gold_block")
 	m.cube("head", "helm_brim", (-5.75, 29.5, -4.75), (5.75, 30.5, 4.75), "gold_block")
@@ -345,44 +404,59 @@ def war_drummer():
 	for i, (frm, to) in enumerate(horn):
 		m.cube("head", f"horn_right_{i}", frm, to, "bone_block_side")
 		m.cube("head", f"horn_left_{i}", *mirrored(frm, to), "bone_block_side")
-	# Drumsticks lie along the drum's skin with the arms hanging; positive X rotation lifts them.
+	# The banner, part of the head: a 13x26 flag behind it, its snout showing above the helm, hung
+	# from a crossbar on a pole behind it that a gold clip holds to the helm's back.
+	edge = (64, 0, 65, 40)
+	m.element("head", "banner_flag", (-6.5, 24, 5), (6.5, 50, 6), {
+		"north": {"uv": [64, 0, 84, 40], "texture": 0}, "south": {"uv": [84, 0, 104, 40], "texture": 0},
+		"east": {"uv": list(edge), "texture": 0}, "west": {"uv": list(edge), "texture": 0},
+		"up": {"uv": [64, 0, 84, 1], "texture": 0}, "down": {"uv": [64, 39, 84, 40], "texture": 0}})
+	m.cube("head", "banner_bar", (-7.5, 50, 4.75), (7.5, 51, 5.75), "stick")
+	m.cube("head", "banner_pole", (-0.5, 30, 6), (0.5, 52, 7), "stick")
+	m.cube("head", "banner_clip", (-1, 31, 4.5), (1, 33, 7), "gold_block")
+	# The drum: one block-like barrel at the waist, a hide top and a gold band round its top and bottom; 9 wide, so
+	# the hands over it stay clear of its sides.
+	m.group("drum", (0, 11, -8), parent="body")
+	m.cube("drum", "shell", (-4.5, 7, -13), (4.5, 15, -3), {"side": "barrel_side", "up": "white_wool", "down": "barrel_bottom"})
+	sides = {"north", "east", "south", "west"}
+	m.cube("drum", "band_top", (-4.5, 13.5, -13), (4.5, 15, -3), "gold_block", inflate=0.25, only=sides)
+	m.cube("drum", "band_bottom", (-4.5, 7, -13), (4.5, 8.5, -3), "gold_block", inflate=0.25, only=sides)
+	# A stick in each fist (at its inner side), turned back by the arms' rest angle so it lies level over the drum's
+	# skin, and in a little, so its tip comes down on the skin rather than beside the drum.
 	for side, s in (("right", 1), ("left", -1)):
-		frm, to = (5.5, 13, -8.5), (6.5, 14, -1)
-		m.cube(f"arm_{side}", "stick", *(mirrored(frm, to) if s < 0 else (frm, to)), "bone_block_side")
-		frm, to = (5.25, 12.75, -9.5), (6.75, 14.25, -8)
-		m.cube(f"arm_{side}", "stick_tip", *(mirrored(frm, to) if s < 0 else (frm, to)), "bone_block_top")
-	# A snare at the waist, its skin just under the sticks and its bottom clear of the knees: each part is two
-	# crossed boxes, so it reads round.
-	m.group("drum", (0, 11, -6), parent="body")
-	for part, (y0, y1, grow, material) in {"shell": (9, 12, 0, "red_wool"), "rim_top": (11.5, 12.75, 0.5, "gold_block"),
-			"rim_bottom": (8.5, 9.75, 0.5, "gold_block"), "skin": (12.75, 13, 0, "bone_block_top")}.items():
-		m.cube("drum", f"{part}_wide", (-6.5 - grow, y0, -8.5 - grow), (6.5 + grow, y1, -3.5 + grow), material)
-		m.cube("drum", f"{part}_deep", (-5.5 - grow, y0, -9.5 - grow), (5.5 + grow, y1, min(-2.5 + grow, -2.25)), material)
-	m.group("banner", (0, 14, 5.25), parent="body")
-	m.cube("banner", "pole", (-0.5, 14, 4.75), (0.5, 44, 5.75), "stripped_dark_oak_log")
-	m.cube("banner", "collar", (-1, 17, 2.25), (1, 19, 6.25), "gold_block")
-	m.cube("banner", "finial", (-1, 44, 4.25), (1, 46, 6.25), "gold_block")
-	m.cube("banner", "flag", (0.5, 31, 5), (10.5, 42, 5.5), "red_wool", decorate=snout_emblem)
+		m.group(f"stick_{side}", (4.75 * s, 13, 0), parent=f"arm_{side}", rotation=(-DRUMMING_ARMS[0], 14 * s, 0))
+		m.cube(f"stick_{side}", "stick", (4.75 * s - 0.5, 12.5, -6), (4.75 * s + 0.5, 13.5, 1), "stick")
 
-	# Positive X rotation swings an arm forward (checked in game).
+	# Positive X rotation swings an arm forward and tips a level stick up (checked in game); from the rest pose,
+	# arms at -2 and sticks at -12 put the stick tips on the skin.
 	still = (0, 0, 0)
+	up, hit = (25, 0, 0), (-2, 0, 0)
+	stick_up, stick_hit = (10, 0, 0), (-12, 0, 0)
 	m.animation("idle", 2.0, "loop", {
-		"arm_right": {"rotation": [(0, still), (0.5, (20, 0, 0)), (1.0, still), (2.0, still)]},
-		"arm_left": {"rotation": [(0, still), (1.0, still), (1.5, (20, 0, 0)), (2.0, still)]},
-		"body": {"position": [(0, still), (0.5, (0, 0.25, 0)), (1.0, still), (1.5, (0, 0.25, 0)), (2.0, still)]},
-		"banner": {"rotation": [(0, (0, 0, -4)), (1.0, (0, 0, 4)), (2.0, (0, 0, -4))]},
+		"body": {"position": [(0, still), (0.5, (0, 0.5, 0)), (1.0, still), (1.5, (0, 0.5, 0)), (2.0, still)],
+			"rotation": [(0, (0, 0, -2)), (1.0, (0, 0, 2)), (2.0, (0, 0, -2))]},
+		"head": {"rotation": [(0, still), (0.5, (4, 0, 0)), (1.0, still), (1.5, (4, 0, 0)), (2.0, still)]},
+		"arm_right": {"rotation": [(0, still), (0.35, (12, 0, 0)), (0.5, hit), (0.7, still), (2.0, still)]},
+		"stick_right": {"rotation": [(0, still), (0.35, (6, 0, 0)), (0.5, stick_hit), (0.7, still), (2.0, still)]},
+		"arm_left": {"rotation": [(0, still), (1.0, still), (1.35, (12, 0, 0)), (1.5, hit), (1.7, still), (2.0, still)]},
+		"stick_left": {"rotation": [(0, still), (1.0, still), (1.35, (6, 0, 0)), (1.5, stick_hit), (1.7, still), (2.0, still)]},
 	})
-	m.animation("beat", 0.25, "once", {
-		"arm_right": {"rotation": [(0, (20, 0, 0)), (0.1, (40, 0, 0)), (0.2, still), (0.25, (10, 0, 0))]},
-		"arm_left": {"rotation": [(0, (20, 0, 0)), (0.1, (40, 0, 0)), (0.2, still), (0.25, (10, 0, 0))]},
+	beat = {
+		"arm_right": {"rotation": [(0, still), (0.1, up), (0.2, hit), (0.25, still)]},
+		"arm_left": {"rotation": [(0, still), (0.1, up), (0.2, hit), (0.25, still)]},
+		"stick_right": {"rotation": [(0, still), (0.1, stick_up), (0.2, stick_hit), (0.25, still)]},
+		"stick_left": {"rotation": [(0, still), (0.1, stick_up), (0.2, stick_hit), (0.25, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.2, (1.06, 1.06, 1.06)), (0.25, (1, 1, 1))]},
-	})
+	}
+	m.animation("beat", 0.25, "once", beat)
+	high, stick_high = (85, 0, 0), (20, 0, 0)
 	m.animation("big_beat", 0.5, "once", {
-		"arm_right": {"rotation": [(0, still), (0.2, (110, 0, 0)), (0.3, still), (0.5, (10, 0, 0))]},
-		"arm_left": {"rotation": [(0, still), (0.2, (110, 0, 0)), (0.3, still), (0.5, (10, 0, 0))]},
+		"arm_right": {"rotation": [(0, still), (0.2, high), (0.3, hit), (0.5, still)]},
+		"arm_left": {"rotation": [(0, still), (0.2, high), (0.3, hit), (0.5, still)]},
+		"stick_right": {"rotation": [(0, still), (0.2, stick_high), (0.3, stick_hit), (0.5, still)]},
+		"stick_left": {"rotation": [(0, still), (0.2, stick_high), (0.3, stick_hit), (0.5, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.3, (1.15, 1.15, 1.15)), (0.5, (1, 1, 1))]},
 		"body": {"position": [(0, still), (0.3, (0, -1, 0)), (0.5, still)]},
-		"head": {"rotation": [(0, still), (0.3, (-15, 0, 0)), (0.5, still)]},
 	})
 	m.write()
 
