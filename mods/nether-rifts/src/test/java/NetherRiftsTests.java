@@ -53,6 +53,7 @@ public class NetherRiftsTests {
 			return;
 		}
 		initialised = true;
+		writeScfPortal();
 		TestHelper.init(
 				() -> {
 					registerTestCommands();
@@ -65,6 +66,7 @@ public class NetherRiftsTests {
 					LootTests.registerTests();
 					RaidTests.registerTests();
 					StabiliseTests.registerTests();
+					ScfTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, NetherRifts::new
@@ -73,6 +75,25 @@ public class NetherRiftsTests {
 
 	public static void register(String path, Consumer<GameTestHelper> test) {
 		Registry.register(BuiltInRegistries.TEST_FUNCTION, NetherRifts.getID(path), test);
+	}
+
+	/** A dynamic portal, any shape, blackstone frame, lit with a fire charge; nether-rifts counts it as a nether portal in the scf environment. */
+	static void writeScfPortal() {
+		var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("simple-custom-features");
+		try {
+			Files.createDirectories(dir);
+			Files.writeString(dir.resolve("nether_rifts_test.json"), """
+					{"objects": [{"id": "nether_rifts:test_blob_portal", "object": {
+						"type": "minecraft:dynamic_portal",
+						"dimensions": {"minecraft:overworld": "minecraft:the_nether", "minecraft:the_nether": "minecraft:overworld"},
+						"valid_frame_block": {"blocks": "minecraft:blackstone"},
+						"item_activator": {"items": "minecraft:fire_charge"},
+						"min_area": 6
+					}}]}
+					""");
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	public static void writeConfig(NetherRiftsConfig config) {
@@ -95,6 +116,11 @@ public class NetherRiftsTests {
 						.then(preset("cap_one", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), 1, FAST.trooperScalingPerPlayer(),
 								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster()
+						)))
+						.then(preset("scf", () -> new NetherRiftsConfig(
+								FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(), FAST.trooperScalingPerPlayer(),
+								FAST.trooperScalingCap(), FAST.frameCollapse(),
+								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster()
 						)))
 		));
 	}
