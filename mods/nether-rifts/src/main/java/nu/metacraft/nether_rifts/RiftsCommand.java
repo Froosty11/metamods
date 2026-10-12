@@ -117,6 +117,10 @@ public final class RiftsCommand {
 			source.sendFailure(Component.literal("No rift within 16 blocks of " + pos.toShortString()));
 			return 0;
 		}
+		if (stage != Stage.TORN && rift.get().stage().raiding()) {
+			source.sendFailure(Component.literal("That rift is raiding; use /rifts collapse or close"));
+			return 0;
+		}
 		if (stage == Stage.TORN) {
 			rift.get().tear(source.getLevel());
 		} else {

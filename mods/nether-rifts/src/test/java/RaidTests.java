@@ -2,15 +2,15 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
+import nu.metacraft.nether_rifts.raid.Slot;
 import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
@@ -93,10 +93,16 @@ public class RaidTests {
 				var player = participant(ctx);
 				rift.tear(ctx.getLevel());
 				ctx.runAfterDelay(25, () -> {
-					ctx.setBlock(inside.below(), Blocks.AIR);
+					// A player's block in the broken frame: the collapse converts the frame around it, not it.
+					ctx.setBlock(inside.below(), Blocks.CHEST);
 					ctx.runAfterDelay(25, () -> {
 						ctx.assertTrue(FormingTests.riftsIn(ctx).isEmpty(), "the raid outlived its frame");
 						ctx.assertTrue(RiftRaid.aliveMobs(ctx.getLevel(), rift).isEmpty(), "mobs stayed after the collapse");
+						ctx.assertBlockPresent(Blocks.CHEST, inside.below());
+						ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, inside.offset(1, -1, 0));
+						ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, inside.offset(-1, 0, 0));
+						ctx.assertBlockPresent(Blocks.CRYING_OBSIDIAN, inside.offset(0, 3, 0));
+						FormingTests.assertInside(ctx, inside, 2, 3, Blocks.AIR);
 						StageTests.remove(ctx, player);
 						ctx.succeed();
 					});
@@ -110,9 +116,15 @@ public class RaidTests {
 			var far = ctx.absolutePos(new BlockPos(22, 1, 22));
 			mob.teleportTo(far.getX() + 0.5, far.getY(), far.getZ() + 0.5);
 			ctx.assertTrue(mob.position().distanceTo(rift.centre()) > 24, "the stray only went " + mob.position().distanceTo(rift.centre()) + " blocks out");
+			// A ghast (4×4×4) strays too: pulled back where it fits, not into the frame.
+			var ghast = (LivingEntity) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(20, 2, 20)), Vec3.ZERO).getFirst();
+			ctx.assertTrue(ghast.position().distanceTo(rift.centre()) > 20, "the ghast only went " + ghast.position().distanceTo(rift.centre()) + " blocks out");
 			ctx.runAfterDelay(25, () -> {
 				// fast: tether = 16
 				ctx.assertTrue(mob.position().distanceTo(rift.centre()) <= 16, "a stray is " + mob.position().distanceTo(rift.centre()) + " blocks out");
+				ctx.assertTrue(ghast.position().distanceTo(rift.centre()) <= 16, "the ghast is " + ghast.position().distanceTo(rift.centre()) + " blocks out");
+				ctx.assertFalse(ghast.isInWall(), "the ghast was pulled back into a wall");
+				ctx.assertTrue(ctx.getLevel().noCollision(ghast), "the ghast was pulled back overlapping blocks");
 				finish(ctx, player);
 			});
 		})));
@@ -130,6 +142,17 @@ public class RaidTests {
 			// Review focus 4: with no mobs found because the area isn't entity-loaded, the wave holds.
 			RiftRaid.advanceIfCleared(ctx.getLevel(), rift, RiftData.get(ctx.getLevel()), List.of(), () -> false);
 			ctx.assertTrue(rift.wave() == 1, "the wave moved on while the area was unloaded: " + rift.wave());
+			finish(ctx, player);
+		})));
+		NetherRiftsTests.register("raid/unloaded_advances_after_grace", ctx -> torn(ctx, (rift, player) -> ctx.runAfterDelay(25, () -> {
+			// A cleared wave whose surroundings never load still moves on once the grace runs out: no stalled raid.
+			var data = RiftData.get(ctx.getLevel());
+			for (int i = 1; i < RiftRaid.UNLOADED_GRACE; i++) {
+				RiftRaid.advanceIfCleared(ctx.getLevel(), rift, data, List.of(), () -> false);
+			}
+			ctx.assertTrue(rift.wave() == 1, "the wave moved on before the grace ran out: " + rift.wave());
+			RiftRaid.advanceIfCleared(ctx.getLevel(), rift, data, List.of(), () -> false);
+			ctx.assertTrue(rift.wave() == 2, "the wave held past the grace: " + rift.wave());
 			finish(ctx, player);
 		})));
 	}
@@ -154,10 +177,6 @@ public class RaidTests {
 		player.setPermanentlyInvulnerable(true);
 		var spot = ctx.absolutePos(new BlockPos(2, 1, 8));
 		player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
-		// A real participant's simulation distance keeps the rift's surroundings entity-ticking; a mock player
-		// has none, and a room on the edge of the test grid isn't covered by its neighbours' forced chunks.
-		// Radius 4 entity-ticks two chunks out: the whole tether range, and the tether test's stray.
-		ctx.getLevel().getChunkSource().addTicketWithRadius(TicketType.PORTAL, ChunkPos.containing(spot), 4);
 		return player;
 	}
 

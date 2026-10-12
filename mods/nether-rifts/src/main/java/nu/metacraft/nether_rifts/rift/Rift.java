@@ -52,6 +52,8 @@ public final class Rift {
 	public int waveTicks;
 	/** Ticks with no participant in range; RiftRaid collapses the raid when it reaches abandon_after. */
 	public int abandonTicks;
+	/** Ticks a wave has looked cleared while its surroundings weren't loaded; not saved. Written by RiftRaid. */
+	public int clearedTicks;
 	@Nullable private RiftVisual visual;
 	@Nullable ServerBossEvent bossBar;
 

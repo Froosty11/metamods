@@ -40,6 +40,9 @@ import java.util.function.BooleanSupplier;
 /** A torn rift's raid: its waves, who takes part, the boss bar, strays, and how it ends. */
 public final class RiftRaid {
 
+	/** How long a wave may look cleared with its surroundings not entity-loaded before it counts as cleared anyway. */
+	public static final int UNLOADED_GRACE = 200;
+
 	private RiftRaid() {}
 
 	public static void tick(ServerLevel level, Rift rift, RiftData data) {
@@ -79,13 +82,22 @@ public final class RiftRaid {
 	}
 
 	/**
-	 * When no mob of the wave is left, the next wave (or victory). Only if the whole tether range is
-	 * entity-loaded: an unloaded mob isn't a dead one.
+	 * When no mob of the wave is left, the next wave (or victory). An unloaded mob isn't a dead one, so with
+	 * part of the tether range not entity-loaded the wave holds, but only for {@link #UNLOADED_GRACE} ticks:
+	 * a cleared raid must never stall.
 	 */
 	public static void advanceIfCleared(ServerLevel level, Rift rift, RiftData data, List<LivingEntity> alive, BooleanSupplier surroundingsLoaded) {
-		if (rift.stage() != Stage.RAID || !alive.isEmpty() || !surroundingsLoaded.getAsBoolean()) {
+		if (rift.stage() != Stage.RAID) {
 			return;
 		}
+		if (!alive.isEmpty()) {
+			rift.clearedTicks = 0;
+			return;
+		}
+		if (!surroundingsLoaded.getAsBoolean() && ++rift.clearedTicks < UNLOADED_GRACE) {
+			return;
+		}
+		rift.clearedTicks = 0;
 		if (rift.wave() >= rift.tier().waves()) {
 			victory(level, rift, data);
 		} else {
@@ -144,20 +156,40 @@ public final class RiftRaid {
 		var centre = rift.centre();
 		for (var mob : alive) {
 			if (mob.getVehicle() == null && mob.position().distanceToSqr(centre) > (double) range * range) {
-				var back = rift.randomBlock(level.getRandom()).relative(rift.shape().axis() == Direction.Axis.X ? Direction.SOUTH : Direction.EAST);
+				var back = clearSpot(level, rift, mob);
 				level.sendParticles(ParticleTypes.PORTAL, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.4, 0.8, 0.4, 0.5);
 				mob.teleportTo(back.getX() + 0.5, back.getY(), back.getZ() + 0.5);
 			}
 		}
 	}
 
+	/** In front of the rift, on either side and a few blocks out, where the mob's whole body fits. */
+	private static BlockPos clearSpot(ServerLevel level, Rift rift, LivingEntity mob) {
+		var random = level.getRandom();
+		var normal = rift.shape().axis() == Direction.Axis.X ? Direction.SOUTH : Direction.EAST;
+		var side = random.nextBoolean() ? normal : normal.getOpposite();
+		if (mob.getType() == EntityTypes.GHAST) {
+			return ghastSpot(level, rift, side);
+		}
+		for (var dir : new Direction[] {side, side.getOpposite()}) {
+			for (int out = 1; out <= 4; out++) {
+				var pos = rift.randomBlock(random).relative(dir, out);
+				if (level.noCollision(mob.getType().getSpawnAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5))) {
+					return pos;
+				}
+			}
+		}
+		return rift.randomBlock(random).relative(side);
+	}
+
+	/** Whether entities are loaded across the tether range (they follow view distance, not simulation distance). */
 	private static boolean surroundingsLoaded(ServerLevel level, Rift rift, int range) {
 		var c = rift.shape().centreBlock();
 		var min = ChunkPos.containing(c.offset(-range, 0, -range));
 		var max = ChunkPos.containing(c.offset(range, 0, range));
 		for (int x = min.x(); x <= max.x(); x++) {
 			for (int z = min.z(); z <= max.z(); z++) {
-				if (!level.isPositionEntityTicking(new ChunkPos(x, z).getMiddleBlockPosition(c.getY()))) {
+				if (!level.areEntitiesLoaded(ChunkPos.pack(x, z))) {
 					return false;
 				}
 			}
@@ -191,7 +223,8 @@ public final class RiftRaid {
 			item.setDefaultPickUpDelay();
 			level.addFreshEntity(item);
 		}
-		end(level, rift, data, false);
+		// A natural victory has no mobs left; /rifts close may.
+		end(level, rift, data, true);
 	}
 
 	public static void collapse(ServerLevel level, Rift rift, RiftData data) {
@@ -200,7 +233,10 @@ public final class RiftRaid {
 		end(level, rift, data, true);
 	}
 
-	/** Takes the rift down: its mobs (if asked), blocks, frame (as config says), boss bar and visual. */
+	/**
+	 * Takes the rift down: its mobs (if asked), blocks, frame (as config says), boss bar and visual. Only frame
+	 * positions still holding a frame material change: whatever a player put in a broken frame stays.
+	 */
 	public static void end(ServerLevel level, Rift rift, RiftData data, boolean discardMobs) {
 		if (discardMobs) {
 			for (var mob : aliveMobs(level, rift)) {
@@ -212,6 +248,9 @@ public final class RiftRaid {
 		var collapse = NetherRiftsConfig.getInstance().frameCollapse();
 		for (var pos : rift.shape().frame()) {
 			var block = level.getBlockState(pos).getBlock();
+			if (!rift.shape().frameMaterials().contains(block)) {
+				continue;
+			}
 			var to = rift.crying() ? Blocks.AIR : collapse.getOrDefault(block, Blocks.AIR);
 			level.setBlockAndUpdate(pos, to.defaultBlockState());
 		}
