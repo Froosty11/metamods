@@ -25,7 +25,8 @@
 		"metacraft-config": "*",
 		"metacraft-core": "*",
 		"portal-blocker": "*",
-		"portal-opening": "*"
+		"portal-opening": "*",
+		"bil": ">=2.0.5"
 	},
 	"recommends": {
 		"simple-custom-features": "*"

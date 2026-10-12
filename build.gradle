@@ -209,6 +209,13 @@ subprojects {
 
         maven { url 'https://jitpack.io' } // Leukocyte
 
+		maven { url "https://maven.tomalbrc.de" } // Blockbench Import Library
+		// BIL's molang-compiler dependency
+		maven {
+			url "https://maven.blamejared.com"
+			content { includeGroup "gg.moonflower" }
+		}
+
 		// Our PolyDecorations fork (per-feature config), from its GitHub releases
 		exclusiveContent {
 			forRepository {
