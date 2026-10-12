@@ -32,6 +32,7 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.RiftMessages;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.rift.Rift;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
@@ -288,9 +289,13 @@ public final class RiftRaid {
 	}
 
 	public static List<LivingEntity> aliveMobs(ServerLevel level, Rift rift) {
+		return level.getEntitiesOfClass(LivingEntity.class, reach(rift), e -> e.isAlive() && rift.id().equals(e.getAttached(RiftMobs.RIFT)));
+	}
+
+	/** Where a rift's mobs (and what they throw) may be: past the tether, with room for a mob on its way back. */
+	private static AABB reach(Rift rift) {
 		double range = NetherRiftsConfig.getInstance().ranges().tether() + 48;
-		return level.getEntitiesOfClass(LivingEntity.class, new AABB(rift.centre(), rift.centre()).inflate(range),
-				e -> e.isAlive() && rift.id().equals(e.getAttached(RiftMobs.RIFT)));
+		return new AABB(rift.centre(), rift.centre()).inflate(range);
 	}
 
 	public static List<ServerPlayer> participants(ServerLevel level, Rift rift) {
@@ -333,6 +338,10 @@ public final class RiftRaid {
 			for (var mob : aliveMobs(level, rift)) {
 				level.sendParticles(ParticleTypes.PORTAL, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.4, 0.8, 0.4, 0.5);
 				mob.discard();
+			}
+			// bombs still falling go with the Bombardiers that dropped them
+			for (var bomb : level.getEntities(RiftEntities.MAGMA_BOMB, reach(rift), b -> rift.id().equals(b.getAttached(RiftMobs.RIFT)))) {
+				bomb.discard();
 			}
 		}
 		rift.clearBlocks(level);

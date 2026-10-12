@@ -8,6 +8,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.mob.MagmaBomb;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
 import nu.metacraft.nether_rifts.raid.Slot;
@@ -20,6 +21,25 @@ import java.util.List;
 public class RaidTests {
 
 	static void registerTests() {
+		NetherRiftsTests.register("raid/end_discards_bombs", ctx -> {
+			// A bomb still falling when its raid ends goes with the raid's mobs; a bomb of no rift stays.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				rift.tear(ctx.getLevel());
+				var ours = hangingBomb(ctx, new BlockPos(16, 10, 16));
+				ours.setAttached(RiftMobs.RIFT, rift.id());
+				ctx.getLevel().addFreshEntity(ours);
+				var stray = hangingBomb(ctx, new BlockPos(18, 10, 18));
+				ctx.getLevel().addFreshEntity(stray);
+				RiftRaid.collapse(ctx.getLevel(), rift, RiftData.get(ctx.getLevel()));
+				ctx.assertTrue(ours.isRemoved(), "the rift's bomb outlived its raid");
+				ctx.assertFalse(stray.isRemoved(), "a bomb of no rift went with the raid");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("raid/first_wave_spawns", ctx -> torn(ctx, (rift, player) -> ctx.runAfterDelay(25, () -> {
 			ctx.assertTrue(rift.stage() == Stage.RAID && rift.wave() == 1, "stage " + rift.stage() + " wave " + rift.wave());
 			var alive = RiftRaid.aliveMobs(ctx.getLevel(), rift);
@@ -264,5 +284,15 @@ public class RaidTests {
 		ctx.killAllEntities();
 		FormingTests.cleanUp(ctx);
 		ctx.succeed();
+	}
+
+	/** A magma bomb hanging still in the air (no gravity), not yet added to the level. */
+	static MagmaBomb hangingBomb(GameTestHelper ctx, BlockPos relative) {
+		var at = ctx.absolutePos(relative);
+		var bomb = new MagmaBomb(ctx.getLevel(), null);
+		bomb.setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+		bomb.setNoGravity(true);
+		bomb.setDeltaMovement(Vec3.ZERO);
+		return bomb;
 	}
 }
