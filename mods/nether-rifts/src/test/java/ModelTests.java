@@ -28,4 +28,14 @@ public class ModelTests {
 	public void warDrummer() {
 		assertModel("war_drummer", 8, Set.of("idle", "beat", "big_beat"));
 	}
+
+	@Test
+	public void ghastBombardier() {
+		assertModel("ghast_bombardier", 5, Set.of("idle", "drop_bomb"));
+	}
+
+	@Test
+	public void ghastHarness() {
+		assertModel("ghast_harness", 2, Set.of("idle"));
+	}
 }

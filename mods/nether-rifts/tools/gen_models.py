@@ -214,7 +214,66 @@ def war_drummer():
 	m.write()
 
 
-MODELS = [war_drummer]
+def ghast_bombardier():
+	"""A seated piglin rider: goggles, a satchel of fire charges, a charge in the raised right hand."""
+	# Same axes as war_drummer: the entity's right is +X ("left" bones sit at -X), and positive X rotation
+	# swings a limb forward. The satchel hangs on the left hip, away from the throwing hand.
+	m = Model("ghast_bombardier")
+	m.group("body", (0, 6, 0))
+	m.cube("body", "torso", (-4, 4, -2), (4, 14, 2), "cloth")
+	m.cube("body", "satchel", (-7, 5, -1.5), (-4, 10, 1.5), "leather")
+	m.cube("body", "satchel_charge", (-6.5, 10, -1), (-4.5, 12, 1), "charge")
+	head(m, "body", 14)
+	m.cube("head", "goggle_band", (-5.5, 18, -4.5), (5.5, 20, 4.5), "leather")
+	m.cube("head", "lens_left", (-4, 18, -5), (-1, 20, -4.5), "lens")
+	m.cube("head", "lens_right", (1, 18, -5), (4, 20, -4.5), "lens")
+	m.group("arm_right", (5, 13, 0), parent="body")
+	m.cube("arm_right", "arm", (4, 4, -2), (8, 14, 2), "skin")
+	m.cube("arm_right", "charge", (4.5, 1, -1.5), (7.5, 4, 1.5), "charge")
+	m.group("arm_left", (-5, 13, 0), parent="body")
+	m.cube("arm_left", "arm", (-8, 4, -2), (-4, 14, 2), "skin")
+	m.group("legs", (0, 4, 0), parent="body")
+	m.cube("legs", "leg_left", (-3.5, 0, -8), (-0.5, 4, 0), "leather")
+	m.cube("legs", "leg_right", (0.5, 0, -8), (3.5, 4, 0), "leather")
+
+	still = (0, 0, 0)
+	m.animation("idle", 1.6, "loop", {
+		"head": {"rotation": [(0, (0, -10, 0)), (0.8, (0, 10, 0)), (1.6, (0, -10, 0))]},
+		"body": {"position": [(0, still), (0.8, (0, 0.3, 0)), (1.6, still)]},
+	})
+	m.animation("drop_bomb", 0.4, "once", {
+		"arm_right": {"rotation": [(0, still), (0.15, (150, 0, 0)), (0.3, (20, 0, 0)), (0.4, still)]},
+	})
+	m.write()
+
+
+def ghast_harness():
+	"""Straps, buckles, side crates and a saddle around a vanilla ghast's body (ghast-entity space)."""
+	half, bottom, top = 36.5, -7, 65
+	m = Model("ghast_harness")
+	m.group("harness", (0, 29, 0))
+	for side, x in (("left", -14), ("right", 12)):
+		m.cube("harness", f"strap_front_{side}", (x, bottom, -half - 1), (x + 2, top, -half), "strap")
+		m.cube("harness", f"strap_back_{side}", (x, bottom, half), (x + 2, top, half + 1), "strap")
+		m.cube("harness", f"strap_top_{side}", (x, top, -half - 1), (x + 2, top + 1, half + 1), "strap")
+		m.cube("harness", f"strap_under_{side}", (x, bottom - 1, -half - 1), (x + 2, bottom, half + 1), "strap")
+		m.cube("harness", f"buckle_{side}", (x - 1, 26, -half - 1.5), (x + 3, 30, -half - 1), "gold")
+	for side, x0, x1 in (("east", half, half + 6), ("west", -half - 6, -half)):
+		m.cube("harness", f"crate_{side}", (x0, 24, -6), (x1, 34, 6), "wood")
+		m.cube("harness", f"crate_charges_{side}", (x0 + 1, 34, -4), (x1 - 1, 37, 4), "charge")
+	m.group("saddle", (0, 66, 0))
+	m.cube("saddle", "seat", (-10, top + 1, -8), (10, top + 3, 10), "saddle")
+	m.cube("saddle", "back", (-10, top + 3, 8), (10, top + 7, 10), "saddle")
+	m.cube("saddle", "trim", (-10.5, top + 1, -8.5), (10.5, top + 1.5, 10.5), "gold")
+
+	m.animation("idle", 2.0, "loop", {
+		"harness": {"position": [(0, (0, 0, 0)), (1.0, (0, 0.4, 0)), (2.0, (0, 0, 0))]},
+		"saddle": {"position": [(0, (0, 0, 0)), (1.0, (0, 0.4, 0)), (2.0, (0, 0, 0))]},
+	})
+	m.write()
+
+
+MODELS = [war_drummer, ghast_bombardier, ghast_harness]
 
 if __name__ == "__main__":
 	for build in MODELS:

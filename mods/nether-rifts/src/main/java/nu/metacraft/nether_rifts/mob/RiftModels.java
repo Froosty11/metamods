@@ -11,6 +11,8 @@ import nu.metacraft.nether_rifts.NetherRifts;
 public final class RiftModels {
 
 	public static final Model WAR_DRUMMER = load("war_drummer");
+	public static final Model GHAST_BOMBARDIER = load("ghast_bombardier");
+	public static final Model GHAST_HARNESS = load("ghast_harness");
 
 	private RiftModels() {}
 
