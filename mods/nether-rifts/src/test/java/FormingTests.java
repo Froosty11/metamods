@@ -1,0 +1,112 @@
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import nu.metacraft.nether_rifts.rift.RiftBlocks;
+import nu.metacraft.nether_rifts.rift.RiftData;
+import nu.metacraft.nether_rifts.rift.Stage;
+import nu.metacraft.nether_rifts.rift.Tier;
+
+public class FormingTests {
+
+	static void registerTests() {
+		NetherRiftsTests.register("forming/fire_opens_rift", ctx -> {
+			var inside = lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				assertInside(ctx, inside, 2, 3, RiftBlocks.RIFT);
+				var rift = riftIn(ctx);
+				ctx.assertTrue(rift.stage() == Stage.LIT, "stage " + rift.stage());
+				ctx.assertTrue(rift.tier() == Tier.SMALL, "tier " + rift.tier());
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/rift_mode_off_makes_portal", ctx -> {
+			var inside = lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				assertInside(ctx, inside, 2, 3, Blocks.NETHER_PORTAL);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/activation_allowed_makes_portal", ctx -> {
+			// Review focus 1: staff allowed nether lighting (here globally) while rift mode stays on.
+			var inside = lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				assertInside(ctx, inside, 2, 3, Blocks.NETHER_PORTAL);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/not_in_nether", ctx -> {
+			// Review focus 5: rift mode never reaches into the nether.
+			var nether = ctx.getLevel().getServer().getLevel(Level.NETHER);
+			var base = new BlockPos(0, 100, 0);
+			for (int x = 0; x <= 3; x++) {
+				for (int y = 0; y <= 4; y++) {
+					boolean edge = x == 0 || x == 3 || y == 0 || y == 4;
+					nether.setBlockAndUpdate(base.offset(x, y, 0), edge ? Blocks.OBSIDIAN.defaultBlockState() : Blocks.AIR.defaultBlockState());
+				}
+			}
+			nether.setBlockAndUpdate(base.offset(1, 1, 0), Blocks.FIRE.defaultBlockState());
+			ctx.runAtTickTime(3, () -> {
+				ctx.assertTrue(RiftData.get(nether).all().isEmpty(), "a rift opened in the nether");
+				ctx.assertFalse(nether.getBlockState(base.offset(1, 1, 0)).is(RiftBlocks.RIFT), "rift blocks in the nether");
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/visual_attached", ctx -> {
+			lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var rift = riftIn(ctx);
+				ctx.assertTrue(rift.visual() != null, "no visual");
+				// a 2×3 rectangle: one panel and four edge strips
+				ctx.assertTrue(rift.visual().elementCount() == 5, rift.visual().elementCount() + " elements");
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/broken_frame_fades", ctx -> {
+			// Review focus 2: a waiting rift whose frame is broken fades, leaving no invisible blocks.
+			var inside = lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> ctx.setBlock(inside.below(), Blocks.AIR));
+			ctx.runAtTickTime(30, () -> {
+				ctx.assertTrue(riftsIn(ctx).isEmpty(), "the rift outlived its frame");
+				assertInside(ctx, inside, 2, 3, Blocks.AIR);
+				ctx.succeed();
+			});
+		});
+	}
+
+	/** Builds the frame from {@link ShapeTests#frame} and sets fire inside it; returns the inside's bottom-left. */
+	static BlockPos lightFrame(GameTestHelper ctx, int w, int h) {
+		var inside = ShapeTests.frame(ctx, w, h, Blocks.OBSIDIAN);
+		ctx.setBlock(inside, Blocks.FIRE);
+		return inside;
+	}
+
+	static void assertInside(GameTestHelper ctx, BlockPos inside, int w, int h, net.minecraft.world.level.block.Block block) {
+		for (int x = 0; x < w; x++) {
+			for (int y = 0; y < h; y++) {
+				ctx.assertBlockPresent(block, inside.offset(x, y, 0));
+			}
+		}
+	}
+
+	/** The one rift inside this test's room (tests in a batch share the level and its RiftData). */
+	static nu.metacraft.nether_rifts.rift.Rift riftIn(GameTestHelper ctx) {
+		return riftsIn(ctx).stream().findFirst().orElseThrow(() -> new AssertionError("no rift in this test's room"));
+	}
+
+	static java.util.List<nu.metacraft.nether_rifts.rift.Rift> riftsIn(GameTestHelper ctx) {
+		return RiftData.get(ctx.getLevel()).all().stream().filter(r -> ctx.getBounds().contains(r.centre())).toList();
+	}
+
+	/** Rifts are saved data, not part of the room: drop this level's rifts that sit inside this test's bounds. */
+	static void cleanUp(GameTestHelper ctx) {
+		var data = RiftData.get(ctx.getLevel());
+		for (var rift : data.all()) {
+			if (ctx.getBounds().contains(rift.centre())) {
+				rift.fade(ctx.getLevel(), data);
+			}
+		}
+	}
+}
