@@ -10,6 +10,11 @@ and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of 
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles
 when the raid ends).
 
+A rift is drawn by metacraft-core's item shader as pixel art fixed to the world (16 pixels a block): a
+purple membrane in the nether portal's colours, glitching, with cracks that widen as the rift tears, and
+through them a far-off nether (a panorama captured in game). Players whose core shaders are replaced (Iris,
+OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, stretched over the rift.
+
 Config: `config/nether-rifts.json5`. Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
 
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and
@@ -21,3 +26,7 @@ metacraft-lib's fail in a fresh checkout until its data is generated, so run
 ```
 
 Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
+
+The panorama: `./gradlew :mods:nether-rifts:runClientGameTest -PcapturePanorama` takes it again (a fixed
+seed, an open spot over lava by a crimson forest) into `tools/panorama/`; `python3 tools/gen_panorama.py`
+turns it into the panel's sprite.

@@ -24,3 +24,11 @@ dependencies {
 	// the void anchor in the same client run: the shared shader must draw both rifts
 	gametestRuntimeOnly project(":mods:metacraft-qol")
 }
+
+// -PcapturePanorama: the client test run captures the nether panorama the rift shows through its cracks
+// into tools/panorama (PanoramaCapture) instead of taking the rift screenshots. Then python3 tools/gen_panorama.py.
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	if (project.hasProperty('capturePanorama')) {
+		jvmArgs "-Dnether_rifts.capturePanorama=true", "-Dnether_rifts.panoramaDir=${file('tools/panorama')}"
+	}
+}
