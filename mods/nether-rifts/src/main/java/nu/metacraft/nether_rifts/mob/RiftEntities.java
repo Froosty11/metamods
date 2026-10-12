@@ -20,6 +20,9 @@ public final class RiftEntities {
 			EntityType.Builder.of(WarDrummer::new, MobCategory.MONSTER).sized(0.6f, 2.3f).clientTrackingRange(10),
 			WarDrummer.createAttributes());
 
+	public static final EntityType<MagmaBomb> MAGMA_BOMB = register("magma_bomb",
+			EntityType.Builder.<MagmaBomb>of(MagmaBomb::new, MobCategory.MISC).sized(0.25f, 0.25f).clientTrackingRange(4).updateInterval(10));
+
 	private RiftEntities() {}
 
 	public static void init() {
