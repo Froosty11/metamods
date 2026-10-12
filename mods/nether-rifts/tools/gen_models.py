@@ -215,14 +215,14 @@ def war_drummer():
 
 
 def ghast_bombardier():
-	"""A seated piglin rider: goggles, a satchel of fire charges, a charge in the raised right hand."""
+	"""A seated piglin rider: goggles, a satchel of fire charges on his back, a charge in the right hand."""
 	# Same axes as war_drummer: the entity's right is +X ("left" bones sit at -X), and positive X rotation
-	# swings a limb forward. The satchel hangs on the left hip, away from the throwing hand.
+	# swings a limb forward. The satchel hangs on the back of the left hip (behind the arm, so it shows), away from the throwing hand.
 	m = Model("ghast_bombardier")
 	m.group("body", (0, 6, 0))
 	m.cube("body", "torso", (-4, 4, -2), (4, 14, 2), "cloth")
-	m.cube("body", "satchel", (-7, 5, -1.5), (-4, 10, 1.5), "leather")
-	m.cube("body", "satchel_charge", (-6.5, 10, -1), (-4.5, 12, 1), "charge")
+	m.cube("body", "satchel", (-7, 5, 2), (-3, 10, 5), "leather")
+	m.cube("body", "satchel_charge", (-6, 10, 2.5), (-4, 12, 4.5), "charge")
 	head(m, "body", 14)
 	m.cube("head", "goggle_band", (-5.5, 18, -4.5), (5.5, 20, 4.5), "leather")
 	m.cube("head", "lens_left", (-4, 18, -5), (-1, 20, -4.5), "lens")
