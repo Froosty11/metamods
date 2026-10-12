@@ -19,7 +19,10 @@ import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.Chapter;
+import java.util.Arrays;
 import java.util.List;
+import metacraft.ovvar.pack.ShaderPatcher;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -28,6 +31,11 @@ import net.minecraft.world.item.ItemStack;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -136,7 +144,36 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				assertPresent(fr, frackBox, "it (lilac rim) on the frack", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
 				// Near-black cloth: the coat itself, not the mannequin's skin.
 				assertPresent(fr, frackBox, "the coat (near black)", (r, g, bl) -> r < 40 && g < 40 && bl < 40, 200);
+
+				// /ovvar shaders: the link a player gets is the server's own, and it serves the very patcher jar.
+				String url = server.computeOnServer(s -> ShaderPatcher.url(s.getPlayerList().getPlayerByName("Tester"))
+						.orElseThrow(() -> new AssertionError("the server hosts no shader patcher")));
+				System.out.println("[ovvar-clienttest] shader patcher at " + url);
+				if (!url.endsWith("/ovvar-shader-patcher.jar")) throw new AssertionError("a browser would not save a .jar from " + url);
+				byte[] served = download(url);
+				byte[] bundled = bundledPatcher();
+				if (!Arrays.equals(served, bundled)) throw new AssertionError(url + " served " + served.length + " bytes, not the " + bundled.length + "-byte patcher");
+				server.runCommand("execute as Tester run ovvar shaders");
+				ctx.waitTicks(20);   // the reply reaches the client before it leaves
 			}
+		}
+	}
+
+	private static byte[] bundledPatcher() {
+		try {
+			return Files.readAllBytes(FabricLoader.getInstance().getModContainer("ovvar").orElseThrow().findPath(ShaderPatcher.RESOURCE).orElseThrow());
+		} catch (IOException e) {
+			throw new AssertionError("the mod has no " + ShaderPatcher.RESOURCE, e);
+		}
+	}
+
+	private static byte[] download(String url) {
+		try {
+			HttpResponse<byte[]> response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(url)).build(), HttpResponse.BodyHandlers.ofByteArray());
+			if (response.statusCode() != 200) throw new AssertionError(url + " answered " + response.statusCode());
+			return response.body();
+		} catch (IOException | InterruptedException e) {
+			throw new AssertionError("could not download " + url, e);
 		}
 	}
 

@@ -26,17 +26,27 @@ mat2 riftRot(float a) {
     return mat2(c, -s, s, c);
 }
 
-// Where on the sprite this fragment is, 0..1 along the sprite's own axes. riftUv numbers the quad's
-// corners from wherever its draw starts in a shared buffer, so it can come out turned by a quarter;
-// texCoord0 cannot. The derivatives of both give the map from one to the other, and from it the
-// sprite's box in the atlas, so the result doesn't depend on which corner came first.
-vec2 riftLocal() {
+// The sprite's box in the atlas, lo and hi in texture coordinates. riftUv numbers the quad's corners
+// from wherever its draw starts in a shared buffer, so it can come out turned by a quarter; texCoord0
+// cannot. The derivatives of both give the map from one to the other, and from it the box, whichever
+// corner came first. False when the quad is seen edge-on and the map can't be had.
+bool riftSpriteBox(out vec2 lo, out vec2 hi) {
     mat2 dUv = mat2(dFdx(riftUv), dFdy(riftUv));
     mat2 dTex = mat2(dFdx(texCoord0), dFdy(texCoord0));
-    if (abs(determinant(dUv)) < 1e-12) return riftUv;
+    lo = texCoord0;
+    hi = texCoord0;
+    if (abs(determinant(dUv)) < 1e-12) return false;
     mat2 m = dTex * inverse(dUv);
     vec2 o = texCoord0 - m * riftUv;
     vec2 c1 = o + m[0], c2 = o + m[1], c3 = o + m[0] + m[1];
-    vec2 lo = min(min(o, c1), min(c2, c3)), hi = max(max(o, c1), max(c2, c3));
+    lo = min(min(o, c1), min(c2, c3));
+    hi = max(max(o, c1), max(c2, c3));
+    return true;
+}
+
+// Where on the sprite this fragment is, 0..1 along the sprite's own axes.
+vec2 riftLocal() {
+    vec2 lo, hi;
+    if (!riftSpriteBox(lo, hi)) return riftUv;
     return (texCoord0 - lo) / max(hi - lo, vec2(1e-9));
 }

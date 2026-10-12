@@ -76,6 +76,9 @@ external carpet https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-
 external nochatreports https://cdn.modrinth.com/data/qQyHxfxd/versions/6g96avt2/NoChatReports-FABRIC-26.3-v2.21.0.jar sha256:d346391bea7991ba5d5eb3c8308a414bfc6734d6d220bece84e76966c834b5bf
 external antixray https://cdn.modrinth.com/data/sml2FMaA/versions/8CvHIf1r/antixray-fabric-1.4.16%2B26.3.jar sha256:20171e2b2ada25505b9b1c2370192470c074423678974679548ccf27fa205521
 external luckperms https://cdn.modrinth.com/data/Vebnzrzj/versions/DzQPkkXY/LuckPerms-Fabric-5.5.85.jar sha256:18598fcb95a83f6723d8bc68a905500ed5ecac92e9909ce1f25409cdebe2df49
+# Patbox's Universal Graves: a grave holds your items where you died (config/universal-graves/config.json
+# by hand: no death compass, no grave for lava or void deaths so those lose everything)
+external universal-graves https://cdn.modrinth.com/data/yn9u3ypm/versions/r9hY06vQ/graves-3.13.0%2B26.3.jar sha256:8df3f188e1511ebf69ffc720059b3508bedff1bd2e87f13057989c096b3ed33b
 
 # Johan's Vanilla Tweaks datapacks (Silence Mobs is metacraft-qol's)
 datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief sha256:0cbd1bc8ec748f5ba09fd108f42b8272175e59f4504697b1f699be0f1427365f

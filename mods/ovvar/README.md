@@ -520,6 +520,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
+    /ovvar shaders                             (any player) a link to the shaderpack patcher, and how to use it
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -883,11 +884,22 @@ shoulder cells is selected per arm — every setting predicts both shoulders dra
 A bare shoulder is not a state either constant can produce. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
 mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/` and worth linking from the website): double-clicked, it writes a
+`assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
+autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
+or, where autohost serves nothing, the way into the downloaded pack): double-clicked, it writes a
 `+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
-MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
+MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's
+rifts (void anchor, nether rifts): the pack's first albedo sample in its entity program is wrapped
+so a rift-marked quad gets the rift's colour, rifts are dropped from the shadow pass, and four custom
+uniforms (time, screen height, the camera's whole blocks and fraction of a block, which nether rifts
+lay their world-fixed pixel grid by) go into `shaders.properties`. Nether rifts' world-fixed pixel art and nether
+panorama draw under Complementary Reimagined and Unbound, BSL and Bliss (checked with the client tests on
+Iris 1.11.7). Super Duper Vanilla samples inside a shared include, so its rifts stay the flat fallback
+sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Solas don't start on macOS
+(OpenGL 4.1), so they are unchecked. Check a pack in game with
+`./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
 
 ## Credits
 

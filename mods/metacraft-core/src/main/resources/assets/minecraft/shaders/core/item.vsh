@@ -1,11 +1,16 @@
 // Vanilla 26.3 item.vsh with one addition (metacraft-core, shared by every rift drawn with item displays):
 // a vertex whose tint is a rift marker gets the part as riftFlag, its stage as riftStage and a corner index
 // for its place on the quad. Markers: void anchor #FEFEFD crack (1), #FEFEFC glowing crack (2), #FEFEFB
-// core (3); nether rift #FE{G}{B} with B FA body (11) / F9 edge (12) and G FD/FC/FB stage 1/2/3.
+// core (3); nether rift #FE{G}{B} with B FA body (11) / F9 edge (12) and G FD/FC/FB stage 1/2/3. A nether
+// rift's vertex also passes on where it is: riftWorld, its world position less CameraBlockPos (item vertices
+// arrive relative to the camera, and the camera is at CameraBlockPos - CameraOffset, so the world position is
+// Position - CameraOffset + CameraBlockPos; the fragment adds the whole blocks back as integers, exactly),
+// and riftView, its position relative to the camera, for the view direction.
 // Re-diff against vanilla on every Minecraft update. 26.3 compiles to SPIR-V, hence gl_VertexIndex.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
+#include <minecraft:globals.glsl>
 #include <minecraft:light.glsl>
 #include <minecraft:fog.glsl>
 #include <minecraft:dynamictransforms.glsl>
@@ -39,6 +44,8 @@ layout(location = 5) out vec2 texCoord0;
 layout(location = 7) out vec2 riftUv;
 layout(location = 8) out float riftFlag;
 layout(location = 9) out float riftStage;
+layout(location = 10) out vec3 riftWorld;
+layout(location = 11) out vec3 riftView;
 #ifdef GLINT
 layout(location = 6) out vec2 texCoordGlint;
 #endif
@@ -65,6 +72,8 @@ void main() {
     riftFlag = 0.0;
     riftStage = 0.0;
     riftUv = vec2(0.0);
+    riftWorld = vec3(0.0);
+    riftView = vec3(0.0);
     if (tint.r == 254.0 && tint.g == 254.0 && tint.b >= 251.0 && tint.b <= 253.0) {
         riftFlag = 254.0 - tint.b;
         riftUv = cornerUv;
@@ -72,6 +81,8 @@ void main() {
         riftFlag = 11.0 + (250.0 - tint.b);
         riftStage = 254.0 - tint.g;
         riftUv = cornerUv;
+        riftWorld = Position - CameraOffset;
+        riftView = Position;
     }
     #ifdef GLINT
     #ifdef GLINT_SPECIAL

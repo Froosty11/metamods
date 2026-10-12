@@ -1,8 +1,8 @@
 // Vanilla 26.3 item.fsh with one addition (metacraft-core): where item.vsh flagged a rift, the painted
 // sprite is replaced by that rift's drawing (void anchor: include void_rift; nether rift: include
 // nether_rift). Every other item takes the vanilla path. The Globals include is unconditional (vanilla
-// guards it with GLINT) because the rifts need GameTime and ScreenSize. Re-diff against vanilla on every
-// Minecraft update.
+// guards it with GLINT) because the rifts need GameTime, ScreenSize and CameraBlockPos. Re-diff against
+// vanilla on every Minecraft update.
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
@@ -30,6 +30,8 @@ layout(location = 5) in vec2 texCoord0;
 layout(location = 7) in vec2 riftUv;
 layout(location = 8) in float riftFlag;
 layout(location = 9) in float riftStage;
+layout(location = 10) in vec3 riftWorld;
+layout(location = 11) in vec3 riftView;
 #ifdef GLINT
 layout(location = 6) in vec2 texCoordGlint;
 #endif
