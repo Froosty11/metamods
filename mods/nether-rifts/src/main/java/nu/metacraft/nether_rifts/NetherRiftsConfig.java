@@ -112,6 +112,12 @@ public record NetherRiftsConfig(
 			).forGetter(NetherRiftsConfig::roster)
 	).apply(i, NetherRiftsConfig::new));
 
+	/** The configured entry for a slot, or the default when the config file predates the slot. */
+	public MobEntry rosterEntry(Slot slot) {
+		var entry = roster.get(slot);
+		return entry != null ? entry : Roster.DEFAULT.get(slot);
+	}
+
 	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(NetherRifts.MODID + ".json5");
 
 	private static final ConfigContainer<NetherRiftsConfig> CONTAINER = ConfigContainer.Builder.create(

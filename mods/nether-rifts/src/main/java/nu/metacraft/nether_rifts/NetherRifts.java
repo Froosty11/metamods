@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.nether_rifts.compat.ScfCompat;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.RiftModels;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.rift.Ignition;
@@ -24,6 +25,7 @@ public class NetherRifts implements ModInitializer {
 	public void onInitialize() {
 		NetherRiftsConfig.getInstance();
 		RiftModels.init();
+		RiftEntities.init();
 		RiftBlocks.init();
 		Ignition.init();
 		RiftMobs.init();

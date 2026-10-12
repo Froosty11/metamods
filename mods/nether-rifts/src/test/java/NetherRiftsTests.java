@@ -67,6 +67,7 @@ public class NetherRiftsTests {
 					RaidTests.registerTests();
 					StabiliseTests.registerTests();
 					ScfTests.registerTests();
+					DrummerTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new
@@ -122,6 +123,13 @@ public class NetherRiftsTests {
 								FAST.trooperScalingCap(), FAST.frameCollapse(),
 								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster()
 						)))
+						.then(preset("roster_partial", () -> {
+							var roster = new java.util.HashMap<>(nu.metacraft.nether_rifts.raid.Roster.DEFAULT);
+							roster.remove(nu.metacraft.nether_rifts.raid.Slot.HEAVY);
+							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
+									FAST.scfNetherPortalTypes(), roster);
+						}))
 		));
 	}
 

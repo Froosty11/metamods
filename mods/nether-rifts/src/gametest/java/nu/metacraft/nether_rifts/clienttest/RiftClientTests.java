@@ -24,7 +24,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext ctx) {
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
-		props.setProperty("server-port", "25602");
+		props.setProperty("server-port", "25603");
 		props.setProperty("level-type", "minecraft:flat");
 		props.setProperty("spawn-monsters", "false");
 		props.setProperty("spawn-animals", "false");
@@ -104,6 +104,24 @@ public final class RiftClientTests implements FabricClientGameTest {
 				if (zPurple < BOX / 20) throw new AssertionError("no Z-plane rift on screen: " + zPurple + " rift pixels");
 				if (zMoved < BOX / 200) throw new AssertionError("the Z-plane rift doesn't move: " + zMoved + " pixels changed");
 				server.runCommand("rifts collapse 20 -58 -20");
+
+				// the War Drummer, 4 blocks in front of the camera, facing it (yaw -90 is east; entities face their yaw, and the camera is east of it)
+				server.runCommand("difficulty easy");
+				server.runCommand("time set noon");
+				server.runCommand("summon nether_rifts:war_drummer -20.5 -60 0.5 {Rotation:[-90f,0f],PersistenceRequired:1b}");
+				server.runCommand("tp Tester -16.5 -58.5 0.5 90 10");
+				ctx.waitTicks(25);
+				var drummerA = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_a").withSize(1920, 1080)));
+				ctx.waitTicks(5);
+				var drummerB = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_b").withSize(1920, 1080)));
+				int gold = count(drummerA, (r, g, b) -> r > 200 && g > 150 && b < 110);
+				int drumMoved = changed(drummerA, drummerB, 24);
+				System.out.println("[nether-rifts-clienttest] drummer gold=" + gold + " moved=" + drumMoved);
+				if (gold < 300) throw new AssertionError("the War Drummer's gold helm and drum rims aren't on screen: " + gold);
+				if (drumMoved < 200) throw new AssertionError("the War Drummer doesn't animate: " + drumMoved);
+				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
+				server.runCommand("difficulty peaceful");
+				server.runCommand("time set midnight");
 
 				// the void anchor's rift, same shader file
 				server.runCommand("tp Tester 30.5 -50 0.5 0 90");

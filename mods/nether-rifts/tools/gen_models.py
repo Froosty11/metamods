@@ -158,8 +158,8 @@ def head(m, parent, y):
 	m.group("head", (0, y, 0), parent=parent)
 	m.cube("head", "skull", (-5, y, -4), (5, y + 8, 4), "skin", decorate=piglin_face)
 	m.cube("head", "snout", (-2, y + 1, -5), (2, y + 4, -4), "snout")
-	m.cube("head", "ear_left", (5, y + 2, -1), (6, y + 7, 2), "skin_dark")
-	m.cube("head", "ear_right", (-6, y + 2, -1), (-5, y + 7, 2), "skin_dark")
+	m.cube("head", "ear_left", (-6, y + 2, -1), (-5, y + 7, 2), "skin_dark")
+	m.cube("head", "ear_right", (5, y + 2, -1), (6, y + 7, 2), "skin_dark")
 	return "head"
 
 
@@ -170,9 +170,11 @@ def war_drummer():
 	m.cube("body", "belt", (-4.5, 12, -2.5), (4.5, 14, 2.5), "leather")
 	head(m, "body", 24)
 	m.cube("head", "helm", (-5.5, 31, -4.5), (5.5, 34, 4.5), "gold")
-	m.cube("head", "horn_left", (5.5, 32, -1), (7.5, 37, 1), "bone")
-	m.cube("head", "horn_right", (-7.5, 32, -1), (-5.5, 37, 1), "bone")
-	for side, s in (("left", 1), ("right", -1)):
+	m.cube("head", "horn_left", (-7.5, 32, -1), (-5.5, 37, 1), "bone")
+	m.cube("head", "horn_right", (5.5, 32, -1), (7.5, 37, 1), "bone")
+	# The model faces -Z, so its right hand is +X ("left" is -X). Checked against a client screenshot: BIL's
+	# 180 degree turn leaves the entity's right on the model's +X. Positive X rotation swings an arm forward.
+	for side, s in (("left", -1), ("right", 1)):
 		g = m.group(f"arm_{side}", (6 * s, 22, 0), parent="body")
 		lo, hi = sorted((4 * s, 8 * s))
 		m.cube(g, "arm", (lo, 13, -2), (hi, 24, 2), "skin")
@@ -192,22 +194,22 @@ def war_drummer():
 
 	still = (0, 0, 0)
 	m.animation("idle", 2.0, "loop", {
-		"arm_right": {"rotation": [(0, still), (0.5, (-35, 0, 0)), (1.0, still), (2.0, still)]},
-		"arm_left": {"rotation": [(0, still), (1.0, still), (1.5, (-35, 0, 0)), (2.0, still)]},
+		"arm_right": {"rotation": [(0, still), (0.5, (35, 0, 0)), (1.0, still), (2.0, still)]},
+		"arm_left": {"rotation": [(0, still), (1.0, still), (1.5, (35, 0, 0)), (2.0, still)]},
 		"body": {"position": [(0, still), (0.5, (0, 0.5, 0)), (1.0, still), (1.5, (0, 0.5, 0)), (2.0, still)]},
 		"banner": {"rotation": [(0, (0, 0, -4)), (1.0, (0, 0, 4)), (2.0, (0, 0, -4))]},
 	})
 	m.animation("beat", 0.25, "once", {
-		"arm_right": {"rotation": [(0, (-30, 0, 0)), (0.1, (-55, 0, 0)), (0.25, still)]},
-		"arm_left": {"rotation": [(0, (-30, 0, 0)), (0.1, (-55, 0, 0)), (0.25, still)]},
+		"arm_right": {"rotation": [(0, (30, 0, 0)), (0.1, (55, 0, 0)), (0.25, still)]},
+		"arm_left": {"rotation": [(0, (30, 0, 0)), (0.1, (55, 0, 0)), (0.25, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.1, (1.06, 1.06, 1.06)), (0.25, (1, 1, 1))]},
 	})
 	m.animation("big_beat", 0.5, "once", {
-		"arm_right": {"rotation": [(0, still), (0.2, (-120, 0, 0)), (0.3, (10, 0, 0)), (0.5, still)]},
-		"arm_left": {"rotation": [(0, still), (0.2, (-120, 0, 0)), (0.3, (10, 0, 0)), (0.5, still)]},
+		"arm_right": {"rotation": [(0, still), (0.2, (120, 0, 0)), (0.3, (-10, 0, 0)), (0.5, still)]},
+		"arm_left": {"rotation": [(0, still), (0.2, (120, 0, 0)), (0.3, (-10, 0, 0)), (0.5, still)]},
 		"drum": {"scale": [(0, (1, 1, 1)), (0.3, (1.15, 1.15, 1.15)), (0.5, (1, 1, 1))]},
 		"body": {"position": [(0, still), (0.3, (0, -1, 0)), (0.5, still)]},
-		"head": {"rotation": [(0, still), (0.3, (15, 0, 0)), (0.5, still)]},
+		"head": {"rotation": [(0, still), (0.3, (-15, 0, 0)), (0.5, still)]},
 	})
 	m.write()
 

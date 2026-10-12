@@ -20,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.mixin.MobAccessor;
+import nu.metacraft.nether_rifts.mob.WarDrummer;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,7 +64,7 @@ public final class RiftMobs {
 
 	/** One pick from the slot's roster entry at {@code pos}, pushed by {@code push}; returns every entity spawned. */
 	public static List<Entity> spawn(ServerLevel level, UUID rift, Slot slot, BlockPos pos, Vec3 push) {
-		var entry = NetherRiftsConfig.getInstance().roster().get(slot);
+		var entry = NetherRiftsConfig.getInstance().rosterEntry(slot);
 		if (entry == null) {
 			return List.of();
 		}
@@ -96,9 +97,12 @@ public final class RiftMobs {
 		}
 	}
 
-	/** Piglins and brutes drop rift loot by role; ghasts, hoglins and striders keep their own. */
+	/** The drummer, piglins and brutes drop rift loot by role; ghasts, hoglins and striders keep their own. */
 	static Optional<ResourceKey<LootTable>> lootTable(Mob mob, Slot slot) {
 		String role;
+		if (mob instanceof WarDrummer) {
+			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/leader")));
+		}
 		if (mob instanceof PiglinBrute) {
 			role = slot == Slot.CAPTAIN ? "captain" : "elite";
 		} else if (mob instanceof AbstractPiglin) {
