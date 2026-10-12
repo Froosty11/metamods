@@ -520,6 +520,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
+    /ovvar shaders                             (any player) a link to the shaderpack patcher, and how to use it
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -883,7 +884,9 @@ shoulder cells is selected per arm — every setting predicts both shoulders dra
 A bare shoulder is not a state either constant can produce. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
 mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/` and worth linking from the website): double-clicked, it writes a
+`assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
+autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
+or, where autohost serves nothing, the way into the downloaded pack): double-clicked, it writes a
 `+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,

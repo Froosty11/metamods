@@ -10,6 +10,7 @@ import com.mojang.serialization.JavaOps;
 import metacraft.ovvar.content.*;
 import metacraft.ovvar.guide.Guide;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.ShaderPatcher;
 import metacraft.ovvar.sewing.SewingGame;
 import metacraft.ovvar.sewing.StandSewing;
 import metacraft.ovvar.sewing.WardrobeGui;
@@ -26,7 +27,11 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.core.Rotations;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -38,6 +43,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -94,6 +100,8 @@ public final class ModCommands {
 							if (!Guide.open(player)) throw NOT_AN_OVVE.create("this server has no guidebook");
 							return 1;
 						}))
+						// Anyone: the shaderpack patcher, for players with Iris or OptiFine.
+						.then(Commands.literal("shaders").executes(ModCommands::shaders))
 						// Anyone: a look at somebody's ovve, theirs or their own, read-only.
 						.then(Commands.literal("look")
 								.executes(ctx -> {
@@ -267,6 +275,28 @@ public final class ModCommands {
 				.min(java.util.Comparator.comparingDouble(s -> s.distanceToSqr(player))).orElse(null);
 		if (stand == null) throw NOT_AN_OVVE.create("no stand wearing one within 8 blocks");
 		SewingGame.start(player, stand, placement, placement.patch());
+		return 1;
+	}
+
+	/**
+	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; the patcher puts
+	 * them back into the pack. The link is the server's own (autohost); a server that hosts nothing
+	 * says where the jar is in the resource pack the client already downloaded.
+	 */
+	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		MutableComponent fetch = ShaderPatcher.url(player).<MutableComponent>map(url -> Component.literal("1. ")
+						.append(Component.literal("Download the shader patcher").withStyle(style -> style
+								.withColor(ChatFormatting.GREEN).withUnderlined(true)
+								.withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
+								.withHoverEvent(new HoverEvent.ShowText(Component.literal(url))))))
+				.orElseGet(() -> Component.literal("1. It's in this server's resource pack: in .minecraft/downloads, open the newest"
+						+ " folder, copy the file in it, name the copy pack.zip, and take " + ShaderPatcher.RESOURCE + " out of it."));
+		player.sendSystemMessage(Component.literal("Playing with a shaderpack (Iris or OptiFine)? It replaces the shaders that draw"
+				+ " patches on ovvar and the rifts. Patch your pack once:").withStyle(ChatFormatting.GOLD));
+		player.sendSystemMessage(fetch);
+		player.sendSystemMessage(Component.literal("2. Double-click it (needs Java). It writes a \"+ovvar\" copy of every pack in your shaderpacks folder."));
+		player.sendSystemMessage(Component.literal("3. Pick the \"+ovvar\" copy in Iris. Run it again when you add or update a pack."));
 		return 1;
 	}
 

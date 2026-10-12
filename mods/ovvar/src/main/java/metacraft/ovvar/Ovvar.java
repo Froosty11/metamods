@@ -9,6 +9,7 @@ import metacraft.ovvar.content.OvveFeet;
 import metacraft.ovvar.content.OvveTop;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.ShaderPatcher;
 import metacraft.ovvar.pack.WardrobeArt;
 import metacraft.ovvar.sewing.StandDisplays;
 import metacraft.ovvar.sewing.StandSewing;
@@ -48,6 +49,7 @@ public class Ovvar implements ModInitializer {
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();
+		ShaderPatcher.init();
 		// Gestures in an ovve. The only reference to the compat package, behind the only check that
 		// Danse is here; nothing else in ovvar knows the mod exists.
 		if (DanseHooks.active()) DanseCompat.init();
