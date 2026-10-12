@@ -228,8 +228,8 @@ public final class ModContent {
 	 * can reach. Wherever that differs from our block's own sounds, both sound types go server-driven:
 	 * polymer-sound-patcher silences the client's guess and has the server send ours, on every break
 	 * and mining hit (it watches levelEvent), step, fall and placement. Ours goes too because polymer
-	 * 0.18.2 only sends a player's break sound when it is, and because the placer's client predicts
-	 * ours from the client item. Blast radius: every vanilla block sharing one of those sound types
+	 * 0.18.4 sends a break sound only when the client's block state sounds converted, not the break
+	 * event's state, and because the placer's client predicts ours from the client item. Blast radius: every vanilla block sharing one of those sound types
 	 * gets it from the server as well (the same sound, a tick later).
 	 */
 	private static void collectDonorSounds(Block block) {

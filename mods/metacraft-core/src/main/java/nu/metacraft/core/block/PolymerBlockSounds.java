@@ -18,9 +18,10 @@ import java.util.List;
  * client's sound and the server sends ours instead: on every break and mining hit (the patcher
  * watches {@code levelEvent}), step, fall and placement.
  * <p>
- * Our own sound type is converted too: polymer 0.18.2 only sends a player's break sound when it
- * is, and the placer's client already predicts ours from the client item, which would otherwise
- * play twice. Blast radius: every vanilla block sharing a converted sound type gets that sound from
+ * Our own sound type is converted too. On a break polymer 0.18.4 sends ours only when the client's
+ * block state sounds converted, not the break event's state, so a block that only breaks as
+ * something else needs ours; and the placer's client predicts ours from the client item, which
+ * would otherwise play twice. Blast radius: every vanilla block sharing a converted sound type gets that sound from
  * the server as well (the same sound, a tick later).
  * <p>
  * Call it once per block, while registering (the patcher's pack entries are made then).

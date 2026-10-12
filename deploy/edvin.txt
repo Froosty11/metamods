@@ -41,7 +41,7 @@ metacraft-config-gui
 
 # from outside the repo, pinned
 external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/bNnaTiuM/fabric-api-0.161.0%2B26.3.jar sha256:86f16178a3cecc887a85a4cfe9a79d92fa7341d8f39b5951a4d6ad800ab657a6
-external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/REBDssAz/polymer-bundled-0.18.2%2B26.3.jar sha256:3d79318e8202d0e87af308d7f232220714e5f1409d06c23db774877ec6f3848f
+external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/G0fTdl8M/polymer-bundled-0.18.4%2B26.3.jar sha256:66ae7528b57278fa2f0ffe2c4a94842af13350176d948532be67c9d25f05947f
 external c2me https://cdn.modrinth.com/data/VSNURh3q/versions/FXjQDzq7/c2me-fabric-mc26.3-0.4.2-alpha.0.89.jar sha256:ee506e6bc68b03e8b2ef5548da8f7d09cede707e796a458e4e03a7e2107837b8
 external lithium https://cdn.modrinth.com/data/gvQqBUqZ/versions/xS0Q8LSi/lithium-fabric-0.26.2%2Bmc26.3.jar sha256:0be5b17ef9f6e9244cd07b24b227553a73aec0cf93158cf28099f3094c167f1b
 external ferritecore https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar sha256:213966c72ed967acc7392beb28a866fba301ff56b9976c2e7801c2db7de6bf22
