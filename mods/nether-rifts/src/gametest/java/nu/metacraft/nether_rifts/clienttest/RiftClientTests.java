@@ -21,7 +21,8 @@ import java.util.Properties;
 
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
- * each stage (and its membrane staying put on the world as the camera steps aside), an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
+ * each stage, close and from 8 blocks (and its membrane staying put on the world as the camera steps aside),
+ * an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
  * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer and a
  * war ghast carrying a Ghast Bombardier, and from the side at each of their swings, which must go forward.
  */
@@ -57,6 +58,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 				worldLocked(ctx, server, conn);
 				int[] purple = new int[3];
 				int[] nether = new int[3];
+				double[] holes = new double[3];
 				String[] stages = {"lit", "unstable", "torn"};
 				for (int i = 0; i < stages.length; i++) {
 					String stage = stages[i];
@@ -70,9 +72,18 @@ public final class RiftClientTests implements FabricClientGameTest {
 					int moved = changed(first, read(b), 24);
 					purple[i] = count(first, RiftClientTests::purplePixel);
 					nether[i] = count(first, RiftClientTests::netherPixel);
-					System.out.println("[nether-rifts-clienttest] " + stage + " rift=" + rift + " purple=" + purple[i] + " nether=" + nether[i] + " moved=" + moved);
+					holes[i] = holeShare(first);
+					System.out.println("[nether-rifts-clienttest] " + stage + " rift=" + rift + " purple=" + purple[i] + " nether=" + nether[i]
+							+ " holes=" + String.format("%.3f", holes[i]) + " moved=" + moved);
 					check(rift >= BOX / 20, "no rift on screen at " + stage + ": " + rift + " rift pixels");
 					check(moved >= BOX / 200, "the rift doesn't move at " + stage + ": " + moved + " pixels changed");
+					// and from 8 blocks, as it is mostly seen in play (to look at, not measured)
+					server.runCommand("tp Tester 0.5 -58 8.5 180 0");
+					conn.waitForClientboundPackets();
+					ctx.waitTicks(3);
+					ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_far").withSize(1920, 1080));
+					server.runCommand("tp Tester 0.5 -58 4 180 0");
+					conn.waitForClientboundPackets();
 				}
 				// The fallback sprite (the panorama, stretched) looks the same at every stage; only the shader
 				// cracks the membrane open as the rift tears. More nether and less purple prove it ran.
@@ -81,6 +92,12 @@ public final class RiftClientTests implements FabricClientGameTest {
 				}
 				if (purple[2] * 3 > purple[0] * 2) {
 					check(false, "the torn rift's membrane isn't mostly gone: purple lit=" + purple[0] + " torn=" + purple[2]);
+				}
+				// Torn, whole shards have fallen out of the glass and the nether shows through the holes; lit, the glass
+				// is whole but for cracks and a pinhole. The fallback sprite is all panorama at every stage.
+				if (holes[2] < 0.2 || holes[2] < holes[0] * 4) {
+					check(false, "the torn rift shows no holes onto the nether: share of panorama in the rift lit="
+							+ String.format("%.3f", holes[0]) + " torn=" + String.format("%.3f", holes[2]));
 				}
 				server.runCommand("rifts collapse 0 -58 0");
 
@@ -273,6 +290,45 @@ public final class RiftClientTests implements FabricClientGameTest {
 				+ " diff=" + String.format("%.1f", bestDiff) + " diffAtZero=" + String.format("%.1f", atZero));
 		check(Math.abs(geometry) >= 20, "the camera step didn't move the rift on screen: " + geometry + " px");
 		check(Math.abs(best - geometry) <= 4, "the membrane doesn't move with the world: rift moved " + geometry + " px, pattern " + best + " px");
+	}
+
+	/**
+	 * The share of the rift, its glowing edge left out, that shows the panorama rather than the membrane. The rift is
+	 * taken as the rows and columns with 60 rift pixels or more, so portal particles drifting round it don't stretch
+	 * the box over the frame.
+	 */
+	private static double holeShare(BufferedImage img) {
+		int[] rows = new int[img.getHeight()];
+		int[] cols = new int[img.getWidth()];
+		for (int y = 300; y < img.getHeight(); y++) {
+			for (int x = 600; x < 1400; x++) {
+				int p = img.getRGB(x, y);
+				if (riftPixel((p >> 16) & 255, (p >> 8) & 255, p & 255)) {
+					rows[y]++;
+					cols[x]++;
+				}
+			}
+		}
+		int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = -1, y1 = -1;
+		for (int y = 0; y < rows.length; y++) {
+			if (rows[y] >= 60) {
+				y0 = Math.min(y0, y);
+				y1 = y;
+			}
+		}
+		for (int x = 0; x < cols.length; x++) {
+			if (cols[x] >= 60) {
+				x0 = Math.min(x0, x);
+				x1 = x;
+			}
+		}
+		if (x1 < 0 || y1 < 0) return 0;
+		x0 += 30;
+		y0 += 30;
+		x1 -= 30;
+		y1 -= 30;
+		if (x1 <= x0 || y1 <= y0) return 0;
+		return countIn(img, x0, y0, x1, y1, RiftClientTests::netherPixel) / (double) ((x1 - x0) * (y1 - y0));
 	}
 
 	/** The rift's bounding box (x0, y0, x1, y1) in the middle of the screen, chat and toasts left out; null if there's none. */
