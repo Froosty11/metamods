@@ -169,7 +169,11 @@ public class FormingTests {
 		var data = RiftData.get(ctx.getLevel());
 		for (var rift : data.all()) {
 			if (ctx.getBounds().contains(rift.centre())) {
-				rift.fade(ctx.getLevel(), data);
+				if (rift.stage().raiding()) {
+					nu.metacraft.nether_rifts.raid.RiftRaid.end(ctx.getLevel(), rift, data, true);
+				} else {
+					rift.fade(ctx.getLevel(), data);
+				}
 			}
 		}
 	}

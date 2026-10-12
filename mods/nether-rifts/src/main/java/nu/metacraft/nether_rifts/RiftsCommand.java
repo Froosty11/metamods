@@ -9,6 +9,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.raid.RiftRaid;
 import nu.metacraft.nether_rifts.rift.*;
 
 import java.util.Optional;
@@ -56,7 +57,51 @@ public final class RiftsCommand {
 					RiftData.get(level).open(level, shape.get(), false);
 					ctx.getSource().sendSuccess(() -> Component.literal("Opened a rift of " + shape.get().size() + " blocks"), true);
 					return 1;
-				})));
+				})))
+				.then(Commands.literal("list").executes(ctx -> {
+					int n = 0;
+					for (var level : ctx.getSource().getServer().getAllLevels()) {
+						for (var rift : RiftData.get(level).all()) {
+							n++;
+							var line = level.dimension().identifier() + " " + rift.shape().centreBlock().toShortString() + " " + rift.stage().getSerializedName()
+									+ " " + rift.tier().getSerializedName() + (rift.stage() == Stage.RAID ? " wave " + rift.wave() + "/" + rift.tier().waves() : "");
+							ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+						}
+					}
+					int total = n;
+					ctx.getSource().sendSuccess(() -> Component.literal(total + " rift(s)"), false);
+					return total;
+				}))
+				.then(raidAction("next-wave", (level, rift, data) -> {
+					RiftRaid.aliveMobs(level, rift).forEach(net.minecraft.world.entity.Entity::discard);
+					RiftRaid.advanceIfCleared(level, rift, data, java.util.List.of(), () -> true);
+				}))
+				.then(raidAction("close", RiftRaid::victory))
+				.then(raidAction("collapse", (level, rift, data) -> {
+					if (rift.stage().raiding()) {
+						RiftRaid.collapse(level, rift, data);
+					} else {
+						rift.fade(level, data);
+					}
+				}));
+	}
+
+	interface RiftAction {
+		void run(net.minecraft.server.level.ServerLevel level, Rift rift, RiftData data);
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> raidAction(String name, RiftAction action) {
+		return Commands.literal(name).then(Commands.argument("pos", BlockPosArgument.blockPos()).executes(ctx -> {
+			var pos = BlockPosArgument.getLoadedBlockPos(ctx, "pos");
+			var rift = riftNear(ctx.getSource(), pos);
+			if (rift.isEmpty()) {
+				ctx.getSource().sendFailure(Component.literal("No rift within 16 blocks of " + pos.toShortString()));
+				return 0;
+			}
+			action.run(ctx.getSource().getLevel(), rift.get(), RiftData.get(ctx.getSource().getLevel()));
+			ctx.getSource().sendSuccess(() -> Component.literal(name + ": done"), true);
+			return 1;
+		}));
 	}
 
 	static Optional<Rift> riftNear(CommandSourceStack source, BlockPos pos) {

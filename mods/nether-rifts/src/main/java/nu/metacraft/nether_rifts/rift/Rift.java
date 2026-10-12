@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.RiftMessages;
+import nu.metacraft.nether_rifts.raid.RiftRaid;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -108,6 +109,16 @@ public final class Rift {
 		return bossBar;
 	}
 
+	public void setWave(int wave, int size) {
+		this.wave = wave;
+		this.waveSize = size;
+		this.waveTicks = 0;
+	}
+
+	public void setBossBar(ServerBossEvent bar) {
+		this.bossBar = bar;
+	}
+
 	public Vec3 centre() {
 		return shape.centre();
 	}
@@ -154,6 +165,10 @@ public final class Rift {
 
 	public void tick(ServerLevel level, RiftData data) {
 		if (!level.isPositionEntityTicking(shape.centreBlock())) {
+			// Unloaded: nothing moves, but nobody is holding a raid either.
+			if (stage.raiding() && ++abandonTicks >= NetherRiftsConfig.getInstance().timers().abandonAfter()) {
+				RiftRaid.collapse(level, this, data);
+			}
 			return;
 		}
 		// Polymer detaches a chunk's holders when the chunk unloads; the rift draws itself again once it ticks.
@@ -166,7 +181,11 @@ public final class Rift {
 		}
 		stageTicks++;
 		if (stageTicks % 20 == 0 && !shape.frameIntact(level)) {
-			fade(level, data);
+			if (stage.raiding()) {
+				RiftRaid.collapse(level, this, data);
+			} else {
+				fade(level, data);
+			}
 			return;
 		}
 		var timers = NetherRiftsConfig.getInstance().timers();
@@ -178,10 +197,14 @@ public final class Rift {
 				}
 			}
 			case TORN -> {
-				if (--countdown <= 0) {
+				RiftRaid.tick(level, this, data);
+				// An abandoned rift collapses inside RiftRaid.tick; it mustn't then spawn a wave for nobody.
+				if (data.byId(id).isPresent() && --countdown <= 0) {
 					setStage(level, Stage.RAID);
+					RiftRaid.startWave(level, this, 1);
 				}
 			}
+			case RAID -> RiftRaid.tick(level, this, data);
 			default -> {
 			}
 		}
