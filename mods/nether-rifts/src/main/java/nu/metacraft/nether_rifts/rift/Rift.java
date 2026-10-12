@@ -153,6 +153,11 @@ public final class Rift {
 		if (!level.isPositionEntityTicking(shape.centreBlock())) {
 			return;
 		}
+		// Polymer detaches a chunk's holders when the chunk unloads; the rift draws itself again once it ticks.
+		if (visual != null && visual.getAttachment() == null) {
+			visual.destroy();
+			visual = null;
+		}
 		if (visual == null) {
 			visual = RiftVisual.attach(level, this);
 		}

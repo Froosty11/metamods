@@ -9,6 +9,7 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.nether_rifts.NetherRifts;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +27,8 @@ public class RiftData extends SavedData {
 	);
 
 	private final Map<UUID, Rift> rifts = new LinkedHashMap<>();
-	private final Map<BlockPos, UUID> index = new HashMap<>();
+	/** Block and frame positions to the rifts claiming them: two rifts can share a frame block. */
+	private final Map<BlockPos, List<UUID>> index = new HashMap<>();
 
 	public RiftData() {
 	}
@@ -62,18 +64,48 @@ public class RiftData extends SavedData {
 
 	private void put(Rift rift) {
 		rifts.put(rift.id(), rift);
-		rift.shape().blocks().forEach(p -> index.put(p, rift.id()));
-		rift.shape().frame().forEach(p -> index.put(p, rift.id()));
+		rift.shape().blocks().forEach(p -> index.computeIfAbsent(p, k -> new ArrayList<>(1)).add(rift.id()));
+		rift.shape().frame().forEach(p -> index.computeIfAbsent(p, k -> new ArrayList<>(1)).add(rift.id()));
 	}
 
 	public void remove(Rift rift) {
 		rifts.remove(rift.id());
-		index.values().removeIf(rift.id()::equals);
+		for (var pos : rift.shape().blocks()) {
+			unindex(pos, rift.id());
+		}
+		for (var pos : rift.shape().frame()) {
+			unindex(pos, rift.id());
+		}
 		setDirty();
 	}
 
+	private void unindex(BlockPos pos, UUID id) {
+		var ids = index.get(pos);
+		if (ids != null && ids.remove(id) && ids.isEmpty()) {
+			index.remove(pos);
+		}
+	}
+
+	/** The rift whose blocks include the position, else a rift whose frame does. */
 	public Optional<Rift> at(BlockPos pos) {
-		return Optional.ofNullable(index.get(pos)).map(rifts::get);
+		var ids = index.get(pos);
+		if (ids == null) {
+			return Optional.empty();
+		}
+		Rift framing = null;
+		for (var id : ids) {
+			var rift = rifts.get(id);
+			if (rift == null) {
+				continue;
+			}
+			if (rift.shape().blocks().contains(pos)) {
+				return Optional.of(rift);
+			}
+			if (framing == null) {
+				framing = rift;
+			}
+		}
+		return Optional.ofNullable(framing);
 	}
 
 	public Optional<Rift> byId(UUID id) {

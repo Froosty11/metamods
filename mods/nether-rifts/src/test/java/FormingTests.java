@@ -74,6 +74,70 @@ public class FormingTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("forming/visual_reattaches", ctx -> {
+			// Polymer drops a chunk's attachments when it unloads; a rift must draw itself again when it ticks again.
+			lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var visual = riftIn(ctx).visual();
+				ctx.assertTrue(visual != null && visual.getAttachment() != null, "no attached visual to start with");
+				visual.getAttachment().destroy();
+				ctx.assertTrue(visual.getAttachment() == null, "destroying the attachment left it attached");
+			});
+			ctx.runAtTickTime(8, () -> {
+				var visual = riftIn(ctx).visual();
+				ctx.assertTrue(visual != null, "the visual was dropped");
+				ctx.assertTrue(visual.getAttachment() != null, "the visual stayed detached");
+				ctx.assertTrue(visual.elementCount() == 5, visual.elementCount() + " elements");
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/shared_frame_indexed", ctx -> {
+			// Two portals sharing an obsidian column: the column belongs to both, whichever one goes first.
+			ShapeTests.frame(ctx, 2, 3, Blocks.OBSIDIAN);
+			for (int x = 3; x <= 6; x++) {
+				ctx.setBlock(new BlockPos(x, 1, 5), Blocks.OBSIDIAN);
+				ctx.setBlock(new BlockPos(x, 5, 5), Blocks.OBSIDIAN);
+			}
+			for (int y = 1; y <= 5; y++) {
+				ctx.setBlock(new BlockPos(6, y, 5), Blocks.OBSIDIAN);
+			}
+			ctx.setBlock(new BlockPos(4, 2, 5), Blocks.FIRE);
+			ctx.setBlock(new BlockPos(1, 2, 5), Blocks.FIRE);
+			var shared = ctx.absolutePos(new BlockPos(3, 3, 5));
+			ctx.runAtTickTime(3, () -> {
+				var data = RiftData.get(ctx.getLevel());
+				var rifts = riftsIn(ctx);
+				ctx.assertTrue(rifts.size() == 2, rifts.size() + " rifts");
+				ctx.assertTrue(data.at(shared).isPresent(), "the shared column isn't indexed");
+				// the one opened last is the one whose index entry used to win; take it away
+				var newer = rifts.getLast();
+				var older = rifts.getFirst();
+				newer.fade(ctx.getLevel(), data);
+				var found = data.at(shared);
+				ctx.assertTrue(found.isPresent(), "the shared column lost its rift when the other faded");
+				ctx.assertTrue(found.get().id().equals(older.id()), "the shared column points at the wrong rift");
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/water_does_not_wash_rift", ctx -> {
+			var inside = lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				assertInside(ctx, inside, 2, 3, RiftBlocks.RIFT);
+				// sources on both faces of the plane, level with the rift's middle row: they spread sideways into it
+				ctx.setBlock(inside.offset(0, 1, -1), Blocks.WATER);
+				ctx.setBlock(inside.offset(1, 1, 1), Blocks.WATER);
+			});
+			ctx.runAtTickTime(45, () -> {
+				ctx.assertBlockPresent(Blocks.WATER, inside.offset(0, 1, -2));
+				assertInside(ctx, inside, 2, 3, RiftBlocks.RIFT);
+				ctx.setBlock(inside.offset(0, 1, -1), Blocks.AIR);
+				ctx.setBlock(inside.offset(1, 1, 1), Blocks.AIR);
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 	}
 
 	/** Builds the frame from {@link ShapeTests#frame} and sets fire inside it; returns the inside's bottom-left. */
