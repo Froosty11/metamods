@@ -6,11 +6,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import nu.metacraft.nether_rifts.RiftMessages;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -164,6 +167,60 @@ public final class Rift {
 		stageTicks++;
 		if (stageTicks % 20 == 0 && !shape.frameIntact(level)) {
 			fade(level, data);
+			return;
 		}
+		var timers = NetherRiftsConfig.getInstance().timers();
+		switch (stage) {
+			case UNSTABLE -> {
+				if (stageTicks >= timers.unstableFallback()) {
+					setStage(level, Stage.LIT);
+					playAt(level, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), 0.8f);
+				}
+			}
+			case TORN -> {
+				if (--countdown <= 0) {
+					setStage(level, Stage.RAID);
+				}
+			}
+			default -> {
+			}
+		}
+	}
+
+	/** One more light: lit becomes unstable, unstable tears open (unless the server is at its raid cap). */
+	public boolean light(ServerLevel level) {
+		switch (stage) {
+			case LIT -> {
+				setStage(level, Stage.UNSTABLE);
+				playAt(level, SoundEvents.RESPAWN_ANCHOR_CHARGE, 0.5f);
+				RiftMessages.say(level, this, "The rift strains. One more and it tears open.");
+				return true;
+			}
+			case UNSTABLE -> {
+				if (RiftData.activeRaids(level.getServer()) >= NetherRiftsConfig.getInstance().activeRaidCap()) {
+					RiftMessages.say(level, this, "The realm resists. Another tear is draining it.");
+					return false;
+				}
+				tear(level);
+				return true;
+			}
+			default -> {
+				return false;
+			}
+		}
+	}
+
+	/** Torn open: the countdown to the first wave starts. */
+	public void tear(ServerLevel level) {
+		setStage(level, Stage.TORN);
+		countdown = NetherRiftsConfig.getInstance().timers().countdown();
+		var c = centre();
+		level.playSound(null, c.x, c.y, c.z, SoundEvents.RAID_HORN, SoundSource.HOSTILE, 8.0f, 0.6f);
+		RiftMessages.say(level, this, "The rift tears open!");
+	}
+
+	private void playAt(ServerLevel level, net.minecraft.sounds.SoundEvent sound, float pitch) {
+		var c = centre();
+		level.playSound(null, c.x, c.y, c.z, sound, SoundSource.BLOCKS, 1.0f, pitch);
 	}
 }

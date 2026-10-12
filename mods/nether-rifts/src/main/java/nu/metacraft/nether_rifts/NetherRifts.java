@@ -4,6 +4,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.resources.Identifier;
+import nu.metacraft.nether_rifts.rift.Ignition;
 import nu.metacraft.nether_rifts.rift.RiftBlocks;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +20,7 @@ public class NetherRifts implements ModInitializer {
 	public void onInitialize() {
 		NetherRiftsConfig.getInstance();
 		RiftBlocks.init();
+		Ignition.init();
 		ServerTickEvents.END_LEVEL_TICK.register(level -> RiftData.get(level).tick(level));
 		RiftsCommand.init();
 
