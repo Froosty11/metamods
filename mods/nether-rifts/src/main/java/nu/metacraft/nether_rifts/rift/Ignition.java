@@ -38,7 +38,7 @@ public final class Ignition {
 			}
 			return InteractionResult.SUCCESS_SERVER;
 		}
-		return InteractionResult.PASS;
+		return CryingIgnition.tryOpen(serverLevel, player, hand, stack, hit);
 	}
 
 	public static boolean isIgniter(ItemStack stack) {

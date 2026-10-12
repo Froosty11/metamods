@@ -11,6 +11,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.RiftMessages;
@@ -155,6 +156,16 @@ public final class Rift {
 		if (visual != null) {
 			visual.destroy();
 			visual = null;
+		}
+	}
+
+	/** The realm steadied while this rift waited: it becomes the working portal it would have been. */
+	public void becomePortal(ServerLevel level, RiftData data) {
+		var portal = Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, shape.axis());
+		destroyVisual();
+		data.remove(this);
+		for (var pos : shape.blocks()) {
+			level.setBlock(pos, portal, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
 		}
 	}
 

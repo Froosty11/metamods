@@ -1,6 +1,7 @@
 package nu.metacraft.nether_rifts;
 
 import net.minecraft.server.MinecraftServer;
+import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.portal_blocker.PortalBlockerSettings;
 import nu.metacraft.portal_blocker.PortalState;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
@@ -13,6 +14,14 @@ public final class Stabilisation {
 	public static void stabilise(MinecraftServer server) {
 		RiftWorldState.get(server).setRiftMode(false);
 		setNetherLocked(server, false);
+		for (var level : server.getAllLevels()) {
+			var data = RiftData.get(level);
+			for (var rift : data.all()) {
+				if (!rift.stage().raiding() && !rift.crying()) {
+					rift.becomePortal(level, data);
+				}
+			}
+		}
 	}
 
 	public static void destabilise(MinecraftServer server) {
