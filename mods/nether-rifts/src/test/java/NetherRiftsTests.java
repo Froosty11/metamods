@@ -61,6 +61,7 @@ public class NetherRiftsTests {
 					ShapeTests.registerTests();
 					FormingTests.registerTests();
 					StageTests.registerTests();
+					MobTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, NetherRifts::new

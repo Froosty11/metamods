@@ -7,6 +7,10 @@
 		"BaseFireBlockMixin",
 		"CrafterBlockMixin",
 		"CraftingMenuMixin",
+		"LargeFireballMixin",
+		"MobAccessor",
+		"MobMixin",
+		"PiglinSpecificSensorMixin",
 		"PortalShapeAccessor"
 	],
 	"client": [],
