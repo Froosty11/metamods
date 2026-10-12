@@ -64,6 +64,24 @@ public class FormingTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("forming/z_plane_opens_rift", ctx -> {
+			var inside = ShapeTests.zFrame(ctx, 2, 3, Blocks.OBSIDIAN);
+			ctx.setBlock(inside, Blocks.FIRE);
+			ctx.runAtTickTime(3, () -> {
+				for (int z = 0; z < 2; z++) {
+					for (int y = 0; y < 3; y++) {
+						ctx.assertBlockPresent(RiftBlocks.RIFT, inside.offset(0, y, z));
+					}
+				}
+				var rift = riftIn(ctx);
+				ctx.assertTrue(rift.shape().axis() == net.minecraft.core.Direction.Axis.Z, "axis " + rift.shape().axis());
+				ctx.assertTrue(rift.visual() != null, "no visual");
+				// a 2×3 rectangle: one panel and four edge strips
+				ctx.assertTrue(rift.visual().elementCount() == 5, rift.visual().elementCount() + " elements");
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("forming/broken_frame_fades", ctx -> {
 			// Review focus 2: a waiting rift whose frame is broken fades, leaving no invisible blocks.
 			var inside = lightFrame(ctx, 2, 3);

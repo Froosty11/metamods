@@ -15,8 +15,8 @@ import java.util.Properties;
 
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
- * each stage, an L-shaped rift (merged panels must join without a seam), and a void-anchor rift in the
- * same run (the shared item shader must draw both).
+ * each stage, an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
+ * void-anchor rift in the same run (the shared item shader must draw both).
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
@@ -87,6 +87,23 @@ public final class RiftClientTests implements FabricClientGameTest {
 				int blobPurple = count(blob, RiftClientTests::riftPixel);
 				System.out.println("[nether-rifts-clienttest] blob before=" + blobBefore + " after=" + blobPurple);
 				if (blobPurple < blobBefore + BOX / 10) throw new AssertionError("forming didn't draw the L-shaped rift: " + blobBefore + " -> " + blobPurple);
+
+				// a 2×3 portal on the Z plane (panels turned a quarter): frame z -21..-18 at x 20, inside z -20..-19, looked at from the east
+				server.runCommand("fill 20 -60 -21 20 -56 -18 minecraft:obsidian");
+				server.runCommand("fill 20 -59 -20 20 -57 -19 minecraft:air");
+				server.runCommand("setblock 20 -59 -20 minecraft:fire");
+				server.runCommand("tp Tester 24 -58 -19 90 0");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(30);
+				var zA = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_z_plane_a").withSize(1920, 1080)));
+				ctx.waitTicks(5);
+				var zB = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_z_plane_b").withSize(1920, 1080)));
+				int zPurple = count(zA, RiftClientTests::riftPixel);
+				int zMoved = changed(zA, zB, 24);
+				System.out.println("[nether-rifts-clienttest] z_plane purple=" + zPurple + " moved=" + zMoved);
+				if (zPurple < BOX / 20) throw new AssertionError("no Z-plane rift on screen: " + zPurple + " rift pixels");
+				if (zMoved < BOX / 200) throw new AssertionError("the Z-plane rift doesn't move: " + zMoved + " pixels changed");
+				server.runCommand("rifts collapse 20 -58 -20");
 
 				// the void anchor's rift, same shader file
 				server.runCommand("tp Tester 30.5 -50 0.5 0 90");

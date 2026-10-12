@@ -1,4 +1,5 @@
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -61,6 +62,15 @@ public class ShapeTests {
 			ctx.assertTrue(shape.get().size() == 21 * 3, "size " + shape.get().size());
 			ctx.succeed();
 		});
+		NetherRiftsTests.register("shape/z_plane", ctx -> {
+			var inside = zFrame(ctx, 2, 3, Blocks.OBSIDIAN);
+			var shape = RiftShape.fill(ctx.getLevel(), ctx.absolutePos(inside), OBSIDIAN);
+			ctx.assertTrue(shape.isPresent(), "no shape in a Z-plane 2×3 frame");
+			ctx.assertTrue(shape.get().axis() == Direction.Axis.Z, "axis " + shape.get().axis());
+			ctx.assertTrue(shape.get().size() == 6, "size " + shape.get().size());
+			ctx.assertTrue(shape.get().frame().size() == 10, "frame " + shape.get().frame().size());
+			ctx.succeed();
+		});
 		NetherRiftsTests.register("shape/frame_intact", ctx -> {
 			var inside = frame(ctx, 2, 3, Blocks.OBSIDIAN);
 			var shape = RiftShape.fill(ctx.getLevel(), ctx.absolutePos(inside), OBSIDIAN).orElseThrow();
@@ -98,5 +108,21 @@ public class ShapeTests {
 			ctx.setBlock(new BlockPos(w + 1, y, 5), block);
 		}
 		return new BlockPos(1, 2, 5);
+	}
+
+	/**
+	 * A frame on the Z plane at relative x = 5, its inside w × h starting at relative (5, 2, 1); returns that
+	 * bottom-left inside position. Corners are filled like a player's portal.
+	 */
+	static BlockPos zFrame(GameTestHelper ctx, int w, int h, Block block) {
+		for (int z = 0; z <= w + 1; z++) {
+			ctx.setBlock(new BlockPos(5, 1, z), block);
+			ctx.setBlock(new BlockPos(5, h + 2, z), block);
+		}
+		for (int y = 1; y <= h + 2; y++) {
+			ctx.setBlock(new BlockPos(5, y, 0), block);
+			ctx.setBlock(new BlockPos(5, y, w + 1), block);
+		}
+		return new BlockPos(5, 2, 1);
 	}
 }
