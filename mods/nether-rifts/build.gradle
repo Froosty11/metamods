@@ -21,4 +21,6 @@ fabricApi {
 
 dependencies {
 	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+	// the void anchor in the same client run: the shared shader must draw both rifts
+	gametestRuntimeOnly project(":mods:metacraft-qol")
 }
