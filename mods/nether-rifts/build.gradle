@@ -1,0 +1,26 @@
+version = project.nether_rifts_version
+
+addCoreDependencies()
+addConfigDependency()
+addProjectDependency(":mods:metacraft-zones")
+addProjectDependency(":mods:portal-blocker")
+addProjectDependency(":mods:portal-opening")
+addProjectDependency(":mods:simple-custom-features")
+
+// Client screenshot tests (src/gametest, runClientGameTest): a vanilla client joins an in-process server and looks at rifts.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "nether-rifts-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+dependencies {
+	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+	// the void anchor in the same client run: the shared shader must draw both rifts
+	gametestRuntimeOnly project(":mods:metacraft-qol")
+}
