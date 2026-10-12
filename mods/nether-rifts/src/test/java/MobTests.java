@@ -1,3 +1,5 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -9,9 +11,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.NetherRifts;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.Slot;
+import nu.metacraft.nether_rifts.rift.RiftBlocks;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 public class MobTests {
@@ -115,6 +125,25 @@ public class MobTests {
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();
 			});
+		});
+		NetherRiftsTests.register("mobs/names_translated", ctx -> {
+			// Death messages and the like name the mob by its description id: each needs a line in the lang files.
+			for (var lang : new String[] {"en_us", "sv_se"}) {
+				var path = "/assets/nether_rifts/lang/" + lang + ".json";
+				var in = NetherRifts.class.getResourceAsStream(path);
+				ctx.assertTrue(in != null, "no " + path);
+				JsonObject names;
+				try (var reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+					names = JsonParser.parseReader(reader).getAsJsonObject();
+				} catch (IOException e) {
+					throw new UncheckedIOException(e);
+				}
+				for (var type : List.of(RiftEntities.WAR_DRUMMER, RiftEntities.WAR_GHAST, RiftEntities.GHAST_BOMBARDIER, RiftEntities.MAGMA_BOMB)) {
+					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
+				}
+				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
+			}
+			ctx.succeed();
 		});
 		NetherRiftsTests.register("mobs/orphan_discarded", ctx -> {
 			// Review focus 3: a rift mob whose rift no longer exists never enters the level. It is vetoed at load, not
