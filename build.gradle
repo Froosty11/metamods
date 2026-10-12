@@ -209,7 +209,11 @@ subprojects {
 
         maven { url 'https://jitpack.io' } // Leukocyte
 
-		maven { url "https://maven.tomalbrc.de" } // Blockbench Import Library
+		// Blockbench Import Library
+		maven {
+			url "https://maven.tomalbrc.de"
+			content { includeGroup "de.tomalbrc" }
+		}
 		// BIL's molang-compiler dependency
 		maven {
 			url "https://maven.blamejared.com"
