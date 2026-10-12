@@ -57,6 +57,8 @@ public final class Rift {
 	public int clearedTicks;
 	@Nullable private RiftVisual visual;
 	@Nullable ServerBossEvent bossBar;
+	/** The Rift Captain's own bar; not saved, RiftRaid recreates it from the tagged Captain. */
+	@Nullable ServerBossEvent captainBar;
 
 	private Rift(UUID id, RiftShape shape, boolean crying, Tier tier, Stage stage, int stageTicks,
 			int countdown, int wave, int waveSize, int waveTicks, int abandonTicks) {
@@ -112,6 +114,11 @@ public final class Rift {
 		return bossBar;
 	}
 
+	@Nullable
+	public ServerBossEvent captainBar() {
+		return captainBar;
+	}
+
 	public void setWave(int wave, int size) {
 		this.wave = wave;
 		this.waveSize = size;
@@ -120,6 +127,10 @@ public final class Rift {
 
 	public void setBossBar(ServerBossEvent bar) {
 		this.bossBar = bar;
+	}
+
+	public void setCaptainBar(@Nullable ServerBossEvent bar) {
+		this.captainBar = bar;
 	}
 
 	public Vec3 centre() {
