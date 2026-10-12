@@ -5,6 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
@@ -13,7 +14,8 @@ import java.util.EnumSet;
  * dives to 4 blocks above the start of a 20-block line across the target; runs along it while the rider
  * drops a bomb every 6 ticks (when within 8 blocks of the target); climbs back to 14 above the target;
  * waits 100 ticks. Low over the line is its weak window. Where a wall or roof is in the way, the line and the
- * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit.
+ * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit. With no room for
+ * the ghast over the target at all, the run is given up until the cooldown has passed.
  */
 public class BombingRunGoal extends Goal {
 
@@ -69,8 +71,9 @@ public class BombingRunGoal extends Goal {
 		var above = target.position().add(0, DIVE_HEIGHT, 0);
 		runStart = clear(above, above.subtract(across.scale(RUN_LENGTH / 2)));
 		runEnd = clear(above, above.add(across.scale(RUN_LENGTH / 2)));
-		phase = Phase.DIVE;
 		ticks = 0;
+		// no room over the target (a low roof, a tunnel): give up, and try again after the cooldown
+		phase = runStart == null || runEnd == null ? null : Phase.DIVE;
 	}
 
 	@Override
@@ -89,13 +92,13 @@ public class BombingRunGoal extends Goal {
 		ticks++;
 		switch (phase) {
 			case DIVE -> {
-				moveTo(runStart, 1.0);
+				moveTo(runStart);
 				if (ghast.position().distanceTo(runStart) < 2 || ticks > PHASE_TIMEOUT) {
 					next(Phase.RUN);
 				}
 			}
 			case RUN -> {
-				moveTo(runEnd, 1.2);
+				moveTo(runEnd);
 				var rider = ghast.bombardier();
 				if (rider != null && ticks % BOMB_EVERY == 0 && horizontalDistance(ghast.position(), target.position()) < BOMB_RANGE
 						&& ghast.level() instanceof ServerLevel level) {
@@ -103,11 +106,11 @@ public class BombingRunGoal extends Goal {
 				}
 				if (ghast.position().distanceTo(runEnd) < 2 || ticks > PHASE_TIMEOUT) {
 					climbTo = clear(target.position().add(0, DIVE_HEIGHT, 0), target.position().add(0, CLIMB_HEIGHT, 0));
-					next(Phase.CLIMB);
+					next(climbTo == null ? null : Phase.CLIMB);
 				}
 			}
 			case CLIMB -> {
-				moveTo(climbTo, 1.0);
+				moveTo(climbTo);
 				if (ghast.position().distanceTo(climbTo) < 3 || ticks > PHASE_TIMEOUT) {
 					phase = null;
 				}
@@ -115,31 +118,40 @@ public class BombingRunGoal extends Goal {
 		}
 	}
 
-	private void next(Phase phase) {
+	private void next(@Nullable Phase phase) {
 		this.phase = phase;
 		this.ticks = 0;
 	}
 
-	private void moveTo(Vec3 at, double speed) {
-		ghast.getMoveControl().setWantedPosition(at.x, at.y, at.z, speed);
+	/** A ghast's move control flies at its own speed (the flying speed attribute), so there's no speed to give. */
+	private void moveTo(Vec3 at) {
+		ghast.getMoveControl().setWantedPosition(at.x, at.y, at.z, 1.0);
 		ghast.getLookControl().setLookAt(at.x, at.y, at.z);
 		// what the ghast's own look goal would do (this goal holds LOOK): face the target, so the harness and rider turn too
 		Ghast.faceMovementDirection(ghast);
 	}
 
-	/** The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast's body fits. */
+	/** The farthest point from {@code from} toward {@code to}, in half-block steps, where the ghast's body fits; null if it doesn't fit at {@code from}. */
+	@Nullable
 	private Vec3 clear(Vec3 from, Vec3 to) {
+		if (!fits(from)) {
+			return null;
+		}
 		var path = to.subtract(from);
 		int steps = Math.max(1, (int) Math.ceil(path.length() * 2));
 		var fit = from;
 		for (int i = 1; i <= steps; i++) {
 			var at = from.add(path.scale(i / (double) steps));
-			if (!ghast.level().noBlockCollision(ghast, ghast.getDimensions(ghast.getPose()).makeBoundingBox(at))) {
+			if (!fits(at)) {
 				break;
 			}
 			fit = at;
 		}
 		return fit;
+	}
+
+	private boolean fits(Vec3 at) {
+		return ghast.level().noBlockCollision(ghast, ghast.getDimensions(ghast.getPose()).makeBoundingBox(at));
 	}
 
 	private static double horizontalDistance(Vec3 a, Vec3 b) {

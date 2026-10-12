@@ -27,6 +27,14 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 
 	public static final float POWER = 1.5f;
 
+	/** ThrowableProjectile's pull and air drag, applied in that order each tick before the move. */
+	private static final double GRAVITY = 0.03;
+	private static final double DRAG = 0.99f;
+	/** A plain drop: let go with a little downward push. */
+	private static final double DROP_SPEED = -0.15;
+	private static final double MAX_LOB = 1.0;
+	private static final int MAX_FLIGHT = 600;
+
 	/** Bombing runs must not thin their own waves: rift mobs take no blast damage or knockback. */
 	private static final ExplosionDamageCalculator SPARE_RIFT_MOBS = new ExplosionDamageCalculator() {
 		@Override
@@ -45,6 +53,30 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 			setOwner(thrower);
 		}
 		setItem(new ItemStack(Items.MAGMA_CREAM));
+	}
+
+	/** Ticks until a bomb let go {@code height} blocks above the ground, moving up at {@code vy}, hits it. */
+	public static int ticksToLand(double height, double vy) {
+		double y = height;
+		double v = vy;
+		for (int tick = 1; tick < MAX_FLIGHT; tick++) {
+			v = (v - GRAVITY) * DRAG;
+			if (y + v <= 0) {
+				return tick;
+			}
+			y += v;
+		}
+		return MAX_FLIGHT;
+	}
+
+	/** The vertical speed for a bomb let go {@code height} blocks up: a plain drop, or the gentlest lob that keeps it up {@code ticks}. */
+	public static double launchSpeed(double height, int ticks) {
+		for (double vy = DROP_SPEED; vy < MAX_LOB; vy += 0.025) {
+			if (ticksToLand(height, vy) >= ticks) {
+				return vy;
+			}
+		}
+		return MAX_LOB;
 	}
 
 	@Override

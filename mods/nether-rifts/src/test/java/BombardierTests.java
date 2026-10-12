@@ -2,6 +2,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.mob.BombingRunGoal;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.WarGhast;
@@ -28,12 +29,7 @@ public class BombardierTests {
 			});
 		});
 		NetherRiftsTests.register("bombardier/run_drops_bombs", ctx -> {
-			// the test room comes with no floor (the structure's stone row isn't placed; the encasing barrier is the ground), so lay one
-			for (int x = 0; x < 24; x++) {
-				for (int z = 0; z < 24; z++) {
-					ctx.setBlock(new BlockPos(x, 0, z), Blocks.STONE);
-				}
-			}
+			stoneFloor(ctx);
 			var bombs = new AtomicInteger();
 			ctx.onEachTick(() -> bombs.addAndGet(ctx.getEntities(RiftEntities.MAGMA_BOMB).size()));
 			FormingTests.lightFrame(ctx, 2, 3);
@@ -68,11 +64,76 @@ public class BombardierTests {
 				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
 				var rider = ghast.bombardier();
 				ghast.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().generic(), 1000f);
-				ctx.runAfterDelay(60, () -> {
+				// the ghast's 20-tick death, then a slow-falling glide down
+				ctx.runAfterDelay(100, () -> {
 					ctx.assertTrue(rider.isAlive(), "the Bombardier died with its ghast");
 					ctx.assertTrue(rider.getVehicle() == null, "the Bombardier still rides a dead ghast");
 					ctx.assertTrue(rider.onGround(), "the Bombardier hangs in the air");
 					ctx.assertTrue(RiftRaid.aliveMobs(ctx.getLevel(), rift).contains(rider), "the dismounted Bombardier no longer counts toward the wave");
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("bombardier/warning_leads_impact", ctx -> {
+			// The ground warning shows a full second before the blast, where the bomb lands, even from a moving ghast.
+			stoneFloor(ctx);
+			long[] warnedAt = {-1};
+			long[] burntAt = {-1};
+			Vec3[] warning = new Vec3[1];
+			Vec3[] burn = new Vec3[1];
+			ctx.onEachTick(() -> {
+				for (var patch : BurningPatches.active(ctx.getLevel())) {
+					if (!ctx.getBounds().contains(patch.at())) {
+						continue;
+					}
+					if (patch.warning() && warning[0] == null) {
+						warning[0] = patch.at();
+					} else if (!patch.warning() && burn[0] == null) {
+						burn[0] = patch.at();
+						burntAt[0] = ctx.getTick();
+					}
+				}
+			});
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				// run height: DIVE_HEIGHT above the floor
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.BOMBARDIER,
+						ctx.absolutePos(new BlockPos(12, 1 + (int) BombingRunGoal.DIVE_HEIGHT, 12)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				ghast.setNoAi(true);
+				ghast.setDeltaMovement(0.4, 0, 0);
+			});
+			ctx.runAtTickTime(5, () -> {
+				var ghast = ctx.getEntities(RiftEntities.WAR_GHAST).getFirst();
+				// the warning goes up with the drop; per-tick checks would see it a tick late (they run before this)
+				ghast.bombardier().dropBomb(ctx.getLevel());
+				warnedAt[0] = ctx.getTick();
+			});
+			ctx.succeedWhen(() -> {
+				ctx.assertTrue(warning[0] != null, "no ground warning");
+				ctx.assertTrue(burn[0] != null, "the bomb hasn't landed");
+				ctx.assertTrue(burntAt[0] - warnedAt[0] >= BurningPatches.WARN_TICKS, "the warning led the blast by only " + (burntAt[0] - warnedAt[0]) + " ticks");
+				double off = Math.hypot(burn[0].x - warning[0].x, burn[0].z - warning[0].z);
+				ctx.assertTrue(off <= BurningPatches.RADIUS, "the bomb landed " + off + " blocks from its warning");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+			});
+		});
+		NetherRiftsTests.register("bombardier/rider_lands_softly", ctx -> {
+			// Unhorsed high up, the Bombardier glides down and fights on: a fall that would kill it doesn't.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.BOMBARDIER, ctx.absolutePos(new BlockPos(12, 10, 12)), Vec3.ZERO);
+				var ghast = (WarGhast) spawned.stream().filter(e -> e instanceof WarGhast).findFirst().orElseThrow();
+				var rider = ghast.bombardier();
+				// about 14 blocks up: 11 fall damage, so 6 health dies of an unbroken fall
+				rider.setHealth(6f);
+				ghast.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().generic(), 1000f);
+				ctx.runAfterDelay(120, () -> {
+					ctx.assertTrue(rider.isAlive(), "the Bombardier died of the fall from its ghast");
+					ctx.assertTrue(rider.onGround(), "the Bombardier hangs in the air");
 					ctx.killAllEntities();
 					FormingTests.cleanUp(ctx);
 					ctx.succeed();
@@ -99,5 +160,14 @@ public class BombardierTests {
 				ctx.succeed();
 			});
 		});
+	}
+
+	/** The test room comes with no floor (the structure's stone row isn't placed; the encasing barrier is the ground), so lay one. */
+	static void stoneFloor(net.minecraft.gametest.framework.GameTestHelper ctx) {
+		for (int x = 0; x < 24; x++) {
+			for (int z = 0; z < 24; z++) {
+				ctx.setBlock(new BlockPos(x, 0, z), Blocks.STONE);
+			}
+		}
 	}
 }
