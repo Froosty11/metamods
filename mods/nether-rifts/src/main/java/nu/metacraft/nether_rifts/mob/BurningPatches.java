@@ -8,9 +8,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,10 +51,10 @@ public final class BurningPatches {
 		add(level, new Patch(at, level.getGameTime() + BURN_TICKS, false));
 	}
 
-	/** Where something falling straight down from {@code from} lands. */
+	/** Where something falling straight down from {@code from} lands: the first solid surface below, roofs and overhangs included. */
 	public static Vec3 groundBelow(ServerLevel level, Vec3 from) {
-		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(from.x), Mth.floor(from.z));
-		return new Vec3(from.x, Math.min(from.y, y), from.z);
+		var hit = level.clip(new ClipContext(from, from.add(0, -64, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+		return hit.getType() == HitResult.Type.MISS ? from : hit.getLocation();
 	}
 
 	public static List<Patch> active(ServerLevel level) {
@@ -82,7 +84,7 @@ public final class BurningPatches {
 				continue;
 			}
 			level.sendParticles(ParticleTypes.LAVA, p.at().x, p.at().y + 0.1, p.at().z, 2, RADIUS / 2, 0.05, RADIUS / 2, 0);
-			var box = new AABB(p.at(), p.at()).inflate(RADIUS, 1.0, RADIUS);
+			var box = new AABB(p.at().x - RADIUS, p.at().y, p.at().z - RADIUS, p.at().x + RADIUS, p.at().y + 2.0, p.at().z + RADIUS);
 			for (var player : level.getEntitiesOfClass(Player.class, box, pl -> !pl.isSpectator() && !pl.isCreative())) {
 				player.setRemainingFireTicks(Math.max(player.getRemainingFireTicks(), PLAYER_FIRE_TICKS));
 			}

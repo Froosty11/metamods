@@ -1,11 +1,15 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.MagmaBomb;
+import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.raid.RiftMobs;
+import nu.metacraft.nether_rifts.raid.Slot;
 
 public class BombTests {
 
@@ -16,8 +20,7 @@ public class BombTests {
 			player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
 			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
 			player.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
-			var bomb = new MagmaBomb(ctx.getLevel(), player);
-			bomb.setOwner(null);
+			var bomb = new MagmaBomb(ctx.getLevel(), null);
 			bomb.setPos(at.getX() + 0.5, at.getY() + 3, at.getZ() + 0.5);
 			bomb.setDeltaMovement(0, -0.3, 0);
 			ctx.getLevel().addFreshEntity(bomb);
@@ -41,6 +44,12 @@ public class BombTests {
 			bomb.setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
 			bomb.setDeltaMovement(0, -0.3, 0);
 			ctx.getLevel().addFreshEntity(bomb);
+			ctx.runAtTickTime(30, () -> {
+				// Without these, a bomb that never went off would pass the block checks below.
+				ctx.assertTrue(ctx.getEntities(RiftEntities.MAGMA_BOMB).isEmpty(), "the bomb never landed");
+				ctx.assertTrue(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> !p.warning()
+						&& p.at().closerThan(Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 12))), 2.5)), "no burning patch near the impact");
+			});
 			ctx.runAtTickTime(60, () -> {
 				ctx.assertBlockPresent(Blocks.TNT, new BlockPos(12, 1, 12));
 				ctx.assertBlockPresent(Blocks.GLASS, new BlockPos(13, 1, 12));
@@ -51,6 +60,43 @@ public class BombTests {
 					ctx.assertFalse(ctx.getLevel().getBlockState(pos).is(Blocks.FIRE), "fire at " + pos.toShortString());
 				}
 				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("bomb/ground_below_under_roof", ctx -> {
+			ctx.setBlock(new BlockPos(12, 1, 12), Blocks.STONE);
+			ctx.setBlock(new BlockPos(12, 6, 12), Blocks.STONE);
+			var column = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 0, 12)));
+			double floorTop = ctx.absolutePos(new BlockPos(12, 2, 12)).getY();
+			double roofTop = ctx.absolutePos(new BlockPos(12, 7, 12)).getY();
+			var above = BurningPatches.groundBelow(ctx.getLevel(), column.add(0, 10, 0));
+			ctx.assertTrue(Math.abs(above.y - roofTop) < 1e-6, "from above the roof it should land on the roof top (" + roofTop + "), got " + above.y);
+			var between = BurningPatches.groundBelow(ctx.getLevel(), column.add(0, 4, 0));
+			ctx.assertTrue(Math.abs(between.y - floorTop) < 1e-6, "from under the roof it should land on the floor (" + floorTop + "), got " + between.y);
+			ctx.succeed();
+		});
+		NetherRiftsTests.register("bomb/spares_rift_mobs", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				var at = ctx.absolutePos(new BlockPos(12, 1, 12));
+				var piglin = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, at, Vec3.ZERO).getFirst();
+				var player = StageTests.player(ctx);
+				player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+				player.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+				var bomb = new MagmaBomb(ctx.getLevel(), null);
+				bomb.setPos(at.getX() + 0.5, at.getY() + 3, at.getZ() + 0.5);
+				bomb.setDeltaMovement(0, -0.3, 0);
+				ctx.getLevel().addFreshEntity(bomb);
+				float playerBefore = player.getHealth();
+				float piglinBefore = piglin.getHealth();
+				ctx.runAfterDelay(25, () -> {
+					ctx.assertTrue(player.getHealth() < playerBefore, "the blast didn't hurt the player, so the test proves nothing");
+					ctx.assertTrue(piglin.getHealth() == piglinBefore, "the blast hurt a rift piglin");
+					StageTests.remove(ctx, player);
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
 			});
 		});
 		NetherRiftsTests.register("bomb/warning_then_gone", ctx -> {
