@@ -71,7 +71,9 @@ public class WarGhast extends Ghast implements PolymerEntity {
 	/**
 	 * The Bombardier sits on top, above the ghast's own box, so the ghast moves as if its body reached up to the
 	 * rider's head: floating about or pushed, it never presses the rider into a roof. (Its move control only checks
-	 * the ghast's box; the bombing run plans for the rider itself.)
+	 * the ghast's box; the bombing run plans for the rider itself.) Stopped short like that, it stops moving that
+	 * way, as a bump of its own box would, and gives up its float target for another: its move control would keep
+	 * flying at a point only the ghast fits at, and an idle ghast would hover under the roof for good.
 	 */
 	@Override
 	public void move(MoverType type, Vec3 delta) {
@@ -80,7 +82,14 @@ public class WarGhast extends Ghast implements PolymerEntity {
 			for (var rider : getIndirectPassengers()) {
 				stack = stack.minmax(rider.getBoundingBox());
 			}
-			delta = Entity.collideBoundingBox(this, delta, stack, level(), List.of());
+			var clamped = Entity.collideBoundingBox(this, delta, stack, level(), List.of());
+			if (!clamped.equals(delta)) {
+				var v = getDeltaMovement();
+				setDeltaMovement(clamped.x != delta.x ? 0 : v.x, clamped.y != delta.y ? 0 : v.y, clamped.z != delta.z ? 0 : v.z);
+				// a bombing run sets its point again every tick, before the move control looks
+				getMoveControl().setWait();
+			}
+			delta = clamped;
 		}
 		super.move(type, delta);
 	}

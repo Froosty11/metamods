@@ -10,6 +10,7 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
 import nu.metacraft.nether_rifts.raid.Slot;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BombardierTests {
@@ -91,6 +92,42 @@ public class BombardierTests {
 				StageTests.remove(ctx, player);
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("bombardier/idle_ghast_not_stuck_under_roof", ctx -> {
+			// A roof 11 blocks up, and a float target just under it: room for the ghast alone, not for the rider on top.
+			// The ghast stops short of it and floats off elsewhere, rather than hovering there for good.
+			stoneFloor(ctx);
+			for (int x = 0; x < 24; x++) {
+				for (int z = 0; z < 24; z++) {
+					for (int y = 11; y <= 13; y++) {
+						ctx.setBlock(new BlockPos(x, y, z), Blocks.STONE);
+					}
+				}
+			}
+			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 3, 12));
+			var rider = ctx.spawn(RiftEntities.GHAST_BOMBARDIER, new BlockPos(12, 3, 12));
+			rider.startRiding(ghast, true, false);
+			// the ghast's top a hair under the roof; it stops more than a block short (closer, vanilla would pick anew)
+			var wanted = ghast.position().add(0, 11 - 3 - ghast.getBbHeight() - 0.05, 0);
+			ghast.getMoveControl().setWantedPosition(wanted.x, wanted.y, wanted.z, 1.0);
+			var buried = new AtomicInteger();
+			var gaveUp = new AtomicBoolean();
+			ctx.onEachTick(() -> {
+				ghast.setTarget(null);
+				if (rider.isInWall()) {
+					buried.incrementAndGet();
+				}
+				var move = ghast.getMoveControl();
+				if (!move.hasWanted() || move.getWantedY() != wanted.y) {
+					gaveUp.set(true);
+				}
+			});
+			ctx.runAtTickTime(100, () -> {
+				ctx.assertTrue(gaveUp.get(), "the ghast still hovers under the roof, flying at a point its rider doesn't fit at");
+				ctx.assertTrue(buried.get() == 0, "the Bombardier's head was in the roof for " + buried.get() + " ticks");
+				ctx.killAllEntities();
 				ctx.succeed();
 			});
 		});
