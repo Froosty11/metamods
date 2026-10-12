@@ -10,21 +10,29 @@ import net.minecraft.client.gui.screens.ConfirmScreen;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.ServerSocket;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
- * each stage, an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
+ * each stage (and its membrane staying put on the world as the camera steps aside), an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
  * void-anchor rift in the same run (the shared item shader must draw both).
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if (PanoramaCapture.CAPTURING) {
+			return;
+		}
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
-		props.setProperty("server-port", "25602");
+		props.setProperty("server-port", String.valueOf(freePort()));
 		props.setProperty("level-type", "minecraft:flat");
 		props.setProperty("spawn-monsters", "false");
 		props.setProperty("spawn-animals", "false");
@@ -44,8 +52,9 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand("tp Tester 0.5 -58 4 180 0");
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(30);
-				int[] crimson = new int[3];
-				int[] movement = new int[3];
+				worldLocked(ctx, server, conn);
+				int[] purple = new int[3];
+				int[] nether = new int[3];
 				String[] stages = {"lit", "unstable", "torn"};
 				for (int i = 0; i < stages.length; i++) {
 					String stage = stages[i];
@@ -55,21 +64,21 @@ public final class RiftClientTests implements FabricClientGameTest {
 					ctx.waitTicks(5);
 					Path b = ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_b").withSize(1920, 1080));
 					var first = read(a);
-					int purple = count(first, RiftClientTests::riftPixel);
+					int rift = count(first, RiftClientTests::riftPixel);
 					int moved = changed(first, read(b), 24);
-					crimson[i] = count(first, RiftClientTests::crimsonPixel);
-					movement[i] = moved;
-					System.out.println("[nether-rifts-clienttest] " + stage + " purple=" + purple + " moved=" + moved + " crimson=" + crimson[i]);
-					check(purple >= BOX / 20, "no rift on screen at " + stage + ": " + purple + " rift pixels");
+					purple[i] = count(first, RiftClientTests::purplePixel);
+					nether[i] = count(first, RiftClientTests::netherPixel);
+					System.out.println("[nether-rifts-clienttest] " + stage + " rift=" + rift + " purple=" + purple[i] + " nether=" + nether[i] + " moved=" + moved);
+					check(rift >= BOX / 20, "no rift on screen at " + stage + ": " + rift + " rift pixels");
 					check(moved >= BOX / 200, "the rift doesn't move at " + stage + ": " + moved + " pixels changed");
 				}
-				// The fallback sprite looks the same at every stage (the marker tint barely changes it); only the
-				// shader reddens and churns more as the rift tears. Rising crimson and motion prove it ran.
-				if (crimson[2] < 2000 || crimson[2] < crimson[0] * 2) {
-					check(false, "the torn rift isn't redder than the lit one (shader not running?): crimson lit=" + crimson[0] + " torn=" + crimson[2]);
+				// The fallback sprite (the panorama, stretched) looks the same at every stage; only the shader
+				// cracks the membrane open as the rift tears. More nether and less purple prove it ran.
+				if (nether[2] < 2000 || nether[2] < nether[0] * 2) {
+					check(false, "the torn rift shows no more nether than the lit one (shader not running?): nether lit=" + nether[0] + " torn=" + nether[2]);
 				}
-				if (movement[2] * 2 < movement[0] * 3) {
-					check(false, "the torn rift doesn't churn more than the lit one: moved lit=" + movement[0] + " torn=" + movement[2]);
+				if (purple[2] * 3 > purple[0] * 2) {
+					check(false, "the torn rift's membrane isn't mostly gone: purple lit=" + purple[0] + " torn=" + purple[2]);
 				}
 				server.runCommand("rifts collapse 0 -58 0");
 
@@ -132,14 +141,101 @@ public final class RiftClientTests implements FabricClientGameTest {
 		}
 	}
 
-	/** The swirl's violet and crimson, the edge's hot pink; none of which a flat world at night has. */
+	/** Anything the rift draws: membrane, rims, edge or the nether behind; none of which a flat world at night has. */
 	static boolean riftPixel(int r, int g, int b) {
-		return (b > g + 40 && r > g + 20) || (r > 150 && g < 70 && b < 110);
+		return purplePixel(r, g, b) || netherPixel(r, g, b) || (r > 200 && b > 150);
 	}
 
-	/** The torn stage's crimson veins: red well above green, not violet or blue-dominant. */
-	static boolean crimsonPixel(int r, int g, int b) {
-		return r > g + 80 && b < r;
+	/** The membrane's purples (reddened at stage 3) and the edge's hot pink: blue and red well above green. */
+	static boolean purplePixel(int r, int g, int b) {
+		return b > g + 40 && r > g + 20;
+	}
+
+	/** The panorama's nether through the cracks: lava, netherrack, crimson, the red fog; red over blue, green not far under blue. */
+	static boolean netherPixel(int r, int g, int b) {
+		return r > b + 25 && g + 12 >= b && r > 40 && r < 240;
+	}
+
+	/**
+	 * The membrane must be fixed to the world, not the screen. The camera steps a quarter block sideways without
+	 * turning, so the rift slides across the screen; a pattern on the world slides with it, one on the screen
+	 * stays put. Proxy: the shift of the rift's left edge (the geometry) against the shift that best matches a
+	 * window well inside the rift between the two shots (the pattern: cracks, rims, swirl). They must agree,
+	 * and the geometry must have moved.
+	 */
+	private static void worldLocked(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn) {
+		server.runCommand("rifts stage 0 -58 0 lit");
+		ctx.waitTicks(20);
+		var a = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_locked_a").withSize(1920, 1080)));
+		server.runCommand("tp Tester 0.75 -58 4 180 0");
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(3);
+		var b = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_locked_b").withSize(1920, 1080)));
+		server.runCommand("tp Tester 0.5 -58 4 180 0");
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(3);
+		int[] boxA = riftBox(a);
+		if (boxA == null) {
+			check(false, "no rift on screen to step past");
+			return;
+		}
+		int geometry = leftEdge(b, boxA) - leftEdge(a, boxA);
+		int x0 = boxA[0] + 70, x1 = boxA[2] - 70, y0 = boxA[1] + 40, y1 = boxA[3] - 40;
+		int best = 0;
+		double bestDiff = Double.MAX_VALUE, atZero = 0;
+		for (int dx = -120; dx <= 120; dx++) {
+			double diff = 0;
+			for (int y = y0; y < y1; y += 2) {
+				for (int x = x0; x < x1; x += 2) {
+					int p = a.getRGB(x, y), q = b.getRGB(x + dx, y);
+					diff += Math.abs(((p >> 16) & 255) - ((q >> 16) & 255)) + Math.abs(((p >> 8) & 255) - ((q >> 8) & 255)) + Math.abs((p & 255) - (q & 255));
+				}
+			}
+			diff /= ((y1 - y0) / 2.0) * ((x1 - x0) / 2.0);
+			if (dx == 0) atZero = diff;
+			if (diff < bestDiff) {
+				bestDiff = diff;
+				best = dx;
+			}
+		}
+		System.out.println("[nether-rifts-clienttest] locked box=" + Arrays.toString(boxA) + " geometry=" + geometry + " pattern=" + best
+				+ " diff=" + String.format("%.1f", bestDiff) + " diffAtZero=" + String.format("%.1f", atZero));
+		check(Math.abs(geometry) >= 20, "the camera step didn't move the rift on screen: " + geometry + " px");
+		check(Math.abs(best - geometry) <= 4, "the membrane doesn't move with the world: rift moved " + geometry + " px, pattern " + best + " px");
+	}
+
+	/** The rift's bounding box (x0, y0, x1, y1) in the middle of the screen, chat and toasts left out; null if there's none. */
+	private static int[] riftBox(BufferedImage img) {
+		int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = -1, y1 = -1;
+		for (int y = 300; y < img.getHeight(); y++) {
+			for (int x = 600; x < 1400; x++) {
+				int p = img.getRGB(x, y);
+				if (riftPixel((p >> 16) & 255, (p >> 8) & 255, p & 255)) {
+					x0 = Math.min(x0, x);
+					y0 = Math.min(y0, y);
+					x1 = Math.max(x1, x);
+					y1 = Math.max(y1, y);
+				}
+			}
+		}
+		return x1 < 0 ? null : new int[]{x0, y0, x1, y1};
+	}
+
+	/** The median over the box's middle rows of the leftmost rift pixel; -1 if no row has one. */
+	private static int leftEdge(BufferedImage img, int[] box) {
+		var lefts = new ArrayList<Integer>();
+		for (int y = box[1] + 40; y < box[3] - 40; y += 4) {
+			for (int x = 600; x < 1400; x++) {
+				int p = img.getRGB(x, y);
+				if (riftPixel((p >> 16) & 255, (p >> 8) & 255, p & 255)) {
+					lefts.add(x);
+					break;
+				}
+			}
+		}
+		if (lefts.isEmpty()) return -1;
+		Collections.sort(lefts);
+		return lefts.get(lefts.size() / 2);
 	}
 
 	/** The pack is accepted unasked (ServerPackAutoAcceptMixin); wait for it to download and apply. */
@@ -182,6 +278,15 @@ public final class RiftClientTests implements FabricClientGameTest {
 			}
 		}
 		return n;
+	}
+
+	/** A port nothing listens on, so runs in several checkouts at once don't collide. */
+	static int freePort() {
+		try (var socket = new ServerSocket(0)) {
+			return socket.getLocalPort();
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	private static BufferedImage read(Path path) {

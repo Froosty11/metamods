@@ -45,3 +45,11 @@ if (project.hasProperty('iris')) {
 		}
 	}
 }
+
+// -PcapturePanorama: the client test run captures the nether panorama the rift shows through its cracks
+// into tools/panorama (PanoramaCapture) instead of taking the rift screenshots. Then python3 tools/gen_panorama.py.
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	if (project.hasProperty('capturePanorama')) {
+		jvmArgs "-Dnether_rifts.capturePanorama=true", "-Dnether_rifts.panoramaDir=${file('tools/panorama')}"
+	}
+}

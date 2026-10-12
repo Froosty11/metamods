@@ -1,6 +1,7 @@
-"""Draws the nether rift's display sprites (what a client without the shader sees) and their models.
+"""Draws the nether rift's edge sprite and writes both rift parts' models and item definitions.
+The panel's sprite, rift_panel.png, is the nether panorama: tools/gen_panorama.py writes it.
 Run from the module: python3 tools/gen_textures.py"""
-import json, math, random, struct, zlib
+import json, struct, zlib
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / "src/main/resources/assets/nether_rifts"
@@ -19,19 +20,6 @@ def write_json(path, data):
 	path.parent.mkdir(parents=True, exist_ok=True)
 	path.write_text(json.dumps(data, indent="\t") + "\n")
 
-def panel():
-	"""16×64: four 16×16 frames of a purple-crimson swirl (the fallback when the shader is replaced)."""
-	rnd, px = random.Random(5), []
-	for frame in range(4):
-		for y in range(16):
-			for x in range(16):
-				s = 0.5 + 0.5 * math.sin(x * 0.7 + y * 0.45 + frame * 1.6) * math.cos(y * 0.6 - x * 0.3 + frame)
-				r, g, b = int(60 + 140 * s), int(10 + 20 * s), int(90 + 120 * (1 - s) * 0.8 + 40 * s)
-				if rnd.random() < 0.03:
-					r, g, b = 255, 150, 60
-				px.append((r, g, b, 235))
-	return px
-
 def edge():
 	"""16×16: bright along the middle row, fading out to both sides."""
 	px = []
@@ -48,8 +36,6 @@ def quad(texture):
 			"south": {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0}}}]}
 
 def main():
-	png(ASSETS / "textures/item/rift_panel.png", 16, 64, panel())
-	write_json(ASSETS / "textures/item/rift_panel.png.mcmeta", {"animation": {"frametime": 4}})
 	png(ASSETS / "textures/item/rift_edge.png", 16, 16, edge())
 	for name, tint in (("rift_panel", BODY_TINT), ("rift_edge", EDGE_TINT)):
 		write_json(ASSETS / "models/item" / f"{name}.json", quad(name))
