@@ -6,6 +6,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -17,10 +18,11 @@ import java.util.EnumSet;
  * waits 100 ticks. Low over the line is its weak window. Where a wall or roof is in the way, the line and the
  * climb stop short of it: a ghast's move control won't fly at a point its body doesn't fit, and the rider on
  * top must fit too. With no room for the ghast and its rider over the target at all, the run is given up until
- * the cooldown has passed.
+ * the cooldown has passed. The numbers are the defaults of the config's {@code mobs.bombardier} section.
  */
 public class BombingRunGoal extends Goal {
 
+	/** Defaults for {@link NetherRiftsConfig.BombardierTuning}. */
 	public static final double DIVE_HEIGHT = 4;
 	public static final double CLIMB_HEIGHT = 14;
 	public static final double RUN_LENGTH = 20;
@@ -68,11 +70,12 @@ public class BombingRunGoal extends Goal {
 	@Override
 	public void start() {
 		target = ghast.getTarget();
+		var tuning = tuning();
 		var across = new Vec3(target.getX() - ghast.getX(), 0, target.getZ() - ghast.getZ());
 		across = across.lengthSqr() < 1e-4 ? new Vec3(1, 0, 0) : across.normalize();
-		var above = target.position().add(0, DIVE_HEIGHT, 0);
-		runStart = clear(above, above.subtract(across.scale(RUN_LENGTH / 2)));
-		runEnd = clear(above, above.add(across.scale(RUN_LENGTH / 2)));
+		var above = target.position().add(0, tuning.diveHeight(), 0);
+		runStart = clear(above, above.subtract(across.scale(tuning.runLength() / 2)));
+		runEnd = clear(above, above.add(across.scale(tuning.runLength() / 2)));
 		ticks = 0;
 		// no room over the target (a low roof, a tunnel): give up, and try again after the cooldown
 		phase = runStart == null || runEnd == null ? null : Phase.DIVE;
@@ -82,7 +85,7 @@ public class BombingRunGoal extends Goal {
 	public void stop() {
 		phase = null;
 		target = null;
-		cooldownUntil = ghast.level().getGameTime() + COOLDOWN;
+		cooldownUntil = ghast.level().getGameTime() + tuning().cooldown();
 	}
 
 	@Override
@@ -101,13 +104,14 @@ public class BombingRunGoal extends Goal {
 			}
 			case RUN -> {
 				moveTo(runEnd);
+				var tuning = tuning();
 				var rider = ghast.bombardier();
-				if (rider != null && ticks % BOMB_EVERY == 0 && horizontalDistance(ghast.position(), target.position()) < BOMB_RANGE
+				if (rider != null && ticks % tuning.bombEvery() == 0 && horizontalDistance(ghast.position(), target.position()) < tuning.bombRange()
 						&& ghast.level() instanceof ServerLevel level) {
 					rider.dropBomb(level);
 				}
 				if (ghast.position().distanceTo(runEnd) < 2 || ticks > PHASE_TIMEOUT) {
-					climbTo = clear(target.position().add(0, DIVE_HEIGHT, 0), target.position().add(0, CLIMB_HEIGHT, 0));
+					climbTo = clear(target.position().add(0, tuning.diveHeight(), 0), target.position().add(0, tuning.climbHeight(), 0));
 					next(climbTo == null ? null : Phase.CLIMB);
 				}
 			}
@@ -131,6 +135,10 @@ public class BombingRunGoal extends Goal {
 		ghast.getLookControl().setLookAt(at.x, at.y, at.z);
 		// what the ghast's own look goal would do (this goal holds LOOK): face the target, so the harness and rider turn too
 		Ghast.faceMovementDirection(ghast);
+	}
+
+	private static NetherRiftsConfig.BombardierTuning tuning() {
+		return NetherRiftsConfig.getInstance().mobs().bombardier();
 	}
 
 	/**

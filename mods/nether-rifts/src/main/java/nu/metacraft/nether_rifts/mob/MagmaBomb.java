@@ -16,16 +16,18 @@ import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
+import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Dropped by the Ghast Bombardier. Clients see a thrown magma cream (a snowball carrying that item).
  * On impact it blasts (damage and knockback, power 1.5) with ExplosionInteraction.NONE, so no block changes
- * and nothing is set alight, and leaves a burning patch for 2 s.
+ * and nothing is set alight, and leaves a burning patch for 2 s. The power is config ({@code mobs.bombardier.bomb_power}).
  */
 public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity {
 
+	/** Default for {@link NetherRiftsConfig.BombardierTuning#bombPower()}. */
 	public static final float POWER = 1.5f;
 
 	/** ThrowableProjectile's pull and air drag, applied in that order each tick before the move. */
@@ -107,7 +109,8 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 	protected void onHit(HitResult hit) {
 		super.onHit(hit);
 		if (level() instanceof ServerLevel level) {
-			level.explode(this, null, SPARE_ALL_BUT_PLAYERS, getX(), getY(), getZ(), POWER, false, Level.ExplosionInteraction.NONE);
+			float power = NetherRiftsConfig.getInstance().mobs().bombardier().bombPower();
+			level.explode(this, null, SPARE_ALL_BUT_PLAYERS, getX(), getY(), getZ(), power, false, Level.ExplosionInteraction.NONE);
 			BurningPatches.burn(level, BurningPatches.groundBelow(level, position()));
 			discard();
 		}

@@ -9,6 +9,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import nu.metacraft.nether_rifts.mob.BombingRunGoal;
+import nu.metacraft.nether_rifts.mob.BurningPatches;
+import nu.metacraft.nether_rifts.mob.MagmaBomb;
+import nu.metacraft.nether_rifts.mob.WarDrummer;
 import nu.metacraft.nether_rifts.raid.Roster;
 import nu.metacraft.nether_rifts.raid.Slot;
 import se.metacraft.config.container.ConfigContainer;
@@ -25,7 +29,7 @@ public record NetherRiftsConfig(
 		Tiers tiers, Timers timers, Ranges ranges, int activeRaidCap,
 		double trooperScalingPerPlayer, double trooperScalingCap,
 		Map<Block, Block> frameCollapse, List<Identifier> scfNetherPortalTypes,
-		Map<Slot, MobEntry> roster
+		Map<Slot, MobEntry> roster, Mobs mobs
 ) {
 
 	public record Tiers(int smallMax, int mediumMax) {
@@ -64,9 +68,115 @@ public record NetherRiftsConfig(
 		).apply(i, Ranges::new));
 	}
 
+	/** The War Drummer. Ticks (20 a second) and blocks. */
+	public record DrummerTuning(int beatTicks, int bigBeatEvery, double buffRange, int buffTicks, double shockRange, double shockStrength) {
+		public static final DrummerTuning DEFAULT = new DrummerTuning(
+				WarDrummer.BEAT_TICKS, WarDrummer.BIG_BEAT_EVERY, WarDrummer.BUFF_RANGE, WarDrummer.BUFF_TICKS,
+				WarDrummer.SHOCK_RANGE, WarDrummer.SHOCK_STRENGTH
+		);
+		public static final Codec<DrummerTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("beat_ticks", Codec.intRange(1, 1200), DEFAULT.beatTicks()),
+						"Ticks between beats."
+				).forGetter(DrummerTuning::beatTicks),
+				CommentCodec.comment(
+						Sections.section("big_beat_every", Codec.intRange(1, 100), DEFAULT.bigBeatEvery()),
+						"Every this many beats is the big beat (War Beat and Shock Beat)."
+				).forGetter(DrummerTuning::bigBeatEvery),
+				CommentCodec.comment(
+						Sections.section("buff_range", Codec.doubleRange(0, 64), DEFAULT.buffRange()),
+						"War Beat: rift piglins within this many blocks get Speed I and Strength I."
+				).forGetter(DrummerTuning::buffRange),
+				CommentCodec.comment(
+						Sections.section("buff_ticks", Codec.intRange(0, 72_000), DEFAULT.buffTicks()),
+						"War Beat: how long the buff lasts, in ticks."
+				).forGetter(DrummerTuning::buffTicks),
+				CommentCodec.comment(
+						Sections.section("shock_range", Codec.doubleRange(0, 32), DEFAULT.shockRange()),
+						"Shock Beat: players within this many blocks are knocked back."
+				).forGetter(DrummerTuning::shockRange),
+				CommentCodec.comment(
+						Sections.section("shock_strength", Codec.doubleRange(0, 10), DEFAULT.shockStrength()),
+						"Shock Beat: knockback strength (a sword hit with Knockback I is about 0.9)."
+				).forGetter(DrummerTuning::shockStrength)
+		).apply(i, DrummerTuning::new));
+	}
+
+	/** The Ghast Bombardier, its bombing runs and its magma bombs. Ticks (20 a second) and blocks. */
+	public record BombardierTuning(
+			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
+			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius
+	) {
+		public static final BombardierTuning DEFAULT = new BombardierTuning(
+				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
+				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
+				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS
+		);
+		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("dive_height", Codec.doubleRange(1, 64), DEFAULT.diveHeight()),
+						"The run flies this many blocks above the target."
+				).forGetter(BombardierTuning::diveHeight),
+				CommentCodec.comment(
+						Sections.section("climb_height", Codec.doubleRange(1, 128), DEFAULT.climbHeight()),
+						"After a run the ghast climbs back to this many blocks above the target."
+				).forGetter(BombardierTuning::climbHeight),
+				CommentCodec.comment(
+						Sections.section("run_length", Codec.doubleRange(1, 128), DEFAULT.runLength()),
+						"The run's straight line across the target, in blocks."
+				).forGetter(BombardierTuning::runLength),
+				CommentCodec.comment(
+						Sections.section("bomb_range", Codec.doubleRange(0, 64), DEFAULT.bombRange()),
+						"Bombs drop while the ghast is within this many blocks of the target, horizontally."
+				).forGetter(BombardierTuning::bombRange),
+				CommentCodec.comment(
+						Sections.section("bomb_every", Codec.intRange(1, 200), DEFAULT.bombEvery()),
+						"Ticks between bombs on a run."
+				).forGetter(BombardierTuning::bombEvery),
+				CommentCodec.comment(
+						Sections.section("cooldown", Codec.intRange(0, 72_000), DEFAULT.cooldown()),
+						"Ticks between runs."
+				).forGetter(BombardierTuning::cooldown),
+				CommentCodec.comment(
+						Sections.section("bomb_power", Codec.floatRange(0, 10), DEFAULT.bombPower()),
+						"Explosion power of a bomb, which sets its damage and knockback (a creeper is 3). Bombs never change blocks."
+				).forGetter(BombardierTuning::bombPower),
+				CommentCodec.comment(
+						Sections.section("warn_ticks", Codec.intRange(0, 200), DEFAULT.warnTicks()),
+						"The ground warning shows at least this many ticks before a bomb lands."
+				).forGetter(BombardierTuning::warnTicks),
+				CommentCodec.comment(
+						Sections.section("burn_ticks", Codec.intRange(0, 72_000), DEFAULT.burnTicks()),
+						"How long a bomb's burning patch lasts, in ticks."
+				).forGetter(BombardierTuning::burnTicks),
+				CommentCodec.comment(
+						Sections.section("player_fire_ticks", Codec.intRange(0, 72_000), DEFAULT.playerFireTicks()),
+						"Players in a burning patch burn for this many ticks."
+				).forGetter(BombardierTuning::playerFireTicks),
+				CommentCodec.comment(
+						Sections.section("patch_radius", Codec.doubleRange(0, 16), DEFAULT.patchRadius()),
+						"The radius of a warning ring and a burning patch, in blocks."
+				).forGetter(BombardierTuning::patchRadius)
+		).apply(i, BombardierTuning::new));
+	}
+
+	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier) {
+		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT);
+		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("drummer", DrummerTuning.CODEC, DrummerTuning.DEFAULT),
+						"The War Drummer, which leads waves from wave 2."
+				).forGetter(Mobs::drummer),
+				CommentCodec.comment(
+						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
+						"The Ghast Bombardier, on its war ghast in Large waves 5 and later."
+				).forGetter(Mobs::bombardier)
+		).apply(i, Mobs::new));
+	}
+
 	public static final NetherRiftsConfig DEFAULT = new NetherRiftsConfig(
 			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0,
-			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT
+			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Mobs.DEFAULT
 	);
 
 	private static final Codec<Map<Block, Block>> BLOCK_MAP = Codec.unboundedMap(
@@ -75,15 +185,15 @@ public record NetherRiftsConfig(
 
 	public static final MapCodec<NetherRiftsConfig> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 			CommentCodec.comment(
-					section("tiers", Tiers.CODEC, Tiers.DEFAULT),
+					Sections.section("tiers", Tiers.CODEC, Tiers.DEFAULT),
 					"Rift blocks up to small_max make a small raid (3 waves), up to medium_max a medium one (5), more a large one (7)."
 			).forGetter(NetherRiftsConfig::tiers),
 			CommentCodec.comment(
-					section("timers", Timers.CODEC, Timers.DEFAULT),
+					Sections.section("timers", Timers.CODEC, Timers.DEFAULT),
 					"Ticks (20 a second): unstable rifts settle back, the countdown before wave 1, when stragglers glow, when an abandoned raid collapses."
 			).forGetter(NetherRiftsConfig::timers),
 			CommentCodec.comment(
-					section("ranges", Ranges.CODEC, Ranges.DEFAULT),
+					Sections.section("ranges", Ranges.CODEC, Ranges.DEFAULT),
 					"Blocks from a rift's centre: who is warned, who takes part, how far rift mobs may stray."
 			).forGetter(NetherRiftsConfig::ranges),
 			CommentCodec.comment(
@@ -109,7 +219,11 @@ public record NetherRiftsConfig(
 			CommentCodec.comment(
 					Roster.CODEC.optionalFieldOf("roster", Roster.DEFAULT),
 					"What each wave slot spawns: portal-opening mob entries (weighted entity NBT)."
-			).forGetter(NetherRiftsConfig::roster)
+			).forGetter(NetherRiftsConfig::roster),
+			CommentCodec.comment(
+					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),
+					"Tuning for the War Drummer and the Ghast Bombardier. Any value left out keeps its default."
+			).forGetter(NetherRiftsConfig::mobs)
 	).apply(i, NetherRiftsConfig::new));
 
 	/** The configured entry for a slot, or the default when the config file predates the slot. */
@@ -124,8 +238,11 @@ public record NetherRiftsConfig(
 			CODEC, () -> DEFAULT
 	).withPath(PATH).build(NetherRifts.MODID);
 
-	private static <T> MapCodec<T> section(String name, Codec<T> codec, T defaults) {
-		return codec.optionalFieldOf(name).xmap(present -> present.orElse(defaults), Optional::of);
+	/** An optional section that falls back to its defaults. Apart from the config class, so the nested records' codecs don't start its static init (DEFAULT needs them). */
+	private static final class Sections {
+		static <T> MapCodec<T> section(String name, Codec<T> codec, T defaults) {
+			return codec.optionalFieldOf(name).xmap(present -> present.orElse(defaults), Optional::of);
+		}
 	}
 
 	public static NetherRiftsConfig getInstance() {

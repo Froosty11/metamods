@@ -40,6 +40,23 @@ public class DrummerTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("drummer/buff_range_from_config", ctx -> {
+			// The drummer_short preset sets the War Beat's reach to 6 blocks.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				var drummer = (WarDrummer) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst();
+				var near = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(15, 1, 12)), Vec3.ZERO).getFirst();
+				var far = (Piglin) RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst();
+				far.teleportTo(drummer.getX() + 8, drummer.getY(), drummer.getZ());
+				drummer.bigBeat(ctx.getLevel());
+				ctx.assertTrue(near.hasEffect(MobEffects.SPEED), "a rift piglin 3 blocks away wasn't buffed");
+				ctx.assertFalse(far.hasEffect(MobEffects.SPEED), "a rift piglin 8 blocks away was buffed with a buff range of 6");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("drummer/shock_beat_pushes_players", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {

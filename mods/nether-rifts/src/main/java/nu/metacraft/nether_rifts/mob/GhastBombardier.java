@@ -17,6 +17,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 
 /** A goggled piglin who rides a war ghast and drops magma bombs; unhorsed, it fights on foot. */
@@ -75,7 +76,8 @@ public class GhastBombardier extends Monster implements AnimatedEntity {
 
 	/**
 	 * Lets a magma bomb go from under the rider, straight down onto the ground warning, lobbed up first if need
-	 * be: the warning shows at least {@link BurningPatches#WARN_TICKS} before the blast, where the bomb lands.
+	 * be: the warning shows at least the configured warning time (default {@link BurningPatches#WARN_TICKS}) before
+	 * the blast, where the bomb lands.
 	 */
 	public void dropBomb(ServerLevel level) {
 		holder.getAnimator().playAnimation("drop_bomb", 10, true);
@@ -84,7 +86,8 @@ public class GhastBombardier extends Monster implements AnimatedEntity {
 		var ground = BurningPatches.groundBelow(level, from);
 		var bomb = new MagmaBomb(level, this);
 		bomb.setPos(from.x, from.y, from.z);
-		bomb.setDeltaMovement(0, MagmaBomb.launchSpeed(from.y - ground.y, BurningPatches.WARN_TICKS), 0);
+		int warnTicks = NetherRiftsConfig.getInstance().mobs().bombardier().warnTicks();
+		bomb.setDeltaMovement(0, MagmaBomb.launchSpeed(from.y - ground.y, warnTicks), 0);
 		RiftMobs.riftOf(this).ifPresent(id -> bomb.setAttached(RiftMobs.RIFT, id));
 		level.addFreshEntity(bomb);
 		BurningPatches.warn(level, ground);

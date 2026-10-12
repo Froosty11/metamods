@@ -42,7 +42,7 @@ public class NetherRiftsTests {
 			new NetherRiftsConfig.Ranges(10, 10, 16),
 			100, 0.25, 2.0,
 			NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
-			NetherRiftsConfig.DEFAULT.roster()
+			NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.DEFAULT.mobs()
 	);
 
 	private static boolean initialised = false;
@@ -119,19 +119,26 @@ public class NetherRiftsTests {
 						.then(preset("default", () -> NetherRiftsConfig.DEFAULT))
 						.then(preset("cap_one", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), 1, FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster()
+								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.mobs()
 						)))
 						.then(preset("scf", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(), FAST.trooperScalingPerPlayer(),
 								FAST.trooperScalingCap(), FAST.frameCollapse(),
-								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster()
+								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.mobs()
 						)))
 						.then(preset("roster_partial", () -> {
 							var roster = new java.util.HashMap<>(nu.metacraft.nether_rifts.raid.Roster.DEFAULT);
 							roster.remove(nu.metacraft.nether_rifts.raid.Slot.HEAVY);
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), roster);
+									FAST.scfNetherPortalTypes(), roster, FAST.mobs());
+						}))
+						.then(preset("drummer_short", () -> {
+							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
+							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength());
+							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
+									FAST.scfNetherPortalTypes(), FAST.roster(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
 						}))
 		));
 	}
