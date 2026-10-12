@@ -13,7 +13,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-/** Flint and steel or a fire charge on a rift (its frame, or a rift block behind the clicked face) lights it further. */
+/**
+ * Flint and steel or a fire charge on a rift (the rift block in front of the clicked face, else the clicked
+ * frame block) lights it further. Spectators, players who can't build (adventure mode) and players the
+ * level won't let interact there (spawn protection, claims) are left to vanilla.
+ */
 public final class Ignition {
 
 	private Ignition() {}
@@ -30,8 +34,13 @@ public final class Ignition {
 		if (!isIgniter(stack)) {
 			return InteractionResult.PASS;
 		}
+		// Fabric's use-block event runs before vanilla's own spectator check.
+		if (player.isSpectator() || !player.mayBuild() || !serverLevel.mayInteract(player, hit.getBlockPos())) {
+			return InteractionResult.PASS;
+		}
 		var data = RiftData.get(serverLevel);
-		var rift = data.at(hit.getBlockPos()).or(() -> data.at(hit.getBlockPos().relative(hit.getDirection())));
+		// The face first: a frame column two rifts share lights the one on the clicked side.
+		var rift = data.at(hit.getBlockPos().relative(hit.getDirection())).or(() -> data.at(hit.getBlockPos()));
 		if (rift.isPresent()) {
 			if (rift.get().light(serverLevel)) {
 				use(player, hand, stack);

@@ -6,6 +6,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.util.helper.TestHelper;
@@ -65,6 +66,53 @@ public class StageTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("stages/spectator_cannot_light", ctx -> {
+			// Fabric's use-block event fires before vanilla's spectator check: ignition must make its own.
+			var inside = FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spectator = player(ctx);
+				spectator.setGameMode(GameType.SPECTATOR);
+				use(ctx, spectator, inside.below(), new ItemStack(Items.FLINT_AND_STEEL));
+				ctx.assertTrue(FormingTests.riftIn(ctx).stage() == Stage.LIT, "a spectator lit it: " + FormingTests.riftIn(ctx).stage());
+				// adventure mode can't build, so it can't light a rift either
+				var visitor = player(ctx);
+				visitor.setGameMode(GameType.ADVENTURE);
+				use(ctx, visitor, inside.below(), new ItemStack(Items.FLINT_AND_STEEL));
+				ctx.assertTrue(FormingTests.riftIn(ctx).stage() == Stage.LIT, "an adventure-mode player lit it: " + FormingTests.riftIn(ctx).stage());
+				remove(ctx, spectator);
+				remove(ctx, visitor);
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("stages/shared_column_lights_clicked_side", ctx -> {
+			// Two portals sharing the obsidian column at x = 3: a click on its east face lights the east rift,
+			// on its west face the west one, whichever of them was indexed first.
+			var west = FormingTests.lightFrame(ctx, 2, 3);
+			for (int x = 3; x <= 6; x++) {
+				ctx.setBlock(new BlockPos(x, 1, 5), Blocks.OBSIDIAN);
+				ctx.setBlock(new BlockPos(x, 5, 5), Blocks.OBSIDIAN);
+			}
+			for (int y = 1; y <= 5; y++) {
+				ctx.setBlock(new BlockPos(6, y, 5), Blocks.OBSIDIAN);
+			}
+			var east = new BlockPos(4, 2, 5);
+			ctx.setBlock(east, Blocks.FIRE);
+			var column = new BlockPos(3, 3, 5);
+			ctx.runAtTickTime(3, () -> {
+				ctx.assertTrue(FormingTests.riftsIn(ctx).size() == 2, FormingTests.riftsIn(ctx).size() + " rifts");
+				var player = player(ctx);
+				use(ctx, player, column, new ItemStack(Items.FLINT_AND_STEEL), Direction.EAST);
+				ctx.assertTrue(stageAt(ctx, east) == Stage.UNSTABLE, "east rift after an east-face click: " + stageAt(ctx, east));
+				ctx.assertTrue(stageAt(ctx, west) == Stage.LIT, "west rift after an east-face click: " + stageAt(ctx, west));
+				use(ctx, player, column, player.getMainHandItem(), Direction.WEST);
+				ctx.assertTrue(stageAt(ctx, west) == Stage.UNSTABLE, "west rift after a west-face click: " + stageAt(ctx, west));
+				ctx.assertTrue(stageAt(ctx, east) == Stage.UNSTABLE, "east rift after a west-face click: " + stageAt(ctx, east));
+				remove(ctx, player);
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("stages/cap_refuses", ctx -> {
 			// cap_one: one raid at a time. Two frames side by side, inside at x 1..2 and 7..8.
 			var first = FormingTests.lightFrame(ctx, 2, 3);
@@ -110,9 +158,14 @@ public class StageTests {
 
 	/** Uses {@code stack} on the block at {@code relative} (a frame block), clicking its top face. */
 	static void use(GameTestHelper ctx, ServerPlayer player, BlockPos relative, ItemStack stack) {
+		use(ctx, player, relative, stack, Direction.UP);
+	}
+
+	/** Uses {@code stack} on the block at {@code relative}, clicking the given face. */
+	static void use(GameTestHelper ctx, ServerPlayer player, BlockPos relative, ItemStack stack, Direction face) {
 		var pos = ctx.absolutePos(relative);
 		player.setItemInHand(InteractionHand.MAIN_HAND, stack);
 		player.gameMode.useItemOn(player, ctx.getLevel(), stack, InteractionHand.MAIN_HAND,
-				new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false));
+				new BlockHitResult(Vec3.atCenterOf(pos), face, pos, false));
 	}
 }
