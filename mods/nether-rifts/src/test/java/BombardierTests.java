@@ -274,15 +274,15 @@ public class BombardierTests {
 			ctx.succeed();
 		});
 		NetherRiftsTests.register("bombardier/gear_on_crew", ctx -> {
-			// A summoned ghast has its kit (a golden spear, a crossbow, the goggles; none drop, right-handed), shown on the
-			// crew: the main hand in the spear piglin's right hand, the off hand in the crossbow piglin's left, the head
+			// A summoned ghast has its kit (a golden spear, a crossbow, the goggles; none drop, left-handed), shown on the
+			// crew: the main hand in the spear piglin's left hand, the off hand in the crossbow piglin's right, the head
 			// slot on the Grenadier's head. None of the crew's heads turn with the ghast's look.
 			var ghast = RiftEntities.WAR_GHAST.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
 			var at = ctx.absolutePos(new BlockPos(12, 8, 12));
 			ghast.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
 			for (int i = 0; i < 40; i++) {
 				ghast.finalizeSpawn(ctx.getLevel(), ctx.getLevel().getCurrentDifficultyAt(at), EntitySpawnReason.COMMAND, null);
-				ctx.assertFalse(ghast.isLeftHanded(), "a summoned ghast is left-handed");
+				ctx.assertTrue(ghast.isLeftHanded(), "a summoned ghast is right-handed");
 			}
 			ctx.getLevel().addFreshEntity(ghast);
 			ctx.assertTrue(ghast.getMainHandItem().is(Items.GOLDEN_SPEAR), "the ghast holds " + ghast.getMainHandItem());
@@ -296,8 +296,8 @@ public class BombardierTests {
 				held.tick();
 				var model = ghast.getHolder().getModel();
 				for (var shownOn : List.of(
-						new Object[] {HeldItems.Spot.RIGHT_HAND, "piglin1", Items.GOLDEN_SPEAR},
-						new Object[] {HeldItems.Spot.LEFT_HAND, "piglin2", Items.CROSSBOW},
+						new Object[] {HeldItems.Spot.LEFT_HAND, "piglin1", Items.GOLDEN_SPEAR},
+						new Object[] {HeldItems.Spot.RIGHT_HAND, "piglin2", Items.CROSSBOW},
 						new Object[] {HeldItems.Spot.HEAD, "bombardier", RiftItems.BOMBARDIER_HELMET})) {
 					var spot = (HeldItems.Spot) shownOn[0];
 					var item = held.display(spot).getItem();

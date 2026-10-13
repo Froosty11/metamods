@@ -3,6 +3,7 @@ package nu.metacraft.nether_rifts.mob;
 import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.core.component.AnimationComponent;
 import de.tomalbrc.bil.core.element.PerPlayerItemDisplayElement;
+import de.tomalbrc.bil.core.holder.base.AbstractAnimationHolder;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import de.tomalbrc.bil.core.holder.wrapper.DisplayWrapper;
 import de.tomalbrc.bil.core.holder.wrapper.Locator;
@@ -10,8 +11,10 @@ import de.tomalbrc.bil.core.model.Model;
 import de.tomalbrc.bil.core.model.Node;
 import de.tomalbrc.bil.core.model.Pose;
 import de.tomalbrc.bil.util.Utils;
+import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -229,6 +232,25 @@ public final class HeldItems {
 	}
 
 	/**
+	 * Sets every display of a holder (bones, held items, armour) to be seen as far as the mob is tracked. A display's
+	 * view range is in units of 64 blocks (scaled by the client's entity distance), and BIL leaves its bones at 1: the
+	 * mob would vanish at 64 blocks though clients keep it to its type's tracking range.
+	 */
+	public static void setViewRange(AbstractAnimationHolder holder, EntityType<?> type) {
+		float range = viewRange(type);
+		for (var element : holder.getElements()) {
+			if (element instanceof DisplayElement display) {
+				display.setViewRange(range);
+			}
+		}
+	}
+
+	/** The view range that covers a type's tracking range: at least vanilla's 1. */
+	public static float viewRange(EntityType<?> type) {
+		return Math.max(1f, type.clientTrackingRange() * 16 / 64f);
+	}
+
+	/**
 	 * A living entity holder that shows its mob's held items ({@link HeldItems}) and worn armour ({@link ArmourPieces});
 	 * use it in place of LivingEntityHolder. Polymer ticks it from the entity tracker, after every mob has ticked, so the
 	 * armour's colours come after the mob's hurt tint.
@@ -240,6 +262,7 @@ public final class HeldItems {
 
 		public Holder(T parent, Model model) {
 			super(parent, model);
+			setViewRange(this, parent.getType());
 		}
 
 		public HeldItems heldItems() {

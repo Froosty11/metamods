@@ -26,7 +26,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
@@ -53,18 +55,20 @@ import java.util.Map;
 /**
  * The Chained Ghast: a ghast in a harness with a deck slung under it on chains, crewed by a Piglin Drummer, a Piglin
  * Grenadier and two piglins (one with a spear, one with a crossbow). One model (war_ghast.bbmodel, the artist's, brought
- * in by tools/import_ghast.py), crew and all. It floats as any ghast, and its crew work it: the spear piglin stabs it
- * into shooting fireballs, the Grenadier drops magma bombs from the deck on bombing runs, the crossbow piglin shoots
- * bolts at players it can see. When it dies the crew jump off as real mobs and glide down.
+ * in by tools/import_ghast.py), crew and all. It floats as a ghast does, keeping its deck clear of the ground and
+ * itself no more than {@code max_float_height} over it, and goes after players below it. Its crew work it: the spear
+ * piglin stabs it into shooting fireballs, the Grenadier drops magma bombs from the deck on bombing runs, the crossbow
+ * piglin shoots bolts at players it can see, and the drummer drums in a fight, his War Beat reaching the piglins under
+ * the ghast. When it dies the crew jump off as real mobs and glide down.
  *
  * <p>Each crew member has a hitbox of its own ({@link CrewHitbox}) where its figure stands, and the deck one that
  * projectiles glance off ({@link DeckHitbox}). A crew member killed on the deck is gone from the model with its gear,
  * its work stops (no fireballs without the spear piglin, no bombing runs without the Grenadier, no bolts without the
- * crossbow piglin; the drummer does nothing on the deck yet) and it doesn't jump when the ghast dies. The rest jump with
+ * crossbow piglin, no drumming without the drummer) and it doesn't jump when the ghast dies. The rest jump with
  * the health they had left.
  *
- * <p>Its gear shows on the crew ({@link HeldItems}, {@link ArmourPieces}): the main hand in the spear piglin's right
- * hand, the off hand in the crossbow piglin's left, the head slot on the Grenadier's head (worn armour on the spear
+ * <p>Its gear shows on the crew ({@link HeldItems}, {@link ArmourPieces}): the main hand in the spear piglin's left
+ * hand, the off hand in the crossbow piglin's right (the ghast is left-handed), the head slot on the Grenadier's head (worn armour on the spear
  * piglin's instead), and chest, legs and feet armour on the spear piglin. Every Chained Ghast gets a golden spear, a
  * crossbow and the Grenadier Goggles, none of which drop. The armour is for show on the ghast (no armour points,
  * toughness or enchantment effects), and protects the spear piglin's hitbox. The crew take the gear with them when
@@ -81,10 +85,14 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/** Crew glide time: enough to come down from a bombing run's climb and well beyond. */
 	public static final int CREW_SLOW_FALL_TICKS = 200;
 
-	/** Default for {@link NetherRiftsConfig.BombardierTuning#crossbowEvery}. */
+	/** Default for {@link NetherRiftsConfig.BombardierTuning#maxFloatHeight}. */
+	public static final double MAX_FLOAT_HEIGHT = 20;
+	/** Default for {@link NetherRiftsConfig.CrewTuning#crossbowEvery}. */
 	public static final int CROSSBOW_EVERY = 60;
 	/** The crossbow piglin shoots at players it can see this close, in blocks. */
 	public static final double CROSSBOW_RANGE = 24;
+	/** The deck's drummer drums while a player who can fight is this close, in blocks. */
+	public static final double DRUM_RANGE = 24;
 	/** It loads (and is heard loading) this long before it shoots: a second. */
 	public static final int CROSSBOW_LOAD_TICKS = 20;
 
@@ -181,10 +189,46 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		return holder;
 	}
 
+	/**
+	 * Vanilla's ghast goals, but floating about with its deck in mind ({@link DeckFloatGoal}), and going after players
+	 * below it as far down as it floats: vanilla's ghast only targets players within 4 blocks of its own height, and the
+	 * deck keeps this one higher than that over the ground. A bombing run of its own.
+	 */
 	@Override
 	protected void registerGoals() {
 		super.registerGoals();
+		goalSelector.removeAllGoals(goal -> goal instanceof Ghast.RandomFloatAroundGoal);
+		goalSelector.addGoal(5, new DeckFloatGoal(this));
 		goalSelector.addGoal(4, new BombingRunGoal(this));
+		targetSelector.removeAllGoals(goal -> goal instanceof NearestAttackableTargetGoal<?>);
+		targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, (target, level) -> {
+			double below = getY() - target.getY();
+			return below >= -4 && below <= NetherRiftsConfig.getInstance().mobs().bombardier().maxFloatHeight() + 4;
+		}));
+	}
+
+	/** Whether the ghast and its deck fit with its feet at {@code at}, clear of blocks. */
+	public boolean fitsAt(Vec3 at) {
+		return level().noBlockCollision(this, stackBox().move(at.subtract(position())));
+	}
+
+	/**
+	 * Lifts the ghast till it and its deck are clear of blocks (a spawn egg or a summon puts its feet near the ground, and
+	 * the deck under it), up to as far as the deck hangs and a bit: whatever room there is. Returns whether it's clear.
+	 */
+	private boolean unstick() {
+		if (fitsAt(position())) {
+			return true;
+		}
+		for (double up = 0.25; up <= DECK_DROP + 2; up += 0.25) {
+			var at = position().add(0, up, 0);
+			if (fitsAt(at)) {
+				setPos(at);
+				setDeltaMovement(getDeltaMovement().multiply(1, 0, 1));
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Whether a node is the model's group {@code name} or inside it. */
@@ -255,7 +299,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/**
 	 * The kit every Chained Ghast has, in any slot left empty while the crew member who shows it is there: the golden
 	 * spear the rift's spear piglins carry, a crossbow and the Grenadier Goggles. Its gear never drops (the crew take
-	 * it), and it's right-handed, so the main hand shows on the spear piglin. Set again on spawning and loading (a save or
+	 * it), and it's left-handed: the main hand shows in the spear piglin's left fist ({@code item_left}), the off hand
+	 * in the crossbow piglin's right ({@code item_right}). Set again on spawning and loading (a save or
 	 * a summon without equipment has none).
 	 */
 	private void keepKit() {
@@ -271,7 +316,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		for (var slot : EquipmentSlot.values()) {
 			setDropChance(slot, 0f);
 		}
-		setLeftHanded(false);
+		setLeftHanded(true);
 	}
 
 	private void fill(EquipmentSlot slot, Item item) {
@@ -308,6 +353,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData groupData) {
 		var data = super.finalizeSpawn(level, difficulty, reason, groupData);
 		keepKit();
+		unstick();
 		return data;
 	}
 
@@ -462,6 +508,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			var hitbox = hitboxes.get(figure);
 			float health = hitbox != null && hitbox.isAlive() ? hitbox.getHealth() : crewHealth.getOrDefault(figure, mob.getMaxHealth());
 			mob.setHealth(Math.min(health, mob.getMaxHealth()));
+			if (hitbox != null) {
+				// War Beat's buff, and whatever else was on it
+				hitbox.getActiveEffects().forEach(effect -> mob.addEffect(new MobEffectInstance(effect)));
+			}
 			crew.add(jumpOff(mob, spot(figure)));
 		}
 		// what the crew didn't take (the goggles: the Grenadier has its own) goes with their figures
@@ -600,12 +650,12 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/**
 	 * The crossbow piglin shoots a bolt every {@code crossbow_every} ticks (if 0, never) at the nearest player it can
 	 * see within {@link #CROSSBOW_RANGE} blocks, who can fight (not in creative or spectator), heard loading a second
-	 * before: from its left fist, as a piglin's crossbow shoots (its speed, aim and spread). The bolt is the hitbox's (its
+	 * before: from its right fist, as a piglin's crossbow shoots (its speed, aim and spread). The bolt is the hitbox's (its
 	 * kill), and passes through the ghast, its crew and, for a rift's ghast, every rift mob (mixin/ProjectileMixin).
 	 * Plays the model's {@code crossbow_shoot} animation, if it has one.
 	 */
 	private void crossbow(ServerLevel level) {
-		int every = NetherRiftsConfig.getInstance().mobs().bombardier().crossbowEvery();
+		int every = NetherRiftsConfig.getInstance().mobs().bombardier().crew().crossbowEvery();
 		var hitbox = hitbox(Crew.CROSSBOW);
 		if (every <= 0 || hitbox == null) {
 			crossbowClock = 0;
@@ -623,7 +673,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		if (target == null) {
 			return;
 		}
-		var from = toWorld(place(HeldItems.LEFT, false));
+		var from = toWorld(place(HeldItems.RIGHT, false));
 		var weapon = getOffhandItem().isEmpty() ? new ItemStack(Items.CROSSBOW) : getOffhandItem().copy();
 		var bolt = new Arrow(level, from.x, from.y, from.z, new ItemStack(Items.ARROW), weapon);
 		bolt.setOwner(hitbox);
@@ -639,6 +689,53 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		holder.getAnimator().playAnimation("crossbow_shoot", 10, true);
 	}
 
+	/**
+	 * The drummer on the deck drums while the ghast is in a fight (it has a target, or a player who can fight is within
+	 * {@link #DRUM_RANGE} blocks), on the world's clock as every Piglin Drummer does, so they all keep time: a beat's
+	 * drum, the big beat's roar, then its slam. The slam is War Beat for its piglins (a rift ghast's rift piglins, a
+	 * summoned one's piglins of no rift) within reach of the deck or of the ground under the ghast, and for the crew; no
+	 * Shock Beat from up here. The model's idle has the drummer's beat already.
+	 */
+	private void drum(ServerLevel level) {
+		var drummer = hitbox(Crew.DRUMMER);
+		if (drummer == null || !inFight(level)) {
+			return;
+		}
+		int at = WarDrummer.cycleAt(level.getGameTime());
+		int bigBeatStart = WarDrummer.bigBeatStart();
+		int beat = NetherRiftsConfig.getInstance().mobs().drummer().beatTicks();
+		double x = drummer.getX();
+		double y = drummer.getY() + 1;
+		double z = drummer.getZ();
+		if (at < bigBeatStart && at % beat == 0) {
+			WarDrummer.beatSound(level, x, y, z);
+		} else if (at == bigBeatStart) {
+			WarDrummer.bigBeatWindupSound(level, x, y, z);
+		} else if (at == bigBeatStart + WarDrummer.BIG_BEAT_SLAM_TICK) {
+			WarDrummer.slamSound(level, x, y, z);
+			warBeat(level, drummer);
+		}
+	}
+
+	private boolean inFight(ServerLevel level) {
+		var target = getTarget();
+		return target != null && target.isAlive() || level.getNearestPlayer(getX(), getY(), getZ(), DRUM_RANGE,
+				player -> EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(player) && player.isAlive()) != null;
+	}
+
+	private void warBeat(ServerLevel level, CrewHitbox drummer) {
+		double range = WarDrummer.buffRange();
+		var ground = BurningPatches.groundBelow(level, position().add(0, -DECK_DROP, 0));
+		var deck = drummer.position();
+		boolean rift = RiftMobs.isRiftMob(this);
+		var reach = new AABB(deck, deck).minmax(new AABB(ground, ground)).inflate(range);
+		for (var piglin : level.getEntitiesOfClass(AbstractPiglin.class, reach, p -> (rift ? RiftMobs.isRiftMob(p) : !RiftMobs.isRiftMob(p) && p.isAdult())
+				&& (p.distanceToSqr(deck) <= range * range || p.distanceToSqr(ground) <= range * range))) {
+			WarDrummer.warBeat(piglin);
+		}
+		hitboxes.values().forEach(WarDrummer::warBeat);
+	}
+
 	@Nullable
 	private static Player crossbowTarget(ServerLevel level, CrewHitbox hitbox) {
 		return level.getNearestPlayer(hitbox.getX(), hitbox.getEyeY(), hitbox.getZ(), CROSSBOW_RANGE,
@@ -650,11 +747,13 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	 * the ground or a wall. (Its move control only checks the ghast's own box; the bombing run plans for the deck
 	 * itself.) Stopped short like that, it stops moving that way, as a bump of its own box would, and gives up its float
 	 * target for another: its move control would keep flying at a point only the ghast fits at, and an idle ghast would
-	 * hover over the ground for good.
+	 * hover over the ground for good. Its deck stuck in blocks all the same (lifted as far as there was room), it moves as
+	 * a plain ghast, so it can get clear.
 	 */
 	@Override
 	public void move(MoverType type, Vec3 delta) {
-		if (!noPhysics) {
+		// with the deck stuck in blocks (no room to lift it out), it moves as a plain ghast till it's clear
+		if (!noPhysics && fitsAt(position())) {
 			var clamped = Entity.collideBoundingBox(this, delta, stackBox(), level(), List.of());
 			if (!clamped.equals(delta)) {
 				var v = getDeltaMovement();
@@ -682,8 +781,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				getPassengers().forEach(Entity::discard);
 			}
 			if (isAlive()) {
+				unstick();
 				updateParts(level);
 				crossbow(level);
+				drum(level);
 			}
 		}
 	}

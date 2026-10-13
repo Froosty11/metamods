@@ -282,6 +282,43 @@ public final class RiftClientTests implements FabricClientGameTest {
 				charging(server, false);
 				System.out.println("[nether-rifts-clienttest] war ghast face changed=" + changed(calm, shooting, 24));
 
+				// up close: the crew on the deck from the front, the side and the back, and the deck over the ground from
+				// below (screenshots to look at: the figures, the drummer's jacket, the tentacles, the deck's clearance)
+				String[][] closeUps = {
+						{"war_ghast_crew_front", tpLooking(-36.0, -55.6, 0.5, -40.5, -56.6, 0.5)},
+						{"war_ghast_crew_side", tpLooking(-40.5, -55.6, 5.0, -40.5, -56.6, 0.5)},
+						{"war_ghast_crew_back", tpLooking(-45.0, -55.6, 0.5, -40.5, -56.6, 0.5)},
+						{"war_ghast_drummer_side", tpLooking(-39.0, -55.8, -4.0, -40.1, -56.4, -1.1)},
+						{"war_ghast_tentacles", tpLooking(-40.5, -52.5, 6.5, -40.5, -51.5, 0.5)},
+						{"war_ghast_deck_ground", tpLooking(-33.0, -59.3, 3.0, -40.5, -58.5, 0.5)}};
+				for (var shot : closeUps) {
+					server.runCommand(shot[1]);
+					ctx.waitTicks(15);
+					ctx.takeScreenshot(TestScreenshotOptions.of(shot[0]).withSize(1920, 1080));
+				}
+
+				// from 130 blocks off, past vanilla's display range (64 blocks, 96 at this view distance), with the view
+				// distance to see that far (the server tracks entities as far as the client asks): the ghast, in the middle
+				// of the screen, is still drawn, its displays' view range covering its tracking range
+				ctx.runOnClient(client -> {
+					client.options.renderDistance().set(12);
+					client.options.broadcastOptions();
+				});
+				server.runCommand(tpLooking(-170.5, -50.0, 0.5, -40.5, -54.0, 0.5));
+				ctx.waitTicks(100);
+				var far = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_far").withSize(1920, 1080)));
+				// its grey body and tentacles and its brown deck; the sky's haze is bluer, the grass greener
+				int farGhast = countIn(far, 760, 340, 1160, 740, (r, g, b) -> Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b)) < 12 && r > 100 && r < 230
+						|| r > g + 15 && g > b && r < 200);
+				System.out.println("[nether-rifts-clienttest] war ghast from 130 blocks px=" + farGhast);
+				check(farGhast >= 30, "the war ghast isn't drawn from 130 blocks: " + farGhast + " px");
+				ctx.runOnClient(client -> {
+					client.options.renderDistance().set(5);
+					client.options.broadcastOptions();
+				});
+				server.runCommand("tp Tester -26.5 -53.2 0.5 90 0");
+				ctx.waitTicks(20);
+
 				// the Grenadier on the deck, from the front left
 				server.runCommand(tpLooking(-35.0, -55.0, -3.0, -41.3, -56.6, -0.1));
 				ctx.waitTicks(15);

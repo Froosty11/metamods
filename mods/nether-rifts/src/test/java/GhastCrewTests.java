@@ -36,8 +36,10 @@ public class GhastCrewTests {
 					ctx.assertTrue(hitbox != null && hitbox.isAlive(), "no hitbox for " + crew.figure);
 					var spot = ghast.spot(crew);
 					ctx.assertTrue(hitbox.position().distanceTo(spot.feet()) < 0.01, crew.figure + "'s hitbox is at " + hitbox.position() + ", not " + spot.feet());
-					var size = crew.type().getDimensions();
-					ctx.assertTrue(hitbox.getBbWidth() == size.width() && hitbox.getBbHeight() == size.height(), crew.figure + "'s hitbox is " + hitbox.getDimensions(hitbox.getPose()));
+					// roomier than the mob: 1 x 2.3 for a piglin-sized one
+					var size = net.minecraft.world.entity.EntityDimensions.scalable((float) CrewHitbox.WIDTH, (float) CrewHitbox.HEIGHT);
+					ctx.assertTrue(Math.abs(hitbox.getBbWidth() - size.width()) < 1e-4 && Math.abs(hitbox.getBbHeight() - size.height()) < 1e-4,
+							crew.figure + "'s hitbox is " + hitbox.getDimensions(hitbox.getPose()));
 					ctx.assertTrue(hitbox.getMaxHealth() == CrewHitbox.maxHealth(crew) && hitbox.getHealth() == hitbox.getMaxHealth(), crew.figure + " has " + hitbox.getHealth() + " health");
 					ctx.assertTrue(hitbox.getPolymerEntityType(null) == EntityTypes.INTERACTION, "clients don't see an interaction");
 					// clients get the interaction's size, and none of the hitbox's own data (read as the interaction's)
@@ -118,7 +120,8 @@ public class GhastCrewTests {
 			});
 		});
 		NetherRiftsTests.register("ghast_crew/armour_protects_spear", ctx -> {
-			// The ghast's armour, worn by the spear piglin's hitbox, spares it the damage the crossbow piglin takes.
+			// The deck's cover: the crew take a share of the damage (crew.damage_taken). The ghast's armour, worn by the spear
+			// piglin's hitbox, spares it more of it than the crossbow piglin.
 			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 8, 12));
 			ghast.setNoAi(true);
 			var chest = new ItemStack(Items.NETHERITE_CHESTPLATE);
@@ -136,7 +139,8 @@ public class GhastCrewTests {
 				crossbow.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().mobAttack(zombie), 6f);
 				float spearLost = spear.getMaxHealth() - spear.getHealth();
 				float crossbowLost = crossbow.getMaxHealth() - crossbow.getHealth();
-				ctx.assertTrue(crossbowLost == 6 && spearLost > 0 && spearLost < 3, "armoured, the spear piglin lost " + spearLost + " to the crossbow piglin's " + crossbowLost);
+				ctx.assertTrue(Math.abs(crossbowLost - 6 * CrewHitbox.DAMAGE_TAKEN) < 1e-3, "the crossbow piglin lost " + crossbowLost + " of 6");
+				ctx.assertTrue(spearLost > 0 && spearLost < crossbowLost / 2, "armoured, the spear piglin lost " + spearLost + " to the crossbow piglin's " + crossbowLost);
 				ctx.assertTrue(ghast.getHealth() == ghast.getMaxHealth(), "the ghast was hurt");
 				ctx.killAllEntities();
 				ctx.succeed();
@@ -228,7 +232,7 @@ public class GhastCrewTests {
 					ctx.assertTrue(crew.size() == 3, "the ghast's death let off " + crew);
 					ctx.assertTrue(crew.stream().noneMatch(m -> m instanceof WarDrummer), "the dead drummer jumped");
 					var piglin = crew.stream().filter(m -> m.getMainHandItem().is(Items.CROSSBOW)).findFirst().orElseThrow();
-					ctx.assertTrue(piglin.getHealth() == piglin.getMaxHealth() - 5, "the crossbow piglin jumped with " + piglin.getHealth());
+					ctx.assertTrue(Math.abs(piglin.getHealth() - (piglin.getMaxHealth() - 5 * CrewHitbox.DAMAGE_TAKEN)) < 1e-3, "the crossbow piglin jumped with " + piglin.getHealth());
 					ctx.assertTrue(crew.stream().filter(m -> !m.getMainHandItem().is(Items.CROSSBOW)).allMatch(m -> m.getHealth() == m.getMaxHealth()),
 							"an unhurt crew member jumped hurt");
 					ctx.killAllEntities();

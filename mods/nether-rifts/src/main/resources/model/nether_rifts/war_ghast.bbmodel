@@ -10282,7 +10282,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				-5.2,
+				-25.2,
 				4,
 				-20.0
 			],
@@ -10313,7 +10313,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				-25.2,
+				-5.2,
 				4,
 				-20.0
 			],
@@ -10468,7 +10468,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				-5.2,
+				-25.2,
 				4,
 				20.0
 			],
@@ -10499,7 +10499,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				-25.2,
+				-5.2,
 				4,
 				20.0
 			],
@@ -11820,8 +11820,8 @@
 			"primary_selected": false
 		},
 		{
-			"name": "item_right",
-			"uuid": "250c8f10-5855-5d1f-b487-e36072456beb",
+			"name": "item_left",
+			"uuid": "c47ff942-372b-5517-a524-e676424fbb8a",
 			"export": true,
 			"locked": false,
 			"scope": 0,
@@ -11832,7 +11832,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				21.0,
+				9.0,
 				-63,
 				0.0
 			],
@@ -11851,8 +11851,8 @@
 			"primary_selected": false
 		},
 		{
-			"name": "item_left",
-			"uuid": "c47ff942-372b-5517-a524-e676424fbb8a",
+			"name": "item_right",
+			"uuid": "250c8f10-5855-5d1f-b487-e36072456beb",
 			"export": true,
 			"locked": false,
 			"scope": 0,
@@ -11863,7 +11863,7 @@
 				"temp_data": {}
 			},
 			"origin": [
-				-16.0,
+				-4.0,
 				-78,
 				-8.0
 			],
@@ -12392,6 +12392,11 @@
 										"8f1ea232-4300-edc9-e24d-d7082826bac0",
 										"6d913543-9879-b9e8-eba8-ec946f11cd15",
 										{
+											"uuid": "c47ff942-372b-5517-a524-e676424fbb8a",
+											"isOpen": false,
+											"children": []
+										},
+										{
 											"uuid": "dbf34b9a-ab92-576c-bf04-03b3856de401",
 											"isOpen": false,
 											"children": [
@@ -12406,11 +12411,6 @@
 									"children": [
 										"4c08ed14-2e7b-09d1-c484-110bbf588114",
 										"4f458880-431c-e312-bc88-f7c4c026c88f",
-										{
-											"uuid": "250c8f10-5855-5d1f-b487-e36072456beb",
-											"isOpen": false,
-											"children": []
-										},
 										{
 											"uuid": "f1a48789-84b8-5998-bdd7-30002f3002fd",
 											"isOpen": false,
@@ -12517,12 +12517,7 @@
 									"isOpen": false,
 									"children": [
 										"a3c47cf2-8da2-2199-222f-72b9b5bce21b",
-										"a26a8cf8-93f7-63b9-a7fb-2cd16d5be050",
-										{
-											"uuid": "c47ff942-372b-5517-a524-e676424fbb8a",
-											"isOpen": false,
-											"children": []
-										}
+										"a26a8cf8-93f7-63b9-a7fb-2cd16d5be050"
 									]
 								},
 								{
@@ -12530,7 +12525,12 @@
 									"isOpen": true,
 									"children": [
 										"49a7c13b-f6d6-9601-8d15-03adc1305b20",
-										"0377bab7-92be-05de-9e73-7eb453b13056"
+										"0377bab7-92be-05de-9e73-7eb453b13056",
+										{
+											"uuid": "250c8f10-5855-5d1f-b487-e36072456beb",
+											"isOpen": false,
+											"children": []
+										}
 									]
 								},
 								{

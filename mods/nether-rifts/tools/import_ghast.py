@@ -9,11 +9,12 @@ war_ghast.bbmodel, fitted to how BIL plays it. Run from the module: python3 tool
 - Names: BIL turns any bone whose name starts with "head" (and all in it) with the mob's look, so the faces
   (head-sad, head-shooting) become face_sad and face_shooting, and each crew figure's bones take its name
   (head2 in piglin1 becomes piglin1_head; the drummer_piglin's are drummer_*). body2 becomes body.
+- Each tentacle turns about the top centre of its cube (the artist's tentacle2/3 and 8/9 had each other's pivots).
 - A figure's overlay layers (jacket, sleeves, pants) join the part they cover, without keys of their own: they move
   with it. The deck's chains join the deck while nothing animates them. Fewer bones: each is a display entity.
 - Markers (empty groups, as BIL keeps them as nodes): <figure>_feet at the middle of each figure's feet, and
   <figure>_facing 8 px in front of it, so WarGhast can put the crew where they stand and turn them the way they
-  face; item_right in piglin1's right fist, item_left in piglin2's left fist and item_head in the bombardier's head
+  face; item_left in piglin1's left fist, item_right in piglin2's right fist and item_head in the bombardier's head
   for the ghast's held and worn items (mob/HeldItems.java). Added where missing.
 - Armour pieces on piglin1 and their item models for every vanilla material (tools/piglin_armour.py,
   assets/nether_rifts/{models/item,items}/war_ghast/armour/).
@@ -36,10 +37,12 @@ RENAME = {"body2": "body", "head-sad": "face_sad", "head-shooting": "face_shooti
 FACES = ("face_sad", "face_shooting")
 OVERLAY = re.compile(r"_(jacket|left_sleeve|right_sleeve|left_pants|right_pants)$")
 CHAIN = re.compile(r"^chain")
+TENTACLE = re.compile(r"^tentacle\d+$")
 # How far ahead of a figure's feet its facing marker is, in model units (the model faces -z).
 FACING = 8
-# The ghast's held and worn items: (marker, figure, part, where in the part's main cube)
-ITEM_MARKERS = [("item_right", "piglin1", "right_arm", "bottom"), ("item_left", "piglin2", "left_arm", "bottom"),
+# The ghast's held and worn items: (marker, figure, part, where in the part's main cube). The ghast is left-handed: its
+# main hand (the spear) in piglin1's left fist, its off hand (the crossbow) in piglin2's right.
+ITEM_MARKERS = [("item_left", "piglin1", "left_arm", "bottom"), ("item_right", "piglin2", "right_arm", "bottom"),
 	("item_head", "bombardier", "head", "centre")]
 # piglin1 wears the ghast's armour
 ARMOUR_BONES = {role: f"piglin1_{role}" for role in piglin_armour.ROLES}
@@ -182,6 +185,13 @@ def main(src):
 			merge(d, g["name"], drop_keys=True)
 		elif CHAIN.search(g["name"]):
 			merge(d, g["name"], drop_keys=False)
+
+	for g in d["groups"]:
+		if TENTACLE.match(g["name"]):
+			cubes = cubes_of(outliner_node(d, g["name"]))
+			assert len(cubes) == 1, f"{g['name']} has {len(cubes)} cubes"
+			lo, hi = box(d, cubes)
+			g["origin"] = [(lo[0] + hi[0]) / 2, hi[1], (lo[2] + hi[2]) / 2]
 
 	# the ghast's body on y = 0, centred
 	lo, hi = box(d, [c for face in FACES for c in cubes_of(outliner_node(d, face))])

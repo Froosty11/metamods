@@ -29,6 +29,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
+import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,14 +38,20 @@ import java.util.Optional;
 
 /**
  * A crew member on a Chained Ghast's deck, to blows and projectiles: the ghast's model draws the figure, and this box
- * stands where it does ({@link WarGhast#spot}), the mob's size. It takes damage as that crew member would: the mob's
- * health, and the spear piglin wears the ghast's armour for real here. Its hurts are its own, never the ghast's, and
- * flash only its figure red.
+ * stands where it does ({@link WarGhast#spot}), centred on it and roomier than the mob (the box doesn't turn with the
+ * figure). It takes damage as that crew member would (the mob's health; the spear piglin wears the ghast's armour for
+ * real here), less the deck's cover: a share of it after armour ({@code mobs.bombardier.crew.damage_taken}). Its hurts
+ * are its own, never the ghast's, and flash only its figure red.
  *
  * <p>When it dies the figure goes from the model with the gear it showed, it drops the crew member's loot (in a rift,
  * its role's, as the mob would), and the ghast loses what it did ({@link WarGhast#crewDied}).
  */
 public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart {
+
+	/** Defaults for {@link NetherRiftsConfig.CrewTuning}: a piglin's box on the deck, and the share of damage it takes. */
+	public static final double WIDTH = 1.0;
+	public static final double HEIGHT = 2.3;
+	public static final double DAMAGE_TAKEN = 0.6;
 
 	@Nullable
 	private WarGhast ghast;
@@ -86,10 +93,27 @@ public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart
 		return crew;
 	}
 
-	/** The crew member's size. */
+	/** The configured size for a piglin, scaled to the crew member's mob as a piglin's is to its own. */
 	@Override
 	protected EntityDimensions getDefaultDimensions(Pose pose) {
-		return crew == null ? super.getDefaultDimensions(pose) : crew.type().getDimensions();
+		if (crew == null) {
+			return super.getDefaultDimensions(pose);
+		}
+		var tuning = tuning();
+		var mob = crew.type().getDimensions();
+		var piglin = EntityTypes.PIGLIN.getDimensions();
+		return EntityDimensions.scalable((float) (tuning.hitboxWidth() * mob.width() / piglin.width()),
+				(float) (tuning.hitboxHeight() * mob.height() / piglin.height()));
+	}
+
+	/** After armour, enchantments and effects, the deck's cover. */
+	@Override
+	protected float getDamageAfterMagicAbsorb(DamageSource source, float damage) {
+		return (float) (super.getDamageAfterMagicAbsorb(source, damage) * tuning().damageTaken());
+	}
+
+	private static NetherRiftsConfig.CrewTuning tuning() {
+		return NetherRiftsConfig.getInstance().mobs().bombardier().crew();
 	}
 
 	/** Wears what the crew member wears (only the spear piglin wears anything: the ghast's armour). */

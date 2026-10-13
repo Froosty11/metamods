@@ -309,11 +309,9 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 				animator.stopAnimation("walk");
 			}
 		}
-		var tuning = tuning();
-		int beat = tuning.beatTicks();
-		int bigBeatStart = (tuning.bigBeatEvery() - 1) * beat;
-		int cycle = bigBeatStart + Mth.positiveCeilDiv(BIG_BEAT_TICKS, beat) * beat;
-		int at = (int) Math.floorMod(level.getGameTime(), (long) cycle);
+		int beat = tuning().beatTicks();
+		int bigBeatStart = bigBeatStart();
+		int at = cycleAt(level.getGameTime());
 		if (inBigBeat) {
 			getNavigation().stop();
 			if (at == bigBeatStart + BIG_BEAT_SLAM_TICK) {
@@ -341,7 +339,7 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 			// it stands its ground for the big beat: the windup is the tell
 			stopDrumming();
 			animator.playAnimation("big_beat", 10, true);
-			level.playSound(null, getX(), getY(), getZ(), SoundEvents.PIGLIN_ANGRY, SoundSource.HOSTILE, 1.5f, 0.7f);
+			bigBeatWindupSound(level, getX(), getY(), getZ());
 			inBigBeat = true;
 			return;
 		}
@@ -353,8 +351,48 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 			animator.playAnimation("beat", 10, true);
 			drumming = true;
 		}
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
+		beatSound(level, getX(), getY(), getZ());
+	}
+
+	/** Where every drummer in the world is in its drum cycle at a game time: ticks into it. */
+	public static int cycleAt(long gameTime) {
+		int beat = tuning().beatTicks();
+		int cycle = bigBeatStart() + Mth.positiveCeilDiv(BIG_BEAT_TICKS, beat) * beat;
+		return (int) Math.floorMod(gameTime, (long) cycle);
+	}
+
+	/** The tick of the cycle where the big beat starts: after {@code bigBeatEvery - 1} beats. */
+	public static int bigBeatStart() {
+		var tuning = tuning();
+		return (tuning.bigBeatEvery() - 1) * tuning.beatTicks();
+	}
+
+	/** A beat's drum, as the drummer strikes it. */
+	public static void beatSound(ServerLevel level, double x, double y, double z) {
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
+		level.playSound(null, x, y, z, SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
+	}
+
+	/** The big beat's windup (an angry roar) and its slam. */
+	public static void bigBeatWindupSound(ServerLevel level, double x, double y, double z) {
+		level.playSound(null, x, y, z, SoundEvents.PIGLIN_ANGRY, SoundSource.HOSTILE, 1.5f, 0.7f);
+	}
+
+	public static void slamSound(ServerLevel level, double x, double y, double z) {
+		level.playSound(null, x, y, z, SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.HOSTILE, 2.0f, 0.8f);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 3.0f, 0.5f);
+	}
+
+	/** War Beat's buff: Speed I and Strength I for the configured time. */
+	public static void warBeat(LivingEntity mob) {
+		int ticks = tuning().buffTicks();
+		mob.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0));
+		mob.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 0));
+	}
+
+	/** War Beat's reach, in blocks. */
+	public static double buffRange() {
+		return tuning().buffRange();
 	}
 
 	/**
@@ -416,8 +454,7 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 	/** The big beat's slam: War Beat (buff its piglins) and Shock Beat (hurt players and throw them back). */
 	public void bigBeat(ServerLevel level) {
 		var tuning = tuning();
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.HOSTILE, 2.0f, 0.8f);
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 3.0f, 0.5f);
+		slamSound(level, getX(), getY(), getZ());
 		for (int i = 0; i < 24; i++) {
 			float angle = i * Mth.TWO_PI / 24;
 			level.sendParticles(ParticleTypes.FLAME, getX() + Mth.cos(angle) * 3, getY() + 0.2, getZ() + Mth.sin(angle) * 3, 1, 0, 0, 0, 0);
@@ -425,8 +462,7 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 		double buffRange = tuning.buffRange();
 		for (var piglin : level.getEntitiesOfClass(AbstractPiglin.class, getBoundingBox().inflate(buffRange),
 				p -> isKin(p) && p.distanceTo(this) <= buffRange)) {
-			piglin.addEffect(new MobEffectInstance(MobEffects.SPEED, tuning.buffTicks(), 0));
-			piglin.addEffect(new MobEffectInstance(MobEffects.STRENGTH, tuning.buffTicks(), 0));
+			warBeat(piglin);
 		}
 		double shockRange = tuning.shockRange();
 		for (var player : level.getEntitiesOfClass(Player.class, getBoundingBox().inflate(shockRange),

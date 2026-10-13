@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import nu.metacraft.nether_rifts.mob.BombingRunGoal;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
+import nu.metacraft.nether_rifts.mob.CrewHitbox;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.MagmaBomb;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
@@ -113,6 +114,29 @@ public record NetherRiftsConfig(
 		).apply(i, DrummerTuning::new));
 	}
 
+	/** The Chained Ghast's crew on its deck: how hard they are to hit and hurt, and the crossbow piglin's bolts. */
+	public record CrewTuning(int crossbowEvery, double damageTaken, double hitboxWidth, double hitboxHeight) {
+		public static final CrewTuning DEFAULT = new CrewTuning(WarGhast.CROSSBOW_EVERY, CrewHitbox.DAMAGE_TAKEN, CrewHitbox.WIDTH, CrewHitbox.HEIGHT);
+		public static final Codec<CrewTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("crossbow_every", Codec.intRange(0, 72_000), DEFAULT.crossbowEvery()),
+						"The crossbow piglin shoots a bolt this often, in ticks, at a player it can see within 24 blocks (0: never)."
+				).forGetter(CrewTuning::crossbowEvery),
+				CommentCodec.comment(
+						Sections.section("damage_taken", Codec.doubleRange(0, 1), DEFAULT.damageTaken()),
+						"The share of the damage the crew take on the deck, after armour: the deck gives them cover (1: all of it)."
+				).forGetter(CrewTuning::damageTaken),
+				CommentCodec.comment(
+						Sections.section("hitbox_width", Codec.doubleRange(0.1, 4), DEFAULT.hitboxWidth()),
+						"A piglin's hitbox on the deck, across, in blocks: roomier than a piglin's 0.6, as it doesn't turn with its figure."
+				).forGetter(CrewTuning::hitboxWidth),
+				CommentCodec.comment(
+						Sections.section("hitbox_height", Codec.doubleRange(0.1, 6), DEFAULT.hitboxHeight()),
+						"A piglin's hitbox on the deck, up from its feet, in blocks (a piglin is 1.95)."
+				).forGetter(CrewTuning::hitboxHeight)
+		).apply(i, CrewTuning::new));
+	}
+
 	/**
 	 * The war ghast's bombing runs, and its Ghast Bombardier's magma bombs: dropped from the deck, and thrown by hand once
 	 * the ghast has fallen. Ticks (20 a second) and blocks.
@@ -120,13 +144,13 @@ public record NetherRiftsConfig(
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
 			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius,
-			int throwEvery, double throwMinRange, double throwRange, int crossbowEvery
+			int throwEvery, double throwMinRange, double throwRange, double maxFloatHeight, CrewTuning crew
 	) {
 		public static final BombardierTuning DEFAULT = new BombardierTuning(
 				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
 				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
 				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
-				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE, WarGhast.CROSSBOW_EVERY
+				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE, WarGhast.MAX_FLOAT_HEIGHT, CrewTuning.DEFAULT
 		);
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
@@ -186,9 +210,13 @@ public record NetherRiftsConfig(
 						"It throws at players at most this many blocks off. A thrown bomb flies at least warn_ticks."
 				).forGetter(BombardierTuning::throwRange),
 				CommentCodec.comment(
-						Sections.section("crossbow_every", Codec.intRange(0, 72_000), DEFAULT.crossbowEvery()),
-						"On the deck, the crossbow piglin shoots a bolt this often, in ticks, at a player it can see within 24 blocks (0: never)."
-				).forGetter(BombardierTuning::crossbowEvery)
+						Sections.section("max_float_height", Codec.doubleRange(1, 256), DEFAULT.maxFloatHeight()),
+						"Floating about, the ghast keeps at most this many blocks above the ground under it (a bombing run's climb may go higher)."
+				).forGetter(BombardierTuning::maxFloatHeight),
+				CommentCodec.comment(
+						Sections.section("crew", CrewTuning.CODEC, CrewTuning.DEFAULT),
+						"The crew on the deck."
+				).forGetter(BombardierTuning::crew)
 		).apply(i, BombardierTuning::new));
 	}
 
