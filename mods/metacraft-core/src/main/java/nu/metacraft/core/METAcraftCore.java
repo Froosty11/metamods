@@ -12,6 +12,7 @@ import nu.metacraft.core.compat.CompatInit;
 import nu.metacraft.core.entity.METAcraftEntities;
 import nu.metacraft.core.gamerules.METAcraftGameRules;
 import nu.metacraft.core.item.METAcraftCreativeTab;
+import nu.metacraft.core.item.SpawnEggsCreativeTab;
 import nu.metacraft.core.item.METAcraftItems;
 import nu.metacraft.core.item.components.METAcraftComponents;
 import nu.metacraft.core.music.MusicTimerTracker;
@@ -42,6 +43,7 @@ public class METAcraftCore implements ModInitializer {
 		METAcraftEntities.init();
 		METAcraftItems.init();
 		METAcraftCreativeTab.init();
+		SpawnEggsCreativeTab.init();
 		METAcraftAttributeTypes.init();
 		Commands.init();
 		Events.init();
