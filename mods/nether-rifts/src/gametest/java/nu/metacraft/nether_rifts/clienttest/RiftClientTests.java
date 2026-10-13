@@ -64,6 +64,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 				double[] redness = new double[3];
 				int flashes = 0;
 				int[] animated = new int[2];
+				int orange = 0;
 				String[] stages = {"lit", "unstable", "torn"};
 				for (int i = 0; i < stages.length; i++) {
 					String stage = stages[i];
@@ -81,6 +82,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 					flashes += flashPixels(first) + flashPixels(second) + flashPixels(later);
 					if (i == 2) {
 						animated = holesAnimate(first, later);
+						orange = orangeInRift(first) + orangeInRift(later);
 					}
 					purple[i] = count(first, RiftClientTests::purplePixel);
 					nether[i] = count(first, RiftClientTests::netherPixel);
@@ -127,6 +129,10 @@ public final class RiftClientTests implements FabricClientGameTest {
 				// Nothing glitches any more: none of the old flash tiles (squares of pure magenta, cyan or white) at any
 				// stage, in three shots each.
 				check(flashes == 0, "the rift still flashes glitch tiles: " + flashes + " pixels");
+				// Torn, the cracks keep their dark line and rose light and the holes a thin violet rim: no orange. Only
+				// the red from behind the portal marks the stage.
+				System.out.println("[nether-rifts-clienttest] torn orange=" + orange);
+				check(orange <= 200, "the torn rift is still orange: " + orange + " pixels in two shots");
 				stillWhenFrozen(ctx, server);
 				server.runCommand("rifts collapse 0 -58 0");
 
@@ -370,13 +376,12 @@ public final class RiftClientTests implements FabricClientGameTest {
 	}
 
 	/**
-	 * The panorama's nether through the holes, under the portal's purple haze: blue no more than about red, green at
-	 * least a third of red (the portal's purples, even reddened, have next to none), but not grey. Nor are the
-	 * cracks: rose at stage 2 (red over 200, which the hazed holes all but never reach) and hot orange at 3 (blue
-	 * under a quarter of red).
+	 * The panorama's nether through the holes, under the portal's light purple haze: blue under red (the portal's
+	 * purples run bluer), green at least a third of red (they have next to none), but not grey. Nor are the cracks'
+	 * rose or the holes' violet rims (red over 200, which the hazed holes never reach).
 	 */
 	static boolean netherPixel(int r, int g, int b) {
-		return r > 40 && r < 200 && r >= g + 16 && g * 3 >= r && b * 4 >= r && b <= r * 1.15 + 5;
+		return r > 40 && r < 200 && r >= g + 16 && g * 3 >= r && b <= r * 0.95;
 	}
 
 	/**
@@ -443,6 +448,11 @@ public final class RiftClientTests implements FabricClientGameTest {
 	 * pixels or more, so portal particles drifting round it don't stretch the box over the frame. Null if none.
 	 */
 	private static int[] innerBox(BufferedImage img) {
+		return riftFrame(img, 30);
+	}
+
+	/** The rift's box (x0, y0, x1, y1) less {@code inset} px all round: see {@link #innerBox}. Null if none. */
+	private static int[] riftFrame(BufferedImage img, int inset) {
 		int[] rows = new int[img.getHeight()];
 		int[] cols = new int[img.getWidth()];
 		for (int y = 300; y < img.getHeight(); y++) {
@@ -468,10 +478,10 @@ public final class RiftClientTests implements FabricClientGameTest {
 			}
 		}
 		if (x1 < 0 || y1 < 0) return null;
-		x0 += 30;
-		y0 += 30;
-		x1 -= 30;
-		y1 -= 30;
+		x0 += inset;
+		y0 += inset;
+		x1 -= inset;
+		y1 -= inset;
 		if (x1 <= x0 || y1 <= y0) return null;
 		return new int[]{x0, y0, x1, y1};
 	}
@@ -498,6 +508,13 @@ public final class RiftClientTests implements FabricClientGameTest {
 			}
 		}
 		return new int[]{holes, moved};
+	}
+
+	/** Orange pixels (bright red, middling green, little blue) in the rift's box, its edge strip in. */
+	private static int orangeInRift(BufferedImage img) {
+		int[] box = riftFrame(img, 0);
+		if (box == null) return 0;
+		return countIn(img, box[0], box[1], box[2] + 1, box[3] + 1, (r, g, b) -> r > 200 && g > 80 && g < 170 && b < 90);
 	}
 
 	/** The old glitch's flash colours: pure magenta, cyan and white. */
