@@ -36,7 +36,8 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
  * and Shock Beat hurts players within 4 blocks (2 hearts) and throws them back. The beat is on a fixed tempo, so players can learn to hit
  * between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
  *
- * <p>It drums only in combat: with a player who can fight within {@link #COMBAT_RANGE} blocks. Otherwise it idles,
+ * <p>It drums only in combat: with a player who can fight within {@link #COMBAT_RANGE} blocks, once it has seen them
+ * (a fight starts with a war cry, if it has been out of one for 10 s). Otherwise it idles,
  * and walks when it moves. BIL gives a .bbmodel's animations every bone, so the highest-priority one playing poses
  * the whole model: the {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default
  * {@code beat_ticks}) carries the walk's legs (merged in on import), so it marches as it drums;
@@ -55,6 +56,8 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 
 	/** It drums only with a player this close: out of combat it idles and wanders. */
 	public static final double COMBAT_RANGE = 16;
+	/** Ticks out of combat before it war-cries again as a fight starts. */
+	public static final int WAR_CRY_REST = 200;
 	/** Moving more than this a tick (blocks, across), it walks. */
 	private static final double WALKING = 0.01;
 
@@ -67,6 +70,9 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	private boolean drumming = false;
 	private boolean inBigBeat = false;
 	private double lastX, lastZ;
+	private boolean fighting = false;
+	/** Game time it was last in combat; a war cry needs {@link #WAR_CRY_REST} ticks out of it. */
+	private long lastFought = Long.MIN_VALUE / 2;
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
 		super(type, level);
@@ -163,9 +169,17 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 			inBigBeat = false;
 		}
 		if (!inCombat(level)) {
+			fighting = false;
 			stopDrumming();
 			return;
 		}
+		if (!fighting) {
+			fighting = true;
+			if (level.getGameTime() - lastFought > WAR_CRY_REST) {
+				warCry(level);
+			}
+		}
+		lastFought = level.getGameTime();
 		if (at == bigBeatStart) {
 			// it stands its ground for the big beat: the windup is the tell
 			stopDrumming();
@@ -186,9 +200,23 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
 	}
 
-	/** A player who can fight (not in creative or spectator) within {@link #COMBAT_RANGE} blocks. */
+	/**
+	 * A player who can fight (not in creative or spectator) within {@link #COMBAT_RANGE} blocks; a fight starts only
+	 * once it sees them, and goes on while they stay in range.
+	 */
 	private boolean inCombat(ServerLevel level) {
-		return level.getNearestPlayer(getX(), getY(), getZ(), COMBAT_RANGE, EntitySelector.NO_CREATIVE_OR_SPECTATOR) != null;
+		var player = level.getNearestPlayer(getX(), getY(), getZ(), COMBAT_RANGE, EntitySelector.NO_CREATIVE_OR_SPECTATOR);
+		return player != null && (fighting || hasLineOfSight(player));
+	}
+
+	/** As a fight starts: a raid horn and an angry roar, and its war cry animation if the model has one. */
+	public void warCry(ServerLevel level) {
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAID_HORN, SoundSource.HOSTILE, 2.0f, 1.0f);
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.PIGLIN_BRUTE_ANGRY, SoundSource.HOSTILE, 2.0f, 0.8f);
+		level.sendParticles(ParticleTypes.ANGRY_VILLAGER, getX(), getEyeY() + 0.5, getZ(), 5, 0.4, 0.2, 0.4, 0);
+		if (holder.getModel().animations().containsKey("warcry")) {
+			holder.getAnimator().playAnimation("warcry", 20, true);
+		}
 	}
 
 	private void stopDrumming() {
