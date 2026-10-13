@@ -659,9 +659,11 @@ public class CodecDialog {
 						type.element().nestedMetadata(MetadataKey.RANGE).orElse(null),
 						type.element().nestedMetadata(MetadataKey.REMAINDER).orElse(null),
 						value, registries, preferences
-					).ifPresent(input -> {
+					).ifPresentOrElse(input -> {
 						inputs.add(new Input(key, input));
 						tooltip.ifPresent(t -> body.add(new PlainMessage(label.copy().append(": ").append(t), 200)));
+					}, () -> {
+						buttons.add(submenu(key, registries, label, tooltip));
 					});
 				}
 			}
