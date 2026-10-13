@@ -9,6 +9,7 @@ war_drummer.bbmodel, fitted to how BIL plays it. Run from the module: python3 to
   sleeves and pants in their limbs. A bone authored beside its new parent had the parent's motion copied into its
   own keys; that comes off so nothing moves twice. For the head only its position comes off (its rotation stays
   relative, so it rides the body's lean); sleeves and pants just follow.
+- Empty marker groups for held and head items (item_right, item_left, item_head) are added where missing.
 Keyframes must be linear (the artist's are), so taking a parent's track off a child is exact at every frame."""
 import base64
 import io
@@ -107,6 +108,24 @@ def nest(d, child, parent, off):
 	plst[j]["children"].append(node)
 
 
+# Where HeldItems draws the mob's gear (empty groups; mob/HeldItems.java): the bottom-centre of each fist, the
+# centre of the head. Added where the artist's file has none.
+MARKERS = [("item_right", "right_arm", (6, 11, 0)), ("item_left", "left_arm", (-6, 11, 0)), ("item_head", "head", (0, 26, 0))]
+
+
+def add_markers(d):
+	names = {g["name"] for g in d["groups"]}
+	template = next(g for g in d["groups"] if g["name"] == "head")
+	for name, parent, origin in MARKERS:
+		if name in names:
+			continue
+		group = dict(template, name=name, uuid=str(uuid.uuid5(uuid.NAMESPACE_URL, f"war_drummer/{name}")), origin=list(origin),
+			rotation=[0, 0, 0], children=[])
+		d["groups"].append(group)
+		plst, j = find(d["outliner"], next(g["uuid"] for g in d["groups"] if g["name"] == parent))
+		plst[j]["children"].append({"uuid": group["uuid"], "isOpen": False, "children": []})
+
+
 def main(src):
 	d = json.loads(Path(src).read_text())
 	d["name"] = "war_drummer"
@@ -125,6 +144,7 @@ def main(src):
 		if lst is plst[j]["children"]:
 			continue  # the artist nested it already: its keys are relative as they stand
 		nest(d, child, parent, off)
+	add_markers(d)
 	OUT.write_text(json.dumps(d, indent="\t") + "\n")
 	print("wrote", OUT)
 

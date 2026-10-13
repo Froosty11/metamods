@@ -2194,6 +2194,99 @@
 			"autouv": 0,
 			"isOpen": true,
 			"primary_selected": false
+		},
+		{
+			"name": "item_right",
+			"uuid": "6e353e57-d524-5d42-a6cd-ab0c1c863fad",
+			"export": true,
+			"locked": false,
+			"scope": 0,
+			"selected": false,
+			"visibility": true,
+			"_static": {
+				"properties": {},
+				"temp_data": {}
+			},
+			"origin": [
+				6,
+				11,
+				0
+			],
+			"rotation": [
+				0,
+				0,
+				0
+			],
+			"color": 0,
+			"children": [],
+			"reset": false,
+			"shade": true,
+			"mirror_uv": false,
+			"autouv": 0,
+			"isOpen": true,
+			"primary_selected": false
+		},
+		{
+			"name": "item_left",
+			"uuid": "042e5ddd-0bba-5893-bbe3-b9ef907bfae5",
+			"export": true,
+			"locked": false,
+			"scope": 0,
+			"selected": false,
+			"visibility": true,
+			"_static": {
+				"properties": {},
+				"temp_data": {}
+			},
+			"origin": [
+				-6,
+				11,
+				0
+			],
+			"rotation": [
+				0,
+				0,
+				0
+			],
+			"color": 0,
+			"children": [],
+			"reset": false,
+			"shade": true,
+			"mirror_uv": false,
+			"autouv": 0,
+			"isOpen": true,
+			"primary_selected": false
+		},
+		{
+			"name": "item_head",
+			"uuid": "e4bd0416-e54c-5364-92f9-905e42376ec0",
+			"export": true,
+			"locked": false,
+			"scope": 0,
+			"selected": false,
+			"visibility": true,
+			"_static": {
+				"properties": {},
+				"temp_data": {}
+			},
+			"origin": [
+				0,
+				26,
+				0
+			],
+			"rotation": [
+				0,
+				0,
+				0
+			],
+			"color": 0,
+			"children": [],
+			"reset": false,
+			"shade": true,
+			"mirror_uv": false,
+			"autouv": 0,
+			"isOpen": true,
+			"primary_selected": false
 		}
 	],
 	"outliner": [
@@ -2230,6 +2323,11 @@
 							"children": [
 								"35454f64-27d5-6067-dc93-0590aea4badb"
 							]
+						},
+						{
+							"uuid": "e4bd0416-e54c-5364-92f9-905e42376ec0",
+							"isOpen": false,
+							"children": []
 						}
 					]
 				},
@@ -2258,6 +2356,11 @@
 							"children": [
 								"eabe7689-0cae-bd13-770c-e26431454de6"
 							]
+						},
+						{
+							"uuid": "042e5ddd-0bba-5893-bbe3-b9ef907bfae5",
+							"isOpen": false,
+							"children": []
 						}
 					]
 				},
@@ -2279,6 +2382,11 @@
 							"children": [
 								"4d502462-7a30-4ed6-cc77-16f8950862f4"
 							]
+						},
+						{
+							"uuid": "6e353e57-d524-5d42-a6cd-ab0c1c863fad",
+							"isOpen": false,
+							"children": []
 						}
 					]
 				}

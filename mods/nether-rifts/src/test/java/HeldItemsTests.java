@@ -18,19 +18,26 @@ import java.util.List;
 public class HeldItemsTests {
 
 	static void registerTests() {
-		NetherRiftsTests.register("held_items/none_without_markers", ctx -> {
-			// The War Drummer's and War Ghast's models have no item markers yet: their held items add nothing.
+		NetherRiftsTests.register("held_items/drummer_shows_gear", ctx -> {
+			// The War Drummer's model has all three markers (the import adds them): its sword and pumpkin show. The
+			// War Ghast's has none: its held item adds nothing.
 			var drummer = ctx.spawn(RiftEntities.WAR_DRUMMER, new BlockPos(12, 1, 12));
 			drummer.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
 			drummer.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.CARVED_PUMPKIN));
 			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 8, 12));
 			ghast.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
 			ctx.runAtTickTime(5, () -> {
-				for (var holder : List.<HeldItems.Holder<?>>of(drummer.getHolder(), ghast.getHolder())) {
-					holder.heldItems().tick();
-					ctx.assertTrue(holder.heldItems().isEmpty(), "held items found markers on " + holder.getParent());
-					ctx.assertTrue(holder.getDisplayIds().length == holder.getBones().length, "held items added displays to " + holder.getParent());
-				}
+				var held = drummer.getHolder().heldItems();
+				held.tick();
+				var right = (PerPlayerItemDisplayElement) held.display(HeldItems.Spot.RIGHT_HAND);
+				var head = (PerPlayerItemDisplayElement) held.display(HeldItems.Spot.HEAD);
+				ctx.assertTrue(right != null && head != null && held.display(HeldItems.Spot.LEFT_HAND) != null, "the drummer lacks a marker");
+				ctx.assertTrue(right.getItem().is(Items.DIAMOND_SWORD), "the drummer's right hand shows " + right.getItem());
+				ctx.assertTrue(head.getItem().is(Items.CARVED_PUMPKIN), "the drummer's head shows " + head.getItem());
+				var ghastHolder = ghast.getHolder();
+				ghastHolder.heldItems().tick();
+				ctx.assertTrue(ghastHolder.heldItems().isEmpty(), "held items found markers on the war ghast");
+				ctx.assertTrue(ghastHolder.getDisplayIds().length == ghastHolder.getBones().length, "held items added displays to the war ghast");
 				ctx.assertTrue(drummer.isAlive() && ghast.isAlive(), "a mob with held items died");
 				ctx.killAllEntities();
 				ctx.succeed();
