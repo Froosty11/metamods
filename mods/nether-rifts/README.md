@@ -4,7 +4,7 @@ While **rift mode** is on (a new world starts with it on), lighting a nether por
 flickering rift instead of a portal. Light it twice more and it tears open: a raid of nether mobs comes
 through in waves, built on vanilla raids (small / medium / large portals raid like easy / normal / hard).
 They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. From wave 2 a War
-Drummer leads each wave, drumming a beat every half second: every 4th, its War Beat gives rift piglins within
+Drummer leads each wave, marching and drumming a beat every half second while a player is within 16 blocks: every 4th, its War Beat gives rift piglins within
 12 blocks Speed and Strength, and its Shock Beat hurts players within 4 blocks and throws them back. Every
 drummer keeps the same beat (the world clock's), so several drum and slam together. In Large waves 5 and
 later come war ghasts: in a harness, a deck slung under them on chains with a crew of a Ghast Bombardier and two

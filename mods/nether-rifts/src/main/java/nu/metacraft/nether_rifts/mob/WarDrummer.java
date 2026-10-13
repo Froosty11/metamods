@@ -13,6 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -36,10 +37,10 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
  * and Shock Beat hurts players within 4 blocks (2 hearts) and throws them back. The beat is on a fixed tempo, so players can learn to hit
  * between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
  *
- * <p>The animations play in layers: BIL poses each bone by the highest-priority animation that moves it. The
- * {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default {@code beat_ticks})
- * moves the arms, head and body and leaves the legs to {@code walk} under it, which plays all the time, so it
- * marches as it drums;
+ * <p>It drums only in combat: with a player who can fight within {@link #COMBAT_RANGE} blocks. Otherwise it idles,
+ * and walks when it moves. BIL gives a .bbmodel's animations every bone, so the highest-priority one playing poses
+ * the whole model: the {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default
+ * {@code beat_ticks}) carries the walk's legs (merged in on import), so it marches as it drums;
  * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
  */
 public class WarDrummer extends Monster implements AnimatedEntity {
@@ -53,14 +54,20 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final double SHOCK_STRENGTH = 1.2;
 	public static final float SHOCK_DAMAGE = 4;
 
+	/** It drums only with a player this close: out of combat it idles and wanders. */
+	public static final double COMBAT_RANGE = 16;
+	/** Moving more than this a tick (blocks, across), it walks. */
+	private static final double WALKING = 0.01;
+
 	/** The big_beat animation's length, and the tick in it where both hands come down on the drum. */
 	public static final int BIG_BEAT_TICKS = 56;
 	public static final int BIG_BEAT_SLAM_TICK = 36;
 
 	private final LivingEntityHolder<WarDrummer> holder;
-	private boolean marching = false;
+	private boolean walking = false;
 	private boolean drumming = false;
 	private boolean inBigBeat = false;
+	private double lastX, lastZ;
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
 		super(type, level);
@@ -128,10 +135,17 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	protected void customServerAiStep(ServerLevel level) {
 		super.customServerAiStep(level);
 		var animator = holder.getAnimator();
-		if (!marching) {
-			// it marches as it drums: the walk keeps the legs going under the beat, standing or not
-			animator.playAnimation("walk", 5, true);
-			marching = true;
+		// moved since the last AI step (this tick's own move comes after it)
+		boolean moving = Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
+		lastX = getX();
+		lastZ = getZ();
+		if (moving != walking) {
+			walking = moving;
+			if (moving) {
+				animator.playAnimation("walk", 5, true);
+			} else {
+				animator.stopAnimation("walk");
+			}
 		}
 		var tuning = tuning();
 		int beat = tuning.beatTicks();
@@ -148,6 +162,10 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 			}
 			animator.stopAnimation("big_beat");
 			inBigBeat = false;
+		}
+		if (!inCombat(level)) {
+			stopDrumming();
+			return;
 		}
 		if (at == bigBeatStart) {
 			// it stands its ground for the big beat: the windup is the tell
@@ -167,6 +185,11 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		}
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
+	}
+
+	/** A player who can fight (not in creative or spectator) within {@link #COMBAT_RANGE} blocks. */
+	private boolean inCombat(ServerLevel level) {
+		return level.getNearestPlayer(getX(), getY(), getZ(), COMBAT_RANGE, EntitySelector.NO_CREATIVE_OR_SPECTATOR) != null;
 	}
 
 	private void stopDrumming() {

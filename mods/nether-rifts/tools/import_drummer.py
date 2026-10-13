@@ -3,7 +3,8 @@ war_drummer.bbmodel, fitted to how BIL plays it. Run from the module: python3 to
 
 - The texture is padded to 128 x 64 (the spare columns stay empty), its uv size set to match: BIL scales UVs by a
   texture's uv size, which Blockbench's modded-entity format ignores.
-- The beat's leg tracks (a still stance) are dropped, so the walk can march the legs under it.
+- The beat's leg tracks (a still stance) are swapped for the walk's, so it marches as it drums: BIL gives a
+  .bbmodel's animations every bone, so the walk can't play under it.
 - The flat bones are nested so they move together: ears in the head, the head, arms and jacket in the body,
   sleeves and pants in their limbs. A bone authored beside its new parent had the parent's motion copied into its
   own keys; that comes off so nothing moves twice. For the head only its position comes off (its rotation stays
@@ -110,8 +111,13 @@ def main(src):
 	d = json.loads(Path(src).read_text())
 	d["name"] = "war_drummer"
 	pad_texture(d)
+	# BIL gives a .bbmodel's animations every bone (the top one playing poses the whole model), so the walk can't
+	# play under the beat: the beat takes the walk's legs instead, both being 1 s loops
 	beat = next(a for a in d["animations"] if a["name"] == "beat")
+	walk = next(a for a in d["animations"] if a["name"] == "walk")
+	assert float(beat["length"]) == float(walk["length"]), (beat["length"], walk["length"])
 	beat["animators"] = {k: an for k, an in beat["animators"].items() if an.get("name") not in BEAT_FREE}
+	beat["animators"].update({k: json.loads(json.dumps(an)) for k, an in walk["animators"].items() if an.get("name") in BEAT_FREE})
 	uid = {g["name"]: g["uuid"] for g in d["groups"]}
 	for child, parent, off in RIG:
 		lst, i = find(d["outliner"], uid[child])

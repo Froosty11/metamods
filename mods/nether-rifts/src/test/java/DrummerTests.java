@@ -13,6 +13,46 @@ import nu.metacraft.nether_rifts.raid.Slot;
 public class DrummerTests {
 
 	static void registerTests() {
+		NetherRiftsTests.register("drummer/drums_in_combat_marching", ctx -> {
+			// Out of combat it doesn't drum; with a player near it does, and its legs march under the beat (BIL gives a
+			// .bbmodel's animations every bone, so the beat must carry the legs itself).
+			FormingTests.lightFrame(ctx, 2, 3);
+			var drummer = new java.util.concurrent.atomic.AtomicReference<WarDrummer>();
+			var legs = new java.util.ArrayList<org.joml.Vector3f>();
+			ctx.runAtTickTime(3, () -> drummer.set((WarDrummer) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.LEADER,
+					ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst()));
+			ctx.runAtTickTime(30, () -> {
+				ctx.assertFalse(drummer.get().getHolder().getAnimator().isPlaying("beat"), "it drums with nobody near");
+				var near = ctx.absolutePos(new BlockPos(2, 1, 12));
+				StageTests.player(ctx).teleportTo(near.getX() + 0.5, near.getY(), near.getZ() + 0.5);
+			});
+			for (int t = 32; t <= 130; t += 2) {
+				ctx.runAtTickTime(t, () -> {
+					var holder = drummer.get().getHolder();
+					var animator = (de.tomalbrc.bil.core.component.AnimationComponent) holder.getAnimator();
+					if (animator.isPlaying("beat")) {
+						var pose = animator.findPose(null, holder.getBone("left_leg"));
+						legs.add(pose.pose().readOnlyLeftRotation().getEulerAnglesXYZ(new org.joml.Vector3f()));
+					}
+				});
+			}
+			ctx.runAtTickTime(132, () -> {
+				ctx.assertTrue(legs.size() >= 5, "it hardly drummed with a player near: " + legs.size() + " samples");
+				float spread = 0;
+				for (var a : legs) {
+					for (var b : legs) {
+						spread = Math.max(spread, new org.joml.Quaternionf().rotationXYZ(a.x, a.y, a.z)
+								.difference(new org.joml.Quaternionf().rotationXYZ(b.x, b.y, b.z), new org.joml.Quaternionf()).angle());
+					}
+				}
+				ctx.assertTrue(spread > Math.toRadians(20), "its legs don't march as it drums: they turn " + Math.toDegrees(spread) + " degrees");
+				ctx.getLevel().players().stream().filter(p -> p.blockPosition().closerThan(ctx.absolutePos(new BlockPos(2, 1, 12)), 4)).toList()
+						.forEach(p -> StageTests.remove(ctx, p));
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("drummer/leads_waves", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
@@ -121,11 +161,16 @@ public class DrummerTests {
 				var rift = FormingTests.riftIn(ctx);
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO);
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(14, 1, 12)), Vec3.ZERO);
+				// it drums only in combat: a player who can fight, near
+				var near = ctx.absolutePos(new BlockPos(2, 1, 12));
+				StageTests.player(ctx).teleportTo(near.getX() + 0.5, near.getY(), near.getZ() + 0.5);
 			});
 			// the tempo is the world clock's: a 90-tick cycle, the slam 66 ticks into it, so one lands within ~130 ticks
 			ctx.runAtTickTime(140, () -> {
 				var piglin = ctx.getEntities(EntityTypes.PIGLIN).stream().filter(RiftMobs::isRiftMob).findFirst().orElseThrow();
 				ctx.assertTrue(piglin.hasEffect(MobEffects.SPEED), "no big beat within 140 ticks");
+				ctx.getLevel().players().stream().filter(p -> p.blockPosition().closerThan(ctx.absolutePos(new BlockPos(2, 1, 12)), 4)).toList()
+						.forEach(p -> StageTests.remove(ctx, p));
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();
