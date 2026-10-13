@@ -3,11 +3,14 @@ package nu.metacraft.nether_rifts.mob;
 import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -22,6 +25,7 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 
@@ -29,12 +33,13 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
  * Leads every rift wave from wave 2. It keeps away from players and drums as it goes: a beat every 10 ticks;
  * every 4th is the big beat, for which it stands its ground, winds up (arms raised) and slams
  * {@link #BIG_BEAT_SLAM_TICK} ticks later. War Beat gives rift piglins within 12 blocks Speed I + Strength I for 6 s,
- * and Shock Beat knocks back players within 4 blocks. The beat is on a fixed tempo, so players can learn to hit
+ * and Shock Beat hurts players within 4 blocks (2 hearts) and throws them back. The beat is on a fixed tempo, so players can learn to hit
  * between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
  *
  * <p>The animations play in layers: BIL poses each bone by the highest-priority animation that moves it. The
  * {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default {@code beat_ticks})
- * moves the arms, head and body and leaves the legs to {@code walk} under it, so it drums as it goes;
+ * moves the arms, head and body and leaves the legs to {@code walk} under it, so it drums as it goes; standing,
+ * {@code beat_legs} (under the walk) taps each foot with its hand's strike;
  * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
  */
 public class WarDrummer extends Monster implements AnimatedEntity {
@@ -46,6 +51,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final int BUFF_TICKS = 120;
 	public static final double SHOCK_RANGE = 4;
 	public static final double SHOCK_STRENGTH = 1.2;
+	public static final float SHOCK_DAMAGE = 4;
 
 	/** The big_beat animation's length, and the tick in it where both hands come down on the drum. */
 	public static final int BIG_BEAT_TICKS = 56;
@@ -57,10 +63,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	private final LivingEntityHolder<WarDrummer> holder;
 	private boolean walking = false;
 	private boolean drumming = false;
-	/** Ticks into the big beat; -1 outside it. */
-	private int bigBeatClock = -1;
-	private int tempo = 0;
-	private int beats = 0;
+	private boolean inBigBeat = false;
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
 		super(type, level);
@@ -90,6 +93,26 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	}
 
 	@Override
+	protected SoundEvent getAmbientSound() {
+		return SoundEvents.PIGLIN_ANGRY;
+	}
+
+	@Override
+	protected SoundEvent getHurtSound(DamageSource source) {
+		return SoundEvents.PIGLIN_HURT;
+	}
+
+	@Override
+	protected SoundEvent getDeathSound() {
+		return SoundEvents.PIGLIN_DEATH;
+	}
+
+	@Override
+	protected void playStepSound(BlockPos pos, BlockState state) {
+		playSound(SoundEvents.PIGLIN_STEP, 0.15f, 1.0f);
+	}
+
+	@Override
 	protected void registerGoals() {
 		goalSelector.addGoal(0, new FloatGoal(this));
 		goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Player.class, 6.0f, 1.0, 1.2,
@@ -99,6 +122,11 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 	}
 
+	/**
+	 * The tempo comes from the world clock, not the drummer's own count, so every drummer in a world beats on the
+	 * same ticks and they all slam together. A cycle is {@code bigBeatEvery - 1} beats, then the big beat, rounded
+	 * up to whole beats.
+	 */
 	@Override
 	protected void customServerAiStep(ServerLevel level) {
 		super.customServerAiStep(level);
@@ -112,43 +140,54 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 				animator.stopAnimation("walk");
 			}
 		}
-		if (bigBeatClock >= 0) {
+		var tuning = tuning();
+		int beat = tuning.beatTicks();
+		int bigBeatStart = (tuning.bigBeatEvery() - 1) * beat;
+		int cycle = bigBeatStart + Mth.positiveCeilDiv(BIG_BEAT_TICKS, beat) * beat;
+		int at = (int) Math.floorMod(level.getGameTime(), (long) cycle);
+		if (inBigBeat) {
 			getNavigation().stop();
-			if (++bigBeatClock == BIG_BEAT_SLAM_TICK) {
+			if (at == bigBeatStart + BIG_BEAT_SLAM_TICK) {
 				bigBeat(level);
 			}
-			if (bigBeatClock >= BIG_BEAT_TICKS) {
-				// back on the tempo: the next beat comes on the next tick
-				animator.stopAnimation("big_beat");
-				bigBeatClock = -1;
-				tempo = 0;
+			if (at >= bigBeatStart && at < bigBeatStart + BIG_BEAT_TICKS) {
+				return;
 			}
-			return;
+			animator.stopAnimation("big_beat");
+			inBigBeat = false;
 		}
-		var tuning = tuning();
-		if (tempo++ % tuning.beatTicks() != 0) {
-			return;
-		}
-		if (++beats % tuning.bigBeatEvery() == 0) {
+		if (at == bigBeatStart) {
 			// it stands its ground for the big beat: the windup is the tell
-			animator.stopAnimation("beat");
-			drumming = false;
+			stopDrumming();
 			animator.playAnimation("big_beat", 10, true);
-			bigBeatClock = 0;
+			level.playSound(null, getX(), getY(), getZ(), SoundEvents.PIGLIN_ANGRY, SoundSource.HOSTILE, 1.5f, 0.7f);
+			inBigBeat = true;
+			return;
+		}
+		if (at > bigBeatStart || at % beat != 0) {
 			return;
 		}
 		if (!drumming) {
-			// the loop starts on a beat, so its strikes stay on the tempo
+			// the loops start on a beat, so their strikes stay on the tempo
 			animator.playAnimation("beat", 10, true);
+			animator.playAnimation("beat_legs", 1, true);
 			drumming = true;
 		}
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 1.2f, 0.8f);
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
 	}
 
-	/** The big beat's slam: War Beat (buff rift piglins) and Shock Beat (push players back). */
+	private void stopDrumming() {
+		holder.getAnimator().stopAnimation("beat");
+		holder.getAnimator().stopAnimation("beat_legs");
+		drumming = false;
+	}
+
+	/** The big beat's slam: War Beat (buff rift piglins) and Shock Beat (hurt players and throw them back). */
 	public void bigBeat(ServerLevel level) {
 		var tuning = tuning();
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.6f);
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.HOSTILE, 2.0f, 0.8f);
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 3.0f, 0.5f);
 		for (int i = 0; i < 24; i++) {
 			float angle = i * Mth.TWO_PI / 24;
 			level.sendParticles(ParticleTypes.FLAME, getX() + Mth.cos(angle) * 3, getY() + 0.2, getZ() + Mth.sin(angle) * 3, 1, 0, 0, 0, 0);
@@ -162,8 +201,12 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		double shockRange = tuning.shockRange();
 		for (var player : level.getEntitiesOfClass(Player.class, getBoundingBox().inflate(shockRange),
 				p -> !p.isSpectator() && !p.isCreative() && p.distanceTo(this) <= shockRange)) {
-			// knockback() pushes away from the (x, z) it is given and flags the player for a velocity sync
-			player.knockback(tuning.shockStrength(), getX() - player.getX(), getZ() - player.getZ(), level.damageSources().mobAttack(this), 0f);
+			var source = level.damageSources().mobAttack(this);
+			player.hurtServer(level, source, tuning.shockDamage());
+			// knockback() pushes away from the (x, z) it is given; a player's own client only hears of it when
+			// syncVelocity is set (the server keeps no say over a player's motion otherwise)
+			player.knockback(tuning.shockStrength(), getX() - player.getX(), getZ() - player.getZ(), source, 0f);
+			player.syncVelocity = true;
 		}
 	}
 

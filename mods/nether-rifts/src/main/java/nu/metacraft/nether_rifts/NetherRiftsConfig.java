@@ -70,10 +70,11 @@ public record NetherRiftsConfig(
 	}
 
 	/** The War Drummer. Ticks (20 a second) and blocks. */
-	public record DrummerTuning(int beatTicks, int bigBeatEvery, double buffRange, int buffTicks, double shockRange, double shockStrength) {
+	public record DrummerTuning(int beatTicks, int bigBeatEvery, double buffRange, int buffTicks, double shockRange, double shockStrength,
+			float shockDamage) {
 		public static final DrummerTuning DEFAULT = new DrummerTuning(
 				WarDrummer.BEAT_TICKS, WarDrummer.BIG_BEAT_EVERY, WarDrummer.BUFF_RANGE, WarDrummer.BUFF_TICKS,
-				WarDrummer.SHOCK_RANGE, WarDrummer.SHOCK_STRENGTH
+				WarDrummer.SHOCK_RANGE, WarDrummer.SHOCK_STRENGTH, WarDrummer.SHOCK_DAMAGE
 		);
 		public static final Codec<DrummerTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
@@ -99,7 +100,11 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("shock_strength", Codec.doubleRange(0, 10), DEFAULT.shockStrength()),
 						"Shock Beat: knockback strength (a sword hit with Knockback I is about 0.9)."
-				).forGetter(DrummerTuning::shockStrength)
+				).forGetter(DrummerTuning::shockStrength),
+				CommentCodec.comment(
+						Sections.section("shock_damage", Codec.floatRange(0, 100), DEFAULT.shockDamage()),
+						"Shock Beat: damage to each player it reaches (2 = one heart)."
+				).forGetter(DrummerTuning::shockDamage)
 		).apply(i, DrummerTuning::new));
 	}
 

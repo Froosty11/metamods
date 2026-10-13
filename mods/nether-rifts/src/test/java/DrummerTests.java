@@ -1,4 +1,6 @@
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -66,9 +68,22 @@ public class DrummerTests {
 				var distant = StageTests.player(ctx);
 				distant.teleportTo(drummer.getX() - 6, drummer.getY(), drummer.getZ());
 				close.setDeltaMovement(Vec3.ZERO);
+				// a fresh player can't be hurt until its client says it has loaded, nor in its spawn protection
+				for (var player : java.util.List.of(close, distant)) {
+					player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+					player.setInvulnerableTime(0);
+				}
 				distant.setDeltaMovement(Vec3.ZERO);
+				// mob attacks do nothing to players on peaceful, which the test world may be on
+				var server = ctx.getLevel().getServer();
+				var difficulty = ctx.getLevel().getDifficulty();
+				server.setDifficulty(Difficulty.NORMAL, true);
 				drummer.bigBeat(ctx.getLevel());
+				server.setDifficulty(difficulty, true);
 				ctx.assertTrue(close.getDeltaMovement().x > 0.3, "a player 2 blocks east wasn't pushed east: " + close.getDeltaMovement());
+				ctx.assertTrue(close.syncVelocity, "the push isn't sent to the player's own client");
+				ctx.assertTrue(close.getHealth() < close.getMaxHealth(), "a player 2 blocks off wasn't hurt");
+				ctx.assertTrue(distant.getHealth() == distant.getMaxHealth(), "a player 6 blocks away was hurt");
 				ctx.assertTrue(distant.getDeltaMovement().horizontalDistance() < 0.01, "a player 6 blocks away was pushed: " + distant.getDeltaMovement());
 				StageTests.remove(ctx, close);
 				StageTests.remove(ctx, distant);
@@ -107,10 +122,10 @@ public class DrummerTests {
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO);
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(14, 1, 12)), Vec3.ZERO);
 			});
-			// 4 beats of 10 ticks start the big beat by tick ~35; its slam comes 36 ticks into it, by tick ~70
-			ctx.runAtTickTime(90, () -> {
+			// the tempo is the world clock's: a 90-tick cycle, the slam 66 ticks into it, so one lands within ~130 ticks
+			ctx.runAtTickTime(140, () -> {
 				var piglin = ctx.getEntities(EntityTypes.PIGLIN).stream().filter(RiftMobs::isRiftMob).findFirst().orElseThrow();
-				ctx.assertTrue(piglin.hasEffect(MobEffects.SPEED), "no big beat within 90 ticks");
+				ctx.assertTrue(piglin.hasEffect(MobEffects.SPEED), "no big beat within 140 ticks");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();

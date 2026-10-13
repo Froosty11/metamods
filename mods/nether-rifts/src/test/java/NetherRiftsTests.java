@@ -135,7 +135,7 @@ public class NetherRiftsTests {
 						}))
 						.then(preset("drummer_short", () -> {
 							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
-							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength());
+							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength(), d.shockDamage());
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
 									FAST.scfNetherPortalTypes(), FAST.roster(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
