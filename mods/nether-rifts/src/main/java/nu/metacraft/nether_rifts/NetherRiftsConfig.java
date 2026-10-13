@@ -71,10 +71,10 @@ public record NetherRiftsConfig(
 
 	/** The War Drummer. Ticks (20 a second) and blocks. */
 	public record DrummerTuning(int beatTicks, int bigBeatEvery, double buffRange, int buffTicks, double shockRange, double shockStrength,
-			float shockDamage) {
+			float shockDamage, double naturalChance) {
 		public static final DrummerTuning DEFAULT = new DrummerTuning(
 				WarDrummer.BEAT_TICKS, WarDrummer.BIG_BEAT_EVERY, WarDrummer.BUFF_RANGE, WarDrummer.BUFF_TICKS,
-				WarDrummer.SHOCK_RANGE, WarDrummer.SHOCK_STRENGTH, WarDrummer.SHOCK_DAMAGE
+				WarDrummer.SHOCK_RANGE, WarDrummer.SHOCK_STRENGTH, WarDrummer.SHOCK_DAMAGE, WarDrummer.NATURAL_CHANCE
 		);
 		public static final Codec<DrummerTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
@@ -87,7 +87,7 @@ public record NetherRiftsConfig(
 				).forGetter(DrummerTuning::bigBeatEvery),
 				CommentCodec.comment(
 						Sections.section("buff_range", Codec.doubleRange(0, 64), DEFAULT.buffRange()),
-						"War Beat: rift piglins within this many blocks get Speed I and Strength I."
+						"War Beat: piglins within this many blocks get Speed I and Strength I (a rift's drummer buffs rift piglins, a nether one the nether's own)."
 				).forGetter(DrummerTuning::buffRange),
 				CommentCodec.comment(
 						Sections.section("buff_ticks", Codec.intRange(0, 72_000), DEFAULT.buffTicks()),
@@ -104,7 +104,11 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("shock_damage", Codec.floatRange(0, 100), DEFAULT.shockDamage()),
 						"Shock Beat: damage to each player it reaches (2 = one heart)."
-				).forGetter(DrummerTuning::shockDamage)
+				).forGetter(DrummerTuning::shockDamage),
+				CommentCodec.comment(
+						Sections.section("natural_chance", Codec.doubleRange(0, 1), DEFAULT.naturalChance()),
+						"The chance that a piglin spawning naturally in the nether brings a drummer along (0 = never)."
+				).forGetter(DrummerTuning::naturalChance)
 		).apply(i, DrummerTuning::new));
 	}
 
@@ -188,7 +192,7 @@ public record NetherRiftsConfig(
 		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("drummer", DrummerTuning.CODEC, DrummerTuning.DEFAULT),
-						"The War Drummer, which leads waves from wave 2."
+						"The War Drummer, which leads waves from wave 2, and now and then walks with the nether's own piglins."
 				).forGetter(Mobs::drummer),
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),

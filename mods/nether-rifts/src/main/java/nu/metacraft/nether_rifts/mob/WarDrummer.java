@@ -13,7 +13,12 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
@@ -21,29 +26,53 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
+import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import nu.metacraft.nether_rifts.mixin.PiglinAiInvoker;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
- * Leads every rift wave from wave 2. It keeps away from players and drums as it goes: a beat every 10 ticks;
+ * Leads every rift wave from wave 2, and now and then walks with the nether's own piglins (a piglin spawning naturally
+ * in the nether brings one along at the config's {@code natural_chance}). It keeps away from players and drums as it
+ * goes: a beat every 10 ticks;
  * every 4th is the big beat, for which it stands its ground, winds up (arms raised) and slams
- * {@link #BIG_BEAT_SLAM_TICK} ticks later. War Beat gives rift piglins within 12 blocks Speed I + Strength I for 6 s,
+ * {@link #BIG_BEAT_SLAM_TICK} ticks later. War Beat gives its piglins within 12 blocks Speed I + Strength I for 6 s
+ * (a rift's drummer buffs rift piglins, a nether one the nether's own grown piglins),
  * and Shock Beat hurts players within 4 blocks (2 hearts) and throws them back. The beat is on a fixed tempo, so players can learn to hit
  * between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
  *
- * <p>It drums only in combat: with a player who can fight within {@link #COMBAT_RANGE} blocks, once it has seen them
+ * <p>It drums only in combat: with a player who can fight within {@link #COMBAT_RANGE} blocks, once it has seen them,
+ * or with one of its piglins that close fighting something (a player, or a hoglin on a hunt)
  * (a fight starts with a war cry, if it has been out of one for 10 s). Otherwise it idles,
  * and walks when it moves. BIL gives a .bbmodel's animations every bone, so the highest-priority one playing poses
  * the whole model: the {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default
  * {@code beat_ticks}) carries the walk's legs (merged in on import), so it marches as it drums;
  * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
+ *
+ * <p>It is a piglin to other piglins ({@link AbstractPiglin}): they count it among the grown piglins near them and
+ * share their anger with it, and when it is hit they turn on the attacker (it doesn't add to their numbers against
+ * hoglins: vanilla counts only piglins and brutes there). Its own AI is still its goals: its brain only remembers
+ * (whom it is angry at, its piglins near), with no behaviours, so it never attacks, hunts, admires, barters, dances or
+ * picks anything up. A nether drummer keeps the gold truce as piglins do (a player in gold it isn't angry at is no
+ * fight, and its Shock Beat spares them) and turns zombie in the overworld as they do; a rift's drummer keeps the
+ * rift's rules ({@link RiftMobs}): every player is a foe, and it never turns.
  */
-public class WarDrummer extends Monster implements AnimatedEntity {
+public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 
 	/** Defaults for {@link NetherRiftsConfig.DrummerTuning}. */
 	public static final int BEAT_TICKS = 10;
@@ -53,9 +82,28 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final double SHOCK_RANGE = 4;
 	public static final double SHOCK_STRENGTH = 1.2;
 	public static final float SHOCK_DAMAGE = 4;
+	public static final double NATURAL_CHANCE = 0.03;
 
-	/** It drums only with a player this close: out of combat it idles and wanders. */
+	/** It drums only with a player or a fighting piglin of its own this close: out of combat it idles and wanders. */
 	public static final double COMBAT_RANGE = 16;
+	/** How often it looks round for its piglins fighting, in ticks. */
+	private static final int KIN_CHECK_EVERY = 5;
+	/** A nether drummer spawns within this many blocks of the piglin it came with (across; and a block up or down). */
+	private static final int NATURAL_SPREAD = 2;
+	private static final int NATURAL_TRIES = 10;
+	private static final int[] STEPS = {0, 1, -1};
+
+	/**
+	 * Memory only: what other piglins tell it (anger) and what it needs to tell them in turn (its piglins near). No
+	 * behaviours, so the brain never moves it; the goals do. The attack target is never set: a piglin's target comes
+	 * from its brain, and the drummer has none.
+	 */
+	private static final Brain.Provider<WarDrummer> BRAIN = Brain.provider(
+			List.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER),
+			List.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.PIGLIN_BRUTE_SPECIFIC_SENSOR),
+			drummer -> List.of()
+	);
+
 	/** Ticks out of combat before it war-cries again as a fight starts. */
 	public static final int WAR_CRY_REST = 200;
 	/** Moving more than this a tick (blocks, across), it walks. */
@@ -73,12 +121,17 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	private boolean fighting = false;
 	/** Game time it was last in combat; a war cry needs {@link #WAR_CRY_REST} ticks out of it. */
 	private long lastFought = Long.MIN_VALUE / 2;
+	/** One of its piglins near is fighting; looked at every {@link #KIN_CHECK_EVERY} ticks. */
+	private boolean kinFighting = false;
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
 		super(type, level);
 		this.holder = new HeldItems.Holder<>(this, RiftModels.WAR_DRUMMER);
 		EntityAttachment.ofTicking(this.holder, this);
 		this.holder.getAnimator().playAnimation("idle", 0, true);
+		setCanPickUpLoot(false);
+		// a piglin paths through doors and opens them from its brain; the drummer has no door goal, so it keeps off them
+		getNavigation().setCanOpenDoors(false);
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -91,6 +144,72 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	@Override
 	public HeldItems.Holder<WarDrummer> getHolder() {
 		return holder;
+	}
+
+	@Override
+	protected Brain<WarDrummer> makeBrain(Brain.Packed packed) {
+		return BRAIN.makeBrain(this, packed);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Brain<WarDrummer> getBrain() {
+		return (Brain<WarDrummer>) super.getBrain();
+	}
+
+	/** It never hunts hoglins: piglins on a hunt don't call it in. */
+	@Override
+	protected boolean canHunt() {
+		return false;
+	}
+
+	/** Never set: its arms are its model's. */
+	@Override
+	public PiglinArmPose getArmPose() {
+		return PiglinArmPose.DEFAULT;
+	}
+
+	@Override
+	protected void playConvertedSound() {
+		makeSound(SoundEvents.PIGLIN_CONVERTED_TO_ZOMBIFIED);
+	}
+
+	/** A rift's drummer never turns zombie, whatever its saved flag says (a save from before it was a piglin has none). */
+	@Override
+	public boolean isConverting() {
+		return !RiftMobs.isRiftMob(this) && super.isConverting();
+	}
+
+	/** It never picks anything up, gold least of all: no drummer barters. */
+	@Override
+	public boolean canPickUpLoot() {
+		return false;
+	}
+
+	@Override
+	public boolean wantsToPickUp(ServerLevel level, ItemStack stack) {
+		return false;
+	}
+
+	@Override
+	protected void readAdditionalSaveData(ValueInput input) {
+		super.readAdditionalSaveData(input);
+		setCanPickUpLoot(false);
+	}
+
+	/** In a fight, so drumming (tests). */
+	public boolean inFight() {
+		return fighting;
+	}
+
+	/** Hit by anything but a piglin, it gets angry at the attacker and calls its piglins in, as a piglin does. */
+	@Override
+	public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+		boolean hurt = super.hurtServer(level, source, damage);
+		if (hurt && source.getEntity() instanceof LivingEntity attacker && !(attacker instanceof AbstractPiglin)) {
+			PiglinAiInvoker.netherRifts$maybeRetaliate(level, this, attacker);
+		}
+		return hurt;
 	}
 
 	@Override
@@ -138,7 +257,12 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	 */
 	@Override
 	protected void customServerAiStep(ServerLevel level) {
+		getBrain().tick(level, this);
+		// turns zombie here, out of the nether (not a rift's drummer)
 		super.customServerAiStep(level);
+		if (isRemoved()) {
+			return;
+		}
 		var animator = holder.getAnimator();
 		// moved since the last AI step (this tick's own move comes after it)
 		boolean moving = Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
@@ -201,12 +325,44 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	}
 
 	/**
-	 * A player who can fight (not in creative or spectator) within {@link #COMBAT_RANGE} blocks; a fight starts only
-	 * once it sees them, and goes on while they stay in range.
+	 * A player who can fight (not in creative or spectator, and not one it keeps the gold truce with) within
+	 * {@link #COMBAT_RANGE} blocks; a fight starts only once it sees them, and goes on while they stay in range. Or one
+	 * of its piglins that close with something to fight (a piglin's attack target: a player, or a hoglin it hunts).
 	 */
 	private boolean inCombat(ServerLevel level) {
-		var player = level.getNearestPlayer(getX(), getY(), getZ(), COMBAT_RANGE, EntitySelector.NO_CREATIVE_OR_SPECTATOR);
-		return player != null && (fighting || hasLineOfSight(player));
+		var player = level.getNearestPlayer(getX(), getY(), getZ(), COMBAT_RANGE,
+				entity -> EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(entity) && entity instanceof Player p && isFoe(p));
+		if (player != null && (fighting || hasLineOfSight(player))) {
+			return true;
+		}
+		if (level.getGameTime() % KIN_CHECK_EVERY == 0) {
+			kinFighting = !level.getEntitiesOfClass(AbstractPiglin.class, getBoundingBox().inflate(COMBAT_RANGE),
+					piglin -> piglin != this && isKin(piglin) && piglin.distanceTo(this) <= COMBAT_RANGE && hasAttackTarget(piglin)).isEmpty();
+		}
+		return kinFighting;
+	}
+
+	/**
+	 * Its own piglins, whom War Beat buffs and whose fights it drums for: a rift's drummer's are rift piglins, a nether
+	 * drummer's the grown piglins of no rift (brutes, and other drummers, too).
+	 */
+	public boolean isKin(AbstractPiglin piglin) {
+		return RiftMobs.isRiftMob(this) ? RiftMobs.isRiftMob(piglin) : !RiftMobs.isRiftMob(piglin) && piglin.isAdult();
+	}
+
+	/** A piglin's target is its brain's; one without that memory (not a vanilla brain) has none. */
+	private static boolean hasAttackTarget(AbstractPiglin piglin) {
+		var target = piglin.getBrain().getMemoryInternal(MemoryModuleType.ATTACK_TARGET);
+		return target != null && target.isPresent() && target.get().isAlive();
+	}
+
+	/**
+	 * A player it fights: any, for a rift's drummer (rift mobs ignore gold); for a nether one, as for a piglin, anyone
+	 * not in gold, or someone it is angry at.
+	 */
+	public boolean isFoe(Player player) {
+		return RiftMobs.keepsRiftRules(this) || !PiglinAi.isWearingSafeArmor(player)
+				|| getBrain().isMemoryValue(MemoryModuleType.ANGRY_AT, player.getUUID());
 	}
 
 	/** As a fight starts: a raid horn and an angry roar, and its war cry animation if the model has one. */
@@ -224,7 +380,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		drumming = false;
 	}
 
-	/** The big beat's slam: War Beat (buff rift piglins) and Shock Beat (hurt players and throw them back). */
+	/** The big beat's slam: War Beat (buff its piglins) and Shock Beat (hurt players and throw them back). */
 	public void bigBeat(ServerLevel level) {
 		var tuning = tuning();
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.HOSTILE, 2.0f, 0.8f);
@@ -235,13 +391,13 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		}
 		double buffRange = tuning.buffRange();
 		for (var piglin : level.getEntitiesOfClass(AbstractPiglin.class, getBoundingBox().inflate(buffRange),
-				p -> RiftMobs.isRiftMob(p) && p.distanceTo(this) <= buffRange)) {
+				p -> isKin(p) && p.distanceTo(this) <= buffRange)) {
 			piglin.addEffect(new MobEffectInstance(MobEffects.SPEED, tuning.buffTicks(), 0));
 			piglin.addEffect(new MobEffectInstance(MobEffects.STRENGTH, tuning.buffTicks(), 0));
 		}
 		double shockRange = tuning.shockRange();
 		for (var player : level.getEntitiesOfClass(Player.class, getBoundingBox().inflate(shockRange),
-				p -> !p.isSpectator() && !p.isCreative() && p.distanceTo(this) <= shockRange)) {
+				p -> !p.isSpectator() && !p.isCreative() && isFoe(p) && p.distanceTo(this) <= shockRange)) {
 			var source = level.damageSources().mobAttack(this);
 			player.hurtServer(level, source, tuning.shockDamage());
 			// knockback() pushes away from the (x, z) it is given; a player's own client only hears of it when
@@ -249,6 +405,51 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 			player.knockback(tuning.shockStrength(), getX() - player.getX(), getZ() - player.getZ(), source, 0f);
 			player.syncVelocity = true;
 		}
+	}
+
+	/**
+	 * After a piglin's {@code finalizeSpawn}: a grown piglin (not a rift's, nor the Bombardier) spawning naturally in the
+	 * nether (vanilla's natural spawns there are all {@link EntitySpawnReason#NATURAL}; chunk generation spawns only
+	 * animals) brings a drummer along at the config's {@code natural_chance}, beside it where a piglin could spawn.
+	 * Returns the drummer, or null (no roll, a miss, or no room).
+	 */
+	@Nullable
+	public static WarDrummer joinNaturalSpawn(ServerLevelAccessor level, Piglin piglin, EntitySpawnReason reason) {
+		if (reason != EntitySpawnReason.NATURAL || !piglin.is(EntityTypes.PIGLIN) || !piglin.isAdult() || RiftMobs.isRiftMob(piglin)
+				|| level.getLevel().dimension() != Level.NETHER) {
+			return null;
+		}
+		double chance = tuning().naturalChance();
+		if (chance <= 0 || level.getRandom().nextDouble() >= chance) {
+			return null;
+		}
+		var drummer = RiftEntities.WAR_DRUMMER.create(level.getLevel(), EntitySpawnReason.NATURAL);
+		if (drummer == null) {
+			return null;
+		}
+		var random = level.getRandom();
+		var origin = piglin.blockPosition();
+		for (int i = 0; i < NATURAL_TRIES; i++) {
+			int dx = random.nextIntBetweenInclusive(-NATURAL_SPREAD, NATURAL_SPREAD);
+			int dz = random.nextIntBetweenInclusive(-NATURAL_SPREAD, NATURAL_SPREAD);
+			if (dx == 0 && dz == 0) {
+				continue;
+			}
+			// level with the piglin, or a step up or down
+			for (int dy : STEPS) {
+				var pos = origin.offset(dx, dy, dz);
+				if (!SpawnPlacementTypes.ON_GROUND.isSpawnPositionOk(level, pos, RiftEntities.WAR_DRUMMER)) {
+					continue;
+				}
+				drummer.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+				if (level.noCollision(drummer) && drummer.checkSpawnObstruction(level)) {
+					drummer.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.NATURAL, null);
+					level.addFreshEntityWithPassengers(drummer);
+					return drummer;
+				}
+			}
+		}
+		return null;
 	}
 
 	private static NetherRiftsConfig.DrummerTuning tuning() {

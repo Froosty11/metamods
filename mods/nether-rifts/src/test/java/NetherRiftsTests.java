@@ -136,12 +136,25 @@ public class NetherRiftsTests {
 						}))
 						.then(preset("drummer_short", () -> {
 							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
-							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength(), d.shockDamage());
+							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength(),
+									d.shockDamage(), d.naturalChance());
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
 									FAST.scfNetherPortalTypes(), FAST.roster(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
 						}))
+						.then(preset("drummer_natural", () -> naturalChance(1)))
+						.then(preset("drummer_never", () -> naturalChance(0)))
 		));
+	}
+
+	/** The defaults, with every natural piglin spawn in the nether bringing a drummer at this chance. */
+	private static NetherRiftsConfig naturalChance(double chance) {
+		var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
+		var c = NetherRiftsConfig.DEFAULT;
+		var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), d.buffRange(), d.buffTicks(), d.shockRange(),
+				d.shockStrength(), d.shockDamage(), chance);
+		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> preset(String name, Supplier<NetherRiftsConfig> config) {

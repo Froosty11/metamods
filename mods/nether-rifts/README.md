@@ -6,7 +6,11 @@ through in waves, built on vanilla raids (small / medium / large portals raid li
 They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. From wave 2 a War
 Drummer leads each wave, marching and drumming a beat every half second while a player is within 16 blocks: every 4th, its War Beat gives rift piglins within
 12 blocks Speed and Strength, and its Shock Beat hurts players within 4 blocks and throws them back. Every
-drummer keeps the same beat (the world clock's), so several drum and slam together. In Large waves 5 and
+drummer keeps the same beat (the world clock's), so several drum and slam together. Drummers also walk with the
+nether's own piglins: a piglin spawning naturally there brings one along 3% of the time (`mobs.drummer.natural_chance`).
+That one drums while its piglins fight (a player, or a hoglin on a hunt) and buffs them; like any drummer it is a piglin
+to piglins (they share anger with it), but keeps the gold truce and turns zombie in the overworld as they do, where a
+rift's drummer ignores gold and never turns. No drummer barters or picks anything up. In Large waves 5 and
 later come war ghasts: in a harness, a deck slung under them on chains with a crew of a Ghast Bombardier and two
 crossbow piglins. They make bombing runs, the Bombardier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands

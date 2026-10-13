@@ -131,7 +131,7 @@ public final class RiftMobs {
 	}
 
 	/**
-	 * The drummer, the Bombardier (a piglin, so it is checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
+	 * The drummer, the Bombardier (piglins both, so they are checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
 	 * (a summoned one gets the same from its own table, {@code entities/war_ghast}); ghasts, hoglins and striders
 	 * keep their own.
 	 */

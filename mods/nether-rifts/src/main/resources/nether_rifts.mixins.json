@@ -11,7 +11,9 @@
 		"LargeFireballMixin",
 		"MobAccessor",
 		"MobMixin",
+		"PiglinAiInvoker",
 		"PiglinAiMixin",
+		"PiglinMixin",
 		"PiglinSpecificSensorMixin",
 		"PortalShapeAccessor"
 	],
