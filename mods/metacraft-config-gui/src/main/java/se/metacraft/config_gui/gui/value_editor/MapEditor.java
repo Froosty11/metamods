@@ -86,7 +86,7 @@ public record MapEditor<T>(
 							)
 						);
 						if (conversionResult.hasResultOrPartial()) {
-							var valueResult = conversionResult.getOrThrow();
+							var valueResult = conversionResult.getPartialOrThrow();
 							yield new SimpleUpdate(
 								Optional.of(Pair.of(newKey, valueResult)),
 								Optional.of(Pair.of(key, oldValue)),
@@ -506,11 +506,11 @@ public record MapEditor<T>(
 					new SubMenuParentInfo(source, position)
 				);
 			}
-			var valueType = valueType().getOrThrow();
+			var valueType = valueType().getPartialOrThrow();
 			var defaultValue = valueType.createEmpty(lookup);
 			if (defaultValue.hasResultOrPartial()) {
 				return toSimple(
-					defaultValue.getOrThrow(), defaultValue.error().map(DataResult.Error::message)
+					defaultValue.getPartialOrThrow(), defaultValue.error().map(DataResult.Error::message)
 				).nextGUI(source, position, lookup);
 			}
 			return new RawInputScreen.ScreenGenerator(

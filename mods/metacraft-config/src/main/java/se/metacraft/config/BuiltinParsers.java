@@ -500,7 +500,7 @@ public class BuiltinParsers {
 				var converted = CodecInternalsHelper.convert(underlying.codec(), nextLevel, value.value(), lookup);
 				newStrings = newStrings.minus(value);
 				if (converted.hasResultOrPartial()) {
-					newStrings = newStrings.plus(value.withValue(converted.getOrThrow()));
+					newStrings = newStrings.plus(value.withValue(converted.getPartialOrThrow()));
 				}
 			}
 			metadata = metadata.plus(
@@ -514,7 +514,7 @@ public class BuiltinParsers {
 			);
 			if (converted.hasResultOrPartial()) {
 				metadata = metadata.plus(
-					converted == defaultValue.get().value() ? defaultValue.get() : new DefaultValue(converted.getOrThrow())
+					converted == defaultValue.get().value() ? defaultValue.get() : new DefaultValue(converted.getPartialOrThrow())
 				);
 			}
 		}

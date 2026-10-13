@@ -146,14 +146,14 @@ public class CodecInternalsHelper {
 			//noinspection unchecked
 			var result = ops.mergeToMap(value, (Map<Object, Object>) prefix);
 			if (result.hasResultOrPartial()) {
-				value = result.getOrThrow();
+				value = result.getPartialOrThrow();
 			}
 		}
 		if (prefix instanceof List<?>) {
 			//noinspection unchecked
 			var result = ops.mergeToList(value, (List<Object>) prefix);
 			if (result.hasResultOrPartial()) {
-				value = result.getOrThrow();
+				value = result.getPartialOrThrow();
 			}
 		}
 		return value;
