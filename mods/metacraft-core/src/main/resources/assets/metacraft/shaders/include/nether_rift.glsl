@@ -1,14 +1,16 @@
-// Nether rifts (nether-rifts), drawn as pixel art on a grid fixed to the world, 16 pixels a block like block
-// textures, so the panels a rift is built from join without a seam and nothing swims as the camera moves.
-// The body is a membrane in the nether portal's purples, swirling at 20 frames a second, with a glitch over
-// it (rows torn sideways, a magenta/cyan channel split, flashing corrupt tiles, scanlines). It cracks like
-// struck glass: from an impact or two, fixed to the world, spokes run out and rings join them like a spider
-// web, and the shards between catch the light each their own way. Stage 1 to 3 the web spreads (hairlines,
-// then spokes and rings, then all the way to the frame), glitches harder and turns the purples red; at 3
-// shards fall out, nearest the impact first, and through the holes the nether shows: the panel's sprite is a
-// 360-degree nether panorama, looked up by view direction like a skybox, so it reads as a far place.
-// The edge is a pixel strip along the outline that flickers and drops pixels. Needs rift_common.glsl,
-// Globals, Sampler0, riftWorld (world position less CameraBlockPos) and riftView (relative to the camera).
+// Nether rifts (nether-rifts): glass cracking over a vanilla nether portal, drawn as pixel art on a grid fixed
+// to the world, 16 pixels a block like block textures, so the panels a rift is built from join without a seam
+// and nothing swims as the camera moves. Clients see the rift's blocks as a nether portal and draw its swirl
+// themselves; each panel is two faces just clear of the portal's slab, one either side. The face on the
+// camera's side is the glass's surface: clear but for its cracks, so the portal shows. It cracks like struck
+// glass: from an impact or two, fixed to the world, spokes run out and rings join them like a spider web.
+// Stage 1 to 3 the web spreads (hairlines, then spokes and rings, then all the way to the frame) and glitches
+// harder (rows of it slip sideways, tiles flash); at 2 the innermost shards fall out and at 3 most of the
+// middle, and through the holes the nether shows: the panel's sprite is a 360-degree nether panorama, looked
+// up by view direction like a skybox, so it reads as a far place. The face beyond, seen through the portal,
+// is the glass's body: it reddens the portal from stage 2, each shard a shade of its own. The edge is a few
+// sparks along the outline. Needs rift_common.glsl, Globals, Sampler0, riftWorld (world position less
+// CameraBlockPos) and riftView (relative to the camera).
 
 // Exact integer hashing, so the grid is the same anywhere in the world.
 uint netherRiftMix(uint h) {
@@ -47,11 +49,6 @@ float netherRiftNoise(ivec2 px, int shift, vec2 off, int seed) {
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-float netherRiftFbm(ivec2 px, int shift, vec2 off, int seed) {
-    return netherRiftNoise(px, shift, off, seed) * 0.55 + netherRiftNoise(px, shift - 1, off * 2.0, seed + 7) * 0.3
-            + netherRiftNoise(px, shift - 2, off * 4.0, seed + 13) * 0.15;
-}
-
 // This fragment's cell on the world's pixel grid, in the panel's plane: x along the panel (world x or z,
 // whichever it spans; the plane's normal comes from the derivatives), y up.
 ivec2 netherRiftPixel() {
@@ -62,7 +59,7 @@ ivec2 netherRiftPixel() {
     return ivec2(floor(inPlane * 16.0)) + base * 16;
 }
 
-// The nether portal's purples, dark to pale, and the red they turn to.
+// The nether portal's purples, dark to pale, and the red they turn to (the cracks and their highlights).
 const vec3 NETHER_RIFT_PURPLE[6] = vec3[](
     vec3(20.0, 6.0, 34.0) / 255.0, vec3(48.0, 14.0, 78.0) / 255.0, vec3(92.0, 28.0, 140.0) / 255.0,
     vec3(140.0, 54.0, 196.0) / 255.0, vec3(196.0, 110.0, 236.0) / 255.0, vec3(244.0, 200.0, 255.0) / 255.0
@@ -71,19 +68,6 @@ const vec3 NETHER_RIFT_RED[6] = vec3[](
     vec3(30.0, 6.0, 14.0) / 255.0, vec3(80.0, 12.0, 30.0) / 255.0, vec3(140.0, 22.0, 44.0) / 255.0,
     vec3(196.0, 46.0, 60.0) / 255.0, vec3(236.0, 110.0, 90.0) / 255.0, vec3(255.0, 210.0, 170.0) / 255.0
 );
-
-// The swirl with its palette steps moved by lift (a shard turned a little more or less to the light).
-vec3 netherRiftSwirlLift(ivec2 px, float t, float red, int lift) {
-    float q = netherRiftFbm(px, 3, vec2(t * 0.17, -t * 0.11), 3);
-    float v = netherRiftFbm(px, 3, vec2(q * 2.2 + t * 0.03, t * 0.13 + q), 5);
-    int i = clamp(int(floor(v * 6.4 - 0.6)) + lift, 0, 5);
-    return mix(NETHER_RIFT_PURPLE[i], NETHER_RIFT_RED[i], red);
-}
-
-// The membrane's swirl: noise warped by noise, cut into six steps of the palette.
-vec3 netherRiftSwirl(ivec2 px, float t, float red) {
-    return netherRiftSwirlLift(px, t, red, 0);
-}
 
 // Impacts. Every panel has one near its middle, which holds still while the panel pulses (it scales about its
 // middle), so even the smallest rift is struck where it can be seen. Big rifts get more from the world: one
@@ -354,32 +338,59 @@ vec3 netherRiftPanorama(vec3 d, int shift) {
     return texelFetch(Sampler0, boxMin + ivec2(face % 3, face / 3) * size + texel, 0).rgb;
 }
 
+// Whether this fragment's face is beyond the rift's middle plane from the camera, and so seen through the
+// portal: the faces sit about 0.135 of a block either side of it, and riftView runs from the camera.
+bool netherRiftBeyond() {
+    vec3 n = cross(dFdx(riftWorld), dFdy(riftWorld));
+    bool alongX = abs(n.z) >= abs(n.x);
+    float off = fract(alongX ? riftWorld.z : riftWorld.x) - 0.5;
+    float eye = off - (alongX ? riftView.z : riftView.x);
+    return off * eye < 0.0;
+}
+
 vec4 netherRiftBody(float stage) {
     float t = GameTime * 1200.0;
     int frame = int(floor(t * 20.0));
     int tearFrame = int(floor(t * 12.0));
-    float ts = float(frame) / 20.0;
     int st = int(stage + 0.5);
     float glitch = 0.25 + 0.25 * stage;
     float red = st >= 3 ? 0.65 : (st == 2 ? 0.2 : 0.0);
+    bool beyond = netherRiftBeyond();
     ivec2 px = netherRiftPixel();
     int band = int(floor(float(px.y) / 3.0));
+    // Now and then a band of rows slips sideways, cracks and holes with it.
+    ivec2 cp = px;
+    if (!beyond && netherRiftHash(ivec3(band, tearFrame, 11)) < 0.06 * glitch) {
+        cp.x += int(floor((netherRiftHash(ivec3(band, tearFrame, 12)) - 0.5) * 10.0 * glitch));
+    }
 
     NetherRiftStrike k = netherRiftStrike(px);
     float edge, pin;
     vec2 normal;
     uint shard;
     bool whole, fallen;
-    netherRiftShard(k, px, k.at, st, edge, normal, shard, whole, fallen, pin);
+    netherRiftShard(k, cp, k.at + vec2(cp - px), st, edge, normal, shard, whole, fallen, pin);
+
+    if (beyond) {
+        // The glass's body, seen through the portal (which lets about a quarter through): none at stage 1, a
+        // faint red at 2, red-orange at 3; each whole shard a shade lighter or darker than the next.
+        if (st <= 1 || fallen || pin > 0.0) return vec4(0.0);
+        vec3 tint = st >= 3 ? vec3(1.0, 0.34, 0.08) : vec3(0.9, 0.08, 0.14);
+        float alpha = st >= 3 ? 1.0 : 0.6;
+        if (whole) {
+            tint *= 0.6 + 0.7 * netherRiftUnit(shard, 0x68e31da4u);
+        }
+        return vec4(tint, alpha);
+    }
 
     // A fallen shard leaves a jagged lip of glass, one to three pixels, with a hot rim, along each crack it
     // shared with glass still there; where the shard across fell too, nothing is left between.
     float hole = pin;
     if (fallen) {
-        float lip = 1.0 + floor(1.6 * netherRiftNoise(px, 1, vec2(0.0), 71) + 0.9 * netherRiftHash(ivec3(px, 73)));
+        float lip = 1.0 + floor(1.6 * netherRiftNoise(cp, 1, vec2(0.0), 71) + 0.9 * netherRiftHash(ivec3(cp, 73)));
         hole = 9.0;
         if (edge < lip) {
-            ivec2 q = px + ivec2(floor(-normal / netherRiftAxis(normal) * (edge + 1.0) + 0.5));
+            ivec2 q = cp + ivec2(floor(-normal / netherRiftAxis(normal) * (edge + 1.0) + 0.5));
             float e2, pin2;
             vec2 n2;
             uint shard2;
@@ -405,68 +416,51 @@ vec4 netherRiftBody(float stage) {
     }
     if (hole > -1.0) {
         // the hole's rim, hot, flickering pixel by pixel
-        float flick = netherRiftHash(ivec3(px, frame / 2 * 8 + 23));
+        float flick = netherRiftHash(ivec3(cp, frame / 2 * 8 + 23));
         vec3 hot = st >= 3 ? vec3(1.0, 0.42, 0.16) : vec3(1.0, 0.4, 0.95);
         vec3 white = st >= 3 ? vec3(1.0, 0.86, 0.6) : vec3(1.0, 0.9, 1.0);
         vec3 rim = flick < 0.35 ? hot * 0.55 : (flick < 0.9 ? hot : white);
         return vec4(rim, 1.0);
     }
 
-    // the membrane, glitched: torn rows, channel split, corrupt tiles, scanlines. Each whole shard is tilted
-    // its own way: its swirl a few pixels off its neighbours', a step lighter or darker, a little brighter
-    // or dimmer, so the pattern breaks at every crack.
-    ivec2 sp = px;
-    int lift = 0;
-    float bright = 1.0;
-    if (whole) {
-        float h = netherRiftUnit(shard, 0x68e31da4u);
-        lift = h < 0.15 ? -1 : (h < 0.75 ? 0 : 1);
-        sp += ivec2(int(netherRiftUnit(shard, 0xb5297a4du) * 7.0), int(netherRiftUnit(shard, 0x1b56c4e9u) * 7.0)) - 3;
-        bright = 0.88 + 0.22 * netherRiftUnit(shard, 0x7fb5d329u);
-    }
-    if (netherRiftHash(ivec3(band, tearFrame, 11)) < 0.18 * glitch) {
-        sp.x += int(floor((netherRiftHash(ivec3(band, tearFrame, 12)) - 0.5) * 10.0 * glitch));
-    }
-    vec3 c = netherRiftSwirlLift(sp, ts, red, lift);
-    if (netherRiftHash(ivec3(band, tearFrame, 13)) < 0.12 * glitch) {
-        c = vec3(netherRiftSwirlLift(sp + ivec2(2, 0), ts, red, lift).r, c.g * 0.6,
-                netherRiftSwirlLift(sp - ivec2(2, 0), ts, red, lift).b);
-    }
-    c *= bright;
-    vec3 pale = mix(NETHER_RIFT_PURPLE[5], NETHER_RIFT_RED[5], red);
-    if (whole && netherRiftUnit(shard, 0x2c1b3c6du) < 0.4 && ((px.x - px.y + int(shard & 31u)) & 31) < 2) {
-        // some catch a streak of light, each at its own place
-        c = mix(c, pale, 0.3);
-    }
-    float alpha = 0.92;
+    // The glass's surface: clear, so the portal shows, but for its cracks (a dark pixel line, its far wall
+    // catching the light from the upper left: violet, rose at stage 2, at 3 glowing hot and wider), a glint on
+    // some shards and the odd corrupt tile. Anything translucent here would hide the portal behind it (items
+    // draw before translucent blocks and write depth), so it is opaque or nothing.
+    vec3 pale = st >= 3 ? vec3(1.0, 0.55, 0.24) : (st == 2 ? vec3(0.93, 0.36, 0.5) : NETHER_RIFT_PURPLE[4]);
     if (edge < 0.5) {
-        // a crack: a dark pixel line
-        c = mix(NETHER_RIFT_PURPLE[0], NETHER_RIFT_RED[0], red) * 0.6;
-        alpha = 0.97;
-    } else if (edge < 1.5 && dot(normal, vec2(-0.6, 0.8)) < -0.25) {
-        // and its far wall catching the light (from the upper left), a pixel wide
-        c = mix(c, pale, 0.55);
+        return vec4(mix(NETHER_RIFT_PURPLE[0], NETHER_RIFT_RED[0], red) * 0.6, 1.0);
     }
-    ivec2 tile = px >> 2;
-    if (netherRiftHash(ivec3(tile, tearFrame * 64 + 14)) < 0.05 * glitch) {
+    bool lit = dot(normal, vec2(-0.6, 0.8)) < -0.25;
+    if (edge < 1.5 && lit) {
+        return vec4(pale, 1.0);
+    }
+    if (st >= 3 && edge < (lit ? 2.5 : 1.5)) {
+        return vec4(0.78, 0.24, 0.06, 1.0);
+    }
+    if (whole && netherRiftUnit(shard, 0x2c1b3c6du) < 0.3 && ((cp.x - cp.y + int(shard & 31u)) & 31) == 0) {
+        return vec4(pale, 1.0);
+    }
+    ivec2 tile = px >> 1;
+    if (netherRiftHash(ivec3(tile, tearFrame * 64 + 14)) < 0.002 * stage * stage) {
         float pick = netherRiftHash(ivec3(tile, tearFrame * 64 + 15));
-        c = pick < 0.3 ? vec3(1.0, 0.16, 0.78)
-                : (pick < 0.55 ? vec3(0.16, 0.94, 1.0) : (pick < 0.75 ? vec3(0.98) : vec3(0.0)));
+        return vec4(pick < 0.4 ? vec3(1.0, 0.16, 0.78) : (pick < 0.75 ? vec3(0.16, 0.94, 1.0) : vec3(0.98)), 1.0);
     }
-    if (((px.y + frame) & 3) == 0) c *= 1.0 - 0.25 * glitch;
-    return vec4(c, alpha);
+    return vec4(0.0);
 }
 
+// A seam of sparks along the outline, two pixels across the middle of the strip: a few at stage 1, most of
+// it at 3, flickering. Opaque or nothing, as everything drawn over the portal must be.
 vec4 netherRiftEdge(float stage) {
+    if (netherRiftBeyond()) return vec4(0.0);
     float t = GameTime * 1200.0;
     int st = int(stage + 0.5);
     float red = st >= 3 ? 0.65 : (st == 2 ? 0.2 : 0.0);
-    ivec2 px = netherRiftPixel();
-    // the strip is four pixels across, centred on the outline: a two-pixel core and a pixel of glow each side
     int across = clamp(int(floor(riftLocal().y * 4.0)), 0, 3);
-    bool core = across == 1 || across == 2;
-    bool on = netherRiftHash(ivec3(px, int(floor(t * 10.0)) * 8 + 21)) > 0.12 * stage;
+    if (across == 0 || across == 3) return vec4(0.0);
+    ivec2 px = netherRiftPixel();
+    float spark = netherRiftHash(ivec3(px, int(floor(t * 10.0)) * 8 + 21));
+    if (spark > 0.12 + 0.18 * (stage - 1.0)) return vec4(0.0);
     vec3 hot = mix(vec3(1.0, 0.47, 0.94), vec3(1.0, 0.35, 0.27), red);
-    if (!on) return core ? vec4(0.12, 0.04, 0.12, 1.0) : vec4(0.0);
-    return core ? vec4(mix(hot, vec3(1.0, 0.92, 1.0), 0.3), 1.0) : vec4(hot * 0.85, 0.5);
+    return vec4(spark < 0.04 ? vec3(1.0, 0.92, 1.0) : hot, 1.0);
 }

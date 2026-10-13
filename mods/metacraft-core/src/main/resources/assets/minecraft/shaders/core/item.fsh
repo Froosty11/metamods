@@ -1,6 +1,6 @@
 // Vanilla 26.3 item.fsh with one addition (metacraft-core): where item.vsh flagged a rift, the painted
 // sprite is replaced by that rift's drawing (void anchor: include void_rift; nether rift: include
-// nether_rift). Every other item takes the vanilla path. The Globals include is unconditional (vanilla
+// nether_rift), and a nether rift skips the alpha cutout. Every other item takes the vanilla path. The Globals include is unconditional (vanilla
 // guards it with GLINT) because the rifts need GameTime, ScreenSize and CameraBlockPos. Re-diff against
 // vanilla on every Minecraft update.
 #version 330
@@ -69,7 +69,9 @@ vec4 calculateFinalColor(vec4 color) {
 void main() {
     vec4 color = texture(Sampler0, texCoord0);
     #ifdef ALPHA_CUTOUT
-    if (color.a < ALPHA_CUTOUT) {
+    // A nether rift's panel sprite is all but transparent (so shaderpacks that replace this shader draw none of
+    // it); the rift draws over it whatever its alpha.
+    if (color.a < ALPHA_CUTOUT && riftFlag < 10.5) {
         discard;
     }
     #endif
