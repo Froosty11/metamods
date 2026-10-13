@@ -38,8 +38,8 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
  *
  * <p>The animations play in layers: BIL poses each bone by the highest-priority animation that moves it. The
  * {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default {@code beat_ticks})
- * moves the arms, head and body and leaves the legs to {@code walk} under it, so it drums as it goes; standing,
- * {@code beat_legs} (under the walk) taps each foot with its hand's strike;
+ * moves the arms, head and body and leaves the legs to {@code walk} under it, which plays all the time, so it
+ * marches as it drums;
  * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
  */
 public class WarDrummer extends Monster implements AnimatedEntity {
@@ -57,11 +57,8 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final int BIG_BEAT_TICKS = 56;
 	public static final int BIG_BEAT_SLAM_TICK = 36;
 
-	/** Moving faster than this (blocks a tick, across), it walks. */
-	private static final double WALKING = 0.01;
-
 	private final LivingEntityHolder<WarDrummer> holder;
-	private boolean walking = false;
+	private boolean marching = false;
 	private boolean drumming = false;
 	private boolean inBigBeat = false;
 
@@ -131,14 +128,10 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	protected void customServerAiStep(ServerLevel level) {
 		super.customServerAiStep(level);
 		var animator = holder.getAnimator();
-		boolean moving = getDeltaMovement().horizontalDistanceSqr() > WALKING * WALKING;
-		if (moving != walking) {
-			walking = moving;
-			if (moving) {
-				animator.playAnimation("walk", 5, true);
-			} else {
-				animator.stopAnimation("walk");
-			}
+		if (!marching) {
+			// it marches as it drums: the walk keeps the legs going under the beat, standing or not
+			animator.playAnimation("walk", 5, true);
+			marching = true;
 		}
 		var tuning = tuning();
 		int beat = tuning.beatTicks();
@@ -170,7 +163,6 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 		if (!drumming) {
 			// the loops start on a beat, so their strikes stay on the tempo
 			animator.playAnimation("beat", 10, true);
-			animator.playAnimation("beat_legs", 1, true);
 			drumming = true;
 		}
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
@@ -179,7 +171,6 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 
 	private void stopDrumming() {
 		holder.getAnimator().stopAnimation("beat");
-		holder.getAnimator().stopAnimation("beat_legs");
 		drumming = false;
 	}
 
