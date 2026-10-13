@@ -62,6 +62,8 @@ public final class RiftClientTests implements FabricClientGameTest {
 				int[] nether = new int[3];
 				double[] holes = new double[3];
 				double[] redness = new double[3];
+				int flashes = 0;
+				int[] animated = new int[2];
 				String[] stages = {"lit", "unstable", "torn"};
 				for (int i = 0; i < stages.length; i++) {
 					String stage = stages[i];
@@ -70,9 +72,16 @@ public final class RiftClientTests implements FabricClientGameTest {
 					Path a = ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_a").withSize(1920, 1080));
 					ctx.waitTicks(5);
 					Path b = ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_b").withSize(1920, 1080));
+					ctx.waitTicks(25);
+					var later = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_" + stage + "_c").withSize(1920, 1080)));
 					var first = read(a);
+					var second = read(b);
 					int rift = count(first, RiftClientTests::riftPixel);
-					int moved = changed(first, read(b), 24);
+					int moved = changed(first, second, 24);
+					flashes += flashPixels(first) + flashPixels(second) + flashPixels(later);
+					if (i == 2) {
+						animated = holesAnimate(first, later);
+					}
 					purple[i] = count(first, RiftClientTests::purplePixel);
 					nether[i] = count(first, RiftClientTests::netherPixel);
 					holes[i] = holeShare(first);
@@ -109,6 +118,15 @@ public final class RiftClientTests implements FabricClientGameTest {
 					check(false, "the torn rift shows no holes onto the nether: share of panorama in the rift lit="
 							+ String.format("%.3f", holes[0]) + " torn=" + String.format("%.3f", holes[2]));
 				}
+				// The portal's haze drifts over the holes: in 1.5 s much of what shows the nether has changed. (The
+				// panorama itself holds still; only the haze over it moves.)
+				System.out.println("[nether-rifts-clienttest] torn holes=" + animated[0] + " animated=" + animated[1] + " flashes=" + flashes);
+				if (animated[0] < 2000 || animated[1] < animated[0] / 4) {
+					check(false, "the torn rift's holes don't animate: " + animated[1] + " of " + animated[0] + " hole pixels changed in 1.5 s");
+				}
+				// Nothing glitches any more: none of the old flash tiles (squares of pure magenta, cyan or white) at any
+				// stage, in three shots each.
+				check(flashes == 0, "the rift still flashes glitch tiles: " + flashes + " pixels");
 				stillWhenFrozen(ctx, server);
 				server.runCommand("rifts collapse 0 -58 0");
 
@@ -351,9 +369,14 @@ public final class RiftClientTests implements FabricClientGameTest {
 		return b > g + 40 && r > g + 20;
 	}
 
-	/** The panorama's nether through the cracks: lava, nether brick and netherrack, the red fog; red over blue, green not far under blue. */
+	/**
+	 * The panorama's nether through the holes, under the portal's purple haze: blue no more than about red, green at
+	 * least a third of red (the portal's purples, even reddened, have next to none), but not grey. Nor are the
+	 * cracks: rose at stage 2 (red over 200, which the hazed holes all but never reach) and hot orange at 3 (blue
+	 * under a quarter of red).
+	 */
 	static boolean netherPixel(int r, int g, int b) {
-		return r > b + 25 && g + 12 >= b && r > 40 && r < 240;
+		return r > 40 && r < 200 && r >= g + 16 && g * 3 >= r && b * 4 >= r && b <= r * 1.15 + 5;
 	}
 
 	/**
@@ -410,6 +433,16 @@ public final class RiftClientTests implements FabricClientGameTest {
 	 * the box over the frame.
 	 */
 	private static double holeShare(BufferedImage img) {
+		int[] box = innerBox(img);
+		if (box == null) return 0;
+		return countIn(img, box[0], box[1], box[2], box[3], RiftClientTests::netherPixel) / (double) ((box[2] - box[0]) * (box[3] - box[1]));
+	}
+
+	/**
+	 * The rift's box (x0, y0, x1, y1) less 30 px all round, its edge left out: the rows and columns with 60 rift
+	 * pixels or more, so portal particles drifting round it don't stretch the box over the frame. Null if none.
+	 */
+	private static int[] innerBox(BufferedImage img) {
 		int[] rows = new int[img.getHeight()];
 		int[] cols = new int[img.getWidth()];
 		for (int y = 300; y < img.getHeight(); y++) {
@@ -434,13 +467,65 @@ public final class RiftClientTests implements FabricClientGameTest {
 				x1 = x;
 			}
 		}
-		if (x1 < 0 || y1 < 0) return 0;
+		if (x1 < 0 || y1 < 0) return null;
 		x0 += 30;
 		y0 += 30;
 		x1 -= 30;
 		y1 -= 30;
-		if (x1 <= x0 || y1 <= y0) return 0;
-		return countIn(img, x0, y0, x1, y1, RiftClientTests::netherPixel) / (double) ((x1 - x0) * (y1 - y0));
+		if (x1 <= x0 || y1 <= y0) return null;
+		return new int[]{x0, y0, x1, y1};
+	}
+
+	/**
+	 * The rift's hole pixels in {@code a} (nether in both shots, in the rift's inner box) and how many of them
+	 * changed by more than 12 in some channel by {@code b}.
+	 */
+	private static int[] holesAnimate(BufferedImage a, BufferedImage b) {
+		int[] box = innerBox(a);
+		if (box == null) return new int[2];
+		int holes = 0, moved = 0;
+		for (int y = box[1]; y < box[3]; y++) {
+			for (int x = box[0]; x < box[2]; x++) {
+				int p = a.getRGB(x, y), q = b.getRGB(x, y);
+				if (!netherPixel((p >> 16) & 255, (p >> 8) & 255, p & 255) || !netherPixel((q >> 16) & 255, (q >> 8) & 255, q & 255)) continue;
+				holes++;
+				for (int s = 0; s <= 16; s += 8) {
+					if (Math.abs(((p >> s) & 255) - ((q >> s) & 255)) > 12) {
+						moved++;
+						break;
+					}
+				}
+			}
+		}
+		return new int[]{holes, moved};
+	}
+
+	/** The old glitch's flash colours: pure magenta, cyan and white. */
+	private static final int[][] FLASHES = {{255, 41, 199}, {41, 240, 255}, {250, 250, 250}};
+
+	/**
+	 * Pixels of flash tiles in the middle of the screen: the corner of a square at least 11 px across (a tile was 2
+	 * world pixels, about 20 px here) all one flash colour, which rims and sparks never are, nor the white heart of
+	 * a soul-fire flame (up to about 8 px).
+	 */
+	private static int flashPixels(BufferedImage img) {
+		int n = 0;
+		for (int y = 300; y < img.getHeight() - 10; y++) {
+			for (int x = 600; x < 1400; x++) {
+				int f = flash(img.getRGB(x, y));
+				if (f >= 0 && flash(img.getRGB(x + 10, y)) == f && flash(img.getRGB(x, y + 10)) == f && flash(img.getRGB(x + 10, y + 10)) == f) n++;
+			}
+		}
+		return n;
+	}
+
+	/** Which flash colour p is, to within 8 a channel; -1 if none. */
+	private static int flash(int p) {
+		int r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+		for (int i = 0; i < FLASHES.length; i++) {
+			if (Math.abs(r - FLASHES[i][0]) <= 8 && Math.abs(g - FLASHES[i][1]) <= 8 && Math.abs(b - FLASHES[i][2]) <= 8) return i;
+		}
+		return -1;
 	}
 
 	/** The rift's bounding box (x0, y0, x1, y1) in the middle of the screen, chat and toasts left out; null if there's none. */

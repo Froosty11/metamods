@@ -19,11 +19,11 @@ when the raid ends).
 Clients see a rift's blocks as a vanilla nether portal (swirl, particles, hum, and its overlay if you walk in;
 on the server they stay rift blocks and teleport nobody). Over it, metacraft-core's item shader draws glass
 cracking as pixel art fixed to the world (16 pixels a block): hairlines, then a web, then holes through which a
-far-off nether fortress shows (a panorama captured in game, of Eskmorra: credits below), the portal reddening
-as the rift tears. Players whose core shaders are replaced (Iris, OptiFine) see the panel's raw sprite instead,
-which is all but transparent: the plain portal with a glowing edge round it; unless their shaderpack went
-through ovvar's shader patcher, which puts the same drawing into the pack (seen working in Complementary
-Reimagined and Unbound, BSL and Bliss).
+far-off nether fortress shows (a panorama captured in game, of Eskmorra: credits below) through a soft purple
+haze drifting like the portal's swirl, the portal reddening as the rift tears. Players whose core shaders are
+replaced (Iris, OptiFine) see the panel's raw sprite instead, which is all but transparent: the plain portal with
+a glowing edge round it; unless their shaderpack went through ovvar's shader patcher, which puts the same drawing
+into the pack (seen working in Complementary Reimagined and Unbound, BSL and Bliss).
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the War Drummer and the war ghast's bombing (ranges,
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing). Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
