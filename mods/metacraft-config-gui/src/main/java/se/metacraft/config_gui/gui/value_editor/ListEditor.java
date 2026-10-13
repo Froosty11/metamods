@@ -10,6 +10,7 @@ import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.server.dialog.CommonButtonData;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.metacraft.config_gui.ClickHandlerGUI;
@@ -75,9 +76,12 @@ public record ListEditor<T>(
 		for (var element : this.list) {
 			//noinspection unchecked
 			list = list.flatMap(
-				l -> ((Codec<Object>) type.element().codec()).encodeStart(
-					ctx, element
-				).map(l::plus).setPartial(l)
+				l -> DataResultHelper.withPartialIfError(
+					((Codec<Object>) type.element().codec()).encodeStart(
+						ctx, element
+					).map(l::plus),
+					l
+				)
 			);
 		}
 		return list.flatMap(l -> wrappingCodec.parse(ctx, l).map(Optional::of));

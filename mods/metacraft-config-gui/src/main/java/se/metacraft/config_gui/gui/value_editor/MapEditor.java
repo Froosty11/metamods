@@ -15,6 +15,7 @@ import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import org.jspecify.annotations.NonNull;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -164,15 +165,18 @@ public record MapEditor<T>(
 		for (var element : this.map.entrySet()) {
 			//noinspection unchecked
 			map = map.flatMap(
-				m -> ((Codec<Object>) keyType.element().codec()).encodeStart(
-					ctx, element.getKey()
-				).flatMap(
-					key -> ((Codec<Object>) valueTypeGetter.apply(element.getKey()).element().codec()).encodeStart(
-						ctx, element.getValue()
-					).map(
-						value -> m.plus(key, value)
-					)
-				).setPartial(m)
+				m -> DataResultHelper.withPartialIfError(
+					((Codec<Object>) keyType.element().codec()).encodeStart(
+						ctx, element.getKey()
+					).flatMap(
+						key -> ((Codec<Object>) valueTypeGetter.apply(element.getKey()).element().codec()).encodeStart(
+							ctx, element.getValue()
+						).map(
+							value -> m.plus(key, value)
+						)
+					),
+					m
+				)
 			);
 		}
 		return map.flatMap(m -> wrappingCodec.parse(ctx, m)).map(Optional::of);

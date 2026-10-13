@@ -12,6 +12,7 @@ import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -119,26 +120,32 @@ public record MapCodecEditor<T>(
 			if (CodecDialog.isMapInlined(type)) {
 				//noinspection unchecked
 				map = map.flatMap(
-					m -> ((Codec<Object>) type.fieldElement().codec()).encodeStart(
-						ctx, value
-					).map(result -> {
-						var modified = m;
-						if (result instanceof Map<?,?> encodedMap) {
-							for (var e : encodedMap.entrySet()) {
-								if (e.getKey() instanceof String s) {
-									modified = modified.plus(s, e.getValue());
+					m -> DataResultHelper.withPartialIfError(
+						((Codec<Object>) type.fieldElement().codec()).encodeStart(
+							ctx, value
+						).map(result -> {
+							var modified = m;
+							if (result instanceof Map<?,?> encodedMap) {
+								for (var e : encodedMap.entrySet()) {
+									if (e.getKey() instanceof String s) {
+										modified = modified.plus(s, e.getValue());
+									}
 								}
 							}
-						}
-						return modified;
-					}).setPartial(m)
+							return modified;
+						}),
+						m
+					)
 				);
 			} else {
 				//noinspection unchecked
 				map = map.flatMap(
-					m -> ((Codec<Object>) type.element().codec()).encodeStart(
-						ctx, value
-					).map(result -> m.plus(key, result)).setPartial(m)
+					m -> DataResultHelper.withPartialIfError(
+						((Codec<Object>) type.element().codec()).encodeStart(
+							ctx, value
+						).map(result -> m.plus(key, result)),
+						m
+					)
 				);
 			}
 		}
