@@ -3,14 +3,20 @@ import de.tomalbrc.bil.core.model.Node;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -18,6 +24,7 @@ import nu.metacraft.nether_rifts.mob.BombingRunGoal;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.RiftItems;
 import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
@@ -165,6 +172,8 @@ public class BombardierTests {
 				var crew = crew(ctx, deck);
 				ctx.assertTrue(crew.size() == 3, "the ghast's death let off " + crew);
 				ctx.assertTrue(crew.stream().filter(m -> m instanceof GhastBombardier).count() == 1, "no one Bombardier in " + crew);
+				ctx.assertTrue(crew.stream().anyMatch(m -> m instanceof GhastBombardier b && b.getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET)),
+						"the Bombardier came off without its helmet");
 				ctx.assertTrue(crew.stream().filter(m -> m instanceof Piglin p && p.getMainHandItem().is(Items.CROSSBOW)).count() == 2,
 						"no two crossbow piglins in " + crew);
 				for (var mob : crew) {
@@ -258,6 +267,116 @@ public class BombardierTests {
 				ctx.assertTrue(burntAt[0] - warnedAt[0] >= BurningPatches.WARN_TICKS, "the warning led the blast by only " + (burntAt[0] - warnedAt[0]) + " ticks");
 				double off = Math.hypot(burn[0].x - warning[0].x, burn[0].z - warning[0].z);
 				ctx.assertTrue(off <= BurningPatches.RADIUS, "the bomb landed " + off + " blocks from its warning");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+			});
+		});
+		NetherRiftsTests.register("bombardier/on_foot_kit", ctx -> {
+			// On foot the Bombardier is a piglin to clients, with a golden sword and its helmet, neither of which ever drops.
+			// A summon (finalizeSpawn) doesn't make it a baby or swap its kit. Of no rift, it still never barters, picks
+			// things up or turns zombie, and gold armour doesn't spare a player from it.
+			var player = StageTests.player(ctx);
+			var spot = ctx.absolutePos(new BlockPos(12, 1, 12));
+			player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+			player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET));
+			player.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.GOLDEN_CHESTPLATE));
+			var at = ctx.absolutePos(new BlockPos(12, 1, 15));
+			var difficulty = ctx.getLevel().getCurrentDifficultyAt(at);
+			for (int i = 0; i < 20; i++) {
+				var summoned = RiftEntities.GHAST_BOMBARDIER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
+				summoned.finalizeSpawn(ctx.getLevel(), difficulty, EntitySpawnReason.COMMAND, null);
+				ctx.assertFalse(summoned.isBaby(), "a summoned Bombardier is a baby");
+				ctx.assertTrue(summoned.getMainHandItem().is(Items.GOLDEN_SWORD), "a summoned Bombardier holds " + summoned.getMainHandItem());
+				ctx.assertTrue(summoned.getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET), "a summoned Bombardier wears " + summoned.getItemBySlot(EquipmentSlot.HEAD));
+			}
+			var bombardier = RiftEntities.GHAST_BOMBARDIER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
+			bombardier.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			bombardier.finalizeSpawn(ctx.getLevel(), difficulty, EntitySpawnReason.COMMAND, null);
+			ctx.getLevel().addFreshEntity(bombardier);
+			ctx.assertTrue(bombardier.getPolymerEntityType(null) == EntityTypes.PIGLIN, "clients don't see the Bombardier as a piglin");
+			for (var slot : List.of(EquipmentSlot.HEAD, EquipmentSlot.MAINHAND)) {
+				ctx.assertTrue(bombardier.getDropChances().byEquipment(slot) == 0f, "the Bombardier's " + slot + " can drop");
+			}
+			ctx.assertFalse(bombardier.canPickUpLoot(), "the Bombardier picks things up");
+			ctx.assertFalse(bombardier.isConverting(), "the Bombardier is turning zombie in the overworld");
+			ctx.assertFalse(RiftMobs.isRiftMob(bombardier), "a summoned Bombardier is a rift mob");
+			bombardier.setBaby(true);
+			ctx.assertFalse(bombardier.isBaby(), "the Bombardier became a baby");
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GOLD_INGOT));
+			player.interactOn(bombardier, InteractionHand.MAIN_HAND, Vec3.ZERO);
+			ctx.assertTrue(bombardier.getOffhandItem().isEmpty(), "the Bombardier took the gold");
+			ctx.assertTrue(player.getMainHandItem().is(Items.GOLD_INGOT), "the player lost the gold to the Bombardier");
+			ctx.runAfterDelay(60, () -> {
+				ctx.assertTrue(bombardier.getBrain().getMemory(MemoryModuleType.NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD).isPresent(),
+						"the Bombardier respects the gold truce");
+				ctx.assertTrue(bombardier.getOffhandItem().isEmpty(), "the Bombardier is holding the gold");
+				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("bombardier/hand_bombs", ctx -> {
+			// On foot, the Bombardier lobs bombs at a player 8 blocks off (slowed to a stop, so it keeps its distance): the
+			// ground warning goes up under the player at least the warning time before the blast, even with the player
+			// standing in the way, the bomb lands on its warning, belongs to its rift, and no block changes.
+			stoneFloor(ctx);
+			long[] warnedAt = {-1};
+			long[] burntAt = {-1};
+			Vec3[] warning = new Vec3[1];
+			Vec3[] burn = new Vec3[1];
+			UUID[] bombRift = new UUID[1];
+			var thrown = new AtomicBoolean();
+			ctx.onEachTick(() -> {
+				for (var bomb : ctx.getEntities(RiftEntities.MAGMA_BOMB)) {
+					if (bomb.getOwner() instanceof GhastBombardier && !thrown.getAndSet(true)) {
+						bombRift[0] = bomb.getAttached(RiftMobs.RIFT);
+					}
+				}
+				for (var patch : BurningPatches.active(ctx.getLevel())) {
+					if (!ctx.getBounds().contains(patch.at())) {
+						continue;
+					}
+					if (patch.warning() && warning[0] == null) {
+						warning[0] = patch.at();
+						warnedAt[0] = ctx.getTick();
+					} else if (!patch.warning() && burn[0] == null) {
+						burn[0] = patch.at();
+						burntAt[0] = ctx.getTick();
+					}
+				}
+			});
+			FormingTests.lightFrame(ctx, 2, 3);
+			var player = StageTests.player(ctx);
+			// A mock player counts as "client not loaded yet", which makes it immune to all damage.
+			player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+			Vec3[] stood = new Vec3[1];
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				var spot = ctx.absolutePos(new BlockPos(16, 1, 14));
+				player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+				stood[0] = player.position();
+				var bombardier = ctx.spawn(RiftEntities.GHAST_BOMBARDIER, new BlockPos(8, 1, 14));
+				RiftMobs.enlist(bombardier, rift.id(), Slot.BOMBARDIER);
+				bombardier.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 400, 9));
+				bombardier.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, player);
+			});
+			ctx.succeedWhen(() -> {
+				ctx.assertTrue(thrown.get(), "no bomb thrown yet");
+				ctx.assertTrue(warning[0] != null, "no ground warning");
+				ctx.assertTrue(burn[0] != null, "the bomb hasn't landed");
+				var rift = FormingTests.riftIn(ctx);
+				ctx.assertTrue(rift.id().equals(bombRift[0]), "the thrown bomb isn't of the Bombardier's rift");
+				ctx.assertTrue(burntAt[0] - warnedAt[0] >= BurningPatches.WARN_TICKS, "the warning led the blast by only " + (burntAt[0] - warnedAt[0]) + " ticks");
+				double aimed = Math.hypot(warning[0].x - stood[0].x, warning[0].z - stood[0].z);
+				ctx.assertTrue(aimed <= 0.5, "the warning went up " + aimed + " blocks from the player");
+				double off = Math.hypot(burn[0].x - warning[0].x, burn[0].z - warning[0].z);
+				ctx.assertTrue(off <= BurningPatches.RADIUS, "the bomb landed " + off + " blocks from its warning");
+				for (int x = 0; x < 24; x++) {
+					for (int z = 0; z < 24; z++) {
+						ctx.assertBlockPresent(Blocks.STONE, new BlockPos(x, 0, z));
+					}
+				}
+				StageTests.remove(ctx, player);
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 			});

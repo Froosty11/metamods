@@ -107,10 +107,10 @@ public class DrummerTests {
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO);
 				RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(14, 1, 12)), Vec3.ZERO);
 			});
-			// 4 beats of 10 ticks: the big beat lands by tick ~45
-			ctx.runAtTickTime(60, () -> {
+			// 4 beats of 10 ticks start the big beat by tick ~35; its slam comes 36 ticks into it, by tick ~70
+			ctx.runAtTickTime(90, () -> {
 				var piglin = ctx.getEntities(EntityTypes.PIGLIN).stream().filter(RiftMobs::isRiftMob).findFirst().orElseThrow();
-				ctx.assertTrue(piglin.hasEffect(MobEffects.SPEED), "no big beat within 60 ticks");
+				ctx.assertTrue(piglin.hasEffect(MobEffects.SPEED), "no big beat within 90 ticks");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();

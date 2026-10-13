@@ -9,13 +9,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Rift piglins don't barter: gold handed to one neither pleases it nor takes it out of the fight. */
+/**
+ * Rift piglins (and the Ghast Bombardier, rift or not) don't barter: gold handed to one neither pleases it nor takes it
+ * out of the fight.
+ */
 @Mixin(PiglinAi.class)
 public abstract class PiglinAiMixin {
 
 	@Inject(method = "canAdmire", at = @At("HEAD"), cancellable = true)
 	private static void netherRifts$noBartering(Piglin piglin, ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
-		if (RiftMobs.isRiftMob(piglin)) {
+		if (RiftMobs.keepsRiftRules(piglin)) {
 			cir.setReturnValue(false);
 		}
 	}

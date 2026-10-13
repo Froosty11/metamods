@@ -41,13 +41,14 @@ public class MobsTuningCodecTest {
 				drummer.shockRange(), drummer.shockStrength()), mobs.drummer());
 		assertEquals(2.5f, mobs.bombardier().bombPower());
 		assertEquals(NetherRiftsConfig.BombardierTuning.DEFAULT.diveHeight(), mobs.bombardier().diveHeight());
+		assertEquals(NetherRiftsConfig.BombardierTuning.DEFAULT.throwRange(), mobs.bombardier().throwRange());
 	}
 
 	@Test
 	public void defaultsAreTheSpecNumbers() {
 		var drummer = NetherRiftsConfig.DrummerTuning.DEFAULT;
 		assertEquals(new NetherRiftsConfig.DrummerTuning(10, 4, 12, 120, 4, 1.2), drummer);
-		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 6, 100, 1.5f, 20, 40, 60, 1.5),
+		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 6, 100, 1.5f, 20, 40, 60, 1.5, 80, 4, 12),
 				NetherRiftsConfig.BombardierTuning.DEFAULT);
 	}
 }

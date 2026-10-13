@@ -9,7 +9,7 @@ import nu.metacraft.nether_rifts.raid.RiftMobs;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Rift piglins don't honour the gold-armour truce: to them every player is a target. */
+/** Rift piglins (and the Ghast Bombardier, rift or not) don't honour the gold-armour truce: to them every player is a target. */
 @Mixin(PiglinSpecificSensor.class)
 public abstract class PiglinSpecificSensorMixin {
 
@@ -18,6 +18,6 @@ public abstract class PiglinSpecificSensorMixin {
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isWearingSafeArmor(Lnet/minecraft/world/entity/LivingEntity;)Z")
 	)
 	private boolean netherRifts$noTruce(LivingEntity player, Operation<Boolean> original, @Local(argsOnly = true) LivingEntity body) {
-		return !RiftMobs.isRiftMob(body) && original.call(player);
+		return !RiftMobs.keepsRiftRules(body) && original.call(player);
 	}
 }

@@ -26,10 +26,16 @@ import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 
 /**
- * Leads every rift wave from wave 2. It keeps away from players and drums: a beat every 10 ticks; every
- * 4th is the big beat. War Beat gives rift piglins within 12 blocks Speed I + Strength I for 6 s, and
- * Shock Beat knocks back players within 4 blocks. The beat is on a fixed tempo, so players can learn to
- * hit between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
+ * Leads every rift wave from wave 2. It keeps away from players and drums as it goes: a beat every 10 ticks;
+ * every 4th is the big beat, for which it stands its ground, winds up (arms raised) and slams
+ * {@link #BIG_BEAT_SLAM_TICK} ticks later. War Beat gives rift piglins within 12 blocks Speed I + Strength I for 6 s,
+ * and Shock Beat knocks back players within 4 blocks. The beat is on a fixed tempo, so players can learn to hit
+ * between beats. The numbers are the defaults of the config's {@code mobs.drummer} section.
+ *
+ * <p>The animations play in layers: BIL poses each bone by the highest-priority animation that moves it. The
+ * {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default {@code beat_ticks})
+ * moves the arms, head and body and leaves the legs to {@code walk} under it, so it drums as it goes;
+ * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
  */
 public class WarDrummer extends Monster implements AnimatedEntity {
 
@@ -41,8 +47,19 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final double SHOCK_RANGE = 4;
 	public static final double SHOCK_STRENGTH = 1.2;
 
+	/** The big_beat animation's length, and the tick in it where both hands come down on the drum. */
+	public static final int BIG_BEAT_TICKS = 56;
+	public static final int BIG_BEAT_SLAM_TICK = 36;
+
+	/** Moving faster than this (blocks a tick, across), it walks. */
+	private static final double WALKING = 0.01;
+
 	private final LivingEntityHolder<WarDrummer> holder;
-	private int beatClock = 0;
+	private boolean walking = false;
+	private boolean drumming = false;
+	/** Ticks into the big beat; -1 outside it. */
+	private int bigBeatClock = -1;
+	private int tempo = 0;
 	private int beats = 0;
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
@@ -77,24 +94,52 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	@Override
 	protected void customServerAiStep(ServerLevel level) {
 		super.customServerAiStep(level);
-		var tuning = tuning();
-		if (++beatClock < tuning.beatTicks()) {
+		var animator = holder.getAnimator();
+		boolean moving = getDeltaMovement().horizontalDistanceSqr() > WALKING * WALKING;
+		if (moving != walking) {
+			walking = moving;
+			if (moving) {
+				animator.playAnimation("walk", 5, true);
+			} else {
+				animator.stopAnimation("walk");
+			}
+		}
+		if (bigBeatClock >= 0) {
+			getNavigation().stop();
+			if (++bigBeatClock == BIG_BEAT_SLAM_TICK) {
+				bigBeat(level);
+			}
+			if (bigBeatClock >= BIG_BEAT_TICKS) {
+				// back on the tempo: the next beat comes on the next tick
+				animator.stopAnimation("big_beat");
+				bigBeatClock = -1;
+				tempo = 0;
+			}
 			return;
 		}
-		beatClock = 0;
-		beats++;
-		if (beats % tuning.bigBeatEvery() == 0) {
-			bigBeat(level);
-		} else {
-			holder.getAnimator().playAnimation("beat", 10, true);
-			level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 1.2f, 0.8f);
+		var tuning = tuning();
+		if (tempo++ % tuning.beatTicks() != 0) {
+			return;
 		}
+		if (++beats % tuning.bigBeatEvery() == 0) {
+			// it stands its ground for the big beat: the windup is the tell
+			animator.stopAnimation("beat");
+			drumming = false;
+			animator.playAnimation("big_beat", 10, true);
+			bigBeatClock = 0;
+			return;
+		}
+		if (!drumming) {
+			// the loop starts on a beat, so its strikes stay on the tempo
+			animator.playAnimation("beat", 10, true);
+			drumming = true;
+		}
+		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 1.2f, 0.8f);
 	}
 
-	/** The 4th beat: War Beat (buff rift piglins) and Shock Beat (push players back). */
+	/** The big beat's slam: War Beat (buff rift piglins) and Shock Beat (push players back). */
 	public void bigBeat(ServerLevel level) {
 		var tuning = tuning();
-		holder.getAnimator().playAnimation("big_beat", 10, true);
 		level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.6f);
 		for (int i = 0; i < 24; i++) {
 			float angle = i * Mth.TWO_PI / 24;

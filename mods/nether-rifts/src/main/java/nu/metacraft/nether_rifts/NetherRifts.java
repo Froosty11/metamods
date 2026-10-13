@@ -8,6 +8,7 @@ import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.nether_rifts.compat.ScfCompat;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.RiftItems;
 import nu.metacraft.nether_rifts.mob.RiftModels;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.rift.Ignition;
@@ -26,6 +27,7 @@ public class NetherRifts implements ModInitializer {
 	public void onInitialize() {
 		NetherRiftsConfig.getInstance();
 		RiftModels.init();
+		RiftItems.init();
 		RiftEntities.init();
 		BurningPatches.init();
 		RiftBlocks.init();

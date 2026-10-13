@@ -1,3 +1,5 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import de.tomalbrc.bil.core.model.Node;
 import de.tomalbrc.bil.file.loader.BbModelLoader;
 import net.minecraft.SharedConstants;
@@ -6,14 +8,20 @@ import nu.metacraft.nether_rifts.NetherRifts;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The generated models load in BIL with the bones and animations the mobs play. */
+/** The generated models load in BIL with the bones and animations the mobs play; the Bombardier's helmet is an item model. */
 public class ModelTests {
 
 	@BeforeAll
@@ -31,13 +39,42 @@ public class ModelTests {
 
 	@Test
 	public void warDrummer() {
-		assertModel("war_drummer", Set.of("body", "head", "arm_left", "arm_right", "leg_left", "leg_right", "drum", "stick_left", "stick_right"),
-			Set.of("idle", "beat", "big_beat"));
+		assertModel("war_drummer", Set.of("body", "head", "left_arm", "right_arm", "left_leg", "right_leg", "drum", "stick", "stick2"),
+			Set.of("idle", "walk", "beat", "big_beat"));
 	}
 
+	/**
+	 * The Bombardier on foot is a vanilla piglin: its helmet is an item model in the mod's resource pack, of vanilla
+	 * block textures, drawn on the head by its head display. (Elements must keep within -16..32.)
+	 */
 	@Test
-	public void ghastBombardier() {
-		assertModel("ghast_bombardier", Set.of("body", "head", "arm_left", "arm_right", "leg_left", "leg_right"), Set.of("idle"));
+	public void bombardierHelmet() throws IOException {
+		var item = json("/assets/nether_rifts/items/bombardier_helmet.json").getAsJsonObject("model");
+		assertEquals("nether_rifts:item/bombardier_helmet", item.get("model").getAsString());
+		var model = json("/assets/nether_rifts/models/item/bombardier_helmet.json");
+		assertTrue(model.getAsJsonObject("display").has("head"), "the helmet has no head display");
+		for (var texture : model.getAsJsonObject("textures").entrySet()) {
+			assertTrue(texture.getValue().getAsString().startsWith("minecraft:block/"), "texture " + texture);
+		}
+		var elements = model.getAsJsonArray("elements");
+		var names = new java.util.HashSet<String>();
+		for (var element : elements) {
+			var e = element.getAsJsonObject();
+			names.add(e.get("name").getAsString());
+			for (var corner : List.of("from", "to")) {
+				for (var v : e.getAsJsonArray(corner)) {
+					assertTrue(v.getAsDouble() >= -16 && v.getAsDouble() <= 32, e.get("name") + " " + corner + " out of bounds");
+				}
+			}
+		}
+		assertTrue(names.containsAll(Set.of("goggle_bridge", "goggle_strap", "lens_left", "lens_right")), "helmet elements: " + names);
+	}
+
+	static JsonObject json(String path) throws IOException {
+		try (var in = NetherRifts.class.getResourceAsStream(path)) {
+			assertNotNull(in, "no " + path);
+			return JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+		}
 	}
 
 	@Test

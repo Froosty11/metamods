@@ -69,6 +69,14 @@ public final class RiftMobs {
 		return entity != null && entity.hasAttached(RIFT);
 	}
 
+	/**
+	 * Piglins that don't barter and don't honour the gold-armour truce: rift mobs, and the Ghast Bombardier wherever it
+	 * is (a summoned war ghast's Bombardier is of no rift, and still never trades and always fights).
+	 */
+	public static boolean keepsRiftRules(@Nullable Entity entity) {
+		return isRiftMob(entity) || entity instanceof GhastBombardier;
+	}
+
 	/** One pick from the slot's roster entry at {@code pos}, pushed by {@code push}; returns every entity spawned. */
 	public static List<Entity> spawn(ServerLevel level, UUID rift, Slot slot, BlockPos pos, Vec3 push) {
 		var entry = NetherRiftsConfig.getInstance().rosterEntry(slot);
@@ -123,7 +131,7 @@ public final class RiftMobs {
 	}
 
 	/**
-	 * The drummer, the Bombardier, piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
+	 * The drummer, the Bombardier (a piglin, so it is checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
 	 * (a summoned one gets the same from its own table, {@code entities/war_ghast}); ghasts, hoglins and striders
 	 * keep their own.
 	 */

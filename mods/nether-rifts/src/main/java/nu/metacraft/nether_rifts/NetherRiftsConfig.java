@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import nu.metacraft.nether_rifts.mob.BombingRunGoal;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
+import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.MagmaBomb;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
 import nu.metacraft.nether_rifts.raid.Roster;
@@ -102,15 +103,20 @@ public record NetherRiftsConfig(
 		).apply(i, DrummerTuning::new));
 	}
 
-	/** The war ghast's bombing runs and its Ghast Bombardier's magma bombs. Ticks (20 a second) and blocks. */
+	/**
+	 * The war ghast's bombing runs, and its Ghast Bombardier's magma bombs: dropped from the deck, and thrown by hand once
+	 * the ghast has fallen. Ticks (20 a second) and blocks.
+	 */
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
-			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius
+			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius,
+			int throwEvery, double throwMinRange, double throwRange
 	) {
 		public static final BombardierTuning DEFAULT = new BombardierTuning(
 				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
 				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
-				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS
+				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
+				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE
 		);
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
@@ -156,7 +162,19 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("patch_radius", Codec.doubleRange(0, 16), DEFAULT.patchRadius()),
 						"The radius of a warning ring and a burning patch, in blocks."
-				).forGetter(BombardierTuning::patchRadius)
+				).forGetter(BombardierTuning::patchRadius),
+				CommentCodec.comment(
+						Sections.section("throw_every", Codec.intRange(1, 72_000), DEFAULT.throwEvery()),
+						"On foot (its war ghast fallen), the Bombardier throws a bomb at most this often, in ticks."
+				).forGetter(BombardierTuning::throwEvery),
+				CommentCodec.comment(
+						Sections.section("throw_min_range", Codec.doubleRange(0, 64), DEFAULT.throwMinRange()),
+						"It throws at players at least this many blocks off; closer, it fights with its sword."
+				).forGetter(BombardierTuning::throwMinRange),
+				CommentCodec.comment(
+						Sections.section("throw_range", Codec.doubleRange(0, 64), DEFAULT.throwRange()),
+						"It throws at players at most this many blocks off. A thrown bomb flies at least warn_ticks."
+				).forGetter(BombardierTuning::throwRange)
 		).apply(i, BombardierTuning::new));
 	}
 
@@ -169,7 +187,7 @@ public record NetherRiftsConfig(
 				).forGetter(Mobs::drummer),
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
-						"War ghasts, crewed by a Ghast Bombardier and two crossbow piglins, in Large waves 5 and later."
+						"War ghasts, crewed by a Ghast Bombardier and two crossbow piglins, in Large waves 5 and later; the Bombardier's bombs, from the deck and by hand."
 				).forGetter(Mobs::bombardier)
 		).apply(i, Mobs::new));
 	}

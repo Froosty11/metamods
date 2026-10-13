@@ -9,7 +9,9 @@ Drummer leads each wave, drumming a beat every half second: every 4th, its War B
 later come war ghasts: in a harness, a deck slung under them on chains with a crew of a Ghast Bombardier and two
 crossbow piglins. They make bombing runs, the Bombardier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
-or loot on the ground. When a war ghast dies, its crew jump off and glide down to fight on foot. The Rift Captain, in a large raid's
+or loot on the ground. When a war ghast dies, its crew jump off and glide down to fight on foot: the Bombardier,
+a piglin in goggles with a golden sword, then stops every 4 seconds to lob a magma bomb by hand at
+a player 4 to 12 blocks off, the landing spot again marked a second ahead. The Rift Captain, in a large raid's
 last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
@@ -26,7 +28,8 @@ a glowing edge round it; unless their shaderpack went through ovvar's shader pat
 into the pack (seen working in Complementary Reimagined and Unbound, BSL and Bliss).
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the War Drummer and the war ghast's bombing (ranges,
-effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing). Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
+effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing), and how often
+and how far the Bombardier throws on foot. Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
 
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and
 metacraft-lib's fail in a fresh checkout until its data is generated, so run
@@ -40,7 +43,10 @@ Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
 
 The mob models: `python3 tools/gen_models.py` builds the `.bbmodel` files in
 `src/main/resources/model/nether_rifts/` from vanilla geometry (`tools/vanilla/`) and textures read from the
-local Minecraft jar. They open in Blockbench.
+local Minecraft jar. They open in Blockbench. The Bombardier on foot has no model of its own: clients see a
+vanilla piglin wearing the `nether_rifts:bombardier_helmet` item (a Polymer item, never dropped or craftable),
+whose item model `assets/nether_rifts/models/item/bombardier_helmet.json` is a placeholder of vanilla block
+textures, drawn on the head by its `head` display; an artist's model can replace that file as it is.
 
 The panorama looks into **Eskmorra - Nether Fortress** by Bluespartan, built by zombiespartan456 and shiiiner
 (2014), <https://www.planetminecraft.com/project/eskmorra---nether-fortress-download/>. Its terms, from that page:

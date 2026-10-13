@@ -144,6 +144,8 @@ public class MobTests {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
+				var helmet = nu.metacraft.nether_rifts.mob.RiftItems.BOMBARDIER_HELMET.getDescriptionId();
+				ctx.assertTrue(names.has(helmet), lang + " doesn't name " + helmet);
 			}
 			ctx.succeed();
 		});
