@@ -82,6 +82,14 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	}
 
 	@Override
+	public void tick() {
+		super.tick();
+		if (!level().isClientSide()) {
+			RiftModels.hurtTint(this, holder);
+		}
+	}
+
+	@Override
 	protected void registerGoals() {
 		goalSelector.addGoal(0, new FloatGoal(this));
 		goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Player.class, 6.0f, 1.0, 1.2,

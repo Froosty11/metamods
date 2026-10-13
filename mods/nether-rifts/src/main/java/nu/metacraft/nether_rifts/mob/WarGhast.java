@@ -185,14 +185,18 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/**
-	 * The crew are part of the ghast; riders from an old config's roster entry or a {@code /summon} with passengers
+	 * It flashes red while hurt ({@link RiftModels#hurtTint}). The crew are part of the ghast; riders from an old
+	 * config's roster entry or a {@code /summon} with passengers
 	 * would make a doubled crew, so they're sent away.
 	 */
 	@Override
 	public void tick() {
 		super.tick();
-		if (!level().isClientSide() && isVehicle()) {
-			getPassengers().forEach(Entity::discard);
+		if (!level().isClientSide()) {
+			RiftModels.hurtTint(this, holder);
+			if (isVehicle()) {
+				getPassengers().forEach(Entity::discard);
+			}
 		}
 	}
 

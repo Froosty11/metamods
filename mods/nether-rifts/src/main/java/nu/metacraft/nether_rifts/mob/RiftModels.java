@@ -1,7 +1,9 @@
 package nu.metacraft.nether_rifts.mob;
 
+import de.tomalbrc.bil.core.holder.base.AbstractAnimationHolder;
 import de.tomalbrc.bil.core.model.Model;
 import de.tomalbrc.bil.file.loader.BbModelLoader;
+import net.minecraft.world.entity.LivingEntity;
 import nu.metacraft.nether_rifts.NetherRifts;
 
 /**
@@ -13,7 +15,18 @@ public final class RiftModels {
 	public static final Model WAR_DRUMMER = load("war_drummer");
 	public static final Model WAR_GHAST = load("war_ghast");
 
+	/**
+	 * The red a mob flashes while hurt or dying. Vanilla tints its own models; BIL's bones are item displays it
+	 * doesn't touch, so a BIL mob tints them itself ({@link #hurtTint}).
+	 */
+	public static final int HURT_COLOR = 0xFF7E7E;
+
 	private RiftModels() {}
+
+	/** Tints a BIL mob's bones red while it's hurt or dying, as vanilla does its own mobs. Cheap to call every tick. */
+	public static void hurtTint(LivingEntity mob, AbstractAnimationHolder holder) {
+		holder.setColor(mob.hurtTime > 0 || mob.deathTime > 0 ? HURT_COLOR : -1);
+	}
 
 	/** Forces the models to load during mod init. */
 	public static void init() {
