@@ -1,5 +1,13 @@
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -8,23 +16,18 @@ import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.RiftItems;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.Slot;
 import nu.metacraft.nether_rifts.rift.RiftBlocks;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 public class MobTests {
 
@@ -128,6 +131,14 @@ public class MobTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("mobs/spawn_eggs", ctx -> {
+			for (var egg : List.of(new Object[] {RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftEntities.WAR_DRUMMER},
+					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER})) {
+				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
+				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
+			}
+			ctx.succeed();
+		});
 		NetherRiftsTests.register("mobs/names_translated", ctx -> {
 			// Death messages and the like name the mob by its description id: each needs a line in the lang files.
 			for (var lang : new String[] {"en_us", "sv_se"}) {
@@ -144,8 +155,9 @@ public class MobTests {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
-				var helmet = nu.metacraft.nether_rifts.mob.RiftItems.BOMBARDIER_HELMET.getDescriptionId();
-				ctx.assertTrue(names.has(helmet), lang + " doesn't name " + helmet);
+				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
+					ctx.assertTrue(names.has(item.getDescriptionId()), lang + " doesn't name " + item.getDescriptionId());
+				}
 			}
 			ctx.succeed();
 		});

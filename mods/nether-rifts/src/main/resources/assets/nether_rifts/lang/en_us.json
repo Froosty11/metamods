@@ -4,5 +4,8 @@
 	"entity.nether_rifts.war_ghast": "War Ghast",
 	"entity.nether_rifts.ghast_bombardier": "Ghast Bombardier",
 	"item.nether_rifts.bombardier_helmet": "Bombardier Helmet",
-	"entity.nether_rifts.magma_bomb": "Magma Bomb"
+	"entity.nether_rifts.magma_bomb": "Magma Bomb",
+	"item.nether_rifts.war_drummer_spawn_egg": "War Drummer Spawn Egg",
+	"item.nether_rifts.war_ghast_spawn_egg": "War Ghast Spawn Egg",
+	"item.nether_rifts.ghast_bombardier_spawn_egg": "Ghast Bombardier Spawn Egg"
 }
