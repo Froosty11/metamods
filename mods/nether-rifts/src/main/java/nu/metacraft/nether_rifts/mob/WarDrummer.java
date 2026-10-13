@@ -8,7 +8,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -17,6 +19,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.SpawnPlacementTypes;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -34,7 +37,9 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
@@ -71,6 +76,9 @@ import java.util.List;
  * picks anything up. A nether drummer keeps the gold truce as piglins do (a player in gold it isn't angry at is no
  * fight, and its Shock Beat spares them) and turns zombie in the overworld as they do; a rift's drummer keeps the
  * rift's rules ({@link RiftMobs}): every player is a foe, and it never turns.
+ *
+ * <p>It shows the armour it wears ({@link ArmourPieces}). A nether drummer may spawn in gold armour, as a piglin does:
+ * each piece at {@link #GOLD_ARMOUR_CHANCE}, enchanted as a mob's armour is. A rift's drummer comes as the rift sends it.
  */
 public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 
@@ -83,6 +91,9 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 	public static final double SHOCK_STRENGTH = 1.2;
 	public static final float SHOCK_DAMAGE = 4;
 	public static final double NATURAL_CHANCE = 0.03;
+	/** A natural spawn wears each piece of gold armour at this chance: vanilla's for a piglin. */
+	public static final float GOLD_ARMOUR_CHANCE = 0.1f;
+	private static final List<Item> GOLD_ARMOUR = List.of(Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS);
 
 	/** It drums only with a player or a fighting piglin of its own this close: out of combat it idles and wanders. */
 	public static final double COMBAT_RANGE = 16;
@@ -132,6 +143,28 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 		setCanPickUpLoot(false);
 		// a piglin paths through doors and opens them from its brain; the drummer has no door goal, so it keeps off them
 		getNavigation().setCanOpenDoors(false);
+	}
+
+	/** A natural spawn (a nether drummer) may get gold armour, as a piglin does; other spawns, a rift's among them, don't. */
+	@Override
+	public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData groupData) {
+		if (reason == EntitySpawnReason.NATURAL) {
+			var random = level.getRandom();
+			populateDefaultEquipmentSlots(random, difficulty);
+			populateDefaultEquipmentEnchantments(level, random, difficulty);
+		}
+		return super.finalizeSpawn(level, difficulty, reason, groupData);
+	}
+
+	/** A piglin's gold armour: each piece at {@link #GOLD_ARMOUR_CHANCE}. */
+	@Override
+	protected void populateDefaultEquipmentSlots(RandomSource random, DifficultyInstance difficulty) {
+		for (var item : GOLD_ARMOUR) {
+			if (random.nextFloat() < GOLD_ARMOUR_CHANCE) {
+				var stack = new ItemStack(item);
+				setItemSlot(getEquipmentSlotForItem(stack), stack);
+			}
+		}
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {

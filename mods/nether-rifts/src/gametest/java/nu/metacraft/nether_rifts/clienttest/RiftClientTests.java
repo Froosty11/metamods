@@ -225,6 +225,36 @@ public final class RiftClientTests implements FabricClientGameTest {
 				AnimationHold.release(server);
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 
+				// War Drummers in armour, each beside a vanilla piglin in the same: iron, gold, diamond and chainmail; dyed
+				// and undyed leather under an enchanted netherite helmet, copper leggings. From the front and the side, at
+				// rest and arms up (big beat frame 32). Screenshots to eyeball against the piglins, not checks.
+				String full = "equipment:{head:{id:\"minecraft:iron_helmet\"},chest:{id:\"minecraft:golden_chestplate\"},"
+						+ "legs:{id:\"minecraft:diamond_leggings\"},feet:{id:\"minecraft:chainmail_boots\"}}";
+				String leather = "equipment:{head:{id:\"minecraft:netherite_helmet\",components:{\"minecraft:enchantment_glint_override\":true}},"
+						+ "chest:{id:\"minecraft:leather_chestplate\",components:{\"minecraft:dyed_color\":3368703}},"
+						+ "legs:{id:\"minecraft:copper_leggings\"},feet:{id:\"minecraft:leather_boots\"}}";
+				String still = "NoAI:1b,PersistenceRequired:1b,IsImmuneToZombification:1b,Rotation:[90f,0f]";
+				server.runCommand("summon nether_rifts:war_drummer -60.5 -60 -1.5 {" + still + "," + full + "}");
+				server.runCommand("summon minecraft:piglin -60.5 -60 0.5 {" + still + "," + full + "}");
+				server.runCommand("summon nether_rifts:war_drummer -60.5 -60 2.5 {" + still + "," + leather + "}");
+				server.runCommand("summon minecraft:piglin -60.5 -60 4.5 {" + still + "," + leather + "}");
+				server.runCommand("tp Tester -65.5 -58.6 1.5 -90 8");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_armour_front").withSize(1920, 1080));
+				AnimationHold.hold(server, RiftEntities.WAR_DRUMMER, "big_beat", 32);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_armour_front_arms_up").withSize(1920, 1080));
+				AnimationHold.release(server);
+				server.runCommand("tp Tester -60.5 -58.6 -5.5 0 8");
+				ctx.waitTicks(20);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_armour_side").withSize(1920, 1080));
+				server.runCommand("tp Tester -55.5 -58.6 1.5 90 8");
+				ctx.waitTicks(20);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_drummer_armour_back").withSize(1920, 1080));
+				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
+				server.runCommand("kill @e[type=minecraft:piglin]");
+
 				// a war ghast with its crew on the deck slung under it, 14 blocks off, turned to four yaws in turn (and then
 				// turning a step a tick): its red harness must sit on its white body at every angle, none above it
 				server.runCommand("summon nether_rifts:war_ghast -40.5 -52 0.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");

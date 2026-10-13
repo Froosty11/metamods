@@ -19,7 +19,7 @@ final class AnimationHold {
 	private AnimationHold() {
 	}
 
-	/** Plays {@code animation} on the overworld's only {@code type} mob and holds it on {@code frame}. */
+	/** Plays {@code animation} on every {@code type} mob in the overworld (one at least) and holds it on {@code frame}. */
 	static void hold(TestServerContext server, EntityType<? extends Entity> type, String animation, int frame) {
 		server.runOnServer(s -> {
 			if (!listening) {
@@ -30,11 +30,13 @@ final class AnimationHold {
 				});
 			}
 			var mobs = s.overworld().getEntities(type, e -> true);
-			if (mobs.size() != 1) throw new AssertionError("expected one " + type + ", found " + mobs.size());
-			var animator = ((AnimatedEntity) mobs.getFirst()).getHolder().getAnimator();
-			animator.playAnimation(animation, 10, true);
-			animator.setAnimationFrame(animation, frame);
-			held = () -> animator.setAnimationFrame(animation, frame);
+			if (mobs.isEmpty()) throw new AssertionError("no " + type);
+			var animators = mobs.stream().map(mob -> ((AnimatedEntity) mob).getHolder().getAnimator()).toList();
+			for (var animator : animators) {
+				animator.playAnimation(animation, 10, true);
+				animator.setAnimationFrame(animation, frame);
+			}
+			held = () -> animators.forEach(animator -> animator.setAnimationFrame(animation, frame));
 		});
 	}
 

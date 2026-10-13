@@ -11,7 +11,6 @@ import de.tomalbrc.bil.core.model.Node;
 import de.tomalbrc.bil.core.model.Pose;
 import de.tomalbrc.bil.util.Utils;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
@@ -45,8 +44,8 @@ import java.util.List;
  * place but lose their turn), so a marker's pose is worked out from its bone's: the bone's pose in the playing
  * animation, then the marker's rest place and rotation in it. Animating a marker itself does nothing. Each marker gets
  * an item display, posed through the holder as BIL poses its bones (body yaw, head look for what's in the head bone,
- * death tilt, scale), so it moves with its bone. Worn armour (helmets) isn't shown: vanilla draws that as armour fitted
- * to the head, not as an item. Skulls show as their item model, not vanilla's skull.
+ * death tilt, scale), so it moves with its bone. A worn helmet isn't shown here: vanilla draws that as armour fitted
+ * to the head, not as an item, and so does {@link ArmourPieces}. Skulls show as their item model, not vanilla's skull.
  */
 public final class HeldItems {
 
@@ -85,9 +84,7 @@ public final class HeldItems {
 				case LEFT_HAND -> mob.getItemHeldByArm(HumanoidArm.LEFT);
 				case HEAD -> {
 					var stack = mob.getItemBySlot(EquipmentSlot.HEAD);
-					var equippable = stack.get(DataComponents.EQUIPPABLE);
-					yield equippable != null && equippable.slot() == EquipmentSlot.HEAD && equippable.assetId().isPresent()
-							? ItemStack.EMPTY : stack;
+					yield ArmourPieces.isWorn(stack, EquipmentSlot.HEAD) ? ItemStack.EMPTY : stack;
 				}
 			};
 		}
@@ -231,10 +228,15 @@ public final class HeldItems {
 		}
 	}
 
-	/** A living entity holder that shows its mob's held items ({@link HeldItems}); use it in place of LivingEntityHolder. */
+	/**
+	 * A living entity holder that shows its mob's held items ({@link HeldItems}) and worn armour ({@link ArmourPieces});
+	 * use it in place of LivingEntityHolder. Polymer ticks it from the entity tracker, after every mob has ticked, so the
+	 * armour's colours come after the mob's hurt tint.
+	 */
 	public static class Holder<T extends LivingEntity & AnimatedEntity> extends LivingEntityHolder<T> {
 
 		private final HeldItems heldItems = new HeldItems(this);
+		private final ArmourPieces armour = new ArmourPieces(this);
 
 		public Holder(T parent, Model model) {
 			super(parent, model);
@@ -244,10 +246,15 @@ public final class HeldItems {
 			return heldItems;
 		}
 
+		public ArmourPieces armour() {
+			return armour;
+		}
+
 		@Override
 		protected void onTick() {
 			super.onTick();
 			heldItems.tick();
+			armour.tick();
 		}
 	}
 }
