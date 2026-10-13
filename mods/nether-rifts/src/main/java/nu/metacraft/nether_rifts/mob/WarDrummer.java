@@ -1,7 +1,6 @@
 package nu.metacraft.nether_rifts.mob;
 
 import de.tomalbrc.bil.api.AnimatedEntity;
-import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -63,7 +62,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	public static final int BIG_BEAT_TICKS = 56;
 	public static final int BIG_BEAT_SLAM_TICK = 36;
 
-	private final LivingEntityHolder<WarDrummer> holder;
+	private final HeldItems.Holder<WarDrummer> holder;
 	private boolean walking = false;
 	private boolean drumming = false;
 	private boolean inBigBeat = false;
@@ -71,7 +70,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 
 	public WarDrummer(EntityType<? extends WarDrummer> type, Level level) {
 		super(type, level);
-		this.holder = new LivingEntityHolder<>(this, RiftModels.WAR_DRUMMER);
+		this.holder = new HeldItems.Holder<>(this, RiftModels.WAR_DRUMMER);
 		EntityAttachment.ofTicking(this.holder, this);
 		this.holder.getAnimator().playAnimation("idle", 0, true);
 	}
@@ -84,7 +83,7 @@ public class WarDrummer extends Monster implements AnimatedEntity {
 	}
 
 	@Override
-	public LivingEntityHolder<WarDrummer> getHolder() {
+	public HeldItems.Holder<WarDrummer> getHolder() {
 		return holder;
 	}
 

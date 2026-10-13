@@ -71,6 +71,7 @@ public class NetherRiftsTests {
 					BombTests.registerTests();
 					BombardierTests.registerTests();
 					CaptainTests.registerTests();
+					HeldItemsTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new

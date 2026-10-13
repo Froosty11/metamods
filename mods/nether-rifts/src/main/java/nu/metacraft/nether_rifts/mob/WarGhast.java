@@ -1,7 +1,6 @@
 package nu.metacraft.nether_rifts.mob;
 
 import de.tomalbrc.bil.api.AnimatedEntity;
-import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -49,11 +48,11 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/** Crew glide time: enough to come down from a bombing run's climb and well beyond. */
 	public static final int CREW_SLOW_FALL_TICKS = 200;
 
-	private final LivingEntityHolder<WarGhast> holder;
+	private final HeldItems.Holder<WarGhast> holder;
 
 	public WarGhast(EntityType<? extends WarGhast> type, Level level) {
 		super(type, level);
-		this.holder = new LivingEntityHolder<>(this, RiftModels.WAR_GHAST) {
+		this.holder = new HeldItems.Holder<>(this, RiftModels.WAR_GHAST) {
 			// the deck hangs below the box BIL culls the bones by: give them room down to its underside
 			@Override
 			protected void updateCullingBox() {
@@ -69,7 +68,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	@Override
-	public LivingEntityHolder<WarGhast> getHolder() {
+	public HeldItems.Holder<WarGhast> getHolder() {
 		return holder;
 	}
 
