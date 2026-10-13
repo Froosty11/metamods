@@ -1,5 +1,6 @@
 """Builds the nether rift's panorama sprite (rift_panel.png) from the six faces PanoramaCapture took.
 Run from the module: python3 tools/gen_panorama.py [face size, default 512]
+or: python3 tools/gen_panorama.py alpha (re-stamps the committed sprite's alpha, without the faces)
 
 Reads tools/panorama/panorama_0..5.png (Minecraft's own panorama, 1024 px a face, taken facing south, looking
 into the Eskmorra fortress build: see PanoramaCapture and the README), box-downsamples each face to 512 (sharp
@@ -18,6 +19,12 @@ camera with image right and image up as given:
 	4 looks up    (+Y): right is -X, up is -Z
 	5 looks down  (-Y): right is -X, up is +Z
 
+Every pixel's alpha is FALLBACK_ALPHA. The shader reads the colour whatever the alpha (metacraft-core's item
+shader skips the alpha cutout for nether rifts), and alpha strictly between 0 and 255 makes Minecraft draw the
+panel blended, which the glass's tint needs. A client whose core shaders are replaced (Iris, OptiFine, no
+patched pack) draws the raw sprite instead, and its alpha test throws all of it away: it sees the plain nether
+portal behind, not the panorama stretched over it.
+
 Standard library only: a small PNG reader (8-bit RGB/RGBA, not interlaced) and writer."""
 import struct, sys, zlib
 from pathlib import Path
@@ -27,6 +34,7 @@ FACES = MODULE / "tools/panorama"
 OUT = MODULE / "src/main/resources/assets/nether_rifts/textures/item/rift_panel.png"
 LEVELS = 24   # per channel: a light posterise, enough to band the fog into steps
 GAMMA = 0.7   # lifts the nether's shadows: through a thin crack, under the rift's vignette, they'd read as black
+FALLBACK_ALPHA = 1   # of 255: under any alpha test (vanilla's and packs' are 0.1), not 0, so the sprite counts as translucent
 
 def read_png(path):
 	data = path.read_bytes()
@@ -67,11 +75,11 @@ def read_png(path):
 	return w, h, rows
 
 def write_png(path, w, h, rows):
-	raw = b"".join(b"\x00" + bytes(c for px in row for c in px) for row in rows)
+	raw = b"".join(b"\x00" + bytes(c for px in row for c in (*px[:3], FALLBACK_ALPHA)) for row in rows)
 	def chunk(kind, body):
 		return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF)
 	path.parent.mkdir(parents=True, exist_ok=True)
-	path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+	path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
 		+ chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
 
 def downsample(w, h, rows, size):
@@ -98,6 +106,11 @@ def posterise(c):
 	return tuple(min(255, int(round(round(255 * (v / 255) ** GAMMA / step) * step))) for v in c)
 
 def main():
+	if sys.argv[1:] == ["alpha"]:
+		w, h, rows = read_png(OUT)
+		write_png(OUT, w, h, rows)
+		print(f"re-stamped {OUT} ({w}×{h}) with alpha {FALLBACK_ALPHA}")
+		return
 	size = int(sys.argv[1]) if len(sys.argv) > 1 else 512
 	atlas = [[(0, 0, 0)] * (size * 3) for _ in range(size * 2)]
 	for face in range(6):

@@ -1,7 +1,11 @@
+import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NetherPortalBlock;
 import nu.metacraft.nether_rifts.rift.RiftBlocks;
 import nu.metacraft.nether_rifts.rift.RiftData;
 import nu.metacraft.nether_rifts.rift.Stage;
@@ -78,6 +82,19 @@ public class FormingTests {
 				ctx.assertTrue(rift.visual() != null, "no visual");
 				// a 2×3 rectangle: one panel and four edge strips
 				ctx.assertTrue(rift.visual().elementCount() == 5, rift.visual().elementCount() + " elements");
+				cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("forming/clients_see_portal", ctx -> {
+			// Vanilla clients see a nether portal turned the rift's way and draw its swirl themselves; the server's block
+			// stays a rift, so nothing teleports.
+			var alongX = lightFrame(ctx, 2, 3);
+			var alongZ = ShapeTests.zFrame(ctx, 2, 3, Blocks.OBSIDIAN);
+			ctx.setBlock(alongZ, Blocks.FIRE);
+			ctx.runAtTickTime(3, () -> {
+				assertClientPortal(ctx, alongX, Direction.Axis.X);
+				assertClientPortal(ctx, alongZ, Direction.Axis.Z);
 				cleanUp(ctx);
 				ctx.succeed();
 			});
@@ -171,6 +188,14 @@ public class FormingTests {
 				ctx.assertBlockPresent(block, inside.offset(x, y, 0));
 			}
 		}
+	}
+
+	static void assertClientPortal(GameTestHelper ctx, BlockPos pos, Direction.Axis axis) {
+		var state = ctx.getBlockState(pos);
+		ctx.assertTrue(state.is(RiftBlocks.RIFT), "no rift block at " + pos + ": " + state);
+		var client = ((PolymerBlock) state.getBlock()).getPolymerBlockState(state, PacketContext.get());
+		ctx.assertTrue(client.is(Blocks.NETHER_PORTAL), "clients see " + client + " at " + pos);
+		ctx.assertTrue(client.getValue(NetherPortalBlock.AXIS) == axis, "clients see a portal along " + client.getValue(NetherPortalBlock.AXIS) + ", not " + axis);
 	}
 
 	/** The one rift inside this test's room (tests in a batch share the level and its RiftData). */

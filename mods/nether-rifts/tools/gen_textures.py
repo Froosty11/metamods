@@ -29,16 +29,25 @@ def edge():
 			px.append((255, 140, 240, int(40 + 215 * a)))
 	return px
 
-def quad(texture):
+# The faces sit this far either side of the model's middle: just clear of the nether portal's slab (6 to 10 on
+# its thin axis), so they never fight it for depth.
+CLEAR = 2.16
+
+def quad(texture, inward):
+	"""Two faces either side of the middle, each facing out; with inward, each also faces in, so from either side
+	one face is seen through the portal (the shader draws the glass's body there)."""
+	face = {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0}
+	near, far = 8 + CLEAR, 8 - CLEAR
+	south = {"south": face, **({"north": face} if inward else {})}
+	north = {"north": face, **({"south": face} if inward else {})}
 	return {"textures": {"rift": f"nether_rifts:item/{texture}", "particle": f"nether_rifts:item/{texture}"},
-		"elements": [{"from": [0, 0, 8], "to": [16, 16, 8], "faces": {
-			"north": {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0},
-			"south": {"uv": [0, 0, 16, 16], "texture": "#rift", "tintindex": 0}}}]}
+		"elements": [{"from": [0, 0, near], "to": [16, 16, near], "faces": south},
+			{"from": [0, 0, far], "to": [16, 16, far], "faces": north}]}
 
 def main():
 	png(ASSETS / "textures/item/rift_edge.png", 16, 16, edge())
 	for name, tint in (("rift_panel", BODY_TINT), ("rift_edge", EDGE_TINT)):
-		write_json(ASSETS / "models/item" / f"{name}.json", quad(name))
+		write_json(ASSETS / "models/item" / f"{name}.json", quad(name, name == "rift_panel"))
 		write_json(ASSETS / "items" / f"{name}.json", {"model": {"type": "minecraft:model",
 			"model": f"nether_rifts:item/{name}", "tints": [{"type": "minecraft:dye", "default": tint}]}})
 	print("wrote", ASSETS)

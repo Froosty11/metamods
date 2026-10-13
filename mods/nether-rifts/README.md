@@ -16,12 +16,14 @@ last wave, gets its own red boss bar. Winning closes the rift and turns its obsi
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles
 when the raid ends).
 
-A rift is drawn by metacraft-core's item shader as pixel art fixed to the world (16 pixels a block): a
-purple membrane in the nether portal's colours, glitching, with cracks that widen as the rift tears, and
-through them a far-off nether fortress (a panorama captured in game, of Eskmorra: credits below). Players whose core shaders are replaced (Iris,
-OptiFine) see the panel's raw sprite instead: that panorama's six cube faces, stretched over the rift; unless
-their shaderpack went through ovvar's shader patcher, which puts the same drawing into the pack (seen working
-in Complementary Reimagined and Unbound, BSL and Bliss).
+Clients see a rift's blocks as a vanilla nether portal (swirl, particles, hum, and its overlay if you walk in;
+on the server they stay rift blocks and teleport nobody). Over it, metacraft-core's item shader draws glass
+cracking as pixel art fixed to the world (16 pixels a block): hairlines, then a web, then holes through which a
+far-off nether fortress shows (a panorama captured in game, of Eskmorra: credits below), the portal reddening
+as the rift tears. Players whose core shaders are replaced (Iris, OptiFine) see the panel's raw sprite instead,
+which is all but transparent: the plain portal with a glowing edge round it; unless their shaderpack went
+through ovvar's shader patcher, which puts the same drawing into the pack (seen working in Complementary
+Reimagined and Unbound, BSL and Bliss).
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the War Drummer and the war ghast's bombing (ranges,
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing). Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
@@ -55,4 +57,5 @@ python3 tools/gen_panorama.py
 
 The first writes `tools/panorama/` (1024 px a face, from over the lava sea at x 394, y 42, z 672; add
 `-PpanoramaSpots="x,y,z;x,y,z"` to try other spots, each into its own folder); the second turns it into the
-panel's sprite (512 px a face).
+panel's sprite (512 px a face, its alpha all but zero so the fallback shows nothing; `python3
+tools/gen_panorama.py alpha` re-stamps only that).

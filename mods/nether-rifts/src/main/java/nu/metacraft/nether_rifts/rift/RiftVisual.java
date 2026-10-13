@@ -25,9 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A rift as players see it: one item display per merged panel and one thin strip per outline run, all
- * paper with a rift model dyed with a shader marker (#FE, stage, part). The shared item shader in
- * metacraft-core draws them; a client whose core shaders are replaced sees the animated fallback sprites.
+ * A rift's cracks, over the nether portal clients see in its blocks: one item display per merged panel and one
+ * thin strip per outline run, all paper with a rift model dyed with a shader marker (#FE, stage, part). Each
+ * model has a face either side of the portal's slab, just clear of it; the shared item shader in metacraft-core
+ * draws them. A client whose core shaders are replaced sees the fallback sprites: the panel's is see-through
+ * there, so it sees the plain portal with the edge strips round it.
  */
 public final class RiftVisual extends ElementHolder {
 
@@ -131,19 +133,13 @@ public final class RiftVisual extends ElementHolder {
 		if (attachment == null || !(attachment.getWorld() instanceof ServerLevel level)) {
 			return;
 		}
-		if (age % 4 == 0) {
-			int count = switch (stage) {
-				case LIT -> 1;
-				case UNSTABLE -> 3;
-				case TORN, RAID -> 6;
-			};
+		// Clients make the portal's own particles; past stage 1 the rift adds soul fire, and ash once it's torn.
+		if (age % 4 == 0 && stage != Stage.LIT) {
+			int count = stage.raiding() ? 6 : 3;
 			var random = level.getRandom();
 			for (int i = 0; i < count; i++) {
 				var at = Vec3.atCenterOf(blocks.get(random.nextInt(blocks.size())));
-				level.sendParticles(ParticleTypes.PORTAL, at.x, at.y, at.z, 2, 0.3, 0.3, 0.3, 0.4);
-				if (stage != Stage.LIT) {
-					level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 1, 0.3, 0.3, 0.3, 0.01);
-				}
+				level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 1, 0.3, 0.3, 0.3, 0.01);
 				if (stage.raiding()) {
 					level.sendParticles(ParticleTypes.ASH, at.x, at.y, at.z, 2, 0.6, 0.6, 0.6, 0.0);
 				}

@@ -21,7 +21,8 @@ import java.util.Properties;
 
 /**
  * A vanilla client (no Polymer handshake) joins an in-process server and looks at rifts: a 2×3 portal at
- * each stage, close and from 8 blocks (and its membrane staying put on the world as the camera steps aside),
+ * each stage, close and from 8 blocks (vanilla's own portal swirl with the rift's cracks over it, staying put on
+ * the world as the camera steps aside, and still when time stands still),
  * an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
  * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer (its
  * idle must play without AI, its big beat must swing forward) and at a war ghast with its deck crew, turned every way
@@ -60,6 +61,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 				int[] purple = new int[3];
 				int[] nether = new int[3];
 				double[] holes = new double[3];
+				double[] redness = new double[3];
 				String[] stages = {"lit", "unstable", "torn"};
 				for (int i = 0; i < stages.length; i++) {
 					String stage = stages[i];
@@ -74,10 +76,12 @@ public final class RiftClientTests implements FabricClientGameTest {
 					purple[i] = count(first, RiftClientTests::purplePixel);
 					nether[i] = count(first, RiftClientTests::netherPixel);
 					holes[i] = holeShare(first);
+					redness[i] = redness(first);
 					System.out.println("[nether-rifts-clienttest] " + stage + " rift=" + rift + " purple=" + purple[i] + " nether=" + nether[i]
-							+ " holes=" + String.format("%.3f", holes[i]) + " moved=" + moved);
+							+ " holes=" + String.format("%.3f", holes[i]) + " redness=" + String.format("%.3f", redness[i]) + " moved=" + moved);
 					check(rift >= BOX / 20, "no rift on screen at " + stage + ": " + rift + " rift pixels");
-					check(moved >= BOX / 200, "the rift doesn't move at " + stage + ": " + moved + " pixels changed");
+					// the portal's own swirl animates under the cracks, from stage 1 on
+					check(moved >= BOX / 20, "the rift doesn't move at " + stage + ": " + moved + " pixels changed");
 					// and from 8 blocks, as it is mostly seen in play (to look at, not measured)
 					server.runCommand("tp Tester 0.5 -58 8.5 180 0");
 					conn.waitForClientboundPackets();
@@ -86,20 +90,26 @@ public final class RiftClientTests implements FabricClientGameTest {
 					server.runCommand("tp Tester 0.5 -58 4 180 0");
 					conn.waitForClientboundPackets();
 				}
-				// The fallback sprite (the panorama, stretched) looks the same at every stage; only the shader
-				// cracks the membrane open as the rift tears. More nether and less purple prove it ran.
+				// Lit, the glass is clear but for hairline cracks: the vanilla portal's purple fills most of the box.
+				check(purple[0] >= BOX / 3, "the lit rift doesn't show the portal's purple between its cracks: " + purple[0]);
+				// The fallback sprite draws nothing at any stage; only the shader cracks the glass open as the rift
+				// tears. More nether proves it ran.
 				if (nether[2] < 2000 || nether[2] < nether[0] * 2) {
 					check(false, "the torn rift shows no more nether than the lit one (shader not running?): nether lit=" + nether[0] + " torn=" + nether[2]);
 				}
-				if (purple[2] * 3 > purple[0] * 2) {
-					check(false, "the torn rift's membrane isn't mostly gone: purple lit=" + purple[0] + " torn=" + purple[2]);
+				// The glass's body, seen through the portal, reddens it from stage 2: the portal's purples lean
+				// further to red at each stage.
+				if (redness[1] < redness[0] + 0.04 || redness[2] < redness[1] + 0.04) {
+					check(false, "the portal doesn't redden stage by stage: red/blue lit=" + String.format("%.3f", redness[0])
+							+ " unstable=" + String.format("%.3f", redness[1]) + " torn=" + String.format("%.3f", redness[2]));
 				}
 				// Torn, whole shards have fallen out of the glass and the nether shows through the holes; lit, the glass
-				// is whole but for cracks and a pinhole. The fallback sprite is all panorama at every stage.
+				// is whole but for cracks and a pinhole.
 				if (holes[2] < 0.2 || holes[2] < holes[0] * 4) {
 					check(false, "the torn rift shows no holes onto the nether: share of panorama in the rift lit="
 							+ String.format("%.3f", holes[0]) + " torn=" + String.format("%.3f", holes[2]));
 				}
+				stillWhenFrozen(ctx, server);
 				server.runCommand("rifts collapse 0 -58 0");
 
 				// an L of plain obsidian at z 10 (the frame itself must score nothing), opened with /rifts form
@@ -294,12 +304,49 @@ public final class RiftClientTests implements FabricClientGameTest {
 		}
 	}
 
-	/** Anything the rift draws: membrane, rims, edge or the nether behind; none of which a flat world at night has. */
+	/**
+	 * Nothing flickers: with the world's ticking frozen (the shader's time, the portal's swirl and the particles
+	 * stand still) two shots of the unstable rift a quarter second apart must match. The cracks sit just clear
+	 * of the portal's slab (0.135 of a block from the middle against its 0.125); cracks fighting it for depth
+	 * would show as speckle, which the shots are there to look at.
+	 */
+	private static void stillWhenFrozen(ClientGameTestContext ctx, TestDedicatedServerContext server) {
+		server.runCommand("rifts stage 0 -58 0 unstable");
+		ctx.waitTicks(10);
+		server.runCommand("tick freeze");
+		ctx.waitTicks(5);
+		var a = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_frozen_a").withSize(1920, 1080)));
+		ctx.waitTicks(5);
+		var b = read(ctx.takeScreenshot(TestScreenshotOptions.of("rift_frozen_b").withSize(1920, 1080)));
+		server.runCommand("tick unfreeze");
+		int moved = changed(a, b, 24);
+		System.out.println("[nether-rifts-clienttest] frozen moved=" + moved);
+		check(moved <= BOX / 1000, "the rift flickers while time stands still: " + moved + " pixels changed");
+	}
+
+	/** How far the portal's purples lean to red: their summed red over their summed blue, in the centre box. */
+	private static double redness(BufferedImage img) {
+		long r = 0, b = 0;
+		int cx = img.getWidth() / 2, cy = img.getHeight() / 2;
+		for (int y = cy - 150; y < cy + 150; y++) {
+			for (int x = cx - 150; x < cx + 150; x++) {
+				int p = img.getRGB(x, y);
+				int pr = (p >> 16) & 255, pg = (p >> 8) & 255, pb = p & 255;
+				if (purplePixel(pr, pg, pb)) {
+					r += pr;
+					b += pb;
+				}
+			}
+		}
+		return b == 0 ? 0 : r / (double) b;
+	}
+
+	/** Anything the rift draws: portal, cracks, rims, edge or the nether behind; none of which a flat world at night has. */
 	static boolean riftPixel(int r, int g, int b) {
 		return purplePixel(r, g, b) || netherPixel(r, g, b) || (r > 200 && b > 150);
 	}
 
-	/** The membrane's purples (reddened at stage 3) and the edge's hot pink: blue and red well above green. */
+	/** The portal's purples (reddened from stage 2) and the edge's hot pink: blue and red well above green. */
 	static boolean purplePixel(int r, int g, int b) {
 		return b > g + 40 && r > g + 20;
 	}
@@ -310,7 +357,7 @@ public final class RiftClientTests implements FabricClientGameTest {
 	}
 
 	/**
-	 * The membrane must be fixed to the world, not the screen. The camera steps a quarter block sideways without
+	 * The cracks must be fixed to the world, not the screen. The camera steps a quarter block sideways without
 	 * turning, so the rift slides across the screen; a pattern on the world slides with it, one on the screen
 	 * stays put. Proxy: the shift of the rift's left edge (the geometry) against the shift that best matches a
 	 * window well inside the rift between the two shots (the pattern: cracks, rims, swirl). They must agree,
@@ -354,11 +401,11 @@ public final class RiftClientTests implements FabricClientGameTest {
 		System.out.println("[nether-rifts-clienttest] locked box=" + Arrays.toString(boxA) + " geometry=" + geometry + " pattern=" + best
 				+ " diff=" + String.format("%.1f", bestDiff) + " diffAtZero=" + String.format("%.1f", atZero));
 		check(Math.abs(geometry) >= 20, "the camera step didn't move the rift on screen: " + geometry + " px");
-		check(Math.abs(best - geometry) <= 4, "the membrane doesn't move with the world: rift moved " + geometry + " px, pattern " + best + " px");
+		check(Math.abs(best - geometry) <= 4, "the rift's pattern doesn't move with the world: rift moved " + geometry + " px, pattern " + best + " px");
 	}
 
 	/**
-	 * The share of the rift, its glowing edge left out, that shows the panorama rather than the membrane. The rift is
+	 * The share of the rift, its edge left out, that shows the panorama rather than the portal. The rift is
 	 * taken as the rows and columns with 60 rift pixels or more, so portal particles drifting round it don't stretch
 	 * the box over the frame.
 	 */

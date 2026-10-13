@@ -150,8 +150,19 @@ public final class Rift {
 	}
 
 	public void placeBlocks(ServerLevel level) {
+		var state = RiftBlocks.RIFT.defaultBlockState().setValue(RiftBlock.AXIS, shape.axis());
 		for (var pos : shape.blocks()) {
-			level.setBlock(pos, RiftBlocks.RIFT.defaultBlockState(), Block.UPDATE_ALL);
+			level.setBlock(pos, state, Block.UPDATE_ALL);
+		}
+	}
+
+	/** Rift blocks saved before they had an axis load facing X; clients see them as portals, so turn them. */
+	private void alignBlocks(ServerLevel level) {
+		for (var pos : shape.blocks()) {
+			var state = level.getBlockState(pos);
+			if (state.is(RiftBlocks.RIFT) && state.getValue(RiftBlock.AXIS) != shape.axis()) {
+				level.setBlock(pos, state.setValue(RiftBlock.AXIS, shape.axis()), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+			}
 		}
 	}
 
@@ -201,6 +212,7 @@ public final class Rift {
 			visual = null;
 		}
 		if (visual == null) {
+			alignBlocks(level);
 			visual = RiftVisual.attach(level, this);
 		}
 		stageTicks++;
