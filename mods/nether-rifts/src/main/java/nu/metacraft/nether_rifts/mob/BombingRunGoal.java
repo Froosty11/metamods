@@ -18,7 +18,8 @@ import java.util.EnumSet;
  * over the line is its weak window. Where a wall, roof or the ground is in the way, the line and the climb stop
  * short of it: a ghast's move control won't fly at a point its body doesn't fit, and the deck hanging under it
  * must fit too. With no room for the ghast and its deck over the target at all, the run is given up until the
- * cooldown has passed. The numbers are the defaults of the config's {@code mobs.bombardier} section.
+ * cooldown has passed. Only while the Grenadier is on the deck: killed there, no more runs. The numbers are the
+ * defaults of the config's {@code mobs.bombardier} section.
  */
 public class BombingRunGoal extends Goal {
 
@@ -54,12 +55,12 @@ public class BombingRunGoal extends Goal {
 			return false;
 		}
 		var t = ghast.getTarget();
-		return t != null && t.isAlive() && ghast.distanceTo(t) < 48;
+		return t != null && t.isAlive() && ghast.distanceTo(t) < 48 && ghast.hasCrew(WarGhast.Crew.BOMBARDIER);
 	}
 
 	@Override
 	public boolean canContinueToUse() {
-		return phase != null && target != null && target.isAlive();
+		return phase != null && target != null && target.isAlive() && ghast.hasCrew(WarGhast.Crew.BOMBARDIER);
 	}
 
 	@Override

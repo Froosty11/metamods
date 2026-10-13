@@ -15,10 +15,14 @@ wears as a piglin does (vanilla's piglin armour and textures in every vanilla ma
 glinting; no trims), and a nether drummer may spawn in gold armour as piglins do (each piece 10% of the time). In Large waves 5 and
 later come chained ghasts: in a harness, a deck slung under them on chains with a crew of a Piglin Drummer, a Piglin
 Grenadier, a spear piglin and a crossbow piglin. Their gear shows on the crew (a golden spear, a crossbow, the
-Grenadier's goggles, and any armour on the spear piglin, for show only: it doesn't protect the ghast). They make bombing runs, the Grenadier dropping magma bombs from the deck, each bomb's landing
+Grenadier's goggles, and any armour on the spear piglin, for show only: it doesn't protect the ghast). The crew can be
+shot or struck on the deck (each has its own health, the spear piglin's armour protects it; the wooden deck turns
+arrows from below), and each one killed there takes its work with it: the spear piglin stabs the ghast into shooting
+fireballs, the Grenadier drops the bombs, the crossbow piglin shoots bolts at players it can see (every 3 seconds,
+`mobs.bombardier.crossbow_every`). They make bombing runs, the Grenadier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
-or loot on the ground. When a chained ghast dies, its crew jump off where they stood and glide down to fight on foot, the spear
-piglin wearing the ghast's armour: the Grenadier,
+or loot on the ground. When a chained ghast dies, the crew left on it jump off where they stood, with the health they had left, and glide
+down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword, then stops every 4 seconds to lob a magma bomb by hand at
 a player 4 to 12 blocks off, the landing spot again marked a second ahead. The Piglin General, in a large raid's
 last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.

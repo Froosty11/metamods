@@ -70,6 +70,7 @@ public class NetherRiftsTests {
 					DrummerTests.registerTests();
 					BombTests.registerTests();
 					BombardierTests.registerTests();
+					GhastCrewTests.registerTests();
 					CaptainTests.registerTests();
 					HeldItemsTests.registerTests();
 					ArmourTests.registerTests();
@@ -145,6 +146,7 @@ public class NetherRiftsTests {
 						}))
 						.then(preset("drummer_natural", () -> naturalChance(1)))
 						.then(preset("drummer_never", () -> naturalChance(0)))
+						.then(preset("crossbow_never", () -> crossbowEvery(0)))
 		));
 	}
 
@@ -156,6 +158,17 @@ public class NetherRiftsTests {
 				d.shockStrength(), d.shockDamage(), chance);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
+	}
+
+	/** The defaults, with the Chained Ghast's crossbow piglin shooting this often. */
+	private static NetherRiftsConfig crossbowEvery(int every) {
+		var b = NetherRiftsConfig.BombardierTuning.DEFAULT;
+		var c = NetherRiftsConfig.DEFAULT;
+		var bombardier = new NetherRiftsConfig.BombardierTuning(b.diveHeight(), b.climbHeight(), b.runLength(), b.bombRange(), b.bombEvery(),
+				b.cooldown(), b.bombPower(), b.warnTicks(), b.burnTicks(), b.playerFireTicks(), b.patchRadius(), b.throwEvery(), b.throwMinRange(),
+				b.throwRange(), every);
+		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> preset(String name, Supplier<NetherRiftsConfig> config) {

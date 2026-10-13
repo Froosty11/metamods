@@ -48,7 +48,7 @@ public class MobsTuningCodecTest {
 	public void defaultsAreTheSpecNumbers() {
 		var drummer = NetherRiftsConfig.DrummerTuning.DEFAULT;
 		assertEquals(new NetherRiftsConfig.DrummerTuning(10, 4, 12, 120, 4, 1.2, 4f, 0.03), drummer);
-		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 6, 100, 1.5f, 20, 40, 60, 1.5, 80, 4, 12),
+		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 6, 100, 1.5f, 20, 40, 60, 1.5, 80, 4, 12, 60),
 				NetherRiftsConfig.BombardierTuning.DEFAULT);
 	}
 }

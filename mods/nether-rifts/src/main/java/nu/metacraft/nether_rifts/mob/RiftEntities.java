@@ -33,6 +33,19 @@ public final class RiftEntities {
 					.passengerAttachments(2.0125f).ridingOffset(-0.7f).clientTrackingRange(10),
 			GhastBombardier.createAttributes());
 
+	/**
+	 * A Chained Ghast's crew member, to blows and projectiles: an interaction to clients, its size set per crew member
+	 * ({@link CrewHitbox}). Moved every tick.
+	 */
+	public static final EntityType<CrewHitbox> CREW_HITBOX = living("crew_hitbox",
+			EntityType.Builder.of(CrewHitbox::new, MobCategory.MISC).sized(0.6f, 1.95f).noSummon().noSave().clientTrackingRange(10).updateInterval(1),
+			CrewHitbox.createAttributes());
+
+	/** A Chained Ghast's deck, to projectiles: 3 blocks square, a quarter block thick, as the model's deck floor. */
+	public static final EntityType<DeckHitbox> DECK_HITBOX = register("deck_hitbox",
+			EntityType.Builder.<DeckHitbox>of(DeckHitbox::new, MobCategory.MISC).sized((float) WarGhast.DECK_WIDTH, (float) WarGhast.DECK_THICKNESS)
+					.noSummon().noSave().clientTrackingRange(10).updateInterval(1));
+
 	public static final EntityType<MagmaBomb> MAGMA_BOMB = register("magma_bomb",
 			EntityType.Builder.<MagmaBomb>of(MagmaBomb::new, MobCategory.MISC).sized(0.25f, 0.25f).clientTrackingRange(4).updateInterval(10));
 

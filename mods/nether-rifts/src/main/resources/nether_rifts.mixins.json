@@ -8,7 +8,9 @@
 		"CrafterBlockMixin",
 		"CraftingMenuMixin",
 		"EnchantmentHelperMixin",
+		"GhastShootFireballGoalMixin",
 		"HoglinAccessor",
+		"InteractionAccessor",
 		"LargeFireballMixin",
 		"MobAccessor",
 		"MobMixin",
@@ -16,7 +18,8 @@
 		"PiglinAiMixin",
 		"PiglinMixin",
 		"PiglinSpecificSensorMixin",
-		"PortalShapeAccessor"
+		"PortalShapeAccessor",
+		"ProjectileMixin"
 	],
 	"client": [],
 	"injectors": {

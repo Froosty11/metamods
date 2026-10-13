@@ -14,6 +14,7 @@ import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
 import nu.metacraft.nether_rifts.mob.MagmaBomb;
 import nu.metacraft.nether_rifts.mob.WarDrummer;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.raid.Roster;
 import nu.metacraft.nether_rifts.raid.Slot;
 import se.metacraft.config.container.ConfigContainer;
@@ -119,18 +120,18 @@ public record NetherRiftsConfig(
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
 			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius,
-			int throwEvery, double throwMinRange, double throwRange
+			int throwEvery, double throwMinRange, double throwRange, int crossbowEvery
 	) {
 		public static final BombardierTuning DEFAULT = new BombardierTuning(
 				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
 				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
 				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
-				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE
+				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE, WarGhast.CROSSBOW_EVERY
 		);
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("dive_height", Codec.doubleRange(1, 64), DEFAULT.diveHeight()),
-						"On a run the chained ghast's deck (hung 3.5 blocks under it) flies this many blocks above the target."
+						"On a run the chained ghast's deck (hung about 6 blocks under it) flies this many blocks above the target."
 				).forGetter(BombardierTuning::diveHeight),
 				CommentCodec.comment(
 						Sections.section("climb_height", Codec.doubleRange(1, 128), DEFAULT.climbHeight()),
@@ -183,7 +184,11 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("throw_range", Codec.doubleRange(0, 64), DEFAULT.throwRange()),
 						"It throws at players at most this many blocks off. A thrown bomb flies at least warn_ticks."
-				).forGetter(BombardierTuning::throwRange)
+				).forGetter(BombardierTuning::throwRange),
+				CommentCodec.comment(
+						Sections.section("crossbow_every", Codec.intRange(0, 72_000), DEFAULT.crossbowEvery()),
+						"On the deck, the crossbow piglin shoots a bolt this often, in ticks, at a player it can see within 24 blocks (0: never)."
+				).forGetter(BombardierTuning::crossbowEvery)
 		).apply(i, BombardierTuning::new));
 	}
 

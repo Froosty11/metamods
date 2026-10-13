@@ -110,6 +110,49 @@ public class ModelTests {
 		assertEquals(-WarGhast.DECK_DROP * 16, lowest, 1e-6, "the deck's underside");
 	}
 
+	/** The deck's floor (its widest cube) is WarGhast's deck hitbox: DECK_WIDTH square, DECK_THICKNESS thick, at the bottom. */
+	@Test
+	public void warGhastDeckFloor() throws IOException {
+		var model = json("/model/nether_rifts/war_ghast.bbmodel");
+		var deck = model.getAsJsonArray("groups").asList().stream().map(g -> g.getAsJsonObject())
+			.filter(g -> g.get("name").getAsString().equals("deck")).findFirst().orElseThrow().get("uuid").getAsString();
+		var cubes = new java.util.HashSet<String>();
+		collectCubes(model.getAsJsonArray("outliner"), deck, false, cubes);
+		double[] floor = null;
+		for (var element : model.getAsJsonArray("elements")) {
+			var e = element.getAsJsonObject();
+			if (!cubes.contains(e.get("uuid").getAsString())) {
+				continue;
+			}
+			var from = e.getAsJsonArray("from");
+			var to = e.getAsJsonArray("to");
+			double[] box = {from.get(0).getAsDouble(), from.get(1).getAsDouble(), to.get(0).getAsDouble(), to.get(1).getAsDouble(),
+				from.get(2).getAsDouble(), to.get(2).getAsDouble()};
+			if (floor == null || box[2] - box[0] > floor[2] - floor[0]) {
+				floor = box;
+			}
+		}
+		assertNotNull(floor, "the deck has no cubes");
+		assertEquals(WarGhast.DECK_WIDTH * 16, floor[2] - floor[0], 1e-6, "the deck floor's width");
+		assertEquals(WarGhast.DECK_WIDTH * 16, floor[5] - floor[4], 1e-6, "the deck floor's depth");
+		assertEquals(WarGhast.DECK_THICKNESS * 16, floor[3] - floor[1], 1e-6, "the deck floor's thickness");
+		assertEquals(-WarGhast.DECK_DROP * 16, floor[1], 1e-6, "the deck floor's underside");
+	}
+
+	/** The cube uuids directly in the outliner group {@code uuid}. */
+	private static void collectCubes(com.google.gson.JsonArray nodes, String uuid, boolean in, java.util.Set<String> out) {
+		for (var n : nodes) {
+			if (n.isJsonPrimitive()) {
+				if (in) {
+					out.add(n.getAsString());
+				}
+			} else {
+				var o = n.getAsJsonObject();
+				collectCubes(o.getAsJsonArray("children"), uuid, o.get("uuid").getAsString().equals(uuid), out);
+			}
+		}
+	}
+
 	/** Each bone is a display entity for every player in view: keep the war ghast's count in check. */
 	@Test
 	public void warGhastBoneBudget() {

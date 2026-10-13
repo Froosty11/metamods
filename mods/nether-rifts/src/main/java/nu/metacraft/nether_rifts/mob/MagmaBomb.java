@@ -62,7 +62,7 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 	};
 
 	static boolean spared(Entity entity) {
-		return !(entity instanceof LivingEntity) || entity instanceof ArmorStand || RiftMobs.isRiftMob(entity);
+		return !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof GhastPart || RiftMobs.isRiftMob(entity);
 	}
 
 	public MagmaBomb(EntityType<? extends MagmaBomb> type, Level level) {
