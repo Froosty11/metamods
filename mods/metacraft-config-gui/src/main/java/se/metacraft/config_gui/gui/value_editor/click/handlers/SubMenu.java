@@ -30,6 +30,7 @@ import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public record SubMenu(SubMenuKey key) implements ClickHandler {
 
@@ -100,9 +101,12 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 			);
 		}
 		if (type.element().hasContainerType(ContainerType.LIST)) {
+			var range = type.element().nestedMetadata(MetadataKey.RANGE);
 			return ListEditor.create(
 				(T) nonNullObject,
 				(Codec<T>) type.element().codec(),
+				range.map(value -> OptionalInt.of(value.min().intValue())).orElseGet(OptionalInt::empty),
+				range.map(value -> OptionalInt.of(value.max().intValue())).orElseGet(OptionalInt::empty),
 				provider,
 				Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key))
 			).orElse(parentGUI);

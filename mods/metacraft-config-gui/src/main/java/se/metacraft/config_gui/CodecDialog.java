@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePMap;
@@ -274,6 +275,7 @@ public class CodecDialog {
 		Optional<String> f,
 		double u,
 		DataComponentMap item,
+		Vec3 pos,
 		Direction direction,
 		Sub p
 	) {
@@ -293,6 +295,7 @@ public class CodecDialog {
 				).forGetter(Dummy::f),
 				Codec.DOUBLE.optionalFieldOf("u", 2.0).forGetter(Dummy::u),
 				DataComponentMap.CODEC.fieldOf("item").forGetter(Dummy::item),
+				Vec3.CODEC.fieldOf("pos").forGetter(Dummy::pos),
 				Direction.CODEC.fieldOf("dir").forGetter(Dummy::direction),
 				Sub.CODEC.fieldOf("p").forGetter(Dummy::p)
 			).apply(instance, Dummy::new)
@@ -330,7 +333,7 @@ public class CodecDialog {
 	public static void test(ServerPlayer sp) {
 		DialogGUIHandler.openGUI(
 			sp, MapCodecEditor.create(
-				new Dummy(1, 0.123, Optional.empty(), 2.0, DataComponentMap.EMPTY, Direction.WEST,
+				new Dummy(1, 0.123, Optional.empty(), 2.0, DataComponentMap.EMPTY, new Vec3(1, 2, 3), Direction.WEST,
 					new Dummy.Sub(
 						54, List.of(Holder.direct(BlockStateProvider.of(Blocks.GRANITE.defaultBlockState()))),
 						Map.of("123", 23),

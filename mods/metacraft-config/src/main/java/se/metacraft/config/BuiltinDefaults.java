@@ -261,7 +261,7 @@ public class BuiltinDefaults {
 			var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 			var list = CodecInternalsHelper.getUnderlyingCodec(simple, ListCodec.class, lookup);
 			if (list.isPresent()) {
-				int minSize = list.get().minSize();
+				int minSize = element.nestedMetadata(MetadataKey.RANGE).map(r -> r.min().intValue()).orElse(list.get().minSize());
 				if (minSize == 0) {
 					var parsed = simple.parse(ctx, List.of());
 					if (parsed.hasResultOrPartial()) return Optional.of(parsed);

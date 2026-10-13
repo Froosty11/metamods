@@ -28,18 +28,21 @@ import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public record ListEditor<T>(
 	PVector<Object> list,
-	CodecDialog.Type type,
+	CodecDialog.Type type, OptionalInt minSize, OptionalInt maxSize,
 	Codec<T> wrappingCodec, Optional<ValueEditor.ParentInfo> parent
 ) implements ValueEditor<T>, RemovableByIndex, WithSubMenus, MovableEntries {
 
-	public static <T> Optional<ClickHandlerGUI> create(T value, Codec<T> codec, HolderLookup.Provider lookup, Optional<ParentInfo> parent) {
+	public static <T> Optional<ClickHandlerGUI> create(
+		T value, Codec<T> codec, OptionalInt minSize, OptionalInt maxSize, HolderLookup.Provider lookup, Optional<ParentInfo> parent
+	) {
 		return CodecDialog.getEmptyListSubType(codec, lookup).map(
 			type -> new ListEditor<>(
 				CodecDialog.getListCodecElements(codec, value, lookup, type), type,
-				codec, parent
+				minSize, maxSize, codec, parent
 			)
 		);
 	}
@@ -55,12 +58,12 @@ public record ListEditor<T>(
 					if (i == list.size()) {
 						return new ListEditor<>(
 							opt.map(list::plus).orElse(list),
-							type, wrappingCodec, parent
+							type, minSize, maxSize, wrappingCodec, parent
 						);
 					}
 					return new ListEditor<>(
 						opt.map(v -> list.with(i, v)).orElseGet(() -> list.minus(i)),
-						type, wrappingCodec, parent
+						type, minSize, maxSize, wrappingCodec, parent
 					);
 				},
 				this
@@ -90,6 +93,8 @@ public record ListEditor<T>(
 	@Override
 	public Holder<Dialog> createDialog(ServerPlayer player) {
 		List<ActionButton> buttons = new ArrayList<>();
+
+		boolean hasRemoveButton = minSize.isEmpty() || minSize.getAsInt() < list.size();
 
 		for (int i = 0; i < list.size(); i++) {
 			var entry = list.get(i);
@@ -124,29 +129,33 @@ public record ListEditor<T>(
 			);
 
 			// Remove button
+			if (hasRemoveButton) {
+				buttons.add(
+					new ActionButton(
+						ValueEditor.removeButtonData(),
+						Optional.of(ConfirmScreen.click(
+							new RemoveIndex(i),
+							ValueEditor.removeMessage(ValueEditor.highlight(name)),
+							player.registryAccess()
+						))
+					)
+				);
+			}
+		}
+
+		if (maxSize.isEmpty() || maxSize.getAsInt() > list.size()) {
 			buttons.add(
 				new ActionButton(
-					ValueEditor.removeButtonData(),
-					Optional.of(ConfirmScreen.click(
-						new RemoveIndex(i),
-						ValueEditor.removeMessage(ValueEditor.highlight(name)),
-						player.registryAccess()
-					))
+					new CommonButtonData(
+						Component.translatable("mco.create.world"), 50
+					),
+					Optional.of(ClickHandler.click(player.registryAccess(), new SubMenu(list.size()), false))
 				)
 			);
 		}
 
-		buttons.add(
-			new ActionButton(
-				new CommonButtonData(
-					Component.translatable("mco.create.world"), 50
-				),
-				Optional.of(ClickHandler.click(player.registryAccess(), new SubMenu(list.size()), false))
-			)
-		);
-
 		return CodecDialog.template(
-			List.of(), List.of(), buttons, player.registryAccess(), 4
+			List.of(), List.of(), buttons, player.registryAccess(), hasRemoveButton ? 4 : 3
 		);
 	}
 
@@ -154,7 +163,7 @@ public record ListEditor<T>(
 	public DialogGUI remove(ServerPlayer player, int index) {
 		if (index < 0 || index >= list.size()) return this;
 		return new ListEditor<>(
-			list.minus(index), type, wrappingCodec, parent
+			list.minus(index), type, minSize, maxSize, wrappingCodec, parent
 		);
 	}
 
@@ -188,7 +197,7 @@ public record ListEditor<T>(
 			};
 			var entryAtTargetPos = list.get(targetSlot);
 			var newList = list.with(index, entryAtTargetPos).with(targetSlot, entryToMove);
-			return new ListEditor<>(newList, type, wrappingCodec, parent);
+			return new ListEditor<>(newList, type, minSize, maxSize, wrappingCodec, parent);
 		}
 		return this;
 	}
