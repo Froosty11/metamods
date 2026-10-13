@@ -31,6 +31,7 @@ metacraft-mob-modifiers
 metacraft-player-trading
 metacraft-qol
 portal-opening
+nether-rifts
 ovvar
 metacraft-booklet
 metacraft-kultur
