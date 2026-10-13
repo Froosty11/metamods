@@ -1,6 +1,7 @@
 package se.metacraft.config_gui.gui.value_editor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -10,6 +11,7 @@ import net.minecraft.server.dialog.CommonButtonData;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.level.ServerPlayer;
 import org.pcollections.PVector;
+import org.pcollections.TreePVector;
 import se.metacraft.config_gui.ClickHandlerGUI;
 import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.ConfigGUI;
@@ -42,35 +44,43 @@ public record ListEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
+	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (position instanceof SubMenu.I(int i) && child instanceof ValueEditor<?> e) {
 			if (i < 0) return this;
 			if (i > list.size()) return this;
-			if (i == list.size()) {
-				return new ListEditor<>(
-					e.getValue(lookup).map(list::plus).orElse(list),
-					type, wrappingCodec, parent
-				);
-			}
-			return new ListEditor<>(
-				e.getValue(lookup).map(v -> list.with(i, v)).orElseGet(() -> list.minus(i)),
-				type, wrappingCodec, parent
+			return PopupScreen.dataResult(
+				e.getValue(lookup),
+				opt -> {
+					if (i == list.size()) {
+						return new ListEditor<>(
+							opt.map(list::plus).orElse(list),
+							type, wrappingCodec, parent
+						);
+					}
+					return new ListEditor<>(
+						opt.map(v -> list.with(i, v)).orElseGet(() -> list.minus(i)),
+						type, wrappingCodec, parent
+					);
+				},
+				this
 			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		List<Object> list = new ArrayList<>();
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		DataResult<PVector<Object>> list = DataResult.success(TreePVector.empty());
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		for (var element : this.list) {
 			//noinspection unchecked
-			((Codec<Object>) type.element().codec()).encodeStart(
-				ctx, element
-			).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(list::add);
+			list = list.flatMap(
+				l -> ((Codec<Object>) type.element().codec()).encodeStart(
+					ctx, element
+				).map(l::plus).setPartial(l)
+			);
 		}
-		return wrappingCodec.parse(ctx, list).resultOrPartial();
+		return list.flatMap(l -> wrappingCodec.parse(ctx, l).map(Optional::of));
 	}
 
 	@Override

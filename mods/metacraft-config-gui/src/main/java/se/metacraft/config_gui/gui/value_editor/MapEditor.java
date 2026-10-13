@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
 import org.jspecify.annotations.NonNull;
+import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
@@ -144,30 +145,37 @@ public record MapEditor<T>(
 	@Override
 	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (child instanceof ValueEditor<?> e) {
-			var update = performUpdate(e.getValue(lookup), position, lookup);
-			if (update.isEmpty()) return this;
-			return update.get().nextGUI(this, position, lookup);
+			return PopupScreen.dataResult(
+				e.getValue(lookup).map(v -> {
+					var update = performUpdate(v, position, lookup);
+					if (update.isEmpty()) return this;
+					return update.get().nextGUI(this, position, lookup);
+				}),
+				this
+			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		Map<Object, Object> map = new HashMap<>();
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		DataResult<PMap<Object, Object>> map = DataResult.success(HashTreePMap.empty());
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		for (var element : this.map.entrySet()) {
 			//noinspection unchecked
-			((Codec<Object>) keyType.element().codec()).encodeStart(
-				ctx, element.getKey()
-			).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(
-				key -> ((Codec<Object>) valueTypeGetter.apply(element.getKey()).element().codec()).encodeStart(
-					ctx, element.getValue()
-				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(
-					value -> map.put(key, value)
-				)
+			map = map.flatMap(
+				m -> ((Codec<Object>) keyType.element().codec()).encodeStart(
+					ctx, element.getKey()
+				).flatMap(
+					key -> ((Codec<Object>) valueTypeGetter.apply(element.getKey()).element().codec()).encodeStart(
+						ctx, element.getValue()
+					).map(
+						value -> m.plus(key, value)
+					)
+				).setPartial(m)
 			);
 		}
-		return Optional.of(wrappingCodec.parse(ctx, map).getOrThrow());
+		return map.flatMap(m -> wrappingCodec.parse(ctx, m)).map(Optional::of);
 	}
 
 	private static <T> Object forceEncode(Codec<T> codec, DynamicOps<?> ops, Object value) {

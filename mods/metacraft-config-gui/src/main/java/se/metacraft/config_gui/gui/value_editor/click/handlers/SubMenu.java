@@ -182,11 +182,16 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 				EditorGUIPreferences.get(player), EditorGUIPreferences.CODEC, player.registryAccess(),
 				Optional.of((childGUI, p) -> {
 					if (childGUI instanceof ValueEditor<?> editor) {
-						editor.getValue(p.registryAccess()).ifPresent(v -> {
-							if (v instanceof EditorGUIPreferences prefs) {
-								EditorGUIPreferences.update(p, prev -> prefs);
-							}
-						});
+						return PopupScreen.dataResult(
+							editor.getValue(p.registryAccess()),
+							v -> {
+								if (v.isPresent() && v.get() instanceof EditorGUIPreferences prefs) {
+									EditorGUIPreferences.update(p, prev -> prefs);
+								}
+								return gui;
+							},
+							gui
+						);
 					}
 					return gui;
 				})
