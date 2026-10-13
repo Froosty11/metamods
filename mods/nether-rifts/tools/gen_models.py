@@ -525,9 +525,8 @@ def war_ghast():
 
 
 # war_drummer.bbmodel is hand-made (the artist's model; on import its 104x64 texture was padded to 128x64 and the beat's
-# leg tracks dropped so the walk can play under it; its flat bones regrouped: ears in the head, the head in the body
-# (riding its lean and sway), arms and jacket in the body with the body's motion taken off their keyframes, sleeves
-# and pants in their limbs): not generated here.
+# leg tracks dropped so the walk can play under it; its flat bones regrouped: ears in the head, arms and jacket in
+# the body with the body's motion taken off their keyframes, sleeves and pants in their limbs): not generated here.
 MODELS = [war_ghast]
 
 if __name__ == "__main__":
