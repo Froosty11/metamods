@@ -363,7 +363,6 @@ bool netherRiftBeyond() {
 
 vec4 netherRiftBody(float stage) {
     float t = GameTime * 1200.0;
-    int frame = int(floor(t * 20.0));
     int st = int(stage + 0.5);
     float red = st >= 3 ? 0.65 : (st == 2 ? 0.2 : 0.0);
     bool beyond = netherRiftBeyond();
@@ -388,8 +387,8 @@ vec4 netherRiftBody(float stage) {
         return vec4(tint, alpha);
     }
 
-    // A fallen shard leaves a jagged lip of glass, one to three pixels, with a hot rim, along each crack it
-    // shared with glass still there; where the shard across fell too, nothing is left between.
+    // A fallen shard leaves a jagged lip of glass, one to three pixels, with a thin glowing rim, along each crack
+    // it shared with glass still there; where the shard across fell too, nothing is left between.
     float hole = pin;
     if (fallen) {
         float lip = 1.0 + floor(1.6 * netherRiftNoise(px, 1, vec2(0.0), 71) + 0.9 * netherRiftHash(ivec3(px, 73)));
@@ -407,38 +406,33 @@ vec4 netherRiftBody(float stage) {
 
     if (hole > 0.0) {
         // the nether, far away, through the hole (each hole a texel off the next), seen through the portal's
-        // haze (a third of it on average, thicker in its bright bands and thin between, so the fortress reads;
-        // mixed here, as the hole must stay opaque); darker under its lip
+        // haze (a fifth of it on average, thicker in its bright bands and thin between, so the fortress reads
+        // even from afar; mixed here, as the hole must stay opaque); darker under its lip
         int slip = int(shard % 3u) - 1;
         vec3 view = netherRiftPanorama(normalize(riftView), slip);
         float swirl = netherRiftSwirl(px, t);
         vec3 haze = mix(vec3(59.0, 10.0, 107.0) / 255.0, vec3(196.0, 108.0, 255.0) / 255.0, swirl);
-        view = mix(view, haze, 0.33 * (0.55 + 0.9 * swirl));
+        view = mix(view, haze, 0.2 * (0.55 + 0.9 * swirl));
         return vec4(view * mix(0.7, 1.0, clamp(hole / 3.0, 0.0, 1.0)), 1.0);
     }
     if (hole > -1.0) {
-        // the hole's rim, hot, flickering pixel by pixel
-        float flick = netherRiftHash(ivec3(px, frame / 2 * 8 + 23));
-        vec3 hot = st >= 3 ? vec3(1.0, 0.42, 0.16) : vec3(1.0, 0.4, 0.95);
-        vec3 white = st >= 3 ? vec3(1.0, 0.86, 0.6) : vec3(1.0, 0.9, 1.0);
-        vec3 rim = flick < 0.35 ? hot * 0.55 : (flick < 0.9 ? hot : white);
-        return vec4(rim, 1.0);
+        // the hole's rim, a pixel of pale violet glow at every stage, each pixel shimmering softly on its own
+        // beat (every 2 s, which divides the 1200 s where GameTime wraps)
+        float glow = 0.5 + 0.5 * sin(6.2831853 * (t / 2.0 + netherRiftHash(ivec3(px, 23))));
+        return vec4(mix(vec3(217.0, 179.0, 255.0) / 255.0, vec3(240.0, 220.0, 255.0) / 255.0, glow), 1.0);
     }
 
     // The glass's surface: clear, so the portal shows, but for its cracks (a dark pixel line, its far wall
-    // catching the light from the upper left: violet, rose at stage 2, at 3 glowing hot and wider) and a glint
-    // on some shards. Anything translucent here would hide the portal behind it (items draw before translucent
+    // catching the light from the upper left: violet, rose from stage 2, a touch brighter at 3) and a glint on
+    // some shards. Anything translucent here would hide the portal behind it (items draw before translucent
     // blocks and write depth), so it is opaque or nothing.
-    vec3 pale = st >= 3 ? vec3(1.0, 0.55, 0.24) : (st == 2 ? vec3(0.93, 0.36, 0.5) : NETHER_RIFT_PURPLE[4]);
+    vec3 pale = st >= 3 ? vec3(0.98, 0.44, 0.6) : (st == 2 ? vec3(0.93, 0.36, 0.5) : NETHER_RIFT_PURPLE[4]);
     if (edge < 0.5) {
         return vec4(mix(NETHER_RIFT_PURPLE[0], NETHER_RIFT_RED[0], red) * 0.6, 1.0);
     }
     bool lit = dot(normal, vec2(-0.6, 0.8)) < -0.25;
     if (edge < 1.5 && lit) {
         return vec4(pale, 1.0);
-    }
-    if (st >= 3 && edge < (lit ? 2.5 : 1.5)) {
-        return vec4(0.78, 0.24, 0.06, 1.0);
     }
     if (whole && netherRiftUnit(shard, 0x2c1b3c6du) < 0.3 && ((px.x - px.y + int(shard & 31u)) & 31) == 0) {
         return vec4(pale, 1.0);
