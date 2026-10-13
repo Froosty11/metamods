@@ -8,7 +8,7 @@
 			"entries": [{
 				"type": "minecraft:item",
 				"name": "minecraft:piglin_head",
-				"modifier": [{"type": "minecraft:set_name", "name": "Rift Captain", "target": "item_name"}]
+				"modifier": [{"type": "minecraft:set_name", "name": "Piglin General", "target": "item_name"}]
 			}]
 		},
 		{

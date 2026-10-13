@@ -130,7 +130,7 @@ public record NetherRiftsConfig(
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("dive_height", Codec.doubleRange(1, 64), DEFAULT.diveHeight()),
-						"On a run the war ghast's deck (hung 3.5 blocks under it) flies this many blocks above the target."
+						"On a run the chained ghast's deck (hung 3.5 blocks under it) flies this many blocks above the target."
 				).forGetter(BombardierTuning::diveHeight),
 				CommentCodec.comment(
 						Sections.section("climb_height", Codec.doubleRange(1, 128), DEFAULT.climbHeight()),
@@ -174,7 +174,7 @@ public record NetherRiftsConfig(
 				).forGetter(BombardierTuning::patchRadius),
 				CommentCodec.comment(
 						Sections.section("throw_every", Codec.intRange(1, 72_000), DEFAULT.throwEvery()),
-						"On foot (its war ghast fallen), the Bombardier throws a bomb at most this often, in ticks."
+						"On foot (its chained ghast fallen), the Grenadier throws a bomb at most this often, in ticks."
 				).forGetter(BombardierTuning::throwEvery),
 				CommentCodec.comment(
 						Sections.section("throw_min_range", Codec.doubleRange(0, 64), DEFAULT.throwMinRange()),
@@ -192,11 +192,11 @@ public record NetherRiftsConfig(
 		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("drummer", DrummerTuning.CODEC, DrummerTuning.DEFAULT),
-						"The War Drummer, which leads waves from wave 2, and now and then walks with the nether's own piglins."
+						"The Piglin Drummer, which leads waves from wave 2, and now and then walks with the nether's own piglins."
 				).forGetter(Mobs::drummer),
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
-						"War ghasts, crewed by a Ghast Bombardier and two crossbow piglins, in Large waves 5 and later; the Bombardier's bombs, from the deck and by hand."
+						"Chained ghasts, crewed by a Piglin Grenadier and two crossbow piglins, in Large waves 5 and later; the Grenadier's bombs, from the deck and by hand."
 				).forGetter(Mobs::bombardier)
 		).apply(i, Mobs::new));
 	}
@@ -249,7 +249,7 @@ public record NetherRiftsConfig(
 			).forGetter(NetherRiftsConfig::roster),
 			CommentCodec.comment(
 					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),
-					"Tuning for the War Drummer and the Ghast Bombardier. Any value left out keeps its default."
+					"Tuning for the Piglin Drummer and the Piglin Grenadier. Any value left out keeps its default."
 			).forGetter(NetherRiftsConfig::mobs)
 	).apply(i, NetherRiftsConfig::new));
 

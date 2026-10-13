@@ -30,8 +30,8 @@ public class LootTests {
 				ctx.assertTrue(count(ctx, Items.BLAZE_ROD) >= 10, "brutes dropped " + count(ctx, Items.BLAZE_ROD) + " blaze rods, expected one each")));
 		NetherRiftsTests.register("loot/captain_head", ctx -> killMany(ctx, Slot.CAPTAIN, true, () -> {
 			var head = ctx.getEntities(EntityTypes.ITEM).stream().filter(i -> i.getItem().is(Items.PIGLIN_HEAD)).findFirst();
-			ctx.assertTrue(head.isPresent(), "no Rift Captain head");
-			ctx.assertTrue(head.get().getItem().get(DataComponents.ITEM_NAME).getString().equals("Rift Captain"),
+			ctx.assertTrue(head.isPresent(), "no Piglin General head");
+			ctx.assertTrue(head.get().getItem().get(DataComponents.ITEM_NAME).getString().equals("Piglin General"),
 					"the head is called " + head.get().getItem().get(DataComponents.ITEM_NAME));
 		}));
 		NetherRiftsTests.register("loot/war_ghast_drops_ghast_loot", ctx -> {
