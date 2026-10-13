@@ -45,17 +45,6 @@ public class CodecParsingHelper {
 			elements = elements.plusAll(parseFlattenedComponentsOrSelf(pair.getFirst(), lookup));
 			elements = elements.plusAll(parseFlattenedComponentsOrSelf(pair.getSecond(), lookup));
 		}
-		if (mapCodec instanceof MappedMapCodecAccessor mapped) {
-			elements = elements.plusAll(parsePair(mapped.getParent(), lookup));
-		}
-		if (mapCodec instanceof SimpleMapCodecAccessor simple) {
-			if ( // Codecs defined via xmap
-				simple.getDecoder() instanceof MappedMapDecoderAccessor mapped &&
-					mapped.getParent() instanceof MapCodec<?> parent
-			) {
-				elements = elements.plusAll(parsePair(parent, lookup));
-			}
-		}
 		return elements;
 	}
 
@@ -64,11 +53,28 @@ public class CodecParsingHelper {
 	) {
 		PVector<AbstractCodecResult> elements = TreePVector.empty();
 		elements = elements.plusAll(parsePair(mapCodec, lookup));
+		if (mapCodec instanceof MappedMapCodecAccessor mapped) {
+			elements = elements.plusAll(parseFlattenedComponents(mapped.getParent(), lookup));
+		}
+		if (mapCodec instanceof SimpleMapCodecAccessor simple) {
+			if ( // Codecs defined via xmap
+				simple.getDecoder() instanceof MappedMapDecoderAccessor mapped &&
+				mapped.getParent() instanceof MapCodec<?> parent
+			) {
+				elements = elements.plusAll(parseFlattenedComponents(parent, lookup));
+			}
+		}
 		if (mapCodec instanceof RecordCodecBuilderAccessor.MapCodec builder) {
 			elements = elements.plusAll(parseRecordCodecBuilder(
 				(RecordCodecBuilderAccessor) (Object) builder.getBuilder(), lookup)
 			);
 		}
+
+		var nested = CodecParser.getNestedCodecs(mapCodec);
+		if (nested.size() == 1 && nested.getFirst() instanceof MapCodec<?> m) {
+			elements = elements.plusAll(parseFlattenedComponents(m, lookup));
+		}
+
 		return elements;
 	}
 

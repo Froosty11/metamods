@@ -63,7 +63,7 @@ public class CodecParser {
 		return parameters;
 	}
 
-	private static PVector<Object> getNestedCodecs(Object object) {
+	public static PVector<Object> getNestedCodecs(Object object) {
 		return getNestedParameters(
 			object,
 			field -> isCodec(field.getType())
