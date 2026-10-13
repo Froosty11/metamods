@@ -196,7 +196,7 @@ public record NetherRiftsConfig(
 				).forGetter(Mobs::drummer),
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
-						"Chained ghasts, crewed by a Piglin Grenadier and two crossbow piglins, in Large waves 5 and later; the Grenadier's bombs, from the deck and by hand."
+						"Chained ghasts, crewed by a Piglin Drummer, a Piglin Grenadier and two piglins, in Large waves 5 and later; the Grenadier's bombs, from the deck and by hand."
 				).forGetter(Mobs::bombardier)
 		).apply(i, Mobs::new));
 	}

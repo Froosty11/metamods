@@ -1,11 +1,17 @@
 package nu.metacraft.nether_rifts.mob;
 
 import de.tomalbrc.bil.api.AnimatedEntity;
+import de.tomalbrc.bil.core.component.AnimationComponent;
+import de.tomalbrc.bil.core.holder.wrapper.Bone;
+import de.tomalbrc.bil.core.holder.wrapper.Locator;
+import de.tomalbrc.bil.core.model.Node;
+import de.tomalbrc.bil.core.model.Pose;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -17,10 +23,14 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
@@ -30,25 +40,59 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * A ghast in a war harness with a deck slung under it on chains, crewed by a Ghast Bombardier and two crossbow
- * piglins: one model (war_ghast.bbmodel), crew and all. It floats and shoots as any ghast and makes bombing runs,
- * the Bombardier dropping magma bombs from the deck. When it dies the crew jump off as real mobs and glide down.
+ * The Chained Ghast: a ghast in a harness with a deck slung under it on chains, crewed by a Piglin Drummer, a Piglin
+ * Grenadier and two piglins (one with a spear, one with a crossbow). One model (war_ghast.bbmodel, the artist's, brought
+ * in by tools/import_ghast.py), crew and all. It floats and shoots as any ghast and makes bombing runs, the Grenadier
+ * dropping magma bombs from the deck. When it dies the crew jump off as real mobs and glide down.
+ *
+ * <p>Its gear shows on the crew ({@link HeldItems}, {@link ArmourPieces}): the main hand in the spear piglin's right
+ * hand, the off hand in the crossbow piglin's left, the head slot on the Grenadier's head (worn armour on the spear
+ * piglin's instead), and chest, legs and feet armour on the spear piglin. Every Chained Ghast gets a golden spear, a
+ * crossbow and the Grenadier Goggles, none of which drop. The armour is only for show: it gives the ghast no armour
+ * points, toughness or enchantment effects. The crew take the gear with them when they jump.
  */
 public class WarGhast extends Ghast implements AnimatedEntity {
 
-	/** How far the deck's underside hangs below the ghast's feet (the model's y = -56). */
-	public static final double DECK_DROP = 3.5;
-
-	/** Where the crew stand, in model units from the ghast's feet (+x its right, -z its front); as gen_models.py. */
-	private static final Vec3 BOMBARDIER_SPOT = new Vec3(5, -52, -28);
-	private static final List<Vec3> CROSSBOW_SPOTS = List.of(new Vec3(-15, -52, -28), new Vec3(25.5, -52, -28));
+	/** How far the deck's underside hangs below the ghast's feet: the model's lowest cube, 94 units under them. */
+	public static final double DECK_DROP = 94 / 16.0;
 
 	/** Crew glide time: enough to come down from a bombing run's climb and well beyond. */
 	public static final int CREW_SLOW_FALL_TICKS = 200;
 
+	/** The faces: one shows at a time. */
+	public static final String FACE = "face_sad";
+	public static final String SHOOTING_FACE = "face_shooting";
+
+	/** The armour slots, worn for show only. */
+	private static final List<EquipmentSlot> ARMOUR = List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET);
+
+	/**
+	 * The figures on the deck: their group in the model, and the mob each becomes. The import marks where each stands
+	 * ({@code <figure>_feet}) and which way it faces ({@code <figure>_facing}, a little ahead of its feet).
+	 */
+	public enum Crew {
+		DRUMMER("drummer_piglin"),
+		SPEAR("piglin1"),
+		CROSSBOW("piglin2"),
+		BOMBARDIER("bombardier");
+
+		public final String figure;
+
+		Crew(String figure) {
+			this.figure = figure;
+		}
+	}
+
+	/** Where a figure stands in the world, and the yaw it faces. */
+	public record Spot(Vec3 feet, float yaw) {}
+
 	private final HeldItems.Holder<WarGhast> holder;
+	/** Each figure's bones, under its group. */
+	private final Map<Crew, List<Bone<?>>> crewBones;
+	private boolean crewGone = false;
 
 	public WarGhast(EntityType<? extends WarGhast> type, Level level) {
 		super(type, level);
@@ -62,9 +106,28 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 					bone.element().setDisplaySize(width, height);
 				}
 			}
+
+			// BIL shows every bone again whenever the ghast's flags change
+			@Override
+			protected void updateInvisibility(boolean invisible) {
+				super.updateInvisibility(invisible);
+				showParts();
+			}
 		};
+		this.crewBones = new java.util.EnumMap<>(Crew.class);
+		for (var crew : Crew.values()) {
+			var bones = new ArrayList<Bone<?>>();
+			for (var bone : holder.getBones()) {
+				if (inside(bone.node(), crew.figure)) {
+					bones.add(bone);
+				}
+			}
+			crewBones.put(crew, bones);
+		}
 		EntityAttachment.ofTicking(this.holder, this);
 		this.holder.getAnimator().playAnimation("idle", 0, true);
+		showParts();
+		keepKit();
 	}
 
 	@Override
@@ -78,13 +141,107 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		goalSelector.addGoal(4, new BombingRunGoal(this));
 	}
 
+	/** Whether a node is the model's group {@code name} or inside it. */
+	private static boolean inside(@Nullable Node node, String name) {
+		for (; node != null; node = node.parent()) {
+			if (node.name().equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** A figure's bones, armour and all. */
+	public List<Bone<?>> crewBones(Crew crew) {
+		return crewBones.get(crew);
+	}
+
+	/**
+	 * Shows the face for what the ghast is doing and hides the crew once they've jumped. An invisible ghast keeps every
+	 * bone hidden (BIL hides them).
+	 */
+	private void showParts() {
+		if (isInvisible()) {
+			return;
+		}
+		boolean shooting = isCharging();
+		var face = holder.getBone(FACE);
+		var shootingFace = holder.getBone(SHOOTING_FACE);
+		if (face != null && shootingFace != null) {
+			face.setInvisible(shooting);
+			shootingFace.setInvisible(!shooting);
+		}
+		if (crewGone) {
+			crewBones.values().forEach(bones -> bones.forEach(bone -> bone.setInvisible(true)));
+		}
+	}
+
 	/** The ghast's shooting face, while vanilla's fireball goal charges a shot (half a second before it fires). */
 	@Override
 	public void setCharging(boolean charging) {
-		if (charging && !isCharging()) {
-			holder.getAnimator().playAnimation("shoot", 5, true);
-		}
 		super.setCharging(charging);
+		showParts();
+	}
+
+	/**
+	 * The kit every Chained Ghast has, in any slot left empty: the golden spear the rift's spear piglins carry, a
+	 * crossbow and the Grenadier Goggles. Its gear never drops (the crew take it), and it's right-handed, so the main hand
+	 * shows on the spear piglin. Set again on spawning and loading (a save or a summon without equipment has none).
+	 */
+	private void keepKit() {
+		fill(EquipmentSlot.MAINHAND, Items.GOLDEN_SPEAR);
+		fill(EquipmentSlot.OFFHAND, Items.CROSSBOW);
+		fill(EquipmentSlot.HEAD, RiftItems.BOMBARDIER_HELMET);
+		for (var slot : EquipmentSlot.values()) {
+			setDropChance(slot, 0f);
+		}
+		setLeftHanded(false);
+	}
+
+	private void fill(EquipmentSlot slot, Item item) {
+		if (getItemBySlot(slot).isEmpty()) {
+			setItemSlot(slot, new ItemStack(item));
+		}
+	}
+
+	@Override
+	public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData groupData) {
+		var data = super.finalizeSpawn(level, difficulty, reason, groupData);
+		keepKit();
+		return data;
+	}
+
+	@Override
+	protected void readAdditionalSaveData(ValueInput input) {
+		super.readAdditionalSaveData(input);
+		keepKit();
+	}
+
+	/** Whether a slot of a mob is worn for show only: a Chained Ghast's armour. */
+	public static boolean wornForShow(LivingEntity entity, EquipmentSlot slot) {
+		return entity instanceof WarGhast && ARMOUR.contains(slot);
+	}
+
+	/**
+	 * Armour put on gives the ghast nothing: its attribute modifiers (armour, toughness, knockback resistance) come
+	 * straight off again. Its enchantments do nothing either (mixin/EnchantmentHelperMixin).
+	 */
+	@Override
+	protected Map<EquipmentSlot, ItemStack> collectEquipmentChanges(Map<EquipmentSlot, ItemStack> last) {
+		var changed = super.collectEquipmentChanges(last);
+		if (changed != null) {
+			changed.forEach((slot, stack) -> {
+				if (ARMOUR.contains(slot)) {
+					stack.forEachModifier(slot, (attribute, modifier) -> {
+						var instance = getAttributes().getInstance(attribute);
+						if (instance != null) {
+							instance.removeModifier(modifier.id());
+						}
+					});
+				}
+			});
+		}
+		return changed;
 	}
 
 	/**
@@ -97,9 +254,9 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/**
-	 * The Bombardier throws a magma bomb off the deck, straight down onto the ground warning, lobbed up first if need
+	 * The Grenadier throws a magma bomb off the deck, straight down onto the ground warning, lobbed up first if need
 	 * be: the warning shows at least the configured warning time (default {@link BurningPatches#WARN_TICKS}) before
-	 * the blast, where the bomb lands.
+	 * the blast, where the bomb lands. Plays the model's {@code drop_bomb} animation, if it has one.
 	 */
 	public void dropBomb(ServerLevel level) {
 		holder.getAnimator().playAnimation("drop_bomb", 10, true);
@@ -119,46 +276,99 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/**
-	 * The crew jump off where they stood: the Bombardier and two crossbow piglins, facing the way the ghast faced,
-	 * gliding down (slow falling also spares them the fall) to fight on foot. A rift ghast's crew join its rift
-	 * (its wave, its rules, their roles' loot); a summoned one's are plain mobs.
+	 * The crew jump off where they stand in the model, facing as they do, gliding down (slow falling also spares them
+	 * the fall) to fight on foot: the drummer a Piglin Drummer, the Grenadier a Piglin Grenadier, the spear piglin with
+	 * the ghast's main hand and armour, the crossbow piglin with its off hand. Their figures go from the model. A rift
+	 * ghast's crew join its rift (its wave, its rules, their roles' loot); a summoned one's are plain mobs.
 	 */
 	@Override
 	public void die(DamageSource source) {
 		if (!isRemoved() && !dead && level() instanceof ServerLevel level) {
-			holder.getAnimator().playAnimation("crew_gone", 20, true);
 			for (var mob : crew(level)) {
 				level.addFreshEntity(mob);
 			}
+			crewGone = true;
+			showParts();
 		}
 		super.die(source);
 	}
 
 	private List<Mob> crew(ServerLevel level) {
 		var crew = new ArrayList<Mob>();
-		var bombardier = RiftEntities.GHAST_BOMBARDIER.create(level, EntitySpawnReason.EVENT);
-		if (bombardier != null) {
-			crew.add(jumpOff(bombardier, BOMBARDIER_SPOT));
-		}
-		for (var spot : CROSSBOW_SPOTS) {
-			var piglin = EntityTypes.PIGLIN.create(level, EntitySpawnReason.EVENT);
-			if (piglin != null) {
-				piglin.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
-				crew.add(jumpOff(piglin, spot));
+		for (var figure : Crew.values()) {
+			var mob = switch (figure) {
+				case DRUMMER -> RiftEntities.WAR_DRUMMER.create(level, EntitySpawnReason.EVENT);
+				case BOMBARDIER -> RiftEntities.GHAST_BOMBARDIER.create(level, EntitySpawnReason.EVENT);
+				case SPEAR, CROSSBOW -> EntityTypes.PIGLIN.create(level, EntitySpawnReason.EVENT);
+			};
+			if (mob == null) {
+				continue;
 			}
+			if (figure == Crew.SPEAR) {
+				give(mob, EquipmentSlot.MAINHAND, take(EquipmentSlot.MAINHAND, Items.GOLDEN_SPEAR));
+				for (var slot : ARMOUR) {
+					// the goggles stay with the ghast's Grenadier, who has its own
+					if (ArmourPieces.isWorn(getItemBySlot(slot), slot)) {
+						give(mob, slot, take(slot, null));
+					}
+				}
+			} else if (figure == Crew.CROSSBOW) {
+				give(mob, EquipmentSlot.MAINHAND, take(EquipmentSlot.OFFHAND, Items.CROSSBOW));
+			}
+			crew.add(jumpOff(mob, spot(figure)));
+		}
+		// what the crew didn't take (the goggles: the Grenadier has its own) goes with their figures
+		for (var slot : EquipmentSlot.values()) {
+			setItemSlot(slot, ItemStack.EMPTY);
 		}
 		return crew;
 	}
 
-	private Mob jumpOff(Mob mob, Vec3 spot) {
-		// the model faces -z with +x on its right, and is turned to the ghast's body yaw
-		var at = position().add(new Vec3(-spot.x, spot.y, -spot.z).scale(1 / 16.0).yRot(-yBodyRot * Mth.DEG_TO_RAD));
-		mob.snapTo(at.x, at.y, at.z, yBodyRot, 0);
-		mob.setYBodyRot(yBodyRot);
-		mob.setYHeadRot(yBodyRot);
+	/** Takes what's in a slot off the ghast; the fallback when it's empty. */
+	private ItemStack take(EquipmentSlot slot, @Nullable Item fallback) {
+		var stack = getItemBySlot(slot);
+		setItemSlot(slot, ItemStack.EMPTY);
+		return stack.isEmpty() && fallback != null ? new ItemStack(fallback) : stack;
+	}
+
+	private static void give(Mob mob, EquipmentSlot slot, ItemStack stack) {
+		mob.setItemSlot(slot, stack);
+		mob.setDropChance(slot, 0f);
+	}
+
+	private Mob jumpOff(Mob mob, Spot spot) {
+		mob.snapTo(spot.feet().x, spot.feet().y, spot.feet().z, spot.yaw(), 0);
+		mob.setYBodyRot(spot.yaw());
+		mob.setYHeadRot(spot.yaw());
 		mob.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, CREW_SLOW_FALL_TICKS, 0));
 		RiftMobs.riftOf(this).ifPresent(rift -> RiftMobs.enlist(mob, rift, Slot.BOMBARDIER));
 		return mob;
+	}
+
+	/**
+	 * Where a figure stands now and the way it faces: its markers' places in the playing animation (else at rest),
+	 * turned with the ghast's body as BIL turns the model. The model faces -z and BIL turns it half round, so the
+	 * markers' +z is the ghast's front.
+	 */
+	public Spot spot(Crew crew) {
+		var feet = markerPlace(crew.figure + "_feet");
+		var ahead = markerPlace(crew.figure + "_facing").subtract(feet);
+		float turn = (float) Math.toDegrees(Math.atan2(-ahead.x, ahead.z));
+		var at = position().add(feet.scale(holder.getScale()).yRot(-yBodyRot * Mth.DEG_TO_RAD));
+		return new Spot(at, Mth.wrapDegrees(yBodyRot + turn));
+	}
+
+	/** A marker's place in the model now, in blocks from the ghast's feet before the body's turn. */
+	private Vec3 markerPlace(String name) {
+		var model = holder.getModel();
+		var node = HeldItems.marker(model, name);
+		if (node == null) {
+			throw new IllegalStateException("war_ghast.bbmodel has no " + name + ": import it with tools/import_ghast.py");
+		}
+		Pose rest = model.defaultPose().get(node.uuid());
+		var found = ((AnimationComponent) holder.getAnimator()).findPose(null, Locator.of(node, rest));
+		var t = (found != null && found.pose() != null ? found.pose() : rest).translation();
+		return new Vec3(t.x, t.y, t.z);
 	}
 
 	/**

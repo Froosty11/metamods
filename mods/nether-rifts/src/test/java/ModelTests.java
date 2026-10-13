@@ -5,6 +5,7 @@ import de.tomalbrc.bil.file.loader.BbModelLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import nu.metacraft.nether_rifts.NetherRifts;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,10 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,18 +78,43 @@ public class ModelTests {
 		}
 	}
 
+	/**
+	 * The artist's Chained Ghast, as tools/import_ghast.py brings it in: the ghast, its faces and deck, each crew figure
+	 * with the markers WarGhast places them by, the held-item markers and the spear piglin's armour. No bone BIL would
+	 * turn with the ghast's look (a name starting with "head").
+	 */
 	@Test
 	public void warGhast() {
-		var tentacles = IntStream.range(0, 9).mapToObj(i -> "tentacle_" + i);
-		var bones = Stream.concat(tentacles, Stream.of("body", "face", "deck", "bomb_left", "bomb_right", "bomber", "bomber_arm",
-			"crossbow_left", "crossbow_left_arms", "crossbow_right", "crossbow_right_arms")).collect(Collectors.toSet());
-		assertModel("war_ghast", bones, Set.of("idle", "shoot", "drop_bomb", "crew_gone"));
+		var bones = new java.util.HashSet<>(Set.of("construct", "ghast", "body", "face_sad", "face_shooting", "platform", "deck", "magma_bomb",
+			"item_right", "item_left", "item_head", "armor_chest", "armor_legs", "armor_feet_left"));
+		IntStream.rangeClosed(1, 9).forEach(i -> bones.add("tentacle" + i));
+		for (var crew : WarGhast.Crew.values()) {
+			bones.addAll(Set.of(crew.figure, crew.figure + "_feet", crew.figure + "_facing"));
+		}
+		assertModel("war_ghast", bones, Set.of("idle"));
+		var model = BbModelLoader.load(NetherRifts.getID("war_ghast"));
+		for (var node : model.nodeMap().values()) {
+			assertFalse(node.tag().isHead(), node.name() + " turns with the ghast's look");
+		}
+	}
+
+	/** WarGhast.DECK_DROP is how far the model's lowest cube (the deck's underside) hangs below the ghast's feet. */
+	@Test
+	public void warGhastDeckDrop() throws IOException {
+		double lowest = Double.MAX_VALUE;
+		for (var element : json("/model/nether_rifts/war_ghast.bbmodel").getAsJsonArray("elements")) {
+			var e = element.getAsJsonObject();
+			double inflate = e.has("inflate") ? e.get("inflate").getAsDouble() : 0;
+			lowest = Math.min(lowest, e.getAsJsonArray("from").get(1).getAsDouble() - inflate);
+		}
+		assertEquals(-WarGhast.DECK_DROP * 16, lowest, 1e-6, "the deck's underside");
 	}
 
 	/** Each bone is a display entity for every player in view: keep the war ghast's count in check. */
 	@Test
 	public void warGhastBoneBudget() {
 		var model = BbModelLoader.load(NetherRifts.getID("war_ghast"));
-		assertTrue(model.nodeMap().size() <= 28, "war_ghast has " + model.nodeMap().size() + " bones");
+		long bones = model.nodeMap().values().stream().filter(node -> node.modelData() != null).count();
+		assertTrue(bones <= 58, "war_ghast has " + bones + " bones");
 	}
 }

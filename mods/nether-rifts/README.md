@@ -13,10 +13,12 @@ to piglins (they share anger with it), but keeps the gold truce and turns zombie
 rift's drummer ignores gold and never turns. No drummer barters or picks anything up. A drummer shows the armour it
 wears as a piglin does (vanilla's piglin armour and textures in every vanilla material, leather dyed, enchanted pieces
 glinting; no trims), and a nether drummer may spawn in gold armour as piglins do (each piece 10% of the time). In Large waves 5 and
-later come chained ghasts: in a harness, a deck slung under them on chains with a crew of a Piglin Grenadier and two
-crossbow piglins. They make bombing runs, the Grenadier dropping magma bombs from the deck, each bomb's landing
+later come chained ghasts: in a harness, a deck slung under them on chains with a crew of a Piglin Drummer, a Piglin
+Grenadier, a spear piglin and a crossbow piglin. Their gear shows on the crew (a golden spear, a crossbow, the
+Grenadier's goggles, and any armour on the spear piglin, for show only: it doesn't protect the ghast). They make bombing runs, the Grenadier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
-or loot on the ground. When a chained ghast dies, its crew jump off and glide down to fight on foot: the Grenadier,
+or loot on the ground. When a chained ghast dies, its crew jump off where they stood and glide down to fight on foot, the spear
+piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword, then stops every 4 seconds to lob a magma bomb by hand at
 a player 4 to 12 blocks off, the landing spot again marked a second ahead. The Piglin General, in a large raid's
 last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
@@ -48,13 +50,16 @@ metacraft-lib's fail in a fresh checkout until its data is generated, so run
 
 Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
 
-The mob models: `python3 tools/gen_models.py` builds the `.bbmodel` files in
-`src/main/resources/model/nether_rifts/` from vanilla geometry (`tools/vanilla/`) and textures read from the
-local Minecraft jar. They open in Blockbench. The Piglin Drummer's is the artist's: `python3 tools/import_drummer.py
-<artist's .bbmodel>` fits it to how BIL plays it, adds the gear markers and the armour pieces (vanilla's piglin armour
-cubes, in the bones they cover), and writes the armour's item models for each vanilla material
-(`assets/nether_rifts/{models/item,items}/war_drummer/armour/`) with an item-atlas file that lets them use vanilla's
-own armour textures; it reads the materials from the local Minecraft jar. The Grenadier on foot has no model of its own: clients see a
+The mob models in `src/main/resources/model/nether_rifts/` are the artist's, brought in by re-runnable imports that
+fit them to how BIL plays them. `python3 tools/import_drummer.py <artist's .bbmodel>` does the Piglin Drummer: adds
+the gear markers and the armour pieces (vanilla's piglin armour cubes, in the bones they cover), and writes the
+armour's item models for each vanilla material (`assets/nether_rifts/{models/item,items}/war_drummer/armour/`) with an
+item-atlas file that lets them use vanilla's own armour textures; it reads the materials from the local Minecraft jar.
+`python3 tools/import_ghast.py <artist's .bbmodel>` does the Chained Ghast: puts the ghast's body on the entity's box
+(it prints the deck's drop, `WarGhast.DECK_DROP`), renames the crew's bones (BIL turns any bone named `head…` with
+the mob's look), folds the overlay layers into their parts, adds the markers the crew jump off at and the gear
+markers, and the spear piglin's armour (`…/war_ghast/armour/`); both share `tools/piglin_armour.py`.
+`tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. The Grenadier on foot has no model of its own: clients see a
 vanilla piglin wearing the `nether_rifts:bombardier_helmet` item (a Polymer item, never dropped or craftable),
 whose item model `assets/nether_rifts/models/item/bombardier_helmet.json` is a placeholder of vanilla block
 textures, drawn on the head by its `head` display; an artist's model can replace that file as it is.

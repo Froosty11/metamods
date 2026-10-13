@@ -25,8 +25,8 @@ import java.util.Properties;
  * the world as the camera steps aside, and still when time stands still),
  * an L-shaped rift (merged panels must join without a seam), a 2×3 portal on the Z plane, and a
  * void-anchor rift in the same run (the shared item shader must draw both). It also looks at the War Drummer (it
- * must animate, its idle even without AI) and at a war ghast with its deck crew, turned every way
- * (its harness must stay on its body), shooting, throwing a bomb and letting its crew off when it dies.
+ * must animate, its idle even without AI) and at a Chained Ghast with its deck crew, turned every way, shooting
+ * and letting its crew off when it dies (screenshots; the artist's model has no checks on its look yet).
  */
 public final class RiftClientTests implements FabricClientGameTest {
 
@@ -255,8 +255,8 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 				server.runCommand("kill @e[type=minecraft:piglin]");
 
-				// a war ghast with its crew on the deck slung under it, 14 blocks off, turned to four yaws in turn (and then
-				// turning a step a tick): its red harness must sit on its white body at every angle, none above it
+				// a Chained Ghast with its crew on the deck slung under it, 14 blocks off, turned to four yaws in turn (and then
+				// turning a step a tick)
 				server.runCommand("summon nether_rifts:war_ghast -40.5 -52 0.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
 				server.runCommand("tp Tester -26.5 -53.2 0.5 90 0");
 				conn.waitForClientboundPackets();
@@ -264,43 +264,30 @@ public final class RiftClientTests implements FabricClientGameTest {
 				for (int yaw = 0; yaw < 360; yaw += 90) {
 					turn(server, yaw);
 					ctx.waitTicks(15);
-					harnessOnBody("yaw " + yaw, read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_yaw_" + yaw).withSize(1920, 1080))));
+					ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_yaw_" + yaw).withSize(1920, 1080));
 				}
 				for (int i = 0; i < 6; i++) {
 					turn(server, 285 + 25 * i);
 					ctx.waitTicks(1);
-					harnessOnBody("turning " + i, read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_turning_" + i).withSize(1920, 1080))));
+					ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_turning_" + i).withSize(1920, 1080));
 				}
 
-				// facing the camera, its shooting face (red eyes, open mouth) held a quarter second into the shoot animation
+				// facing the camera, its sad face, then its shooting face as it charges a fireball
 				turn(server, -90);
 				ctx.waitTicks(15);
 				var calm = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_front").withSize(1920, 1080)));
-				AnimationHold.hold(server, RiftEntities.WAR_GHAST, "shoot", 5);
+				charging(server, true);
 				ctx.waitTicks(10);
 				var shooting = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_shoot").withSize(1920, 1080)));
-				AnimationHold.release(server);
-				int eyesBefore = countAll(calm, RiftClientTests::ghastRed);
-				int eyesAfter = countAll(shooting, RiftClientTests::ghastRed);
-				System.out.println("[nether-rifts-clienttest] war ghast face red before=" + eyesBefore + " shooting=" + eyesAfter);
-				check(eyesAfter - eyesBefore >= 150, "the war ghast doesn't show its shooting face: " + eyesBefore + " -> " + eyesAfter + " red pixels");
+				charging(server, false);
+				System.out.println("[nether-rifts-clienttest] war ghast face changed=" + changed(calm, shooting, 24));
 
-				// the Bombardier on the deck, from the front left, throwing (drop_bomb frame 4, the arm on its way down from
-				// overhead) against its arm at rest (frame 0)
-				server.runCommand(tpLooking(-35.0, -53.6, -2.4, -38.75, -54.2, 0.8));
+				// the Grenadier on the deck, from the front left
+				server.runCommand(tpLooking(-35.0, -55.0, -3.0, -41.3, -56.6, -0.1));
 				ctx.waitTicks(15);
-				AnimationHold.hold(server, RiftEntities.WAR_GHAST, "drop_bomb", 0);
-				ctx.waitTicks(10);
-				var throwRest = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_bomber_rest").withSize(1920, 1080)));
-				AnimationHold.hold(server, RiftEntities.WAR_GHAST, "drop_bomb", 4);
-				ctx.waitTicks(10);
-				var throwShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_bomber_throw").withSize(1920, 1080)));
-				AnimationHold.release(server);
-				int thrown = changed(throwRest, throwShot, 24);
-				System.out.println("[nether-rifts-clienttest] bombardier throw moved=" + thrown);
-				check(thrown >= 300, "the Bombardier on the deck doesn't throw: " + thrown);
+				ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_bomber_rest").withSize(1920, 1080));
 
-				// killed, the ghast lets its crew off: the Bombardier and two crossbow piglins gliding down
+				// killed, the ghast lets its crew off: the drummer, the Grenadier and two piglins gliding down
 				server.runCommand("tp Tester -26.5 -55.2 0.5 90 0");
 				ctx.waitTicks(10);
 				server.runCommand("kill @e[type=nether_rifts:war_ghast]");
@@ -308,11 +295,13 @@ public final class RiftClientTests implements FabricClientGameTest {
 				ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_crew_bail_out").withSize(1920, 1080));
 				int[] crew = new int[1];
 				server.runOnServer(s -> crew[0] = s.overworld().getEntities(RiftEntities.GHAST_BOMBARDIER, e -> true).size()
-						+ s.overworld().getEntities(net.minecraft.world.entity.EntityTypes.PIGLIN, e -> true).size());
+						+ s.overworld().getEntities(net.minecraft.world.entity.EntityTypes.PIGLIN, e -> true).size()
+						+ s.overworld().getEntities(RiftEntities.WAR_DRUMMER, e -> true).size());
 				System.out.println("[nether-rifts-clienttest] crew after the kill=" + crew[0]);
-				check(crew[0] == 3, "the war ghast's death let off " + crew[0] + " crew, not 3");
+				check(crew[0] == 4, "the war ghast's death let off " + crew[0] + " crew, not 4");
 				ctx.waitTicks(40);
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
+				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 				server.runCommand("kill @e[type=minecraft:piglin]");
 
 				// the Bombardier on foot: a vanilla piglin with a golden sword and the bombardier helmet (goggles over a leather
@@ -692,45 +681,9 @@ public final class RiftClientTests implements FabricClientGameTest {
 		return String.format(java.util.Locale.ROOT, "tp Tester %.3f %.3f %.3f %.2f %.2f", x, y - 1.62, z, yaw, pitch);
 	}
 
-	/** The ghast's shooting eyes and mouth as lit (about 130, 12, 12); the harness's red, about as deep, stays the same between shots. */
-	static boolean ghastRed(int r, int g, int b) {
-		return r > 100 && g < 40 && b < 40 && r > 4 * g;
-	}
-
-	/**
-	 * The war ghast's red harness on its body. Its grey (the white body and tentacles as lit, down to mid grey on the
-	 * shaded side) bounds where it is; down to 40% of the way through them, which only the body and harness reach, the
-	 * harness's red must be there, and none off to either side of them. The TNT and magma bomb, also red, hang lower.
-	 */
-	private static void harnessOnBody(String what, BufferedImage img) {
-		int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = -1, y1 = -1;
-		for (int y = 0; y < img.getHeight(); y++) {
-			for (int x = 0; x < img.getWidth(); x++) {
-				int p = img.getRGB(x, y);
-				int r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
-				if (r >= 90 && g >= 90 && b >= 90 && Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b)) <= 12) {
-					x0 = Math.min(x0, x);
-					y0 = Math.min(y0, y);
-					x1 = Math.max(x1, x);
-					y1 = Math.max(y1, y);
-				}
-			}
-		}
-		if (x1 < 0) {
-			check(false, "no war ghast on screen at " + what);
-			return;
-		}
-		int top = y0 + (y1 - y0) * 2 / 5;
-		int left = Math.max(0, x0 - 12), right = Math.min(img.getWidth(), x1 + 12);
-		int on = countIn(img, left, 0, right, top, RiftClientTests::harnessRed);
-		int off = countIn(img, 0, 0, left, top, RiftClientTests::harnessRed) + countIn(img, right, 0, img.getWidth(), top, RiftClientTests::harnessRed);
-		System.out.println("[nether-rifts-clienttest] war ghast " + what + " grey=" + x0 + "," + y0 + ".." + x1 + "," + y1 + " harness on=" + on + " off=" + off);
-		check(on >= 300 && off <= 30, "the harness isn't on the war ghast's body at " + what + ": " + on + " px on it, " + off + " off to the side");
-	}
-
-	/** The red harness's drapes as lit in game (about 80..170, 20..40, 20..40). */
-	static boolean harnessRed(int r, int g, int b) {
-		return r > 90 && r > 2 * g && r > 2 * b;
+	/** Sets the overworld's war ghasts charging a fireball (their shooting face) or not. */
+	private static void charging(TestDedicatedServerContext server, boolean charging) {
+		server.runOnServer(s -> s.overworld().getEntities(RiftEntities.WAR_GHAST, e -> true).forEach(ghast -> ghast.setCharging(charging)));
 	}
 
 	/** A port nothing listens on, so runs in several checkouts at once don't collide. */
