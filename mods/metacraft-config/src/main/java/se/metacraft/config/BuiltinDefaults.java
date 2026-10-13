@@ -1,6 +1,7 @@
 package se.metacraft.config;
 
 import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.DispatchedMapCodec;
 import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
@@ -281,6 +282,13 @@ public class BuiltinDefaults {
 			);
 			if (map.isEmpty()) {
 				map = CodecInternalsHelper.getUnderlyingCodec(simple, SimpleMapCodec.class, lookup).map(
+					c -> tryParseMapCodec(
+						c, simple, ctx, CodecParser::parse, lookup
+					)
+				);
+			}
+			if (map.isEmpty()) {
+				map = CodecInternalsHelper.getUnderlyingCodec(simple, DispatchedMapCodec.class, lookup).map(
 					c -> tryParseMapCodec(
 						c, simple, ctx, CodecParser::parse, lookup
 					)
