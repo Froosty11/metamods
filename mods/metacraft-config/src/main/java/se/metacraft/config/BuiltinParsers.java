@@ -34,6 +34,7 @@ import se.metacraft.config.util.event.EventWithPhases;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 import se.metacraft.config.util.helper.CodecParsingHelper;
 
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.Optional;
@@ -308,12 +309,17 @@ public class BuiltinParsers {
 		if (codec instanceof SimpleCodecAccessor simple) {
 			if ( // Codecs defined via xmap
 				simple.getDecoder() instanceof MappedDecoderAccessor mapped &&
-					mapped.getParent() instanceof Codec<?> parent
+				mapped.getParent() instanceof Codec<?> parent
 			) {
 				return CodecResult.createMapped(
 					codec, MetadataMap.from(new Range(limit, limit)), CodecParser.parse(parent, lookup)
 				);
 			}
+		}
+		if (codec instanceof MappedCodecAccessor mapped) {
+			return CodecResult.createMapped(
+				codec, MetadataMap.from(new Range(limit, limit)), CodecParser.parse(mapped.getParent(), lookup)
+			);
 		}
 		throw new IllegalArgumentException(codec + "is not a simple mapped codec!");
 	}
@@ -519,23 +525,25 @@ public class BuiltinParsers {
 		for (var param : parameters) {
 			for (var field : param.getClass().getDeclaredFields()) {
 				if (Map.class.isAssignableFrom(field.getType())) {
-					field.setAccessible(true);
 					try {
-						var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
-						if (map == null) continue;
-						var entries = Entries.from(
-							map.entrySet().stream().filter(
-								e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
-							).map(
-								e -> new Entries.Entry((String) e.getKey(), e.getValue())
-							)
-						);
-						if (!entries.isEmpty()) {
-							metadata = metadata.plus(entries);
+						field.setAccessible(true);
+						try {
+							var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
+							if (map == null) continue;
+							var entries = Entries.from(
+								map.entrySet().stream().filter(
+									e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
+								).map(
+									e -> new Entries.Entry((String) e.getKey(), e.getValue())
+								)
+							);
+							if (!entries.isEmpty()) {
+								metadata = metadata.plus(entries);
+							}
+						} catch (IllegalAccessException e) {
+							throw new RuntimeException(e);
 						}
-					} catch (IllegalAccessException e) {
-						throw new RuntimeException(e);
-					}
+					} catch (InaccessibleObjectException ignored) {}
 				}
 			}
 		}
