@@ -26,9 +26,9 @@ merging it *would* upload to and remove from each server of the target branch.
    ```
 3. Push. The next restart of that server loads it.
 
-You never list `metacraft-lib`, `metacraft-core` or `metacraft-zones`: anything a listed mod depends on
-is added for you. If a mod needs another of our mods that isn't on the list, the build fails and names
-both. Add the missing one, or take the first one off.
+You never list `metacraft-lib`, `metacraft-core`, `metacraft-zones` or `metacraft-config`: anything a
+listed mod depends on is added for you. If a mod needs another of our mods that isn't on the list, the
+build fails and names both. Add the missing one, or take the first one off.
 
 A brand-new mod also needs its `include "mods:<name>"` line in `settings.gradle`, as today. Being in
 `settings.gradle` does *not* put a mod on any server; being on a list does.
