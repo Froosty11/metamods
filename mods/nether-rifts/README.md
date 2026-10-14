@@ -35,6 +35,10 @@ last wave, gets its own red boss bar. Winning closes the rift and turns its obsi
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles
 when the raid ends).
 
+Players within 32 blocks of a new rift are warned in chat ("The realm is unstable", or for a crying-obsidian
+rift that it woke one). The warning's `[Read more]` opens metacraft-booklet's Rifts chapter (`metacraft:rifts`);
+nether-rifts only compiles against Booklet, and leaves the link out on a server without metacraft-booklet.
+
 Clients see a rift's blocks as a vanilla nether portal (swirl, particles, hum, and its overlay if you walk in;
 on the server they stay rift blocks and teleport nobody). Over it, metacraft-core's item shader draws glass
 cracking as pixel art fixed to the world (16 pixels a block): hairlines, then a web, then holes through which a
