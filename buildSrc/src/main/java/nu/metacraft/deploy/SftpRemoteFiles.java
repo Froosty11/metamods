@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.Vector;
 
 /** {@link RemoteFiles} over SFTP with password login (JSch, the maintained mwiede fork). */
@@ -66,6 +68,15 @@ public final class SftpRemoteFiles implements RemoteFiles {
     }
 
     @Override
+    public void put(String path, byte[] data) throws IOException {
+        try {
+            sftp.put(new ByteArrayInputStream(data), path, ChannelSftp.OVERWRITE);
+        } catch (SftpException e) {
+            throw failure("write", path, e);
+        }
+    }
+
+    @Override
     public boolean delete(String path) throws IOException {
         try {
             sftp.rm(path);
@@ -96,6 +107,80 @@ public final class SftpRemoteFiles implements RemoteFiles {
                 return List.of();
             }
             throw failure("list", dir, e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public SortedMap<String, Boolean> entries(String dir) throws IOException {
+        try {
+            Vector<ChannelSftp.LsEntry> entries = sftp.ls(dir);
+            SortedMap<String, Boolean> names = new TreeMap<>();
+            for (ChannelSftp.LsEntry entry : entries) {
+                String name = entry.getFilename();
+                if (!".".equals(name) && !"..".equals(name)) {
+                    names.put(name, entry.getAttrs().isDir());
+                }
+            }
+            return names;
+        } catch (SftpException e) {
+            if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                return new TreeMap<>();
+            }
+            throw failure("list", dir, e);
+        }
+    }
+
+    @Override
+    public void mkdirs(String dir) throws IOException {
+        StringBuilder path = new StringBuilder();
+        for (String part : dir.split("/")) {
+            if (path.length() > 0) {
+                path.append('/');
+            }
+            path.append(part);
+            String current = path.toString();
+            try {
+                if (!sftp.stat(current).isDir()) {
+                    throw new IOException("SFTP mkdirs " + dir + " failed: " + current + " is a file");
+                }
+            } catch (SftpException e) {
+                if (e.id != ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    throw failure("mkdirs", dir, e);
+                }
+                try {
+                    sftp.mkdir(current);
+                } catch (SftpException mkdir) {
+                    throw failure("mkdir", current, mkdir);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void rename(String from, String to) throws IOException {
+        // Some servers' rename (OpenSSH's posix-rename) replaces an existing file or empty directory.
+        try {
+            sftp.lstat(to);
+            throw new IOException("SFTP rename " + from + " to " + to + " failed: " + to + " exists");
+        } catch (SftpException e) {
+            if (e.id != ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                throw failure("rename to", to, e);
+            }
+        }
+        try {
+            sftp.rename(from, to);
+        } catch (SftpException e) {
+            throw failure("rename " + from + " to", to, e);
+        }
+    }
+
+    @Override
+    public void rmdir(String dir) throws IOException {
+        try {
+            sftp.rmdir(dir);
+        } catch (SftpException e) {
+            throw failure("rmdir", dir, e);
         }
     }
 

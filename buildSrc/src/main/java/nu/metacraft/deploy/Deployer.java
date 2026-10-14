@@ -16,7 +16,7 @@ import java.util.TreeSet;
 /**
  * Deploys a set to a server: checks autodeploy can delete, uploads what differs from the
  * server's manifest, lists removals in remove.txt, and writes the manifest last so an
- * interrupted deploy is retried in full. Before its first change it rewrites the server's
+ * interrupted deploy is retried in full. Then the set's datapacks ({@link DatapackDeployer}). Before its first change it rewrites the server's
  * manifest with an unknown sha256 for the mods it is about to upload or remove, so that after an
  * interrupted deploy (and maybe a restart that installed part of it) the next deploy sends or
  * removes those again.
@@ -32,7 +32,18 @@ public final class Deployer {
     static final String UNKNOWN_SHA256 = "0".repeat(64);
 
     public record Report(String server, boolean firstDeploy, boolean dryRun, SortedSet<String> uploaded,
-                         SortedSet<String> removed, SortedSet<String> unchanged, Manifest manifest) {}
+                         SortedSet<String> removed, SortedSet<String> unchanged, Manifest manifest,
+                         DatapackDeployer.Report datapacks) {
+        public Report(String server, boolean firstDeploy, boolean dryRun, SortedSet<String> uploaded,
+                      SortedSet<String> removed, SortedSet<String> unchanged, Manifest manifest) {
+            this(server, firstDeploy, dryRun, uploaded, removed, unchanged, manifest, DatapackDeployer.Report.none());
+        }
+
+        /** Whether a mod jar is uploaded or removed, which only a restart applies. */
+        public boolean modsChanged() {
+            return !uploaded.isEmpty() || !removed.isEmpty();
+        }
+    }
 
     private Deployer() {
     }
@@ -41,6 +52,7 @@ public final class Deployer {
         checkAutodeploy(server, remote);
         Manifest now = Manifest.read(deployDir.resolve("manifest.json"));
         checkLocalJars(deployDir, now);
+        DatapackDeployer.Plan datapacks = DatapackDeployer.plan(server, deployDir, remote);
 
         Optional<byte[]> oldBytes = remote.read(REMOTE_MANIFEST);
         // First means no manifest on the server at all. The interim manifest below is only written
@@ -111,6 +123,7 @@ public final class Deployer {
             }
             remote.write(REMOVE_FILE, (String.join("\n", remove) + "\n").getBytes(StandardCharsets.UTF_8));
             remote.write(REMOTE_MANIFEST, now.toJson().getBytes(StandardCharsets.UTF_8));
+            datapacks.execute(remote);
         }
         // The summary names the bundle only on the first deploy; later it is just a precaution.
         SortedSet<String> reportRemoved = new TreeSet<>(remove);
@@ -118,7 +131,8 @@ public final class Deployer {
             reportRemoved.remove(DeployList.BUNDLE_ID);
         }
         return new Report(server, first, dryRun, Collections.unmodifiableSortedSet(upload),
-                Collections.unmodifiableSortedSet(reportRemoved), Collections.unmodifiableSortedSet(unchanged), now);
+                Collections.unmodifiableSortedSet(reportRemoved), Collections.unmodifiableSortedSet(unchanged), now,
+                datapacks.report);
     }
 
     private static void checkAutodeploy(String server, RemoteFiles remote) throws IOException {
