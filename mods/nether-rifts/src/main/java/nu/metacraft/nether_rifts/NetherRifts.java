@@ -10,6 +10,7 @@ import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.RiftItems;
 import nu.metacraft.nether_rifts.mob.RiftModels;
+import nu.metacraft.nether_rifts.mob.Showcase;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.rift.Ignition;
 import nu.metacraft.nether_rifts.rift.RiftBlocks;
@@ -33,6 +34,7 @@ public class NetherRifts implements ModInitializer {
 		RiftBlocks.init();
 		Ignition.init();
 		RiftMobs.init();
+		Showcase.init();
 		new IsLoaded("simple-custom-features").ifLoaded(() -> ScfCompat.init());
 		ServerTickEvents.END_LEVEL_TICK.register(level -> RiftData.get(level).tick(level));
 		RiftsCommand.init();

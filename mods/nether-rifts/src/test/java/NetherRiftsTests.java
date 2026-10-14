@@ -72,6 +72,7 @@ public class NetherRiftsTests {
 					BombardierTests.registerTests();
 					GhastCrewTests.registerTests();
 					GhastFlightTests.registerTests();
+					ShowcaseTests.registerTests();
 					CaptainTests.registerTests();
 					HeldItemsTests.registerTests();
 					ArmourTests.registerTests();

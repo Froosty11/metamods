@@ -595,6 +595,9 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				place(hitbox, crew);
 			}
 			crewHealth.put(crew, hitbox.getHealth());
+			// an invulnerable (or silent) ghast's crew are too
+			hitbox.setPermanentlyInvulnerable(isPermanentlyInvulnerable());
+			hitbox.setSilent(isSilent());
 			if (crew == Crew.SPEAR) {
 				for (var slot : ARMOUR) {
 					var stack = getItemBySlot(slot);
@@ -783,8 +786,11 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			if (isAlive()) {
 				unstick();
 				updateParts(level);
-				crossbow(level);
-				drum(level);
+				// a showcase ghast's crew only stand there
+				if (!Showcase.isShowcase(this)) {
+					crossbow(level);
+					drum(level);
+				}
 			}
 		}
 	}

@@ -48,6 +48,12 @@ Config: `config/nether-rifts.json5`; its `mobs` section tunes the Piglin Drummer
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing), and how often
 and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
 
+To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
+animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin
+Grenadier and a vanilla piglin in iron, and two Chained Ghasts behind them (kit and diamond armour, one holding its
+shooting face), each named. They stand still and silent, can't be hurt and never despawn. `/rifts showcase clear`
+takes them away; a new `/rifts showcase` replaces the last.
+
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and
 metacraft-lib's fail in a fresh checkout until its data is generated, so run
 `./gradlew :mods:metacraft-lib:runDatagen` once first. Or skip the dependencies' tests:

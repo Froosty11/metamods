@@ -341,6 +341,21 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand("kill @e[type=nether_rifts:war_drummer]");
 				server.runCommand("kill @e[type=minecraft:piglin]");
 
+				// /rifts showcase: the drummers (each in one animation, then in every armour), the Grenadier and a vanilla piglin
+				// in rows, the ghasts behind, all named (screenshots to look at)
+				server.runCommand("execute positioned 0.5 -60 40.5 rotated 0 0 run rifts showcase");
+				conn.waitForClientboundPackets();
+				server.runCommand(tpLooking(-4.5, -57.2, 38.0, -4.5, -59.0, 47.0));
+				ctx.waitTicks(30);
+				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_left").withSize(1920, 1080));
+				server.runCommand(tpLooking(5.5, -57.2, 38.0, 5.5, -59.0, 47.0));
+				ctx.waitTicks(15);
+				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_right").withSize(1920, 1080));
+				server.runCommand(tpLooking(0.5, -55.0, 33.0, 0.5, -56.0, 55.5));
+				ctx.waitTicks(15);
+				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_ghasts").withSize(1920, 1080));
+				server.runCommand("rifts showcase clear");
+
 				// the Bombardier on foot: a vanilla piglin with a golden sword and the bombardier helmet (goggles over a leather
 				// cap, an item model from the mod's pack) on its head, from the front where the drummer stood. Only logged for
 				// now: the helmet is a placeholder, the lens count gives a later check its numbers.

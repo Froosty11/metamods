@@ -9,6 +9,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.mob.Showcase;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
 import nu.metacraft.nether_rifts.rift.*;
 
@@ -37,6 +38,16 @@ public final class RiftsCommand {
 					ctx.getSource().sendSuccess(() -> Component.literal("The realm is unstable again. Portals open rifts."), true);
 					return 1;
 				}))
+				.then(Commands.literal("showcase").executes(ctx -> {
+					var source = ctx.getSource();
+					var spawned = Showcase.spawn(source.getLevel(), source.getPosition(), source.getRotation().y);
+					source.sendSuccess(() -> Component.literal("Showcase: " + spawned.size() + " mobs. /rifts showcase clear takes them away."), true);
+					return spawned.size();
+				}).then(Commands.literal("clear").executes(ctx -> {
+					int n = Showcase.clear(ctx.getSource().getServer());
+					ctx.getSource().sendSuccess(() -> Component.literal("Showcase cleared: " + n + " mobs"), true);
+					return n;
+				})))
 				.then(Commands.literal("reload").executes(ctx -> {
 					NetherRiftsConfig.reload();
 					ctx.getSource().sendSuccess(() -> Component.literal("Reloaded nether-rifts.json5"), true);
