@@ -1,0 +1,10 @@
+### Section: PageInfo
+title=Dye loom
+description=Every banner and shield pattern, in Cerise or Laserviolet.
+category=metacraft:banner_patterns,metacraft:moredyes
+icon=moredyes:laserviolet_dye
+order=10
+### EndSection: PageInfo
+Hold a banner or a shield in the other hand and use <citem 'moredyes:cerise_dye'> or <citem 'moredyes:laserviolet_dye'>: the <bold>dye loom</bold> opens with every pattern in that colour.
+
+Patterns that need a pattern item at a loom need it in your inventory here too; it is not used up.

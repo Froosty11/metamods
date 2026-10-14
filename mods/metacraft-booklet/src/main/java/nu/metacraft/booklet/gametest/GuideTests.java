@@ -33,6 +33,7 @@ public final class GuideTests {
 	private static final Pattern ITEM = Pattern.compile("<c?item\\s+'([^']+)'");
 	private static final Pattern IMAGE = Pattern.compile("(?m)^### Image:\\s*(\\S+)");
 	private static final Pattern CATEGORY = Pattern.compile("(?m)^category=(.*)$");
+	private static final Pattern ENTRIES = Pattern.compile("(?m)^### Category Entries:\\s*(\\S+)");
 	private static final Identifier BOOKSHELF = Identifier.fromNamespaceAndPath("booklet", "main_page");
 	/**
 	 * Pages other mods open by id, from a command or a chat link. Booklet ignores a page that isn't
@@ -42,9 +43,12 @@ public final class GuideTests {
 			"ovvar", Identifier.fromNamespaceAndPath("metacraft", "ovvar"),
 			"nether-rifts", Identifier.fromNamespaceAndPath("metacraft", "rifts"));
 
-	/** Every page file in the loaded hooks' packs, page id to its text. */
-	private static Map<Identifier, String> pages(GameTestHelper helper) {
-		Map<Identifier, String> out = new LinkedHashMap<>();
+	/** A page file of a loaded hook's pack: its text, and the hook that brings it. */
+	private record Page(String text, MetacraftBooklet.Hook hook) {}
+
+	/** Every page file in the loaded hooks' packs, by page id. */
+	private static Map<Identifier, Page> pages(GameTestHelper helper) {
+		Map<Identifier, Page> out = new LinkedHashMap<>();
 		var self = FabricLoader.getInstance().getModContainer(MetacraftBooklet.MOD_ID).orElseThrow();
 		for (MetacraftBooklet.Hook hook : MetacraftBooklet.HOOKS) {
 			if (!hook.loaded()) continue;
@@ -60,7 +64,7 @@ public final class GuideTests {
 					if (rel.getNameCount() < 5 || !rel.getName(1).toString().equals("booklet") || !rel.getName(3).toString().equals(LANG)) continue;
 					String path = rel.subpath(4, rel.getNameCount()).toString().replace('\\', '/');
 					out.put(Identifier.fromNamespaceAndPath(rel.getName(0).toString(), path.substring(0, path.length() - ".txt".length())),
-							Files.readString(file, StandardCharsets.UTF_8));
+							new Page(Files.readString(file, StandardCharsets.UTF_8), hook));
 				}
 			} catch (IOException e) {
 				helper.fail("cannot read " + hook.pack() + ": " + e);
@@ -89,10 +93,11 @@ public final class GuideTests {
 	public void everyPageIsReachableFromTheIndex(GameTestHelper helper) {
 		// Every page is in a category, and every category it names is either the bookshelf or one a
 		// page on the bookshelf lists — so nothing is written that no reader can get to.
-		Map<Identifier, String> pages = pages(helper);
+		Map<Identifier, Page> pages = pages(helper);
 		List<String> wrong = new ArrayList<>();
 		for (var entry : pages.entrySet()) {
-			Matcher m = CATEGORY.matcher(entry.getValue());
+			if (entry.getKey().equals(MetacraftBooklet.INDEX)) continue;   // the welcome page is the index itself
+			Matcher m = CATEGORY.matcher(entry.getValue().text());
 			if (!m.find()) { wrong.add(entry.getKey() + " is in no category"); continue; }
 			for (String raw : m.group(1).split(",")) {
 				Identifier cat = Identifier.tryParse(raw.strip());
@@ -100,7 +105,7 @@ public final class GuideTests {
 				if (!BookletInit.CATEGORIES.getOrDefault(cat, List.of()).contains(entry.getKey())) {
 					wrong.add(entry.getKey() + " is not listed in " + cat);
 				}
-				if (!cat.equals(BOOKSHELF) && pages.values().stream().noneMatch(t -> t.contains("### Category Entries: " + cat))) {
+				if (!cat.equals(BOOKSHELF) && pages.values().stream().noneMatch(p -> p.text().contains("### Category Entries: " + cat))) {
 					wrong.add(entry.getKey() + "'s category " + cat + " is listed by no page");
 				}
 			}
@@ -113,12 +118,12 @@ public final class GuideTests {
 	public void everyLinkAndItemInTheGuideExists(GameTestHelper helper) {
 		List<String> wrong = new ArrayList<>();
 		for (var entry : pages(helper).entrySet()) {
-			Matcher links = PAGE_LINK.matcher(entry.getValue());
+			Matcher links = PAGE_LINK.matcher(entry.getValue().text());
 			while (links.find()) {
 				Identifier target = Identifier.tryParse(links.group(1));
 				if (target == null || !BookletInit.PAGES.containsKey(target)) wrong.add(entry.getKey() + " links to " + links.group(1));
 			}
-			Matcher items = ITEM.matcher(entry.getValue());
+			Matcher items = ITEM.matcher(entry.getValue().text());
 			while (items.find()) {
 				Identifier item = Identifier.tryParse(items.group(1));
 				if (item == null || !BuiltInRegistries.ITEM.containsKey(item)) wrong.add(entry.getKey() + " names item " + items.group(1));
@@ -126,6 +131,71 @@ public final class GuideTests {
 		}
 		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
 		helper.succeed();
+	}
+
+	@GameTest
+	public void theBookOpensOnTheWelcomePage(GameTestHelper helper) {
+		// The welcome pack replaces Booklet's own index, so it has to be read after Booklet's jar.
+		Map<String, BookletPage> langs = BookletInit.PAGES.get(MetacraftBooklet.INDEX);
+		String title = langs == null || langs.get(LANG) == null ? null : langs.get(LANG).info().title().getString();
+		if (!"Welcome to METAcraft".equals(title)) helper.fail("/guide opens " + MetacraftBooklet.INDEX + " titled " + title + ", not the welcome page");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void everySectionListsAtLeastOnePage(GameTestHelper helper) {
+		// A section's pack is on when any of its mods is; the pages it lists come with those mods.
+		Map<Identifier, Page> pages = pages(helper);
+		List<String> wrong = new ArrayList<>();
+		for (Identifier section : BookletInit.CATEGORIES.getOrDefault(BOOKSHELF, List.of())) {
+			Page page = pages.get(section);
+			if (page == null) continue;   // another mod's chapter
+			Matcher entries = ENTRIES.matcher(page.text());
+			if (!entries.find()) { wrong.add(section + " lists no category"); continue; }
+			Identifier cat = Identifier.tryParse(entries.group(1).strip());
+			if (BookletInit.CATEGORIES.getOrDefault(cat, List.of()).isEmpty()) wrong.add(section + " is an empty section");
+		}
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	/**
+	 * Whatever mix of mods a server has, every page it loads can still be reached: one of its categories
+	 * is the bookshelf, or is listed by a page whose pack is on whenever this page's pack is. So a mod
+	 * whose pages go in a section must also be in that section's {@code Hook.anyOf}.
+	 */
+	@GameTest
+	public void everyPageStaysReachableWithModsMissing(GameTestHelper helper) {
+		Map<Identifier, Page> pages = pages(helper);
+		List<String> wrong = new ArrayList<>();
+		for (var entry : pages.entrySet()) {
+			if (entry.getKey().equals(MetacraftBooklet.INDEX)) continue;
+			Matcher m = CATEGORY.matcher(entry.getValue().text());
+			if (!m.find()) continue;   // everyPageIsReachableFromTheIndex says so
+			boolean reachable = false;
+			for (String raw : m.group(1).split(",")) {
+				Identifier cat = Identifier.tryParse(raw.strip());
+				if (cat == null) continue;
+				if (cat.equals(BOOKSHELF)) { reachable = true; break; }
+				for (Page lister : pages.values()) {
+					if (lister.text().contains("### Category Entries: " + cat) && implies(entry.getValue().hook(), lister.hook())) {
+						reachable = true;
+						break;
+					}
+				}
+			}
+			if (!reachable) wrong.add(entry.getKey() + " (pack " + entry.getValue().hook().pack() + ") is listed only by pages that can be missing when it is there");
+		}
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	/** Whether {@code q}'s pack is on on every server {@code p}'s is. */
+	private static boolean implies(MetacraftBooklet.Hook p, MetacraftBooklet.Hook q) {
+		if (q.mods().isEmpty() || p.pack().equals(q.pack())) return true;
+		if (p.mods().isEmpty()) return false;
+		if (q.any()) return p.any() ? q.mods().containsAll(p.mods()) : p.mods().stream().anyMatch(q.mods()::contains);
+		return p.any() ? p.mods().stream().allMatch(mod -> List.of(mod).containsAll(q.mods())) : p.mods().containsAll(q.mods());
 	}
 
 	@GameTest
@@ -146,7 +216,7 @@ public final class GuideTests {
 		var self = FabricLoader.getInstance().getModContainer(MetacraftBooklet.MOD_ID).orElseThrow();
 		List<String> wrong = new ArrayList<>();
 		for (var entry : pages(helper).entrySet()) {
-			Matcher images = IMAGE.matcher(entry.getValue());
+			Matcher images = IMAGE.matcher(entry.getValue().text());
 			while (images.find()) {
 				Identifier image = Identifier.tryParse(images.group(1));
 				boolean there = image != null && (nu.metacraft.booklet.Beside.wants(image)

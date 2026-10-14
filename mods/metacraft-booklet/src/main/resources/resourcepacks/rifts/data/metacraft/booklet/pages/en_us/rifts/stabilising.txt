@@ -3,7 +3,7 @@ title=Stabilising
 description=The realm will stabilise in time, and the nether will open.
 category=metacraft:rifts
 icon=minecraft:ender_eye
-order=7
+order=2
 ### EndSection: PageInfo
 ### Header: The realm will stabilise in time
 While the realm is unstable, an <citem 'minecraft:ender_eye'> can't be crafted. When it steadies, waiting rifts turn into working nether portals, new portals light as normal, and raids still running finish as usual.

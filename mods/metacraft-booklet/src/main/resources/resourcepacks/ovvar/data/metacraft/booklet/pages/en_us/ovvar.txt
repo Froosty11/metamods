@@ -1,15 +1,15 @@
 ### Section: PageInfo
-title=How to ovvar
-external_title=How to ovvar
+title=Ovvar
+external_title=Ovvar
 description=Your ovve, your patches, and how to sew them on.
-category=booklet:main_page
+category=metacraft:student_culture
 icon=ovvar:data_ovve
 book_color=#e2007a
-order=10
+order=40
 ### EndSection: PageInfo
 ### Image: metacraft:beside/ovvar/hero An <bold>ovve</bold> is your student overall: one garment, worn in the legs slot, that you sew <bold>patches</bold> onto.<nl2>What you sew on stays yours on every server, and only you can change it.
 
-Four chapters, four steps:
+Four pages, four steps:
 ### Category Entries: metacraft:ovvar
 
 Short version: wear the ovve, put it on an armour stand, hold a patch, look where it should go and

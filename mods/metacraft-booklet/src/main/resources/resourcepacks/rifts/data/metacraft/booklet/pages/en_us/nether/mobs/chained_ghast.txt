@@ -1,9 +1,9 @@
 ### Section: PageInfo
 title=Chained Ghast
 description=A ghast with a crewed deck hung under it, in large rifts from wave 5.
-category=metacraft:rifts
+category=metacraft:nether/mobs
 icon=minecraft:iron_chain
-order=4
+order=1
 ### EndSection: PageInfo
 ### Header: Tells
 ### Image: metacraft:beside/rifts/chained_ghast A ghast in a harness, with a wooden deck hung on chains about 6 blocks below it and four piglins on the deck. Large rifts send one in wave 5 and two in wave 7.<nl2>It floats no more than 20 blocks above the ground and goes after players below it.

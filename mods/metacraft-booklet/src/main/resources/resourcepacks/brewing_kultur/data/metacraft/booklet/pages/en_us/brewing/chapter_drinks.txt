@@ -1,5 +1,5 @@
 ### Section: PageInfo
-title=Chapter drinks
+title=IT's drinks
 description=IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.
 category=metacraft:brewing
 icon=minecraft:sweet_berries

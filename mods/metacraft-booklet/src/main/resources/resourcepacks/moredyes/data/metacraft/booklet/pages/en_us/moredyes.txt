@@ -1,8 +1,8 @@
 ### Section: PageInfo
-title=More dyes
-external_title=More dyes
+title=Colors
+external_title=Colors
 description=Cerise and Laserviolet: where the dyes come from and everything they colour.
-category=booklet:main_page
+category=metacraft:student_culture
 icon=moredyes:cerise_dye
 order=50
 ### EndSection: PageInfo
@@ -24,4 +24,4 @@ A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'mor
 - A pet's collar, in the nearest vanilla colour
 
 ### Header: Banners and shields
-Hold a banner or a shield in the other hand and use the dye: the <bold>dye loom</bold> opens with every pattern in that colour. Patterns that need a pattern item at a loom need it in your inventory here too; it is not used up.
+### Category Entries: metacraft:moredyes

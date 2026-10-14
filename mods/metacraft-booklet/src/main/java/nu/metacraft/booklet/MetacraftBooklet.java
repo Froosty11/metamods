@@ -19,33 +19,50 @@ import java.util.List;
 
 /**
  * The server's guidebook. <a href="https://github.com/Patbox/booklet">Booklet</a> draws the book
- * (a dialog on a vanilla client) and lists every page in its {@code booklet:main_page} category on
- * its index, "The Encyclopedia"; this mod supplies the pages, one chapter per mod the server runs.
+ * (a dialog on a vanilla client); this mod supplies the pages, in four sections: Student Culture
+ * Features, Vanilla+ Features, Nether Changes and End Changes. {@code /guide} opens Booklet's index,
+ * {@code booklet:index}, which the always-on {@code welcome} pack replaces with "Welcome to METAcraft":
+ * the server's idea, then the sections, every page in {@code booklet:main_page}.
  *
- * <p>Each chapter is a built-in datapack under {@code resourcepacks/<name>/} of this jar and is
- * registered only when its mod is loaded ({@link #HOOKS}), so a server without ovvar has no ovvar
- * chapter and none of its item icons to resolve. No chapter's mod is a dependency.
+ * <p>Each mod's pages are a built-in datapack under {@code resourcepacks/<name>/} of this jar,
+ * registered only when its mod is loaded ({@link #HOOKS}), so a server without ovvar has no ovvar pages
+ * and none of their item icons to resolve. A section's own page is in a pack that is on when any of its
+ * mods is, so it lists only the pages that are there and is gone when none of them is. No chapter's mod
+ * is a dependency.
  *
  * <p>Besides pages: {@code polydecorations_s6} switches off every PolyDecorations recipe but those
  * of the few things METAcraft keeps, and the resource pack turns the warning button vanilla puts on every server
  * dialog into a question mark.
- *
- * <p>{@code /guide} (anyone) opens the index.
  */
 public final class MetacraftBooklet implements ModInitializer {
 	public static final String MOD_ID = "metacraft-booklet";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	/** Booklet's own index page: every page in {@code booklet:main_page}. */
+	/** Booklet's index page, which {@code /guide} opens; the {@code welcome} pack replaces Booklet's own. */
 	public static final Identifier INDEX = Identifier.fromNamespaceAndPath("booklet", "index");
 
 	/**
-	 * A built-in datapack switched on when every one of {@code mods} is loaded. {@code optional} packs
-	 * are enabled by default but can be turned off with {@code /datapack disable}; chapters cannot.
+	 * A built-in datapack switched on when its mods are loaded: every one of {@code mods}, or with
+	 * {@code any} at least one of them; with no mods, always. {@code optional} packs are enabled by
+	 * default but can be turned off with {@code /datapack disable}; chapters cannot.
 	 */
-	public record Hook(List<String> mods, String pack, boolean optional) {
+	public record Hook(List<String> mods, boolean any, String pack, boolean optional) {
 		public Hook(String modId, String pack, boolean optional) {
-			this(List.of(modId), pack, optional);
+			this(List.of(modId), false, pack, optional);
+		}
+
+		public Hook(List<String> mods, String pack, boolean optional) {
+			this(mods, false, pack, optional);
+		}
+
+		/** A pack on when any one of {@code mods} is loaded: a section's own page. */
+		public static Hook anyOf(String pack, String... mods) {
+			return new Hook(List.of(mods), true, pack, false);
+		}
+
+		/** A pack that is always on. */
+		public static Hook always(String pack) {
+			return new Hook(List.of(), false, pack, false);
 		}
 
 		public Identifier id() {
@@ -53,24 +70,47 @@ public final class MetacraftBooklet implements ModInitializer {
 		}
 
 		public boolean loaded() {
-			return mods.stream().allMatch(FabricLoader.getInstance()::isModLoaded);
+			if (mods.isEmpty()) return true;
+			var loader = FabricLoader.getInstance();
+			return any ? mods.stream().anyMatch(loader::isModLoaded) : mods.stream().allMatch(loader::isModLoaded);
+		}
+
+		/** Which mods switch it on, for the log. */
+		public String describe() {
+			return mods.isEmpty() ? "always" : String.join(any ? " or " : " and ", mods);
 		}
 	}
 
 	/**
-	 * Every hook, in the order the chapters are listed (each chapter's own {@code order=} decides
-	 * that on the index). A new mod's chapter is a folder under {@code resourcepacks/} and a line here.
+	 * Every hook. Where a page sits is its own {@code category=} and {@code order=}: the sections are
+	 * in {@code booklet:main_page}, and each page in its section's category. A new mod's pages are a
+	 * folder under {@code resourcepacks/} and a line here; if it belongs to a section, add the mod to
+	 * that section's {@link Hook#anyOf} too.
 	 */
 	public static final List<Hook> HOOKS = List.of(
+			// "Welcome to METAcraft": replaces Booklet's index, so /guide opens on it
+			Hook.always("welcome"),
+
+			// Student Culture Features (order: Chapter Drinks 10, Banner Patterns 20, Ovvar 40, Colors 50).
+			// 30 is kept for Pirkkos, Ripsquid's pirkko mod: its chapter goes in a pack of its own with
+			// category=metacraft:student_culture and order=30, a Hook here, and its mod id in this anyOf.
+			Hook.anyOf("student_culture", "ovvar", "brewery", "kultur", "moredyes"),
 			new Hook("ovvar", "ovvar", false),
-			new Hook("polydecorations", "decorating", false),
-			new Hook("polydecorations", "polydecorations_s6", true),
-			new Hook("metacraft-qol", "qol", false),
 			// Brewery's own book, rewritten as a chapter (its recipe is switched off here); the
 			// recipe pages are written by tools/brewing_recipes.py.
 			new Hook("brewery", "brewing", false),
 			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false),
+			new Hook("kultur", "kultur", false),
 			new Hook("moredyes", "moredyes", false),
+
+			// Vanilla+ Features
+			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations"),
+			// also End Changes: the void anchor, in both sections
+			new Hook("metacraft-qol", "qol", false),
+			new Hook("polydecorations", "decorating", false),
+			new Hook("polydecorations", "polydecorations_s6", true),
+
+			// Nether Changes
 			new Hook("nether-rifts", "rifts", false));
 
 	@Override
@@ -81,7 +121,7 @@ public final class MetacraftBooklet implements ModInitializer {
 			boolean ok = ResourceLoader.registerBuiltinPack(hook.id(), self,
 					Component.literal("METAcraft Booklet: " + hook.pack()),
 					hook.optional() ? PackActivationType.DEFAULT_ENABLED : PackActivationType.ALWAYS_ENABLED);
-			LOGGER.info("[{}] {} here: {} {}", MOD_ID, String.join(" and ", hook.mods()), hook.pack(), ok ? "on" : "could not be registered");
+			LOGGER.info("[{}] {}: {} {}", MOD_ID, hook.describe(), hook.pack(), ok ? "on" : "could not be registered");
 		}
 		if (FabricLoader.getInstance().isModLoaded("polydecorations")) {
 			// its feature switches, as a METAcraft config (/meta-config-screen polydecorations)

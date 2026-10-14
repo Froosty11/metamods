@@ -107,7 +107,7 @@ def main():
         drink = json.load(open(path))
         kultur.append((drink["name"].get("fallback", os.path.basename(path)), drink))
     write(os.path.join(PACKS, "brewing_kultur/data/metacraft/booklet/pages/en_us/brewing/chapter_drinks.txt"), page(
-        "Chapter drinks", "IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.",
+        "IT's drinks", "IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.",
         "minecraft:sweet_berries", 6, "chapter_drinks",
         "The chapters' own drinks, brewed the same way. Each one sends you fast or slow (Släggan: slow "
         "and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: "

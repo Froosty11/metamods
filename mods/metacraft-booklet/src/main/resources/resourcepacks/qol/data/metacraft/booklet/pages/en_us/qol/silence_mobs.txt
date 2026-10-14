@@ -1,9 +1,9 @@
 ### Section: PageInfo
 title=Silencing mobs
 description=Quieten a noisy mob with the muffler.
-category=metacraft:qol
+category=metacraft:vanilla_plus
 icon=metacraft:muffler
-order=3
+order=20
 ### EndSection: PageInfo
 ### Image: metacraft:beside/qol/muffler Right-click a mob with the muffler and it goes quiet. Right-click it again to undo it.<nl2>The muffler is never used up, and the mob keeps its name.
 

@@ -1,9 +1,9 @@
 ### Section: PageInfo
-title=Concrete cauldron
+title=Concrete Crafting
 description=Throw concrete powder into a cauldron of water to make concrete.
-category=metacraft:qol
+category=metacraft:vanilla_plus
 icon=minecraft:light_blue_concrete
-order=2
+order=30
 ### EndSection: PageInfo
 ### Image: metacraft:beside/qol/concrete Throw concrete powder into a cauldron with water in it and it turns into concrete. The whole stack you threw changes, for one level of water.<nl2>So throw full stacks: 64 powder costs the same water as one.
 

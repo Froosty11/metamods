@@ -1,9 +1,9 @@
 ### Section: PageInfo
 title=Piglin Drummer
 description=A piglin with a war drum. It leads every wave from the second one on.
-category=metacraft:rifts
+category=metacraft:nether/mobs
 icon=minecraft:note_block
-order=3
+order=2
 ### EndSection: PageInfo
 ### Header: Tells
 ### Image: metacraft:beside/rifts/drummer A piglin with a war drum. It never swings at you, and it keeps its distance while it drums.<nl2>You hear it before you see it. When it sees a player within 16 blocks, it lets out a war cry and drums a beat every half second.

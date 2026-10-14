@@ -1,9 +1,9 @@
 ### Section: PageInfo
-title=Void anchor
+title=Void Anchor
 description=Fall off an End island and come back at your anchor.
-category=metacraft:qol
+category=metacraft:vanilla_plus,metacraft:end
 icon=metacraft:void_anchor
-order=1
+order=10
 ### EndSection: PageInfo
 ### Image: metacraft:beside/qol/void_anchor A void anchor catches you when you fall into the End's void. Space cracks open below you, you sink into the crack, and you step out next to your anchor.<nl2>It only works in the End.
 
