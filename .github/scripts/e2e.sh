@@ -2,12 +2,34 @@
 # End-to-end deploy test: an SFTP server (atmoz/sftp in Docker) whose mods/ is bind-mounted
 # from build/e2e/server/mods, the real deployServer task, and autodeploy run over the same
 # directory as a server restart would. No real server is touched.
-# Usage: .github/scripts/e2e.sh <path to autodeploy.jar>
-# Needs: docker, java, jq, python3, shasum, and build/deploy/test/ (./gradlew deploySet -Pserver=test).
+#
+# A local, manual test: CI doesn't run it, because autodeploy comes from
+# METAcraft-KTH/FabricModsUpdate, which is private. Run it when changing the deploy tooling or
+# autodeploy, with an autodeploy.jar of v1.1 or later (FabricModsUpdate#1, remove.txt support):
+#
+#   ./gradlew deploySet -Pserver=test
+#   .github/scripts/e2e.sh path/to/autodeploy.jar
+#   .github/scripts/e2e.sh path/to/FabricModsUpdate    # a checkout: builds its autodeploy.jar
+#
+# or pass the path in AUTODEPLOY_JAR instead of as the argument. A checkout builds with
+# AUTODEPLOY_JAVA_HOME (a JDK its Gradle runs on, e.g. 17) if set, else JAVA_HOME.
+# Needs: docker, java, jq, python3, shasum, and build/deploy/test/.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-[ $# -eq 1 ] || { echo "usage: $0 <autodeploy.jar>" >&2; exit 2; }
-AUTODEPLOY_JAR="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+[ $# -le 1 ] || { echo "usage: $0 [autodeploy.jar | FabricModsUpdate checkout]" >&2; exit 2; }
+autodeploy="${1:-${AUTODEPLOY_JAR:-}}"
+[ -n "$autodeploy" ] || { echo "usage: $0 [autodeploy.jar | FabricModsUpdate checkout], or set AUTODEPLOY_JAR" >&2; exit 2; }
+if [ -d "$autodeploy" ]; then
+  src="$(cd "$autodeploy" && pwd -P)"
+  # FabricModsUpdate has no settings.gradle: inside this checkout, Gradle would take ours and fail.
+  case "$src/" in "$(pwd -P)/"*) echo "$src is inside this repository; use a FabricModsUpdate checkout outside it" >&2; exit 2 ;; esac
+  echo "building autodeploy.jar in $src"
+  # Its Gradle (8.5) doesn't run on the Java 25 this build needs: AUTODEPLOY_JAVA_HOME, e.g. a JDK 17.
+  (cd "$src" && JAVA_HOME="${AUTODEPLOY_JAVA_HOME:-${JAVA_HOME:-}}" ./gradlew --quiet shadowJar)
+  autodeploy="$src/build/libs/autodeploy.jar"
+fi
+[ -f "$autodeploy" ] || { echo "no such file: $autodeploy" >&2; exit 2; }
+AUTODEPLOY_JAR="$(cd "$(dirname "$autodeploy")" && pwd)/$(basename "$autodeploy")"
 E2E=build/e2e
 SERVER_DIR="$E2E/server"
 SET1=build/deploy/test

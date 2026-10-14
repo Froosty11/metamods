@@ -112,3 +112,22 @@ that file; if it is lost, the next deploy uploads everything again, which is har
 The deploy owns `mods/update`: it is a staging folder, not a place to put jars by hand. Any jar found
 there that isn't part of the deploy is deleted by the next deploy. Jars put in `mods/` itself by hand
 are still left alone.
+
+## Testing the deploy tooling
+
+CI runs the deploy tooling's unit tests (`./gradlew -p buildSrc test`), builds every server's set, and
+checks that two clean builds give the same jars (`.github/scripts/check-reproducible.sh`).
+
+The end-to-end test runs by hand, because it needs `autodeploy.jar` and METAcraft-KTH/FabricModsUpdate
+is private. It deploys the real test set to an SFTP server in Docker and runs autodeploy as the
+restart: the refusal with an old autodeploy, the switch from the bundle, a re-deploy, one changed mod,
+a removal and a rollback. Run it when you change the deploy tooling or autodeploy:
+
+```
+./gradlew deploySet -Pserver=test
+.github/scripts/e2e.sh path/to/autodeploy.jar     # v1.1 or later
+.github/scripts/e2e.sh path/to/FabricModsUpdate   # or a checkout, outside this one: builds autodeploy.jar
+```
+
+It needs Docker, Java, `jq`, `python3` and `shasum`, and touches no real server. To build from a
+checkout, point `AUTODEPLOY_JAVA_HOME` at a JDK 17: FabricModsUpdate's Gradle doesn't run on Java 25.
