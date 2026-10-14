@@ -7,7 +7,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.resources.Identifier;
 
 /**
- * The guidebook's Rifts chapter, written in metacraft-booklet. Booklet comes with metacraft-booklet, so its
+ * The guidebook's Unstable Portals page, written in metacraft-booklet. Booklet comes with metacraft-booklet, so its
  * classes are only touched once {@link #available()} says the guidebook is there.
  */
 public final class RiftGuide {

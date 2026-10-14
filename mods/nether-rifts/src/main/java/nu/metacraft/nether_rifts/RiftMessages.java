@@ -18,7 +18,7 @@ public final class RiftMessages {
 
 	/**
 	 * The warning when a rift opens. A crying-obsidian frame is lit on purpose after the realm has steadied, so it
-	 * doesn't claim the realm is unstable. {@code guide}: link the guidebook's Rifts chapter.
+	 * doesn't claim the realm is unstable. {@code guide}: link the guidebook's Unstable Portals page.
 	 */
 	public static Component warning(boolean crying, boolean guide) {
 		var text = crying
@@ -28,7 +28,7 @@ public final class RiftMessages {
 		if (guide) {
 			message.append(" ").append(Component.literal("[Read more]").withStyle(Style.EMPTY.withColor(ChatFormatting.GOLD).withUnderlined(true)
 					.withClickEvent(RiftGuide.open())
-					.withHoverEvent(new HoverEvent.ShowText(Component.literal("Open the guidebook's Rifts chapter")))));
+					.withHoverEvent(new HoverEvent.ShowText(Component.literal("Open Unstable Portals in the guidebook")))));
 		}
 		return message;
 	}

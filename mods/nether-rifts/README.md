@@ -36,7 +36,7 @@ lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift
 when the raid ends).
 
 Players within 32 blocks of a new rift are warned in chat ("The realm is unstable", or for a crying-obsidian
-rift that it woke one). The warning's `[Read more]` opens metacraft-booklet's Rifts chapter (`metacraft:rifts`);
+rift that it woke one). The warning's `[Read more]` opens metacraft-booklet's Unstable Portals page (`metacraft:rifts`);
 nether-rifts only compiles against Booklet, and leaves the link out on a server without metacraft-booklet.
 
 Clients see a rift's blocks as a vanilla nether portal (swirl, particles, hum, and its overlay if you walk in;
