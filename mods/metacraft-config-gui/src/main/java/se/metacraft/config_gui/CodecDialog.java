@@ -9,6 +9,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.objects.AtlasSprite;
 import net.minecraft.network.chat.contents.objects.ObjectInfo;
@@ -22,6 +23,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.Unit;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
@@ -239,20 +241,42 @@ public class CodecDialog {
 		);
 	}
 
+	private static CommonDialogData dialogData(
+		List<DialogBody> body, List<Input> inputs, boolean waitForResponse
+	) {
+		var data = new CommonDialogData(
+			Component.literal("Config Editor"),
+			Optional.empty(),
+			true,
+			waitForResponse,
+			waitForResponse ? DialogAction.WAIT_FOR_RESPONSE : DialogAction.NONE,
+			body,
+			inputs
+		);
+		// If the body contains a clickable button which does not send a packet to the server, then we want to keep the user inside the GUI.
+		// This unfortunately means that we must set the after_action to none.
+		if (waitForResponse) {
+			if (DialogClientClosables.clientClosable(body, data)) {
+				return dialogData(
+					body, inputs, false
+				);
+			}
+		}
+		return data;
+	}
+
+	private static CommonDialogData dialogData(
+		List<DialogBody> body, List<Input> inputs
+	) {
+		return dialogData(body, inputs, true);
+	}
+
 	public static Holder<Dialog> template(
 		List<DialogBody> body,
 		List<Input> inputs, List<ActionButton> buttons, HolderLookup.Provider provider, int columns,
 		ActionButton backButton
 	) {
-		var commonData = new CommonDialogData(
-			Component.literal("Test"),
-			Optional.empty(),
-			true,
-			true,
-			DialogAction.WAIT_FOR_RESPONSE,
-			body,
-			inputs
-		);
+		var commonData = dialogData(body, inputs);
 		if (buttons.isEmpty()) {
 			return Holder.direct(
 				new NoticeDialog(commonData, backButton)
@@ -629,6 +653,32 @@ public class CodecDialog {
 		);
 	}
 
+	private static void addBodyComment(
+		Component label,
+		Optional<Component> tooltip,
+		List<DialogBody> body
+	) {
+		tooltip.ifPresent(t -> body.add(new PlainMessage(label.copy().append(": ").append(t), 200)));
+	}
+
+	private static void addBodyCommentIfClickable(
+		Component label,
+		Optional<Component> tooltip,
+		List<DialogBody> body
+	) {
+		if (tooltip.isEmpty()) return;
+		var visit = tooltip.get().visit((style, contents) -> {
+			var clickEvent = style.getClickEvent();
+			if (clickEvent != null) {
+				return Optional.of(Unit.INSTANCE);
+			}
+			return Optional.empty();
+		}, Style.EMPTY);
+		if (visit.isPresent()) {
+			addBodyComment(label, tooltip, body);
+		}
+	}
+
 	public static void addInput(
 		String key, Component label, Type type, Object value,
 		HolderLookup.Provider registries,
@@ -651,10 +701,13 @@ public class CodecDialog {
 						e -> e.value() == value
 					).map(Entries.Entry::key).findAny().orElse(null);
 					buttons.add(submenu(key, registries, label.copy().append(": " + selectedValueName), tooltip));
+					addBodyCommentIfClickable(label, tooltip, body);
 				} else if (type.optional()) {
 					buttons.add(submenu(key, registries, label.copy().append(": ").append(CodecDialog.getGUIFriendlyName(value)), tooltip));
+					addBodyCommentIfClickable(label, tooltip, body);
 				} else if (type.element().nestedMetadata(MetadataKey.CONTAINER).isPresent()) {
 					buttons.add(submenu(key, registries, label, tooltip));
+					addBodyCommentIfClickable(label, tooltip, body);
 				} else {
 					createInput(
 						label,
@@ -664,9 +717,10 @@ public class CodecDialog {
 						value, registries, preferences
 					).ifPresentOrElse(input -> {
 						inputs.add(new Input(key, input));
-						tooltip.ifPresent(t -> body.add(new PlainMessage(label.copy().append(": ").append(t), 200)));
+						addBodyComment(label, tooltip, body);
 					}, () -> {
 						buttons.add(submenu(key, registries, label, tooltip));
+						addBodyCommentIfClickable(label, tooltip, body);
 					});
 				}
 			}
