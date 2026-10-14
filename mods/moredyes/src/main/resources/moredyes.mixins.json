@@ -10,6 +10,7 @@
 		"CauldronInteractionsMixin",
 		"CushionMixin",
 		"FlintAndSteelItemMixin",
+		"LoomBannerViewMixin",
 		"LoomMenuMixin",
 		"MobMixin",
 		"RegistryLoadTaskMixin",

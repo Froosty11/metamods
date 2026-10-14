@@ -10,7 +10,6 @@ loom {
 setupRunDatagen("moredyes")
 
 addPolymerDependency()
-addSGUIDependency()
 addConfigDependency()
 dependencies {
 	implementation("eu.pb4:polymer-blocks:${project.polymer_version}")

@@ -1,5 +1,6 @@
 package metacraft.moredyes.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import metacraft.moredyes.banner.BannerPatterns;
 import metacraft.moredyes.content.ModDyeItem;
 import net.minecraft.core.Holder;
@@ -24,11 +25,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * have on the server (nothing else on the server should take them for a vanilla colour), so its dye
  * slot and shift-click are told here; and where vanilla would add the pattern in the dye's colour, a dye
  * of ours adds the pattern's derived version in our colour, with WHITE (see {@link BannerPatterns}).
- * Pattern items, the six-layer cap and using up one banner and one dye per take stay vanilla's.
+ * Pattern items and using up one banner and one dye per take stay vanilla's. The six-layer cap does too,
+ * except that a banner in one of our colours does not count its colour: it takes six patterns on top
+ * (seven layers, {@link BannerPatterns#layerCap}), with any dye.
  *
  * <p>The vanilla client runs the same menu on its own view of the items: there our dye is a white dye
  * with the nearest vanilla colour's {@code dye} component ({@link ModDyeItem#modifyBasePolymerItemStack}),
  * so it goes in the dye slot and the patterns are listed; the server's result replaces the client's guess.
+ * The client's loom screen caps at six layers on its own, so a coloured banner with five patterns on top is
+ * shown to it without its colour layer ({@link BannerPatterns#loomClientView}, {@link LoomBannerViewMixin}).
  */
 @Mixin(LoomMenu.class)
 public abstract class LoomMenuMixin {
@@ -41,6 +46,12 @@ public abstract class LoomMenuMixin {
 	@Inject(method = "isDyeItem", at = @At("HEAD"), cancellable = true)
 	private static void moredyes$ourDyes(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
 		if (stack.getItem() instanceof ModDyeItem) cir.setReturnValue(true);
+	}
+
+	/** The six-layer cap in {@code slotsChanged}: one more for a banner whose first layer is our colour. */
+	@ModifyExpressionValue(method = "slotsChanged", at = @At(value = "CONSTANT", args = "intValue=6"))
+	private int moredyes$colourIsNotAPattern(int max) {
+		return BannerPatterns.layerCap(bannerSlot.getItem().getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY));
 	}
 
 	@Inject(method = "setupResultSlot", at = @At("HEAD"), cancellable = true)

@@ -35,8 +35,7 @@
 		"polymer-resource-pack": "*",
 		"polymer-virtual-entity": "*",
 		"polymer-sound-patcher": "*",
-		"metacraft-config": "*",
-		"sgui": "*"
+		"metacraft-config": "*"
 	},
 	"mixins": [
 		"moredyes.mixins.json",

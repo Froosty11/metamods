@@ -11,10 +11,10 @@ photographs every page.
 Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet's own index)
   Student Culture Features      metacraft:student_culture
     Chapter Drinks              metacraft:brewing (Cooking, Distilling, Barrels, Drinking, Drinks, IT's drinks)
-    Banner Patterns             metacraft:banner_patterns (Dye loom)
+    Banner Patterns             metacraft:banner_patterns
     (Pirkkos, order 30)         kept free for Ripsquid's pirkko mod, see below
     Ovvar                       metacraft:ovvar (The ovve, Patches, Sewing, Wardrobe and stash)
-    Colors                      metacraft:moredyes (Dye loom)
+    Colors                      metacraft:moredyes
   Vanilla+ Features             metacraft:vanilla_plus
     Void Anchor                 metacraft:qol/void_anchor
     Silencing mobs              metacraft:qol/silence_mobs
@@ -32,7 +32,7 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
 A section is a page in `category=booklet:main_page` (`order=` 10, 20, 30, 40) that lists its own category
 with `### Category Entries:`; each entry is a page in that category with an `order=` of its own, and the
 same again one level down. A page can be in more than one category (`category=a,b`): the Void Anchor is
-in Vanilla+ and End, the Dye loom under Banner Patterns and Colors.
+in Vanilla+ and End.
 
 Two page ids are opened by other mods and must stay: `metacraft:ovvar` (ovvar's `/ovvar guide`) and
 `metacraft:rifts` (the rift warning in chat, which lands on Unstable Portals).
@@ -53,7 +53,7 @@ none of them has no such section.
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
 | `brewing_kultur` | kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
 | `kultur` | kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
-| `moredyes` | moredyes | "Colors": Cerise and Laserviolet; and "Dye loom", under Colors and Banner Patterns |
+| `moredyes` | moredyes | "Colors": Cerise and Laserviolet |
 | `vanilla_plus` | metacraft-qol or polydecorations | the Vanilla+ Features section page |
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the muffler), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
 | `decorating` | polydecorations | "New Decor": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |

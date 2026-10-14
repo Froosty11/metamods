@@ -24,8 +24,6 @@ A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'mor
 - A pet's collar, in the nearest vanilla colour
 
 ### Header: Banners and shields
-Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> make a Laserviolet one. It takes five patterns at a loom or six in the dye loom, decorates a shield, and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
+Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> make a Laserviolet one. At a <citem 'minecraft:loom'> it takes six patterns on top of its colour, like any banner; with five on it, the loom's banner slot shows it in the nearest vanilla colour, and the banner that comes out is still Cerise or Laserviolet. It decorates a shield and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
 
-Both dyes put patterns on banners at a loom, like any dye, and in the dye loom, with every pattern at once.
-
-### Category Entries: metacraft:moredyes
+Both dyes go in a <citem 'minecraft:loom'> like any dye, on any banner: pick a pattern and it comes out in Cerise or Laserviolet. The pattern buttons name the nearest vanilla colour, and the preview can show that colour for a moment. Patterns that need a pattern item need it in the loom, as usual.

@@ -7,6 +7,7 @@ import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
+import metacraft.moredyes.sign.SignColors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -52,15 +53,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * source pattern {@code ns:path} and each of our colours we register a derived pattern
  * {@code moredyes:<color>/<ns>/<path>} while the dynamic registries load, and when Polymer builds
  * the resource pack we multiply the source mask by the colour and add the result under the derived
- * pattern's asset id. Applying a derived pattern with WHITE (see {@link DyeLoomGui}, and our dyes in
- * vanilla's loom, {@link metacraft.moredyes.mixin.LoomMenuMixin}) is a banner in our colour that any
- * vanilla client renders correctly.
+ * pattern's asset id. Applying a derived pattern with WHITE (what our dyes do in vanilla's loom,
+ * {@link metacraft.moredyes.mixin.LoomMenuMixin}) is a banner in our colour that any vanilla client
+ * renders correctly.
  *
  * <p>A banner "in" one of our colours (what our banner recipes make, see {@link #colouredBanner}) is
  * the same trick on vanilla's full-cover {@code minecraft:base}: a white banner whose first layer is
  * {@code moredyes:<color>/minecraft/base}, named for the colour. Vanilla's loom, banner copying and
  * shield decorating carry it like any layer; washing in a cauldron stops at it, as it stops at a
- * banner's own colour (see {@link metacraft.moredyes.mixin.CauldronInteractionsMixin}).
+ * banner's own colour (see {@link metacraft.moredyes.mixin.CauldronInteractionsMixin}). Like a banner's own
+ * colour it is not one of its patterns: such a banner takes six patterns on top (seven layers) where
+ * vanilla stops at six layers ({@link #layerCap}).
  */
 public final class BannerPatterns {
 	/** derived pattern id -> (colour, source pattern id). Rebuilt on every registry setup. */
@@ -69,6 +72,8 @@ public final class BannerPatterns {
 
 	/** Vanilla's full-cover pattern, the one a banner's own colour is drawn with. */
 	public static final Identifier BASE = Identifier.withDefaultNamespace("base");
+	/** Patterns on top of a banner's colour, as vanilla allows on a banner of a vanilla colour. */
+	public static final int MAX_PATTERNS = 6;
 
 	public record Derived(ModColor color, Identifier source) {}
 
@@ -94,10 +99,21 @@ public final class BannerPatterns {
 
 	/** Whether this layer is one of our colours over the whole banner (a coloured banner's first layer). */
 	public static boolean isColouredBase(BannerPatternLayers.Layer layer) {
-		return layer.pattern().unwrapKey().map(key -> {
-			Derived d = DERIVED.get(key.identifier());
-			return d != null && d.source().equals(BASE);
-		}).orElse(false);
+		return baseColour(layer) != null;
+	}
+
+	/**
+	 * The colour of our full-cover layer, or null for any other layer. Read off the pattern's id rather
+	 * than {@link #derived}, which a client in the same JVM (singleplayer, client tests) rebuilds empty when
+	 * it loads the server's registries.
+	 */
+	public static @Nullable ModColor baseColour(BannerPatternLayers.Layer layer) {
+		Identifier id = layer.pattern().unwrapKey().map(ResourceKey::identifier).orElse(null);
+		if (id == null || !id.getNamespace().equals(MoreDyes.MOD_ID)) return null;
+		for (ModColor color : ModColors.all()) {
+			if (id.equals(derivedId(color, BASE))) return color;
+		}
+		return null;
 	}
 
 	/**
@@ -107,6 +123,32 @@ public final class BannerPatterns {
 	public static int patternsOnTop(BannerPatternLayers layers) {
 		List<BannerPatternLayers.Layer> list = layers.layers();
 		return list.size() - (!list.isEmpty() && isColouredBase(list.getFirst()) ? 1 : 0);
+	}
+
+	/**
+	 * The most layers vanilla lets a banner have at a loom and in a copy: six, and one more for a banner
+	 * whose first layer is our colour, so that it too takes six patterns on top.
+	 */
+	public static int layerCap(BannerPatternLayers layers) {
+		return MAX_PATTERNS + layers.layers().size() - patternsOnTop(layers);
+	}
+
+	/**
+	 * What a vanilla client is shown in a loom's banner slot. The client's loom screen counts the layers
+	 * of the banner there and lists no patterns from six on, so a banner in our colour with five patterns
+	 * on top (six layers) would look full to it. For that banner alone the client is shown the five
+	 * patterns on a plain banner of the nearest vanilla colour, without our colour's layer, and so lists
+	 * the patterns for a sixth; the server keeps the real banner, and the result is the real banner with
+	 * the pattern added. Any other stack is returned as it is.
+	 */
+	public static ItemStack loomClientView(ItemStack stack) {
+		BannerPatternLayers layers = stack.get(DataComponents.BANNER_PATTERNS);
+		if (layers == null || layers.layers().size() < MAX_PATTERNS || patternsOnTop(layers) >= MAX_PATTERNS) return stack;
+		ModColor base = baseColour(layers.layers().getFirst());
+		if (base == null) return stack;
+		ItemStack view = stack.transmuteCopy(Items.BANNER.pick(SignColors.nearestDye(base)));
+		view.set(DataComponents.BANNER_PATTERNS, new BannerPatternLayers(List.copyOf(layers.layers().subList(1, layers.layers().size()))));
+		return view;
 	}
 
 	/**

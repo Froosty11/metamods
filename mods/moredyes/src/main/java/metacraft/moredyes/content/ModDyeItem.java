@@ -1,15 +1,11 @@
 package metacraft.moredyes.content;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import metacraft.moredyes.banner.DyeLoomGui;
 import metacraft.moredyes.color.ModColor;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.item.Item;
@@ -46,17 +42,6 @@ public final class ModDyeItem extends Item implements PolymerItem, SignApplicato
 
 	public ModColor color() {
 		return color;
-	}
-
-	/** Right-click in the air with a banner/shield in the other hand: open the dye loom. */
-	@Override
-	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		InteractionHand other = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-		if (!DyeLoomGui.canOpen(player.getItemInHand(other))) return InteractionResult.PASS;
-		if (player instanceof ServerPlayer serverPlayer) {
-			new DyeLoomGui(serverPlayer, color, hand).open();
-		}
-		return InteractionResult.SUCCESS;
 	}
 
 	/** Sign text in our colour: see {@link SignColors}. */

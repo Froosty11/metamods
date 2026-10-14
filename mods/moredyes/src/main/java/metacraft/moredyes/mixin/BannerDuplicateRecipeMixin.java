@@ -12,14 +12,13 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * Copying a banner refuses one with more than six layers. A banner in one of our colours carries the
- * colour as a layer and can hold six patterns on top of it (the dye loom puts them there), so for it
- * the limit is six patterns, not six layers.
+ * colour as a layer and can hold six patterns on top of it (a loom puts them there, see
+ * {@link LoomMenuMixin}), so for it the limit is six patterns, not six layers.
  */
 @Mixin(BannerDuplicateRecipe.class)
 public abstract class BannerDuplicateRecipeMixin {
 	@ModifyExpressionValue(method = {"matches", "assemble"}, at = @At(value = "CONSTANT", args = "intValue=6"))
 	private int moredyes$colourIsNotAPattern(int max, @Local ItemStack stack) {
-		var layers = stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
-		return max + layers.layers().size() - BannerPatterns.patternsOnTop(layers);
+		return BannerPatterns.layerCap(stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY));
 	}
 }

@@ -15,9 +15,9 @@ and Media have their places in the catalogue and nothing in them yet — that is
 
 Not here yet, on purpose: loot tables for the pattern items, any Data or Media art.
 
-With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet through
-its dye loom; nothing in this module knows about that. The dye loom keeps a loom's rule, so a
-Cerise Pirkko needs the Pirkko pattern item in the player's inventory, as a white one does.
+With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet: its dyes
+work in the vanilla loom; nothing in this module knows about that. A Cerise Pirkko needs the Pirkko
+pattern item in the loom, as a white one does.
 
 ## The drinks
 

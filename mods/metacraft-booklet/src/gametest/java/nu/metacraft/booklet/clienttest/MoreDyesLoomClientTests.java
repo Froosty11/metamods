@@ -51,8 +51,9 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * More Dyes' dyes in the vanilla loom, and banners of our colours with six patterns on top (seven
- * layers), as a vanilla client sees them ({@code moredyes_loom_*.png}, {@code moredyes_seven_*.png}).
+ * More Dyes' dyes in the vanilla loom, the sixth pattern on a banner of our colour there, and banners of
+ * our colours with six patterns on top (seven layers), as a vanilla client sees them
+ * ({@code moredyes_loom_*.png}, {@code moredyes_seven_*.png}).
  *
  * <p>The loom is driven as a player would: shift-click a white banner and Cerise dye in, pick a pattern,
  * take the result with the mouse. Picking the pattern is done in its two halves (the client's own
@@ -98,6 +99,7 @@ public final class MoreDyesLoomClientTests implements FabricClientGameTest {
 				ctx.waitTicks(10);
 
 				loom(ctx, server, conn);
+				sixthOnColour(ctx, server, conn);
 				sevenLayers(ctx, server, conn);
 				sideEffects(ctx, server, conn);
 			}
@@ -246,6 +248,96 @@ public final class MoreDyesLoomClientTests implements FabricClientGameTest {
 		ctx.getInput().setCursorPos(at(ctx, 8 + 8, 142 + 8)[0], at(ctx, 8 + 8, 142 + 8)[1]);
 		ctx.waitTicks(5);
 		ctx.takeScreenshot(TestScreenshotOptions.of("moredyes_loom_taken"));
+
+		server.runOnServer(mc -> tester(mc).closeContainer());
+		ctx.waitFor(c -> c.gui.screen() == null, 20 * 10);
+		server.runCommand("clear Tester");
+		ctx.waitTicks(5);
+	}
+
+	/**
+	 * A Cerise banner with five patterns on top, shift-clicked into the loom with Cerise dye: the client is
+	 * shown the five on a plain banner of the nearest vanilla colour (its loom screen would see six layers
+	 * and list nothing), so the pattern buttons are there to click with the mouse; the result and the
+	 * banner taken are the real Cerise banner with six patterns on top ({@code moredyes_loom_sixth_*.png}).
+	 */
+	private static void sixthOnColour(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn) {
+		server.runOnServer(mc -> {
+			ServerLevel level = mc.overworld();
+			ServerPlayer tester = tester(mc);
+			level.setBlockAndUpdate(LOOM, Blocks.LOOM.defaultBlockState());
+			ItemStack five = banner(mc, false);
+			tester.getInventory().setItem(0, five);
+			tester.getInventory().setItem(1, new ItemStack(dye("cerise"), 2));
+			tester.openMenu(new SimpleMenuProvider((id, inventory, player) -> new LoomMenu(id, inventory, ContainerLevelAccess.create(level, LOOM)),
+					Component.translatable("container.loom")));
+		});
+		conn.waitForClientboundPackets();
+		ctx.waitForScreen(LoomScreen.class);
+		ctx.runOnClient(client -> client.gui.toastManager().clear());
+		ctx.waitTicks(5);
+		for (int hotbar = 0; hotbar < 2; hotbar++) {
+			int inventorySlot = hotbar;
+			ctx.runOnClient(client -> {
+				LoomMenu menu = (LoomMenu) client.player.containerMenu;
+				int slot = -1;
+				for (var s : menu.slots) {
+					if (s.container == client.player.getInventory() && s.getContainerSlot() == inventorySlot) slot = s.index;
+				}
+				client.gameMode.handleContainerInput(menu.containerId, slot, 0, ContainerInput.QUICK_MOVE, client.player);
+			});
+			ctx.waitTicks(5);
+		}
+		ctx.waitTicks(5);
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(5);
+		String clientBanner = ctx.computeOnClient(client -> describe(((LoomMenu) client.player.containerMenu).getBannerSlot().getItem()));
+		String serverBanner = server.computeOnServer(mc -> describe(((LoomMenu) tester(mc).containerMenu).getBannerSlot().getItem()));
+		System.out.println("[moredyes-loom] sixth on colour, banner slot: client " + clientBanner + " ; server " + serverBanner);
+		if (clientBanner.contains(CERISE_BASE.toString())) throw new AssertionError("the client sees the colour layer: " + clientBanner);
+		if (!serverBanner.contains(CERISE_BASE.toString())) throw new AssertionError("the server lost the colour layer: " + serverBanner);
+		double[] away = at(ctx, -40, 20);
+		ctx.getInput().setCursorPos(away[0], away[1]);
+		ctx.waitTicks(2);
+		ctx.takeScreenshot(TestScreenshotOptions.of("moredyes_loom_sixth_listed"));
+
+		int index = ctx.computeOnClient(client -> {
+			List<Holder<BannerPattern>> patterns = ((LoomMenu) client.player.containerMenu).getSelectablePatterns();
+			for (int i = 0; i < patterns.size(); i++) {
+				if (patterns.get(i).is(ResourceKey.create(Registries.BANNER_PATTERN, Identifier.withDefaultNamespace(PATTERN)))) return i;
+			}
+			return -1;
+		});
+		if (index < 0 || index >= 16) throw new AssertionError("the loom lists " + PATTERN + " at " + index);
+		// the button, clicked with the mouse: the screen only takes the click when it lists the patterns
+		click(ctx, 60 + (index % 4) * 14 + 7, 13 + (index / 4) * 14 + 7);
+		ctx.waitFor(client -> topIs(((LoomMenu) client.player.containerMenu).getResultSlot().getItem(), CERISE_PATTERN, DyeColor.WHITE), 20 * 15);
+		String result = ctx.computeOnClient(client -> describe(((LoomMenu) client.player.containerMenu).getResultSlot().getItem()));
+		System.out.println("[moredyes-loom] sixth on colour, result on the client: " + result);
+		if (!result.contains(CERISE_BASE.toString())) throw new AssertionError("the result has no colour layer: " + result);
+		ctx.getInput().setCursorPos(away[0], away[1]);
+		ctx.waitTicks(5);
+		ctx.takeScreenshot(TestScreenshotOptions.of("moredyes_loom_sixth_selected"));
+
+		click(ctx, 143 + 8, 57 + 8);
+		ctx.waitTicks(10);
+		click(ctx, 8 + 8, 142 + 8);
+		ctx.waitTicks(20);
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(5);
+		ItemStack taken = ctx.computeOnClient(c -> c.player.getInventory().getItem(0).copy());
+		ItemStack takenOnServer = server.computeOnServer(mc -> tester(mc).getInventory().getItem(0).copy());
+		System.out.println("[moredyes-loom] sixth on colour, taken: client " + describe(taken) + " ; server " + describe(takenOnServer));
+		for (ItemStack stack : List.of(taken, takenOnServer)) {
+			var layers = stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY).layers();
+			if (layers.size() != 7 || !layers.getFirst().pattern().is(ResourceKey.create(Registries.BANNER_PATTERN, CERISE_BASE))
+					|| !topIs(stack, CERISE_PATTERN, DyeColor.WHITE)) {
+				throw new AssertionError("taken: " + describe(stack));
+			}
+		}
+		ctx.getInput().setCursorPos(at(ctx, 8 + 8, 142 + 8)[0], at(ctx, 8 + 8, 142 + 8)[1]);
+		ctx.waitTicks(5);
+		ctx.takeScreenshot(TestScreenshotOptions.of("moredyes_loom_sixth_taken"));
 
 		server.runOnServer(mc -> tester(mc).closeContainer());
 		ctx.waitFor(c -> c.gui.screen() == null, 20 * 10);

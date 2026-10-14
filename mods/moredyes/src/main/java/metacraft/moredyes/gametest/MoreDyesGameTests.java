@@ -2,8 +2,6 @@ package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
-import eu.pb4.sgui.api.ClickType;
-import eu.pb4.sgui.api.elements.GuiElement;
 import metacraft.moredyes.sign.SignColors;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.sounds.SoundEvent;
@@ -13,7 +11,6 @@ import metacraft.moredyes.content.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
-import metacraft.moredyes.banner.DyeLoomGui;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.ClientStates;
@@ -27,7 +24,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerSynchronizer;
 import net.minecraft.world.inventory.LoomMenu;
+import net.minecraft.world.inventory.RemoteSlot;
+import net.minecraft.network.HashedStack;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.entity.BannerBlockEntity;
 import net.minecraft.world.level.block.entity.BannerPatternLayers;
@@ -72,7 +73,9 @@ import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.properties.SlabType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Server-side game tests (Fabric GameTest API, vanilla test framework underneath).
@@ -225,26 +228,6 @@ public final class MoreDyesGameTests {
 		helper.setBlock(water, Blocks.WATER);
 		helper.setBlock(water.above(3), block(Family.CONCRETE_POWDER));
 		helper.succeedWhenBlockPresent(block(Family.CONCRETE), water);
-	}
-
-	/**
-	 * The dye loom keeps a loom's rule: a pattern that needs a pattern item (globe) is offered only
-	 * while the player carries one, and a free pattern (stripe) always is.
-	 */
-	@GameTest
-	public void dyeLoomGatesPatternItems(GameTestHelper helper) {
-		ServerPlayer player = helper.makeMockServerPlayerInLevel();
-		player.getInventory().clearContent();
-		Registry<BannerPattern> registry = helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
-		var globe = registry.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN,
-				BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("globe"))));
-		var stripe = registry.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN,
-				BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("stripe_bottom"))));
-		helper.assertTrue(DyeLoomGui.offered(player, registry, stripe), "a free pattern is not offered");
-		helper.assertFalse(DyeLoomGui.offered(player, registry, globe), "the globe is offered without its pattern item");
-		player.getInventory().add(new ItemStack(Items.GLOBE_BANNER_PATTERN));
-		helper.assertTrue(DyeLoomGui.offered(player, registry, globe), "the globe is not offered with its pattern item");
-		helper.succeed();
 	}
 
 	/** A PolyDecorations canvas takes our dyes, in their colour's nearest map colour (CanvasEntityMixin). */
@@ -590,8 +573,6 @@ public final class MoreDyesGameTests {
 	@GameTest
 	public void colouredBannerLoomShieldCopy(GameTestHelper helper) {
 		ItemStack banner = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
-		helper.assertTrue(DyeLoomGui.canOpen(banner), "the dye loom does not take our banner");
-
 		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
 		LoomMenu loom = new LoomMenu(0, player.getInventory());
 		loom.getBannerSlot().set(banner.copy());
@@ -733,68 +714,137 @@ public final class MoreDyesGameTests {
 	}
 
 	/**
-	 * Vanilla's loom counts a banner's layers, and its client does too, so there our colour is one of
-	 * the six: a Cerise banner takes five patterns, with our dye or a vanilla one.
+	 * The loom does not count our colour as a pattern: a Cerise banner takes six patterns on top (seven
+	 * layers) and no seventh, with our dye or a vanilla one. A banner of a vanilla colour still stops at six
+	 * layers.
 	 */
 	@GameTest
-	public void loomCapsACeriseBanner(GameTestHelper helper) {
+	public void loomTakesSixOnACeriseBanner(GameTestHelper helper) {
 		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
 		for (ItemStack dye : List.of(new ItemStack(ModContent.dye(first())), new ItemStack(Items.DYE.red()))) {
 			LoomMenu loom = new LoomMenu(0, player.getInventory());
-			loom.getBannerSlot().set(withPatterns(helper, 4));
+			loom.getBannerSlot().set(withPatterns(helper, 5));
 			loom.getDyeSlot().set(dye.copy());
 			loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_middle"));
-			helper.assertValueEqual(layers(loom.getResultSlot().getItem()).size(), 6, "layers after the fifth pattern with " + dye);
-			loom.getBannerSlot().set(withPatterns(helper, 5));
-			helper.assertTrue(loom.getResultSlot().getItem().isEmpty(), "the loom wove a sixth pattern with " + dye + ": "
+			List<BannerPatternLayers.Layer> seven = layers(loom.getResultSlot().getItem());
+			helper.assertValueEqual(seven.size(), 7, "layers after the sixth pattern with " + dye);
+			helper.assertTrue(BannerPatterns.isColouredBase(seven.getFirst()), "the colour is no longer the first layer");
+			loom.getBannerSlot().set(withPatterns(helper, 6));
+			helper.assertTrue(loom.getResultSlot().getItem().isEmpty(), "the loom wove a seventh pattern with " + dye + ": "
 					+ layers(loom.getResultSlot().getItem()).size() + " layers");
+			loom.getBannerSlot().set(vanillaWithPatterns(helper, 5));
+			loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_middle"));  // a full banner cleared the pick
+			helper.assertValueEqual(layers(loom.getResultSlot().getItem()).size(), 6, "layers after the sixth on a red banner with " + dye);
+			loom.getBannerSlot().set(vanillaWithPatterns(helper, 6));
+			helper.assertTrue(loom.getResultSlot().getItem().isEmpty(), "the loom wove a seventh layer on a red banner with " + dye);
 		}
 		helper.succeed();
 	}
 
 	/**
-	 * The dye loom does not count our colour: a Cerise banner takes six patterns on top of it (seven
-	 * layers), and no seventh. A banner of a vanilla colour still stops at six.
+	 * The vanilla client's loom screen counts the banner's layers itself and lists no patterns from six on.
+	 * So a Cerise banner with five patterns on top is sent to the client as those five on a plain banner of
+	 * the nearest vanilla colour, in the banner slot only: on opening, and again whenever the client says it
+	 * holds the real banner (as it does once it has put it in). The menu keeps the real banner, and the
+	 * result the client is sent is the real one, seven layers.
 	 */
 	@GameTest
-	public void dyeLoomSixOnTop(GameTestHelper helper) {
-		helper.assertTrue(DyeLoomGui.hasRoom(withPatterns(helper, 5)), "no room for a sixth pattern on a Cerise banner");
-		helper.assertFalse(DyeLoomGui.hasRoom(withPatterns(helper, 6)), "room for a seventh pattern on a Cerise banner");
-		helper.assertTrue(DyeLoomGui.hasRoom(vanillaWithPatterns(helper, 5)), "no room for a sixth pattern on a red banner");
-		helper.assertFalse(DyeLoomGui.hasRoom(vanillaWithPatterns(helper, 6)), "room for a seventh layer on a red banner");
+	public void loomShowsTheClientRoomForASixth(GameTestHelper helper) {
+		ItemStack five = withPatterns(helper, 5);
+		ItemStack view = BannerPatterns.loomClientView(five);
+		helper.assertTrue(view.is(Items.BANNER.pick(SignColors.nearestDye(first()))) && view.getCount() == five.getCount(), "the client's view: " + view);
+		helper.assertValueEqual(layers(view), layers(five).subList(1, 6), "the client's view's layers");
+		helper.assertValueEqual(view.get(DataComponents.ITEM_NAME), five.get(DataComponents.ITEM_NAME), "the client's view's name");
+		for (ItemStack other : List.of(withPatterns(helper, 4), withPatterns(helper, 6), vanillaWithPatterns(helper, 6), new ItemStack(Items.BANNER.white()))) {
+			helper.assertTrue(BannerPatterns.loomClientView(other) == other, "the client's view changes " + layers(other));
+		}
 
-		ServerPlayer player = helper.makeMockServerPlayerInLevel();
-		player.getInventory().clearContent();
-		player.setGameMode(GameType.SURVIVAL);
-		player.setItemInHand(InteractionHand.OFF_HAND, withPatterns(helper, 5));
-		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.dye(first()), 2));
-		Identifier border = BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("border"));
-		weave(helper, player, border);
-		List<BannerPatternLayers.Layer> seven = layers(player.getOffhandItem());
-		helper.assertValueEqual(seven.size(), 7, "layers after the sixth pattern");
-		helper.assertTrue(BannerPatterns.isColouredBase(seven.getFirst()), "the colour is no longer the first layer");
-		helper.assertValueEqual(seven.getLast(), new BannerPatternLayers.Layer(pattern(helper, border), DyeColor.WHITE), "the sixth pattern");
-		helper.assertValueEqual(player.getMainHandItem().getCount(), 1, "dyes left after a pattern");
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		LoomMenu loom = new LoomMenu(0, player.getInventory());
+		int banner = loom.getBannerSlot().index;
+		loom.getBannerSlot().set(five.copy());
+		loom.getDyeSlot().set(new ItemStack(ModContent.dye(first())));
+		Sent sent = new Sent();
+		loom.setSynchronizer(sent);
+		helper.assertTrue(ItemStack.matches(sent.slots.get(banner), view), "sent on opening: " + sent.slots.get(banner));
+		sent.slots.clear();
+		loom.setRemoteSlot(banner, five);
+		loom.broadcastChanges();
+		helper.assertTrue(ItemStack.matches(sent.slots.get(banner), view), "sent after the client held the real banner: " + sent.slots.get(banner));
+		sent.slots.clear();
+		loom.broadcastChanges();
+		helper.assertFalse(sent.slots.containsKey(banner), "the view sent again with nothing changed");
 
-		weave(helper, player, border);
-		helper.assertValueEqual(layers(player.getOffhandItem()).size(), 7, "layers after a seventh pattern was refused");
-		helper.assertValueEqual(player.getMainHandItem().getCount(), 1, "dyes left after a refused pattern");
+		loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_middle"));
+		loom.broadcastChanges();
+		List<BannerPatternLayers.Layer> result = layers(sent.slots.getOrDefault(loom.getResultSlot().index, ItemStack.EMPTY));
+		helper.assertTrue(result.size() == 7 && BannerPatterns.isColouredBase(result.getFirst()), "the result sent: " + result);
+		helper.assertTrue(ItemStack.matches(loom.getBannerSlot().getItem(), five), "the menu's banner: " + layers(loom.getBannerSlot().getItem()));
+		helper.assertFalse(sent.slots.containsKey(banner), "the banner slot sent again on a pattern pick");
 		helper.succeed();
 	}
 
-	/** Clicks a pattern in the dye loom, as the player holding the dye in the main hand. */
-	private static void weave(GameTestHelper helper, ServerPlayer player, Identifier derived) {
-		DyeLoomGui gui = new DyeLoomGui(player, first(), InteractionHand.MAIN_HAND);
-		for (int i = 0; i < 45; i++) {
-			GuiElement element = gui.getGuiElement(i);
-			if (element == null) continue;
-			List<BannerPatternLayers.Layer> shown = layers(element.getItemStack());
-			if (!shown.isEmpty() && shown.getLast().pattern().is(ResourceKey.create(Registries.BANNER_PATTERN, derived))) {
-				element.getGuiCallback().click(i, ClickType.MOUSE_LEFT, ContainerInput.PICKUP, gui);
-				return;
-			}
+	/** Records what a menu sends its client, and remembers it as the client's slots. */
+	private static final class Sent implements ContainerSynchronizer {
+		final Map<Integer, ItemStack> slots = new HashMap<>();
+
+		@Override
+		public void sendInitialData(AbstractContainerMenu menu, List<ItemStack> items, ItemStack carried, int[] data) {
+			for (int i = 0; i < items.size(); i++) slots.put(i, items.get(i));
 		}
-		helper.fail("the dye loom's first page does not list " + derived);
+
+		@Override
+		public void sendSlotChange(AbstractContainerMenu menu, int slot, ItemStack stack) {
+			slots.put(slot, stack);
+		}
+
+		@Override
+		public void sendCarriedChange(AbstractContainerMenu menu, ItemStack stack) {}
+
+		@Override
+		public void sendDataChange(AbstractContainerMenu menu, int id, int value) {}
+
+		@Override
+		public RemoteSlot createSlot() {
+			return new RemoteSlot() {
+				private ItemStack remote = ItemStack.EMPTY;
+
+				@Override
+				public void force(ItemStack stack) {
+					remote = stack.copy();
+				}
+
+				@Override
+				public void receive(HashedStack hash) {}
+
+				@Override
+				public boolean matches(ItemStack stack) {
+					return ItemStack.matches(remote, stack);
+				}
+			};
+		}
+	}
+
+	/**
+	 * Our dye keeps the loom's rule for pattern items: the globe is listed only with the globe pattern item
+	 * in the loom (as kultur's Pirkko needs its own), comes out in our colour, and the item stays.
+	 */
+	@GameTest
+	public void loomGatesPatternItemsWithOurDye(GameTestHelper helper) {
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		LoomMenu loom = new LoomMenu(0, player.getInventory());
+		loom.getBannerSlot().set(new ItemStack(Items.BANNER.white()));
+		loom.getDyeSlot().set(new ItemStack(ModContent.dye(first())));
+		Identifier globe = Identifier.withDefaultNamespace("globe");
+		helper.assertFalse(loom.getSelectablePatterns().contains(pattern(helper, globe)), "the globe is listed without its pattern item");
+		loom.getPatternSlot().set(new ItemStack(Items.GLOBE_BANNER_PATTERN));
+		loom.clickMenuButton(player, patternIndex(helper, loom, "globe"));
+		helper.assertValueEqual(layers(loom.getResultSlot().getItem()),
+				List.of(new BannerPatternLayers.Layer(pattern(helper, BannerPatterns.derivedId(first(), globe)), DyeColor.WHITE)), "the globe in our colour");
+		loom.clicked(loom.getResultSlot().index, 0, ContainerInput.PICKUP, player);
+		helper.assertTrue(layers(loom.getCarried()).size() == 1, "taken: " + loom.getCarried());
+		helper.assertTrue(loom.getPatternSlot().getItem().is(Items.GLOBE_BANNER_PATTERN), "the pattern item was used up");
+		helper.succeed();
 	}
 
 	/**
