@@ -20,15 +20,14 @@ public record DeployList(String server, List<String> projects, List<External> ex
 
     private static final Pattern NAME = Pattern.compile("[a-z0-9][a-z0-9._-]*");
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
-    /** Fabric's own rule for a mod id; a datapack's id becomes the id of the jar it is packed into. */
-    private static final Pattern FABRIC_ID = Pattern.compile("[a-z][a-z0-9_-]{1,63}");
     private static final Set<String> SCHEMES = Set.of("https", "http", "file");
     private static final Set<String> DATAPACK_SCHEMES = Set.of("https", "http", "file", VanillaTweaks.SCHEME);
 
     /**
      * An {@code external <mod-id> <url> sha256:<hex>} line, or with {@code datapack}, a
-     * {@code datapack <mod-id> <url> sha256:<hex>} line: a datapack zip that the set packs into a
-     * jar of that mod id ({@link DatapackJar}). {@code sha256} is lower-case hex, of the jar or zip.
+     * {@code datapack <name> <url> sha256:<hex>} line: a datapack zip that the deploy unpacks into
+     * {@code <world>/datapacks/<name>/} ({@link Datapack}). {@code sha256} is lower-case hex, of the
+     * jar or zip.
      */
     public record External(String modId, URI url, String sha256, boolean datapack) {
         public External(String modId, URI url, String sha256) {
@@ -62,11 +61,12 @@ public record DeployList(String server, List<String> projects, List<External> ex
             if (words[0].equals("external") || words[0].equals("datapack")) {
                 boolean datapack = words[0].equals("datapack");
                 if (words.length != 4) {
-                    throw new DeployException(where + ": expected '" + words[0] + " <mod-id> <url> sha256:<hex>', got '" + line + "'");
+                    throw new DeployException(where + ": expected '" + words[0] + (datapack ? " <name>" : " <mod-id>")
+                            + " <url> sha256:<hex>', got '" + line + "'");
                 }
                 id = checkId(where, words[1]);
-                if (datapack && !FABRIC_ID.matcher(id).matches()) {
-                    throw new DeployException(where + ": '" + id + "' is not a Fabric mod id (a-z first, then a-z, 0-9, _ or -)");
+                if (datapack && !DatapackManifest.NAME.matcher(id).matches()) {
+                    throw new DeployException(where + ": '" + id + "' is not a datapack folder name (a-z, 0-9, _ or -)");
                 }
                 URI url = parseUrl(where, words[2], datapack ? DATAPACK_SCHEMES : SCHEMES);
                 if (!words[3].startsWith("sha256:")) {

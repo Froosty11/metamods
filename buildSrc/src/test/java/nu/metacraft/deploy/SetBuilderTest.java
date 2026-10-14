@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -73,7 +74,7 @@ class SetBuilderTest {
     }
 
     @Test
-    void packsADatapackIntoAJarOfItsModId() throws IOException {
+    void splitsADatapackIntoItsFolderAndWritesDatapacksJson() throws IOException {
         Path zip = TestJars.datapackZip(tmp.resolve("downloads/heads.zip"), "{\"pack\":{\"pack_format\":81}}",
                 "data/heads/function/load.mcfunction", "say hi");
         String sha256 = Sha256.of(zip);
@@ -81,14 +82,54 @@ class SetBuilderTest {
                 List.of(new DeployList.External("more_heads", zip.toUri(), sha256, true)));
         Manifest m = build(list, Map.of());
 
-        Manifest.Entry entry = m.entries().get("more_heads");
-        assertEquals("more_heads-" + sha256.substring(0, 12) + ".jar", entry.file());
-        assertEquals("0+" + sha256.substring(0, 12), entry.version());
-        assertEquals(zip.toUri().toString(), entry.source());
-        Path jar = out().resolve(entry.file());
-        assertEquals(entry.sha256(), Sha256.of(jar));
-        assertEquals("more_heads", ModInfo.read(jar).id());
-        assertEquals(Set.of("manifest.json", entry.file()), TestJars.namesIn(out()));
+        assertEquals(Map.of(), m.entries());
+        DatapackManifest packs = DatapackManifest.readSet(out());
+        DatapackManifest.Pack pack = packs.packs().get("more_heads");
+        assertEquals("datapack-more_heads-" + sha256.substring(0, 12) + ".zip", pack.file());
+        assertEquals(sha256.substring(0, 12), pack.version());
+        assertEquals(sha256, pack.sha256());
+        assertEquals(zip.toUri().toString(), pack.source());
+        assertEquals(Set.of("pack.mcmeta", "data/heads/function/load.mcfunction"), pack.files().keySet());
+        assertEquals(Sha256.of("say hi".getBytes(StandardCharsets.UTF_8)), pack.files().get("data/heads/function/load.mcfunction"));
+        assertEquals(null, pack.resourcePack());
+        assertEquals(Set.of("manifest.json", "datapacks.json", pack.file()), TestJars.namesIn(out()));
+    }
+
+    @Test
+    void aSetWithoutDatapacksHasNoDatapacksJson() throws IOException {
+        build(new DeployList("test", List.of(), List.of()), Map.of());
+        assertEquals(Set.of("manifest.json"), TestJars.namesIn(out()));
+    }
+
+    @Test
+    void routesADatapacksAssetsToAResourcePackWithMetacraftResourcePacks() throws IOException {
+        Path rpMod = TestJars.modJar(tmp.resolve("libs/metacraft-resource-packs-1.jar"), "metacraft-resource-packs", "1");
+        Path zip = TestJars.datapackZip(tmp.resolve("downloads/hats.zip"), "{\"pack\":{\"pack_format\":81,\"description\":\"Hats\"}}",
+                "data/hats/recipe/hat.json", "{}", "assets/hats/textures/item/hat.png", "png", "pack.png", "icon");
+        DeployList list = new DeployList("test", List.of("metacraft-resource-packs"),
+                List.of(new DeployList.External("hats", zip.toUri(), Sha256.of(zip), true)));
+        build(list, Map.of("metacraft-resource-packs", rpMod));
+
+        DatapackManifest.Pack pack = DatapackManifest.readSet(out()).packs().get("hats");
+        assertEquals(Set.of("pack.mcmeta", "pack.png", "data/hats/recipe/hat.json"), pack.files().keySet());
+        Path rp = out().resolve(pack.resourcePack().file());
+        assertEquals("resourcepack-hats-" + Sha256.of(zip).substring(0, 12) + ".zip", rp.getFileName().toString());
+        assertEquals(pack.resourcePack().sha256(), Sha256.of(rp));
+        var files = Datapack.read(rp);
+        assertEquals(Set.of("pack.mcmeta", "pack.png", "assets/hats/textures/item/hat.png"), files.keySet());
+        assertEquals(Map.of("pack", Map.of("description", "Hats", "min_format", 65, "max_format", Integer.MAX_VALUE)),
+                new groovy.json.JsonSlurper().parse(files.get("pack.mcmeta"), "UTF-8"));
+    }
+
+    @Test
+    void aDatapackWithAssetsNeedsMetacraftResourcePacks() throws IOException {
+        Path zip = TestJars.datapackZip(tmp.resolve("downloads/hats.zip"), "{\"pack\":{\"pack_format\":81}}",
+                "assets/hats/textures/item/hat.png", "png");
+        DeployList list = new DeployList("test", List.of(),
+                List.of(new DeployList.External("hats", zip.toUri(), Sha256.of(zip), true)));
+        DeployException e = assertThrows(DeployException.class, () -> build(list, Map.of()));
+        assertEquals(zip.toUri() + " has textures (assets/), which reach players through metacraft-resource-packs:"
+                + " add metacraft-resource-packs to deploy/test.txt, or use a pack without assets/", e.getMessage());
     }
 
     @Test

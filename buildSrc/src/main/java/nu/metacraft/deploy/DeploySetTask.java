@@ -19,8 +19,8 @@ import java.nio.file.Path;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-/** {@code ./gradlew deploySet -Pserver=<name>}: build/deploy/<name>/ with the jars and manifest.json. */
-@UntrackedTask(because = "fetches external jars and rewrites build/deploy/<server>/ each time; it is cheap")
+/** {@code ./gradlew deploySet -Pserver=<name>}: build/deploy/<name>/ with the jars, manifest.json and the datapacks. */
+@UntrackedTask(because = "fetches external jars and datapacks and rewrites build/deploy/<server>/ each time; it is cheap")
 public abstract class DeploySetTask extends DefaultTask {
     // Optional: when deploySet is invoked without -Pserver, build.gradle leaves this and every
     // property below unset and wires only a failure action (see build.gradle). Without @Optional,
@@ -55,6 +55,7 @@ public abstract class DeploySetTask extends DefaultTask {
         getProjectJars().get().forEach((name, file) -> jars.put(name, file.toPath()));
         Path out = getOutputDir().get().getAsFile().toPath();
         Manifest manifest = SetBuilder.build(list, jars, getRepoModIds().get(), out, SetBuilder.URL_FETCHER);
-        getLogger().lifecycle("{}: {} mods in {}", server, manifest.entries().size(), out);
+        getLogger().lifecycle("{}: {} mods and {} datapacks in {}", server, manifest.entries().size(),
+                DatapackManifest.readSet(out).packs().size(), out);
     }
 }

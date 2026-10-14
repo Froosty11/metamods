@@ -58,5 +58,9 @@ public abstract class DeployServerTask extends DefaultTask {
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         }
         getLogger().lifecycle(markdown);
+        // GitHub Actions turns these into annotations on the run, besides the summary's warning boxes.
+        for (String warning : Summary.warningLines(report)) {
+            getLogger().warn("::warning title=datapack left alone::{}", warning);
+        }
     }
 }

@@ -1,6 +1,7 @@
 # Builds and tests every push and pull request. Pushes to a branch in deploy/servers.json
 # deploy each of its servers' sets (deploy/<server>.txt); Run workflow rolls a server back
-# to a release. Staff guide: deploy/README.md.
+# to a release. Staff guide: deploy/README.md. The end-to-end test against autodeploy is run by
+# hand (.github/scripts/e2e.sh): autodeploy's repository is private.
 name: build
 on:
   pull_request:
@@ -19,13 +20,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  # The autodeploy.jar the e2e job runs: built from this repository and ref, or downloaded
-  # from AUTODEPLOY_JAR_URL when that repository variable is set.
-  AUTODEPLOY_REPO: ${{ vars.AUTODEPLOY_REPO || 'METAcraft-KTH/FabricModsUpdate' }}
-  AUTODEPLOY_REF: ${{ vars.AUTODEPLOY_REF || 'main' }}
-  AUTODEPLOY_JAR_URL: ${{ vars.AUTODEPLOY_JAR_URL }}
 
 jobs:
   build:
@@ -85,55 +79,6 @@ jobs:
         run: ./gradlew runDatagen
       - run: .github/scripts/check-reproducible.sh test
 
-  e2e:
-    needs: build
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: |
-            17
-            25
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: deploy-sets
-          path: build/deploy
-      - name: autodeploy.jar
-        id: autodeploy
-        env:
-          # FabricModsUpdate is private: cloning it needs a token that can read it. Without one
-          # (forks, pull requests from forks) the test is skipped with a notice.
-          AUTODEPLOY_REPO_TOKEN: ${{ secrets.AUTODEPLOY_REPO_TOKEN }}
-        run: |
-          if [ -n "$AUTODEPLOY_JAR_URL" ]; then
-            curl -fsSL -o build/e2e-autodeploy.jar "$AUTODEPLOY_JAR_URL"
-          else
-            # Outside this checkout: FabricModsUpdate has no settings.gradle, so inside it Gradle
-            # would take this repository's settings.gradle and fail.
-            src="$RUNNER_TEMP/autodeploy-src"
-            url="https://github.com/$AUTODEPLOY_REPO.git"
-            if [ -n "$AUTODEPLOY_REPO_TOKEN" ]; then
-              url="https://x-access-token:$AUTODEPLOY_REPO_TOKEN@github.com/$AUTODEPLOY_REPO.git"
-            fi
-            if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 --branch "$AUTODEPLOY_REF" "$url" "$src"; then
-              if [ -z "$AUTODEPLOY_REPO_TOKEN" ]; then
-                echo "::notice::e2e skipped: $AUTODEPLOY_REPO is not readable without the AUTODEPLOY_REPO_TOKEN secret"
-                echo "skip=true" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-              exit 1
-            fi
-            (cd "$src" && JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew --no-daemon --quiet shadowJar)
-            cp "$src/build/libs/autodeploy.jar" build/e2e-autodeploy.jar
-          fi
-      - if: steps.autodeploy.outputs.skip != 'true'
-        run: .github/scripts/e2e.sh build/e2e-autodeploy.jar
-
   preview:
     # What a merge would upload and remove, read from the real servers without writing.
     needs: build
@@ -167,7 +112,7 @@ jobs:
         run: ./gradlew deployServer -Pserver="$SERVER" -PdryRun=true
 
   deploy:
-    needs: [build, e2e]
+    needs: build
     if: >-
       github.event_name == 'push'
       && github.ref_type == 'branch'
@@ -256,7 +201,8 @@ jobs:
             *) echo "::error::$RELEASE is not a deploy of $SERVER (expected deploy-$SERVER-...)"; exit 1 ;;
           esac
           mkdir -p "build/deploy/$SERVER"
-          gh release download "$RELEASE" --dir "build/deploy/$SERVER" --pattern '*.jar' --pattern manifest.json
+          gh release download "$RELEASE" --dir "build/deploy/$SERVER" --pattern '*.jar' --pattern manifest.json \
+            --pattern '*.zip' --pattern datapacks.json
       - name: deploy ${{ inputs.release }} to ${{ inputs.server }}
         env:
           AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}

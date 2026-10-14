@@ -3,7 +3,7 @@
 # Terralith worldgen, the performance mods, Distant Horizons and BlueMap. BlueMapPolymerPatch is on
 # the server by hand until it has a release to pin. edvin2.txt is this list without Terralith, to
 # compare the two worldgens on the same seed.
-# One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <mod-id> <url> sha256:<hex>
+# One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <name> <url> sha256:<hex>
 # How to change this: deploy/README.md
 better-pets
 discord-chat-fixer

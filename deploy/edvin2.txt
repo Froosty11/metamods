@@ -1,7 +1,7 @@
 # edvin2 (branch edvin-test): Edvin Private 2, 00c79c6f. edvin.txt without Terralith: Tectonic alone,
 # on the same seed as Edvin Private, to compare the two worldgens. Keep the rest in step with
 # edvin.txt. BlueMapPolymerPatch is on the server by hand until it has a release to pin.
-# One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <mod-id> <url> sha256:<hex>
+# One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <name> <url> sha256:<hex>
 # How to change this: deploy/README.md
 better-pets
 discord-chat-fixer

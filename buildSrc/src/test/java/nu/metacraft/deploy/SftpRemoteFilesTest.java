@@ -105,4 +105,68 @@ class SftpRemoteFilesTest {
             assertEquals(List.of(), remote.list("mods/does-not-exist"));
         }
     }
+
+    @Test
+    void makesRenamesListsAndDeletesDirectories() throws IOException {
+        try (SftpRemoteFiles remote = connect()) {
+            remote.mkdirs("world/datapacks/.p.deploying/data/p");
+            remote.mkdirs("world/datapacks/.p.deploying/data/p");
+            remote.put("world/datapacks/.p.deploying/data/p/a.json", "{}".getBytes(StandardCharsets.UTF_8));
+            remote.put("world/datapacks/.p.deploying/pack.mcmeta", "{}".getBytes(StandardCharsets.UTF_8));
+            assertEquals(Map.of("data", true, "pack.mcmeta", false), remote.entries("world/datapacks/.p.deploying"));
+            remote.rename("world/datapacks/.p.deploying", "world/datapacks/p");
+            assertEquals("{}", Files.readString(root.resolve("world/datapacks/p/data/p/a.json")));
+            assertEquals(Map.of(), remote.entries("world/nothing"));
+
+            remote.mkdirs("world/datapacks/q");
+            IOException e = assertThrows(IOException.class, () -> remote.rename("world/datapacks/p", "world/datapacks/q"));
+            assertTrue(e.getMessage().contains("exists"), e.getMessage());
+            assertTrue(Files.exists(root.resolve("world/datapacks/p/pack.mcmeta")), "a refused rename leaves both");
+
+            remote.deleteTree("world/datapacks/p");
+            assertFalse(Files.exists(root.resolve("world/datapacks/p")));
+        }
+    }
+
+    @Test
+    void deploysAndUpdatesADatapackFolderOverSftp() throws IOException {
+        Files.writeString(root.resolve("mods/update/.autodeploy-version"), "1.1\n");
+        Files.writeString(root.resolve("server.properties"), "level-name=s5\n");
+        Files.createDirectories(root.resolve("s5/datapacks/staff_pack"));
+        Files.writeString(root.resolve("s5/datapacks/staff_pack/pack.mcmeta"), "{}");
+        Path v1 = datapackSet("v1", "data/p/function/a.mcfunction", "say 1");
+        Path v2 = datapackSet("v2", "data/p/function/b.mcfunction", "say 2");
+        try (SftpRemoteFiles remote = connect()) {
+            Deployer.deploy("test", v1, remote, false);
+            assertEquals("say 1", Files.readString(root.resolve("s5/datapacks/p/data/p/function/a.mcfunction")));
+
+            Deployer.Report report = Deployer.deploy("test", v2, remote, false);
+            assertEquals(List.of("p"), List.copyOf(report.datapacks().updated()));
+            assertFalse(Files.exists(root.resolve("s5/datapacks/p/data/p/function/a.mcfunction")));
+            assertEquals("say 2", Files.readString(root.resolve("s5/datapacks/p/data/p/function/b.mcfunction")));
+
+            Files.writeString(root.resolve("s5/datapacks/p/data/p/function/b.mcfunction"), "staff edit");
+            report = Deployer.deploy("test", v1, remote, false);
+            assertEquals("p", report.datapacks().skipped().get(0).name());
+            assertEquals("staff edit", Files.readString(root.resolve("s5/datapacks/p/data/p/function/b.mcfunction")));
+
+            Files.writeString(root.resolve("s5/datapacks/p/data/p/function/b.mcfunction"), "say 2");
+            Path none = tmp.resolve("none");
+            new Manifest(new TreeMap<>()).write(none.resolve("manifest.json"));
+            report = Deployer.deploy("test", none, remote, false);
+            assertEquals(List.of("p"), List.copyOf(report.datapacks().removed()));
+        }
+        try (var names = Files.list(root.resolve("s5/datapacks"))) {
+            assertEquals(List.of("staff_pack"), names.map(p -> p.getFileName().toString()).toList());
+        }
+    }
+
+    private Path datapackSet(String name, String path, String content) throws IOException {
+        Path dir = Files.createDirectories(tmp.resolve(name));
+        new Manifest(new TreeMap<>()).write(dir.resolve("manifest.json"));
+        Path zip = TestJars.datapackZip(tmp.resolve(name + ".zip"), "{\"pack\":{\"pack_format\":81}}", path, content);
+        DatapackManifest.Pack pack = Datapack.build(zip, "p", Sha256.of(zip), zip.toUri(), "test", false, dir);
+        new DatapackManifest(null, new TreeMap<>(Map.of("p", pack))).write(dir.resolve(DatapackManifest.FILE_NAME));
+        return dir;
+    }
 }
