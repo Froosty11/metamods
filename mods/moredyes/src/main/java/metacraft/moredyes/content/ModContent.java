@@ -7,6 +7,7 @@ import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
 import eu.pb4.polymer.soundpatcher.api.SoundPatcher;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.banner.BannerPatterns;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import net.minecraft.core.Registry;
@@ -214,6 +215,7 @@ public final class ModContent {
 				.displayItems((params, output) -> {
 					for (ModColor color : ModColors.all()) {
 						for (Item item : items(color)) output.accept(item);
+						output.accept(BannerPatterns.colouredBanner(color, params.holders()));
 					}
 				})
 				.build();

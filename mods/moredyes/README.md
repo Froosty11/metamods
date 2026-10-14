@@ -18,7 +18,8 @@ donors — since 26.x the client picks the render layer per sprite, so they are 
 translucent); bundles; sheep (colour attachment, vanilla sheep sent invisible, whole-sheep
 display-entity rig animated server-side); banner patterns (every registered pattern, vanilla or
 datapack, derived per colour at registry load and tinted at pack build; applied through the
-dye-loom GUI, which offers a pattern that needs a pattern item only while the player carries one); recipes for everything vanilla dyes make, including leather/horse/wolf armour
+dye-loom GUI, which offers a pattern that needs a pattern item only while the player carries one); banners
+in our colours (six of our wool over a stick: a white banner under our full-cover layer, see below); recipes for everything vanilla dyes make, including leather/horse/wolf armour
 and firework stars mixed with vanilla dyes; happy ghast harnesses and llama carpet decor (vanilla's
 equippable on our own equipment asset); sign text in our exact colour (component colour on every
 line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
@@ -55,6 +56,14 @@ that cannot serve even the chosen look still stops the server.
   it back. Admins: `/moredyes dye <targets> <color>`.
 - Banner patterns: hold a banner (or a shield with a base colour) in one hand and a dye in the
   other, right-click the air. Pick a pattern; it is applied with white as the carrier colour.
+- Banners in our colours: six of our wool over a stick, vanilla's banner shape and recipe-book
+  group (`moredyes:<color>_banner`). The result is a `minecraft:white_banner` whose first layer is
+  the derived `moredyes:<color>/minecraft/base` (vanilla's full-cover pattern) applied with white,
+  with `item_name` "Cerise Banner" (`block.moredyes.<color>_banner`). It places, breaks and copies
+  like any banner, takes patterns at a vanilla loom or the dye loom (the colour counts as one of the
+  six layers), and decorates a shield. A cauldron washes patterns off down to the colour but not the
+  colour itself (`CauldronInteractionsMixin`), as with a banner's own colour. To copy one, the blank
+  is a plain *white* banner: vanilla only copies onto a banner with no layers.
 - Dyes have no recipe yet (a flower is planned); use the creative tab or `/give`.
 
 ## Ground rules (short version)

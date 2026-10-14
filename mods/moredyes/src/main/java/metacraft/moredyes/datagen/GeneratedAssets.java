@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.banner.BannerPatterns;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
@@ -450,7 +451,8 @@ public final class GeneratedAssets implements DataProvider {
 		return out;
 	}
 
-	private static Map<String, JsonObject> recipes(String cid, String dye) {
+	private static Map<String, JsonObject> recipes(ModColor color, String dye) {
+		String cid = color.id();
 		java.util.function.Function<String, String> m = fam -> MOD + ":" + cid + "_" + fam;
 		Map<String, JsonObject> r = new LinkedHashMap<>();
 		r.put(cid + "_wool", obj("type", "minecraft:crafting_shapeless", "category", "building",
@@ -501,6 +503,7 @@ public final class GeneratedAssets implements DataProvider {
 		r.put(cid + "_stained_glass_pane_from_glass_pane", obj("type", "minecraft:crafting_shaped", "category", "building",
 				"group", "stained_glass_pane", "pattern", arr("###", "#$#", "###"), "key", obj("#", "minecraft:glass_pane", "$", dye),
 				"result", obj("id", m.apply("stained_glass_pane"), "count", 8)));
+		r.put(cid + "_banner", banner(color, m.apply("wool")));
 		for (String mat : new String[]{"wool", "concrete"}) {
 			r.put(cid + "_" + mat + "_stairs", obj("type", "minecraft:crafting_shaped", "category", "building",
 					"pattern", arr("#  ", "## ", "###"), "key", obj("#", m.apply(mat)),
@@ -509,6 +512,25 @@ public final class GeneratedAssets implements DataProvider {
 					"pattern", arr("###"), "key", obj("#", m.apply(mat)),
 					"result", obj("id", m.apply(mat + "_slab"), "count", 6)));
 		}
+		return r;
+	}
+
+	/**
+	 * Vanilla's white banner recipe (shape, group) on our wool, making a banner in our colour: a white
+	 * banner whose first layer is our full-cover pattern applied with white, named for the colour
+	 * (see {@link BannerPatterns#colouredBanner}, which builds the same stack in code).
+	 */
+	private static JsonObject banner(ModColor color, String wool) {
+		JsonObject r = Vanilla.json("data/minecraft/recipe/white_banner.json").getAsJsonObject();
+		JsonObject key = r.getAsJsonObject("key");
+		if (!key.has("#") || !key.get("#").getAsString().equals("minecraft:white_wool")) {
+			throw new IllegalStateException("vanilla white_banner recipe changed shape: " + r);
+		}
+		key.addProperty("#", wool);
+		String base = BannerPatterns.derivedId(color, BannerPatterns.BASE).toString();
+		r.add("result", obj("id", "minecraft:white_banner", "components", obj(
+				"minecraft:banner_patterns", arr(obj("pattern", base, "color", "white")),
+				"minecraft:item_name", obj("translate", BannerPatterns.bannerNameKey(color), "fallback", color.name() + " Banner"))));
 		return r;
 	}
 
@@ -637,7 +659,8 @@ public final class GeneratedAssets implements DataProvider {
 				BLOCK_TAGS.forEach((tag, fams) -> { if (fams.contains(id)) blockTags.get(tag).add(full); });
 				ITEM_TAGS.forEach((tag, fams) -> { if (fams.contains(id)) itemTags.get(tag).add(full); });
 			}
-			recipes(cid, dye).forEach((name, recipe) -> json(data.resolve(MOD + "/recipe/" + name + ".json"), recipe));
+			lang.put(BannerPatterns.bannerNameKey(color), cname + " Banner");
+			recipes(color, dye).forEach((name, recipe) -> json(data.resolve(MOD + "/recipe/" + name + ".json"), recipe));
 		}
 
 		blockTags.forEach((tag, ids) -> json(data.resolve("minecraft/tags/block/" + tag + ".json"), obj("replace", false, "values", J.strings(ids))));

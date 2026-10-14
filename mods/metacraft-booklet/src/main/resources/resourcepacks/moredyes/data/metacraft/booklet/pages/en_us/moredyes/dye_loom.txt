@@ -8,3 +8,5 @@ order=10
 Hold a banner or a shield in the other hand and use <citem 'moredyes:cerise_dye'> or <citem 'moredyes:laserviolet_dye'>: the <bold>dye loom</bold> opens with every pattern in that colour.
 
 Patterns that need a pattern item at a loom need it in your inventory here too; it is not used up.
+
+A Cerise or Laserviolet banner (six of that wool over a stick) works here and at a loom too. Its colour counts as one of a banner's six patterns, so five more fit.

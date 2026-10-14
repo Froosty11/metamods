@@ -8,9 +8,13 @@ import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.RegistryLoadTask;
 import net.minecraft.resources.ResourceKey;
@@ -18,7 +22,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.IoSupplier;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BannerPattern;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import org.jspecify.annotations.Nullable;
 
 import javax.imageio.ImageIO;
@@ -45,15 +53,50 @@ import java.util.concurrent.ConcurrentHashMap;
  * the resource pack we multiply the source mask by the colour and add the result under the derived
  * pattern's asset id. Applying a derived pattern with WHITE (see {@link DyeLoomGui}) is a banner in
  * our colour that any vanilla client renders correctly.
+ *
+ * <p>A banner "in" one of our colours (what our banner recipes make, see {@link #colouredBanner}) is
+ * the same trick on vanilla's full-cover {@code minecraft:base}: a white banner whose first layer is
+ * {@code moredyes:<color>/minecraft/base}, named for the colour. Vanilla's loom, banner copying and
+ * shield decorating carry it like any layer; washing in a cauldron stops at it, as it stops at a
+ * banner's own colour (see {@link metacraft.moredyes.mixin.CauldronInteractionsMixin}).
  */
 public final class BannerPatterns {
 	/** derived pattern id -> (colour, source pattern id). Rebuilt on every registry setup. */
 	private static final Map<Identifier, Derived> DERIVED = new ConcurrentHashMap<>();
 	private static @Nullable MinecraftServer server;
 
+	/** Vanilla's full-cover pattern, the one a banner's own colour is drawn with. */
+	public static final Identifier BASE = Identifier.withDefaultNamespace("base");
+
 	public record Derived(ModColor color, Identifier source) {}
 
 	private BannerPatterns() {}
+
+	/** The name of a banner in this colour, which the generated lang file spells out. */
+	public static String bannerNameKey(ModColor color) {
+		return "block." + MoreDyes.MOD_ID + "." + color.id() + "_banner";
+	}
+
+	/**
+	 * A banner in this colour, as the banner recipe makes it: a white banner under our full-cover
+	 * layer, applied with WHITE so it shows in the colour, and named for it.
+	 */
+	public static ItemStack colouredBanner(ModColor color, HolderLookup.Provider registries) {
+		Holder<BannerPattern> base = registries.lookupOrThrow(Registries.BANNER_PATTERN)
+				.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN, derivedId(color, BASE)));
+		ItemStack stack = new ItemStack(Items.BANNER.white());
+		stack.set(DataComponents.BANNER_PATTERNS, new BannerPatternLayers(List.of(new BannerPatternLayers.Layer(base, DyeColor.WHITE))));
+		stack.set(DataComponents.ITEM_NAME, Component.translatableWithFallback(bannerNameKey(color), color.name() + " Banner"));
+		return stack;
+	}
+
+	/** Whether this layer is one of our colours over the whole banner (a coloured banner's first layer). */
+	public static boolean isColouredBase(BannerPatternLayers.Layer layer) {
+		return layer.pattern().unwrapKey().map(key -> {
+			Derived d = DERIVED.get(key.identifier());
+			return d != null && d.source().equals(BASE);
+		}).orElse(false);
+	}
 
 	public static Identifier derivedId(ModColor color, Identifier source) {
 		return Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID,
@@ -142,7 +185,10 @@ public final class BannerPatterns {
 				}
 			}
 			if (any) ok++; else failed++;
-			lang.put(translationKey(id) + ".white", d.color().name() + " " + titleCase(d.source().getPath()));
+			// the base layer reads like vanilla's own ("Fully Red Field") in a coloured banner's tooltip
+			lang.put(translationKey(id) + ".white", d.source().equals(BASE)
+					? "Fully " + d.color().name() + " Field"
+					: d.color().name() + " " + titleCase(d.source().getPath()));
 		}
 		JsonObject json = new JsonObject();
 		lang.forEach(json::addProperty);

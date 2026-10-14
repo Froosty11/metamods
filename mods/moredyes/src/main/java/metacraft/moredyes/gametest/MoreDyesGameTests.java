@@ -19,6 +19,15 @@ import metacraft.moredyes.sheep.SheepColors;
 import metacraft.moredyes.sheep.SheepOverlay;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.world.inventory.LoomMenu;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
+import net.minecraft.world.level.block.entity.BannerBlockEntity;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.Registry;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.core.component.DataComponents;
@@ -504,6 +513,121 @@ public final class MoreDyesGameTests {
 		java.util.Arrays.fill(grid, ItemStack.EMPTY);
 		System.arraycopy(items, 0, grid, 0, items.length);
 		return grid;
+	}
+
+	private static Holder<BannerPattern> pattern(GameTestHelper helper, Identifier id) {
+		return helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)
+				.getOrThrow(ResourceKey.create(Registries.BANNER_PATTERN, id));
+	}
+
+	private static List<BannerPatternLayers.Layer> layers(ItemStack stack) {
+		return stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY).layers();
+	}
+
+	/** A Cerise banner with a red bottom stripe on it, as a vanilla loom would make it. */
+	private static ItemStack striped(GameTestHelper helper) {
+		ItemStack banner = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
+		List<BannerPatternLayers.Layer> list = new ArrayList<>(layers(banner));
+		list.add(new BannerPatternLayers.Layer(pattern(helper, Identifier.withDefaultNamespace("stripe_bottom")), DyeColor.RED));
+		banner.set(DataComponents.BANNER_PATTERNS, new BannerPatternLayers(list));
+		return banner;
+	}
+
+	/**
+	 * Six of our wool over a stick, through the real recipe manager: a white banner whose one layer
+	 * is our full-cover pattern in white, named for the colour, in vanilla's banner group.
+	 */
+	@GameTest
+	public void colouredBannerRecipe(GameTestHelper helper) {
+		for (ModColor color : ModColors.all()) {
+			ItemStack wool = new ItemStack(ModContent.block(color, Family.WOOL));
+			ItemStack out = craft(helper, wool, wool, wool, wool, wool, wool, ItemStack.EMPTY, new ItemStack(Items.STICK), ItemStack.EMPTY);
+			helper.assertTrue(out.is(Items.BANNER.white()), "no white banner from " + color.id() + " wool, got " + out);
+			List<BannerPatternLayers.Layer> layers = layers(out);
+			helper.assertValueEqual(layers.size(), 1, color.id() + " banner layers");
+			helper.assertValueEqual(layers.getFirst().pattern().unwrapKey().map(ResourceKey::identifier).orElse(null),
+					BannerPatterns.derivedId(color, BannerPatterns.BASE), color.id() + " banner base pattern");
+			helper.assertValueEqual(layers.getFirst().color(), DyeColor.WHITE, color.id() + " banner layer colour");
+			helper.assertTrue(BannerPatterns.isColouredBase(layers.getFirst()), "base layer not recognised as ours");
+			var name = out.get(DataComponents.ITEM_NAME);
+			helper.assertTrue(name != null && name.getContents() instanceof TranslatableContents t
+					&& t.getKey().equals(BannerPatterns.bannerNameKey(color)), color.id() + " banner name: " + name);
+			helper.assertTrue(ItemStack.isSameItemSameComponents(out, BannerPatterns.colouredBanner(color, helper.getLevel().registryAccess())),
+					"recipe result differs from colouredBanner(): " + out.getComponentsPatch());
+			var recipe = helper.getLevel().recipeAccess().byKey(ResourceKey.create(Registries.RECIPE,
+					Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, color.id() + "_banner")));
+			helper.assertTrue(recipe.isPresent() && recipe.get().value().group().equals("banner"), "recipe missing or not in the banner group");
+		}
+		helper.succeed();
+	}
+
+	/** Placed, the banner keeps its layer and name; broken, it drops the very same item. */
+	@GameTest
+	public void colouredBannerPlacesAndBreaks(GameTestHelper helper) {
+		floor(helper);
+		ItemStack banner = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.MAIN_HAND, banner.copy());
+		helper.placeAt(player, banner.copy(), new BlockPos(2, 0, 2), Direction.UP);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		BannerBlockEntity placed = helper.getBlockEntity(pos, BannerBlockEntity.class);
+		helper.assertValueEqual(placed.getPatterns(), banner.get(DataComponents.BANNER_PATTERNS), "placed banner layers");
+		helper.assertTrue(ItemStack.isSameItemSameComponents(placed.getItem(), banner), "picked banner differs: " + placed.getItem().getComponentsPatch());
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			List<ItemEntity> drops = helper.getEntities(EntityTypes.ITEM, pos, 2.0);
+			helper.assertTrue(drops.size() == 1 && ItemStack.isSameItemSameComponents(drops.getFirst().getItem(), banner),
+					"drop differs: " + drops.stream().map(e -> e.getItem().getComponentsPatch()).toList());
+		});
+	}
+
+	/** Vanilla's loom adds a pattern on top; a shield takes the banner; a plain white banner copies it. */
+	@GameTest
+	public void colouredBannerLoomShieldCopy(GameTestHelper helper) {
+		ItemStack banner = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
+		helper.assertTrue(DyeLoomGui.canOpen(banner), "the dye loom does not take our banner");
+
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		LoomMenu loom = new LoomMenu(0, player.getInventory());
+		loom.getBannerSlot().set(banner.copy());
+		loom.getDyeSlot().set(new ItemStack(Items.DYE.red()));
+		Holder<BannerPattern> stripe = pattern(helper, Identifier.withDefaultNamespace("stripe_bottom"));
+		int index = loom.getSelectablePatterns().indexOf(stripe);
+		helper.assertTrue(index >= 0, "the loom offers no bottom stripe");
+		loom.clickMenuButton(player, index);
+		ItemStack woven = loom.getResultSlot().getItem();
+		helper.assertTrue(ItemStack.isSameItemSameComponents(woven, striped(helper)), "loom result: " + woven.getComponentsPatch());
+
+		ItemStack shield = craft(helper, grid(new ItemStack(Items.SHIELD), banner.copy()));
+		helper.assertTrue(shield.is(Items.SHIELD), "no shield, got " + shield);
+		helper.assertValueEqual(shield.get(DataComponents.BASE_COLOR), DyeColor.WHITE, "shield base colour");
+		helper.assertValueEqual(shield.get(DataComponents.BANNER_PATTERNS), banner.get(DataComponents.BANNER_PATTERNS), "shield layers");
+
+		ItemStack copy = craft(helper, grid(striped(helper), new ItemStack(Items.BANNER.white())));
+		helper.assertTrue(ItemStack.isSameItemSameComponents(copy, striped(helper)), "copy: " + copy.getComponentsPatch());
+		helper.succeed();
+	}
+
+	/** A cauldron washes patterns off down to our colour, never the colour itself, as with a banner's own. */
+	@GameTest
+	public void colouredBannerWash(GameTestHelper helper) {
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(helper.absolutePos(pos)), Direction.UP, helper.absolutePos(pos), false);
+		ItemStack plain = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
+
+		player.setItemInHand(InteractionHand.MAIN_HAND, striped(helper));
+		var washed = helper.getBlockState(pos).useItemOn(player.getMainHandItem(), helper.getLevel(), player, InteractionHand.MAIN_HAND, hit);
+		helper.assertTrue(washed.consumesAction(), "the stripe did not wash off: " + washed);
+		helper.assertTrue(ItemStack.isSameItemSameComponents(player.getMainHandItem(), plain), "washed: " + player.getMainHandItem().getComponentsPatch());
+		helper.assertValueEqual(helper.getBlockState(pos).getValue(LayeredCauldronBlock.LEVEL), 2, "cauldron level after a wash");
+
+		var again = helper.getBlockState(pos).useItemOn(player.getMainHandItem(), helper.getLevel(), player, InteractionHand.MAIN_HAND, hit);
+		helper.assertTrue(!again.consumesAction(), "a plain coloured banner washed: " + again);
+		helper.assertTrue(ItemStack.isSameItemSameComponents(player.getMainHandItem(), plain), "colour washed off: " + player.getMainHandItem().getComponentsPatch());
+		helper.assertValueEqual(helper.getBlockState(pos).getValue(LayeredCauldronBlock.LEVEL), 2, "cauldron level after no wash");
+		helper.succeed();
 	}
 
 	/** Leather armour takes our dye (exact RGB), and mixes with a vanilla dye by vanilla's rule. */
