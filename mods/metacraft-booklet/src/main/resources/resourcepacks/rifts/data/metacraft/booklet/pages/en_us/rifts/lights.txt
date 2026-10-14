@@ -1,0 +1,14 @@
+### Section: PageInfo
+title=Three lights
+description=Light a rift three times to tear it open. Everyone near it is warned first.
+category=metacraft:rifts
+icon=minecraft:flint_and_steel
+order=1
+### EndSection: PageInfo
+### Header: Lighting a rift
+- <bold>First light:</bold> light a nether portal frame in the overworld and a rift opens. Everyone within 32 blocks is warned in chat.
+- <bold>Second light:</bold> use <citem 'minecraft:flint_and_steel'> or a <citem 'minecraft:fire_charge'> on the rift or its frame. It strains, one light from tearing. Leave it for 5 minutes and it settles back.
+- <bold>Third light:</bold> it tears open. A horn sounds, and the first wave comes 10 seconds later.
+
+### Header: The raid
+Everyone within 48 blocks takes part. Each player after the first brings a quarter more piglins and hoglins, up to twice as many. A boss bar counts down the wave; the next one comes when the last mob is dead. After 90 seconds, the stragglers glow.<nl2>Rift mobs that stray more than 64 blocks are pulled back to the rift. Gold won't help you: rift piglins attack players in gold armour and never barter.<nl2>If nobody stays within 48 blocks for 3 minutes, the rift collapses with no reward. Break a frame block and a quiet rift fades, but a raiding one collapses.<nl2><gray>The realm can only take 4 torn rifts at once. A third light is refused until one closes.</gray>

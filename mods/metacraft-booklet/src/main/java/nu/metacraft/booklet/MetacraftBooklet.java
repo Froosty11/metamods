@@ -70,7 +70,8 @@ public final class MetacraftBooklet implements ModInitializer {
 			// recipe pages are written by tools/brewing_recipes.py.
 			new Hook("brewery", "brewing", false),
 			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false),
-			new Hook("moredyes", "moredyes", false));
+			new Hook("moredyes", "moredyes", false),
+			new Hook("nether-rifts", "rifts", false));
 
 	@Override
 	public void onInitialize() {

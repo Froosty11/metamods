@@ -34,6 +34,13 @@ public final class GuideTests {
 	private static final Pattern IMAGE = Pattern.compile("(?m)^### Image:\\s*(\\S+)");
 	private static final Pattern CATEGORY = Pattern.compile("(?m)^category=(.*)$");
 	private static final Identifier BOOKSHELF = Identifier.fromNamespaceAndPath("booklet", "main_page");
+	/**
+	 * Pages other mods open by id, from a command or a chat link. Booklet ignores a page that isn't
+	 * there, so a renamed page would leave their link a button that does nothing.
+	 */
+	private static final Map<String, Identifier> OPENED_BY = Map.of(
+			"ovvar", Identifier.fromNamespaceAndPath("metacraft", "ovvar"),
+			"nether-rifts", Identifier.fromNamespaceAndPath("metacraft", "rifts"));
 
 	/** Every page file in the loaded hooks' packs, page id to its text. */
 	private static Map<Identifier, String> pages(GameTestHelper helper) {
@@ -117,6 +124,18 @@ public final class GuideTests {
 				if (item == null || !BuiltInRegistries.ITEM.containsKey(item)) wrong.add(entry.getKey() + " names item " + items.group(1));
 			}
 		}
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	@GameTest
+	public void everyPageAnotherModOpensExists(GameTestHelper helper) {
+		List<String> wrong = new ArrayList<>();
+		OPENED_BY.forEach((mod, page) -> {
+			if (FabricLoader.getInstance().isModLoaded(mod) && !BookletInit.PAGES.containsKey(page)) {
+				wrong.add(mod + " opens " + page + ", which is not in the guide");
+			}
+		});
 		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
 		helper.succeed();
 	}

@@ -1,0 +1,28 @@
+### Section: PageInfo
+title=Sizes and spoils
+description=Bigger rifts send longer raids and pay more.
+category=metacraft:rifts
+icon=minecraft:gold_ingot
+order=2
+### EndSection: PageInfo
+### Header: Sizes
+A rift's size is the number of blocks inside its frame. A plain portal is 6 blocks, so it is small.
+- <bold>Small</bold>, up to 20 blocks: 3 waves.
+- <bold>Medium</bold>, 21 to 60 blocks: 5 waves.
+- <bold>Large</bold>, 61 blocks or more: 7 waves. Chained ghasts come in waves 5 and 7, and the Piglin General in the last.
+
+Crossbow piglins, spear piglins and hoglins make up most of a wave. Later waves add ghasts with a piglin on board, striders with riders, and brutes with golden axes. From wave 2, a <pagelink 'metacraft:rifts/drummer'><u>Piglin Drummer</u></pagelink> leads each wave.
+
+### Header: Spoils
+Rift piglins only drop loot when a player kills them, and no rift mob drops its gear.
+- Piglins: up to 2 <citem 'minecraft:quartz'> and 3 gold nuggets, often <citem 'minecraft:glowstone_dust'>, sometimes <citem 'minecraft:nether_wart'>.
+- Brutes: the same, and always a <citem 'minecraft:blaze_rod'>.
+- Piglin Drummers: the same, and always a <citem 'minecraft:gold_ingot'>.
+- Hoglins, ghasts and striders: their usual drops.
+
+Win the last wave and the rift bursts into gold ingots and glowstone dust:
+- <bold>Small:</bold> 3 to 5 gold, 4 to 8 glowstone.
+- <bold>Medium:</bold> 6 to 10 gold, 8 to 16 glowstone.
+- <bold>Large:</bold> 12 to 18 gold, 16 to 24 glowstone.
+
+When a torn rift closes, won or lost, its obsidian frame turns to <citem 'minecraft:crying_obsidian'>. Keep it: see <pagelink 'metacraft:rifts/stabilising'><u>Stabilising</u></pagelink>.
