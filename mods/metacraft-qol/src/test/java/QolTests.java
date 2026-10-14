@@ -19,6 +19,7 @@ import nu.metacraft.qol.void_anchor.rift.RiftStyle;
 import net.minecraft.nbt.NbtOps;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config_gui.CodecDialog;
+import se.metacraft.config_gui.ConfigGUI;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +49,7 @@ public class QolTests {
 					SilenceMobsTests.registerTests();
 					register("config/dialog_round_trips", QolTests::dialogRoundTrips);
 				},
-				METAcraftLib::new, METAcraftCore::new, Qol::new
+				METAcraftLib::new, METAcraftCore::new, ConfigGUI::new, Qol::new
 		);
 	}
 
