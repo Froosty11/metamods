@@ -466,7 +466,7 @@ public class BuiltinParsers {
 			return Optional.of(
 				MapCodecResult.createMapped(
 					codec,
-					Metadata.metadataMap(new Comments(comments.comments())),
+					comments.comments().isEmpty() ? MetadataMap.EMPTY : Metadata.metadataMap(new Comments(comments.comments())),
 					CodecParser.parse(comments.getCodec(), lookup)
 				)
 			);
@@ -480,7 +480,7 @@ public class BuiltinParsers {
 	);
 
 	public static final CodecParseEvents.ParseMapCodec ALL_MAP_CODECS = (codec, lookup) -> EventWithPhases.getOptionalResult(
-		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, MINECRAFT_MAP_CODECS, CUSTOM},
+		new CodecParseEvents.ParseMapCodec[]{CUSTOM, MAP_CODEC, MINECRAFT_MAP_CODECS},
 		p -> p.parse(codec, lookup)
 	);
 

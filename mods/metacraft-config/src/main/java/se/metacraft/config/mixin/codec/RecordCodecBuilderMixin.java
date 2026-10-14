@@ -33,11 +33,14 @@ public class RecordCodecBuilderMixin implements RecordCodecBuilderExtension {
 	public void init(Function<?, ?> getter, Function<?, ?> encoder, MapDecoder<?> decoder, CallbackInfo ci) {
 		if (comments.isEmpty()) {
 			if (decoder instanceof MapCodec<?> c) {
-				CodecParser.parse(c, null).nestedMetadata(MetadataKey.COMMENTS).ifPresent(comments -> {
-					this.comments.putAll(comments.comments());
-				});
+				var type = CodecParser.parse(c, null);
+				if (type.nestedMetadata(MetadataKey.NAMED_FIELD).isEmpty()) {
+					type.nestedMetadata(MetadataKey.COMMENTS).ifPresent(comments -> {
+						this.comments.putAll(comments.comments());
+					});
+				}
 			}
-			if (decoder instanceof MapCodecWithComments<?> c && comments.isEmpty()) {
+			if (decoder instanceof MapCodecWithComments<?> c) {
 				c.getSelfComment().ifPresent(comment -> {
 					var list = c.getCodec().keys(JavaOps.INSTANCE).filter(o -> o instanceof String).distinct().map(o -> (String) o).toList();
 					if (list.size() == 1) {
