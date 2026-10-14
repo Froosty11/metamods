@@ -9,6 +9,7 @@ import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
@@ -51,8 +52,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * source pattern {@code ns:path} and each of our colours we register a derived pattern
  * {@code moredyes:<color>/<ns>/<path>} while the dynamic registries load, and when Polymer builds
  * the resource pack we multiply the source mask by the colour and add the result under the derived
- * pattern's asset id. Applying a derived pattern with WHITE (see {@link DyeLoomGui}) is a banner in
- * our colour that any vanilla client renders correctly.
+ * pattern's asset id. Applying a derived pattern with WHITE (see {@link DyeLoomGui}, and our dyes in
+ * vanilla's loom, {@link metacraft.moredyes.mixin.LoomMenuMixin}) is a banner in our colour that any
+ * vanilla client renders correctly.
  *
  * <p>A banner "in" one of our colours (what our banner recipes make, see {@link #colouredBanner}) is
  * the same trick on vanilla's full-cover {@code minecraft:base}: a white banner whose first layer is
@@ -96,6 +98,26 @@ public final class BannerPatterns {
 			Derived d = DERIVED.get(key.identifier());
 			return d != null && d.source().equals(BASE);
 		}).orElse(false);
+	}
+
+	/**
+	 * How many patterns a banner carries on top of its colour. A banner in one of our colours carries
+	 * that colour as its first layer; like a vanilla banner's own colour, it is not a pattern.
+	 */
+	public static int patternsOnTop(BannerPatternLayers layers) {
+		List<BannerPatternLayers.Layer> list = layers.layers();
+		return list.size() - (!list.isEmpty() && isColouredBase(list.getFirst()) ? 1 : 0);
+	}
+
+	/**
+	 * The pattern in our colour that stands for {@code source} (a vanilla or datapack pattern), to be
+	 * applied with WHITE; null when there is none, e.g. for a pattern that is itself derived.
+	 */
+	public static @Nullable Holder<BannerPattern> derivedOf(HolderGetter<BannerPattern> patterns, ModColor color, Holder<BannerPattern> source) {
+		return source.unwrapKey()
+				.flatMap(key -> patterns.get(ResourceKey.create(Registries.BANNER_PATTERN, derivedId(color, key.identifier()))))
+				.<Holder<BannerPattern>>map(ref -> ref)
+				.orElse(null);
 	}
 
 	public static Identifier derivedId(ModColor color, Identifier source) {

@@ -40,12 +40,15 @@ import java.util.List;
  * outside {@code #minecraft:no_item_required}) needs it here too: an item in the player's inventory
  * that provides it. As at a loom, the item is not used up.
  *
- * <p>The vanilla loom is deliberately not used: its client-side preview runs the same handler logic
- * on the client's view of the items and would list the wrong patterns for a Polymer-mapped dye.
+ * <p>Our dyes also work in the vanilla loom ({@link metacraft.moredyes.mixin.LoomMenuMixin}), one pattern
+ * at a time. Here every pattern in the colour is listed at once, and a banner in one of our colours
+ * takes six patterns on top of its colour (seven layers; the vanilla client renders up to sixteen),
+ * where the vanilla loom, whose client counts layers itself, stops at six layers.
  */
 public final class DyeLoomGui extends SimpleGui {
 	private static final int PAGE = 45;
-	private static final int MAX_LAYERS = 6;
+	/** Patterns on top of the banner's colour, as vanilla allows on a banner of a vanilla colour. */
+	public static final int MAX_PATTERNS = 6;
 
 	private final ModColor color;
 	private final InteractionHand dyeHand;
@@ -91,6 +94,11 @@ public final class DyeLoomGui extends SimpleGui {
 			if (provided != null && provided.contains(source.get())) return true;
 		}
 		return false;
+	}
+
+	/** Whether another pattern fits: our colour's base layer is the banner's colour, not one of its patterns. */
+	public static boolean hasRoom(ItemStack target) {
+		return BannerPatterns.patternsOnTop(target.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)) < MAX_PATTERNS;
 	}
 
 	private ItemStack target() {
@@ -139,9 +147,8 @@ public final class DyeLoomGui extends SimpleGui {
 			close();
 			return;
 		}
-		BannerPatternLayers layers = target.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
-		if (layers.layers().size() >= MAX_LAYERS) {
-			player.sendOverlayMessage(Component.literal("This banner already has " + MAX_LAYERS + " patterns"));
+		if (!hasRoom(target)) {
+			player.sendOverlayMessage(Component.literal("This banner already has " + MAX_PATTERNS + " patterns"));
 			close();
 			return;
 		}

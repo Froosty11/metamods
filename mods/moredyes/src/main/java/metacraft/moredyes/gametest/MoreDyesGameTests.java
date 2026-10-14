@@ -1,6 +1,10 @@
 package metacraft.moredyes.gametest;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import eu.pb4.sgui.api.ClickType;
+import eu.pb4.sgui.api.elements.GuiElement;
+import metacraft.moredyes.sign.SignColors;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.sounds.SoundEvent;
 import eu.pb4.polymer.soundpatcher.impl.SoundRemapperImpl;
@@ -22,6 +26,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.LoomMenu;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.entity.BannerBlockEntity;
@@ -628,6 +633,225 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(ItemStack.isSameItemSameComponents(player.getMainHandItem(), plain), "colour washed off: " + player.getMainHandItem().getComponentsPatch());
 		helper.assertValueEqual(helper.getBlockState(pos).getValue(LayeredCauldronBlock.LEVEL), 2, "cauldron level after no wash");
 		helper.succeed();
+	}
+
+	/**
+	 * A Cerise banner with {@code patterns} vanilla patterns on top of its colour, in red, as a loom
+	 * would make it (the colour is the first of the banner's layers).
+	 */
+	private static ItemStack withPatterns(GameTestHelper helper, int patterns) {
+		ItemStack banner = BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess());
+		List<BannerPatternLayers.Layer> list = new ArrayList<>(layers(banner));
+		String[] sources = {"stripe_bottom", "stripe_top", "stripe_left", "stripe_right", "cross", "border", "circle"};
+		for (int i = 0; i < patterns; i++) {
+			list.add(new BannerPatternLayers.Layer(pattern(helper, Identifier.withDefaultNamespace(sources[i])), DyeColor.RED));
+		}
+		banner.set(DataComponents.BANNER_PATTERNS, new BannerPatternLayers(list));
+		return banner;
+	}
+
+	/** A plain banner of a vanilla colour with {@code layers} patterns. */
+	private static ItemStack vanillaWithPatterns(GameTestHelper helper, int layers) {
+		ItemStack banner = new ItemStack(Items.BANNER.red());
+		List<BannerPatternLayers.Layer> list = new ArrayList<>();
+		for (int i = 0; i < layers; i++) {
+			list.add(new BannerPatternLayers.Layer(pattern(helper, Identifier.withDefaultNamespace(i % 2 == 0 ? "stripe_top" : "stripe_bottom")), DyeColor.WHITE));
+		}
+		banner.set(DataComponents.BANNER_PATTERNS, new BannerPatternLayers(list));
+		return banner;
+	}
+
+	private static int patternIndex(GameTestHelper helper, LoomMenu loom, String source) {
+		int index = loom.getSelectablePatterns().indexOf(pattern(helper, Identifier.withDefaultNamespace(source)));
+		helper.assertTrue(index >= 0, "the loom offers no " + source);
+		return index;
+	}
+
+	/**
+	 * Our dye in vanilla's loom: the dye slot takes it, and the pattern comes out in our colour (the
+	 * derived pattern, applied with WHITE), on a white banner and on top of a Cerise one. Taking the
+	 * result uses one banner and one dye. The client's copy of the dye says the nearest vanilla colour,
+	 * so the client's loom screen takes it too; the server's copy has no dye component.
+	 */
+	@GameTest
+	public void loomWeavesWithOurDye(GameTestHelper helper) {
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		LoomMenu loom = new LoomMenu(0, player.getInventory());
+		ItemStack dye = new ItemStack(ModContent.dye(first()), 2);
+		helper.assertTrue(loom.getDyeSlot().mayPlace(dye), "the loom's dye slot refuses our dye");
+		loom.getBannerSlot().set(new ItemStack(Items.BANNER.white(), 2));
+		loom.getDyeSlot().set(dye);
+		loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_bottom"));
+		Holder<BannerPattern> ours = pattern(helper, BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("stripe_bottom")));
+		ItemStack woven = loom.getResultSlot().getItem().copy();
+		helper.assertTrue(woven.is(Items.BANNER.white()) && woven.getCount() == 1, "loom result: " + woven);
+		helper.assertValueEqual(layers(woven), List.of(new BannerPatternLayers.Layer(ours, DyeColor.WHITE)), "loom result layers");
+
+		loom.clicked(loom.getResultSlot().index, 0, ContainerInput.PICKUP, player);
+		helper.assertTrue(ItemStack.isSameItemSameComponents(loom.getCarried(), woven) && loom.getCarried().getCount() == 1,
+				"taken: " + loom.getCarried());
+		helper.assertValueEqual(loom.getBannerSlot().getItem().getCount(), 1, "banners left after a take");
+		helper.assertValueEqual(loom.getDyeSlot().getItem().getCount(), 1, "dyes left after a take");
+
+		loom.getBannerSlot().set(BannerPatterns.colouredBanner(first(), helper.getLevel().registryAccess()));
+		loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_bottom"));
+		List<BannerPatternLayers.Layer> onColour = layers(loom.getResultSlot().getItem());
+		helper.assertTrue(onColour.size() == 2 && BannerPatterns.isColouredBase(onColour.getFirst())
+				&& onColour.getLast().equals(new BannerPatternLayers.Layer(ours, DyeColor.WHITE)), "on a Cerise banner: " + onColour);
+
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(new ItemStack(ModContent.dye(first())),
+				viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		helper.assertValueEqual(client.get(DataComponents.DYE), SignColors.nearestDye(first()), "the client's dye component");
+		helper.assertFalse(new ItemStack(ModContent.dye(first())).has(DataComponents.DYE), "the server's dye has a dye component");
+		helper.succeed();
+	}
+
+	/** Shift-clicked in a loom, our dye goes to the dye slot, as a vanilla dye does; a stick does not. */
+	@GameTest
+	public void loomQuickMovesOurDye(GameTestHelper helper) {
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.getInventory().clearContent();
+		player.getInventory().setItem(0, new ItemStack(ModContent.dye(first()), 3));
+		player.getInventory().setItem(1, new ItemStack(Items.STICK));
+		LoomMenu loom = new LoomMenu(0, player.getInventory());
+		loom.quickMoveStack(player, menuSlot(loom, player, 0));
+		helper.assertTrue(loom.getDyeSlot().getItem().is(ModContent.dye(first())) && loom.getDyeSlot().getItem().getCount() == 3,
+				"dye slot after a shift-click: " + loom.getDyeSlot().getItem());
+		helper.assertTrue(player.getInventory().getItem(0).isEmpty(), "the dye stayed in the hotbar");
+		loom.quickMoveStack(player, menuSlot(loom, player, 1));
+		helper.assertTrue(loom.getDyeSlot().getItem().is(ModContent.dye(first())), "a stick went to the dye slot");
+		helper.assertFalse(loom.getDyeSlot().mayPlace(new ItemStack(Items.STICK)), "the dye slot takes a stick");
+		helper.succeed();
+	}
+
+	private static int menuSlot(LoomMenu loom, Player player, int inventorySlot) {
+		for (var slot : loom.slots) {
+			if (slot.container == player.getInventory() && slot.getContainerSlot() == inventorySlot) return slot.index;
+		}
+		throw new IllegalStateException("no menu slot for inventory slot " + inventorySlot);
+	}
+
+	/**
+	 * Vanilla's loom counts a banner's layers, and its client does too, so there our colour is one of
+	 * the six: a Cerise banner takes five patterns, with our dye or a vanilla one.
+	 */
+	@GameTest
+	public void loomCapsACeriseBanner(GameTestHelper helper) {
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		for (ItemStack dye : List.of(new ItemStack(ModContent.dye(first())), new ItemStack(Items.DYE.red()))) {
+			LoomMenu loom = new LoomMenu(0, player.getInventory());
+			loom.getBannerSlot().set(withPatterns(helper, 4));
+			loom.getDyeSlot().set(dye.copy());
+			loom.clickMenuButton(player, patternIndex(helper, loom, "stripe_middle"));
+			helper.assertValueEqual(layers(loom.getResultSlot().getItem()).size(), 6, "layers after the fifth pattern with " + dye);
+			loom.getBannerSlot().set(withPatterns(helper, 5));
+			helper.assertTrue(loom.getResultSlot().getItem().isEmpty(), "the loom wove a sixth pattern with " + dye + ": "
+					+ layers(loom.getResultSlot().getItem()).size() + " layers");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The dye loom does not count our colour: a Cerise banner takes six patterns on top of it (seven
+	 * layers), and no seventh. A banner of a vanilla colour still stops at six.
+	 */
+	@GameTest
+	public void dyeLoomSixOnTop(GameTestHelper helper) {
+		helper.assertTrue(DyeLoomGui.hasRoom(withPatterns(helper, 5)), "no room for a sixth pattern on a Cerise banner");
+		helper.assertFalse(DyeLoomGui.hasRoom(withPatterns(helper, 6)), "room for a seventh pattern on a Cerise banner");
+		helper.assertTrue(DyeLoomGui.hasRoom(vanillaWithPatterns(helper, 5)), "no room for a sixth pattern on a red banner");
+		helper.assertFalse(DyeLoomGui.hasRoom(vanillaWithPatterns(helper, 6)), "room for a seventh layer on a red banner");
+
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.getInventory().clearContent();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.OFF_HAND, withPatterns(helper, 5));
+		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.dye(first()), 2));
+		Identifier border = BannerPatterns.derivedId(first(), Identifier.withDefaultNamespace("border"));
+		weave(helper, player, border);
+		List<BannerPatternLayers.Layer> seven = layers(player.getOffhandItem());
+		helper.assertValueEqual(seven.size(), 7, "layers after the sixth pattern");
+		helper.assertTrue(BannerPatterns.isColouredBase(seven.getFirst()), "the colour is no longer the first layer");
+		helper.assertValueEqual(seven.getLast(), new BannerPatternLayers.Layer(pattern(helper, border), DyeColor.WHITE), "the sixth pattern");
+		helper.assertValueEqual(player.getMainHandItem().getCount(), 1, "dyes left after a pattern");
+
+		weave(helper, player, border);
+		helper.assertValueEqual(layers(player.getOffhandItem()).size(), 7, "layers after a seventh pattern was refused");
+		helper.assertValueEqual(player.getMainHandItem().getCount(), 1, "dyes left after a refused pattern");
+		helper.succeed();
+	}
+
+	/** Clicks a pattern in the dye loom, as the player holding the dye in the main hand. */
+	private static void weave(GameTestHelper helper, ServerPlayer player, Identifier derived) {
+		DyeLoomGui gui = new DyeLoomGui(player, first(), InteractionHand.MAIN_HAND);
+		for (int i = 0; i < 45; i++) {
+			GuiElement element = gui.getGuiElement(i);
+			if (element == null) continue;
+			List<BannerPatternLayers.Layer> shown = layers(element.getItemStack());
+			if (!shown.isEmpty() && shown.getLast().pattern().is(ResourceKey.create(Registries.BANNER_PATTERN, derived))) {
+				element.getGuiCallback().click(i, ClickType.MOUSE_LEFT, ContainerInput.PICKUP, gui);
+				return;
+			}
+		}
+		helper.fail("the dye loom's first page does not list " + derived);
+	}
+
+	/**
+	 * Seven layers (our colour and six patterns) survive everything a banner goes through: copying
+	 * onto a white banner, decorating a shield, a save and load of the placed block, and a wash, which
+	 * takes the top pattern off. A banner of a vanilla colour with seven layers still does not copy.
+	 */
+	@GameTest
+	public void sevenLayersCopyShieldWash(GameTestHelper helper) {
+		ItemStack seven = withPatterns(helper, 6);
+		ItemStack copy = craft(helper, grid(seven.copy(), new ItemStack(Items.BANNER.white())));
+		helper.assertTrue(ItemStack.isSameItemSameComponents(copy, seven), "copy: " + copy.getComponentsPatch());
+		helper.assertTrue(craft(helper, grid(vanillaWithPatterns(helper, 7), new ItemStack(Items.BANNER.red()))).isEmpty(),
+				"a red banner with seven layers copied");
+		helper.assertTrue(craft(helper, grid(withPatterns(helper, 7), new ItemStack(Items.BANNER.white()))).isEmpty(),
+				"a Cerise banner with seven patterns copied");
+
+		ItemStack shield = craft(helper, grid(new ItemStack(Items.SHIELD), seven.copy()));
+		helper.assertValueEqual(shield.get(DataComponents.BANNER_PATTERNS), seven.get(DataComponents.BANNER_PATTERNS), "shield layers");
+
+		BlockPos at = helper.absolutePos(new BlockPos(2, 1, 2));
+		helper.setBlock(new BlockPos(2, 1, 2), Blocks.BANNER.white());
+		BannerBlockEntity placed = helper.getBlockEntity(new BlockPos(2, 1, 2), BannerBlockEntity.class);
+		placed.applyComponentsFromItemStack(seven);
+		var saved = placed.saveWithFullMetadata(helper.getLevel().registryAccess());
+		var loaded = net.minecraft.world.level.block.entity.BlockEntity.loadStatic(at, placed.getBlockState(), saved, helper.getLevel().registryAccess());
+		helper.assertTrue(loaded instanceof BannerBlockEntity b && b.getPatterns().equals(seven.get(DataComponents.BANNER_PATTERNS)),
+				"loaded banner: " + (loaded instanceof BannerBlockEntity b ? b.getPatterns() : loaded));
+
+		BlockPos cauldron = new BlockPos(4, 1, 2);
+		helper.setBlock(cauldron, Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.MAIN_HAND, seven.copy());
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(helper.absolutePos(cauldron)), Direction.UP, helper.absolutePos(cauldron), false);
+		helper.getBlockState(cauldron).useItemOn(player.getMainHandItem(), helper.getLevel(), player, InteractionHand.MAIN_HAND, hit);
+		helper.assertTrue(ItemStack.isSameItemSameComponents(player.getMainHandItem(), withPatterns(helper, 5)),
+				"washed: " + layers(player.getMainHandItem()));
+		helper.succeed();
+	}
+
+	/** Placed by a player, a seven-layer banner keeps every layer; broken, it drops the very same item. */
+	@GameTest
+	public void sevenLayersPlaceAndBreak(GameTestHelper helper) {
+		floor(helper);
+		ItemStack seven = withPatterns(helper, 6);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.MAIN_HAND, seven.copy());
+		helper.placeAt(player, seven.copy(), new BlockPos(2, 0, 2), Direction.UP);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		BannerBlockEntity placed = helper.getBlockEntity(pos, BannerBlockEntity.class);
+		helper.assertValueEqual(placed.getPatterns(), seven.get(DataComponents.BANNER_PATTERNS), "placed banner layers");
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			List<ItemEntity> drops = helper.getEntities(EntityTypes.ITEM, pos, 2.0);
+			helper.assertTrue(drops.size() == 1 && ItemStack.isSameItemSameComponents(drops.getFirst().getItem(), seven),
+					"drop differs: " + drops.stream().map(e -> layers(e.getItem()).size()).toList());
+		});
 	}
 
 	/** Leather armour takes our dye (exact RGB), and mixes with a vanilla dye by vanilla's rule. */

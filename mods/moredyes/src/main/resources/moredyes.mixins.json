@@ -4,11 +4,13 @@
 	"package": "metacraft.moredyes.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"BannerDuplicateRecipeMixin",
 		"BlockEntityTypeAccessor",
 		"CatAccessor",
 		"CauldronInteractionsMixin",
 		"CushionMixin",
 		"FlintAndSteelItemMixin",
+		"LoomMenuMixin",
 		"MobMixin",
 		"RegistryLoadTaskMixin",
 		"SheepAccessor",

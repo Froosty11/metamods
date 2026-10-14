@@ -9,4 +9,7 @@ Hold a banner or a shield in the other hand and use <citem 'moredyes:cerise_dye'
 
 Patterns that need a pattern item at a loom need it in your inventory here too; it is not used up.
 
-A Cerise or Laserviolet banner (six of that wool over a stick) works here and at a loom too. Its colour counts as one of a banner's six patterns, so five more fit.
+A Cerise or Laserviolet banner (six of that wool over a stick) works here and at a loom too. Here its colour is the banner's colour, not one of its patterns, so six patterns fit on top of it (its tooltip leaves the sixth out). A <citem 'minecraft:loom'> counts the colour as one of six, so five fit there.
+
+### Header: At a loom
+Both dyes also go in a <citem 'minecraft:loom'>, one pattern at a time, like any dye. The pattern buttons name the nearest vanilla colour, and the preview can show that colour for a moment; the banner comes out in Cerise or Laserviolet.

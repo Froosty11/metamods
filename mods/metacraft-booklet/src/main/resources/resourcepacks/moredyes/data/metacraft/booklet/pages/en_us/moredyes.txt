@@ -24,6 +24,8 @@ A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'mor
 - A pet's collar, in the nearest vanilla colour
 
 ### Header: Banners and shields
-Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> make a Laserviolet one. It takes patterns at a loom or the dye loom, decorates a shield, and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
+Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> make a Laserviolet one. It takes five patterns at a loom or six in the dye loom, decorates a shield, and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
+
+Both dyes put patterns on banners at a loom, like any dye, and in the dye loom, with every pattern at once.
 
 ### Category Entries: metacraft:moredyes

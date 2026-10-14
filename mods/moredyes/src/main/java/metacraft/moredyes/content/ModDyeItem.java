@@ -5,6 +5,7 @@ import metacraft.moredyes.banner.DyeLoomGui;
 import metacraft.moredyes.color.ModColor;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -25,10 +26,13 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A More Dyes dye. Deliberately NOT a vanilla {@code DyeItem}: that would drag it into every
- * {@code DyeColor}-keyed vanilla path (tag recipes, loom, collars) that cannot show our colour.
- * The interactions we want (sheep, armour, blocks, sign text, collars) are implemented against {@link ModColor} instead.
+ * {@code DyeColor}-keyed vanilla path (tag recipes, collars) that cannot show our colour.
+ * The interactions we want (sheep, armour, blocks, sign text, collars, the loom) are implemented
+ * against {@link ModColor} instead.
  *
- * The client is told it holds white dye with our item model, so it behaves like a dye in hand.
+ * <p>The client is told it holds white dye with our item model, so it behaves like a dye in hand, and
+ * with the nearest vanilla colour's {@code dye} component, so the vanilla loom screen takes it (see
+ * {@link metacraft.moredyes.mixin.LoomMenuMixin}). That component exists only on the client's copy.
  */
 public final class ModDyeItem extends Item implements PolymerItem, SignApplicator {
 	private final ModColor color;
@@ -71,6 +75,17 @@ public final class ModDyeItem extends Item implements PolymerItem, SignApplicato
 	@Override
 	public Item getPolymerItem(ItemStack stack, PacketContext context) {
 		return Items.DYE.white();
+	}
+
+	/**
+	 * The client's copy carries the nearest vanilla colour as its {@code dye} component, so the vanilla
+	 * loom lets it into the dye slot and lists the patterns. What else a vanilla client does with that
+	 * component is only a prediction the server corrects: a wolf's collar (the server sets the same
+	 * nearest colour, {@link metacraft.moredyes.pet.Collars}) and the dye sound on a sheep.
+	 */
+	@Override
+	public void modifyBasePolymerItemStack(ItemStack out, ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		out.set(DataComponents.DYE, SignColors.nearestDye(color));
 	}
 
 	@Override
