@@ -6,7 +6,7 @@ icon=minecraft:piglin_head
 order=6
 ### EndSection: PageInfo
 ### Header: The last wave
-A piglin brute with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 100 health, twice a brute's. It has a red boss bar of its own.
+### Image: metacraft:beside/rifts/general A piglin brute with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 100 health, twice a brute's. It has a red boss bar of its own.
 
 ### Header: Spoils
 Killed by a player, it drops:

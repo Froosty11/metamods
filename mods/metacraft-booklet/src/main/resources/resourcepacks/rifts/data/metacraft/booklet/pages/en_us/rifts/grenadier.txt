@@ -6,7 +6,7 @@ icon=minecraft:magma_cream
 order=5
 ### EndSection: PageInfo
 ### Header: Tells
-A piglin in goggles, with a golden sword. It rides the deck of a chained ghast and drops its bombs. When the ghast falls, it fights on foot.
+### Image: metacraft:beside/rifts/grenadier A piglin in goggles, with a golden sword. It rides the deck of a chained ghast and drops its bombs. When the ghast falls, it fights on foot.
 
 ### Header: Magma bombs
 - A ring of flame on the ground marks where a bomb will land, a second before it does. Step out of it.
