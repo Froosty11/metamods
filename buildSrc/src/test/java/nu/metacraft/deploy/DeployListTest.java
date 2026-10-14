@@ -79,15 +79,16 @@ class DeployListTest {
     }
 
     @Test
-    void refusesADatapackIdFabricWouldRefuse() {
-        assertTrue(failure(List.of("datapack 9lives https://example.org/p.zip sha256:" + HASH)).contains("is not a Fabric mod id"));
-        assertTrue(failure(List.of("datapack more.heads https://example.org/p.zip sha256:" + HASH)).contains("is not a Fabric mod id"));
+    void aDatapackNameIsAPlainFolderName() {
+        assertEquals("9lives", DeployList.parse("test", List.of("datapack 9lives https://example.org/p.zip sha256:" + HASH))
+                .externals().get(0).modId());
+        assertTrue(failure(List.of("datapack more.heads https://example.org/p.zip sha256:" + HASH)).contains("is not a datapack folder name"));
     }
 
     @Test
     void onlyADatapackMayComeFromVanillaTweaks() {
         assertTrue(failure(List.of("external vt vanillatweaks:26.3/a/b sha256:" + HASH)).contains("is not an https URL"));
-        assertTrue(failure(List.of("datapack vt https://example.org/p.zip")).contains("expected 'datapack <mod-id> <url> sha256:<hex>'"));
+        assertTrue(failure(List.of("datapack vt https://example.org/p.zip")).contains("expected 'datapack <name> <url> sha256:<hex>'"));
     }
 
     @Test

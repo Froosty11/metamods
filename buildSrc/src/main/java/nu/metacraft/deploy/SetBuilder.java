@@ -12,7 +12,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-/** Fills {@code build/deploy/<server>/} with a set's jars (datapacks packed into jars) and its manifest.json. */
+/**
+ * Fills {@code build/deploy/<server>/} with a set's jars and its manifest.json, and its datapacks'
+ * zips ({@link Datapack}) and datapacks.json if the list has any.
+ */
 public final class SetBuilder {
     @FunctionalInterface
     public interface Fetcher {
@@ -47,7 +50,6 @@ public final class SetBuilder {
             }
             for (DeployList.External external : list.externals()) {
                 if (external.datapack()) {
-                    addDatapack(server, entries, infos, external, outDir, fetcher);
                     continue;
                 }
                 String file = fileNameOf(external.url());
@@ -64,8 +66,19 @@ public final class SetBuilder {
                 add(server, entries, infos, info, file, external.sha256(), external.url().toString());
             }
             DependsCheck.check(server, infos, repoModIds);
+            // Datapacks last: a pack with assets/ needs metacraft-resource-packs in the set.
+            SortedMap<String, DatapackManifest.Pack> datapacks = new TreeMap<>();
+            boolean resourcePacks = entries.containsKey(Datapack.RESOURCE_PACKS_MOD_ID);
+            for (DeployList.External external : list.externals()) {
+                if (external.datapack()) {
+                    datapacks.put(external.modId(), addDatapack(server, external, resourcePacks, outDir, fetcher));
+                }
+            }
             Manifest manifest = new Manifest(entries);
             manifest.write(outDir.resolve("manifest.json"));
+            if (!datapacks.isEmpty()) {
+                new DatapackManifest(null, datapacks).write(outDir.resolve(DatapackManifest.FILE_NAME));
+            }
             return manifest;
         } catch (IOException e) {
             throw new DeployException("building " + server + "'s set failed: " + e.getMessage(), e);
@@ -85,22 +98,16 @@ public final class SetBuilder {
         }
     }
 
-    /** A datapack line: the pinned zip, packed into {@code <mod-id>-<version>.jar} ({@link DatapackJar}). */
-    private static void addDatapack(String server, SortedMap<String, Manifest.Entry> entries, Map<String, ModInfo> infos,
-                                    DeployList.External datapack, Path outDir, Fetcher fetcher) throws IOException {
-        String file = datapack.modId() + "-" + DatapackJar.shortHash(datapack.sha256()) + ".jar";
-        Path jar = outDir.resolve(file);
-        if (Files.exists(jar)) {
-            throw new DeployException(datapack.url() + ": another jar in " + server + "'s set is already called " + file);
-        }
-        Path zip = outDir.resolve(datapack.modId() + ".datapack.zip");
+    /** A datapack line: the pinned zip, split into the folder's zip and maybe a resource pack ({@link Datapack}). */
+    private static DatapackManifest.Pack addDatapack(String server, DeployList.External datapack, boolean resourcePacks,
+                                                     Path outDir, Fetcher fetcher) throws IOException {
+        Path zip = outDir.resolve(datapack.modId() + ".download.zip");
         fetch(server, datapack, zip, fetcher);
         try {
-            DatapackJar.pack(zip, datapack.modId(), datapack.sha256(), datapack.url(), jar);
+            return Datapack.build(zip, datapack.modId(), datapack.sha256(), datapack.url(), server, resourcePacks, outDir);
         } finally {
             Files.delete(zip);
         }
-        add(server, entries, infos, ModInfo.read(jar), file, Sha256.of(jar), datapack.url().toString());
     }
 
     private static void add(String server, SortedMap<String, Manifest.Entry> entries, Map<String, ModInfo> infos,

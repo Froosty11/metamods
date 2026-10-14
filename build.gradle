@@ -251,7 +251,7 @@ subprojects {
 // deployServer uploads it. The logic and its tests live in buildSrc (nu.metacraft.deploy).
 def deploySet = tasks.register('deploySet', nu.metacraft.deploy.DeploySetTask) {
     group = 'deploy'
-    description = 'Builds build/deploy/<server>/ (jars and manifest.json) from deploy/<server>.txt. Needs -Pserver=<name>.'
+    description = 'Builds build/deploy/<server>/ (jars, manifest.json and datapacks) from deploy/<server>.txt. Needs -Pserver=<name>.'
 }
 
 // Wired once every project is evaluated, so each mod's project dependencies are complete.
