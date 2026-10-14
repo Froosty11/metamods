@@ -392,23 +392,35 @@ public class BuiltinParsers {
 			);
 		}
 		if (codec instanceof RegistryFixedCodecAccessor fixed) {
-			var registry = lookup.lookup(fixed.getRegistryKey());
-			if (registry.isPresent()) {
+			if (lookup != null) {
+				var registry = lookup.lookup(fixed.getRegistryKey());
+				if (registry.isPresent()) {
+					return Optional.of(CodecResult.createWithComponents(
+						codec, CodecParsingHelper.metadataFromRegistry(registry.get()), TreePVector.empty())
+					);
+				}
+			} else {
 				return Optional.of(CodecResult.createWithComponents(
-					codec, CodecParsingHelper.metadataFromRegistry(registry.get()), TreePVector.empty())
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(fixed.getRegistryKey()))), TreePVector.empty())
 				);
 			}
 		}
 		if (codec instanceof RegistryFileCodecAccessor<?> file) {
-			var registry = lookup.lookup(file.getRegistryKey());
 			PVector<AbstractCodecResult> results = TreePVector.empty();
-			if (registry.isPresent()) {
-				results = results.plus(
-					CodecResult.createWithComponents(
-						removeInline(file),
-						CodecParsingHelper.metadataFromRegistry(registry.get()),
-						TreePVector.empty()
-					)
+			if (lookup != null) {
+				var registry = lookup.lookup(file.getRegistryKey());
+				if (registry.isPresent()) {
+					results = results.plus(
+						CodecResult.createWithComponents(
+							removeInline(file),
+							CodecParsingHelper.metadataFromRegistry(registry.get()),
+							TreePVector.empty()
+						)
+					);
+				}
+			} else if (!file.getAllowInline()) {
+				return Optional.of(CodecResult.createWithComponents(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(file.getRegistryKey()))), TreePVector.empty())
 				);
 			}
 			if (file.getAllowInline()) {

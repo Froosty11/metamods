@@ -5,14 +5,11 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.MapDecoder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
-import org.pcollections.PMap;
-import org.pcollections.PSet;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.metacraft.config.event.CodecParseEvents;
 import se.metacraft.config.mixin.codec.*;
-import se.metacraft.config.parser.Metadata;
-import se.metacraft.config.parser.MetadataKey;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataMap;
 import se.metacraft.config.parser.metadata.DefaultValue;
@@ -22,12 +19,10 @@ import se.metacraft.config.parser.result.AbstractCodecResult;
 import se.metacraft.config.parser.result.CodecResult;
 import se.metacraft.config.parser.result.MapCodecResult;
 
-import java.util.Optional;
-
 public class CodecParsingHelper {
 
 	private static PVector<AbstractCodecResult> parseFlattenedComponentsOrSelf(
-		MapCodec<?> mapCodec, HolderLookup.Provider lookup
+		MapCodec<?> mapCodec, HolderLookup.@Nullable Provider lookup
 	) {
 		var flattened = parseFlattenedComponents(mapCodec, lookup);
 		if (flattened.isEmpty()) {
@@ -38,7 +33,7 @@ public class CodecParsingHelper {
 	}
 
 	private static PVector<AbstractCodecResult> parsePair(
-		MapCodec<?> mapCodec, HolderLookup.Provider lookup
+		MapCodec<?> mapCodec, HolderLookup.@Nullable Provider lookup
 	) {
 		PVector<AbstractCodecResult> elements = TreePVector.empty();
 		if (mapCodec instanceof PairMapCodecAccessor pair) {
@@ -49,7 +44,7 @@ public class CodecParsingHelper {
 	}
 
 	public static PVector<AbstractCodecResult> parseFlattenedComponents(
-		MapCodec<?> mapCodec, HolderLookup.Provider lookup
+		MapCodec<?> mapCodec, HolderLookup.@Nullable Provider lookup
 	) {
 		PVector<AbstractCodecResult> elements = TreePVector.empty();
 		elements = elements.plusAll(parsePair(mapCodec, lookup));
@@ -79,7 +74,7 @@ public class CodecParsingHelper {
 	}
 
 	private static PVector<AbstractCodecResult> parseRecordCodecMapDecoder(
-		MapDecoder<?> decoder, HolderLookup.Provider lookup
+		MapDecoder<?> decoder, HolderLookup.@Nullable Provider lookup
 	) {
 		PVector<AbstractCodecResult> subMapCodecs = TreePVector.empty();
 		for (var field : decoder.getClass().getDeclaredFields()) {
@@ -104,7 +99,7 @@ public class CodecParsingHelper {
 	}
 
 	private static PVector<AbstractCodecResult> parseRecordCodecBuilder(
-		RecordCodecBuilderAccessor recordCodecBuilder, HolderLookup.Provider lookup
+		RecordCodecBuilderAccessor recordCodecBuilder, HolderLookup.@Nullable Provider lookup
 	) {
 		return parseRecordCodecMapDecoder(recordCodecBuilder.getDecoder(), lookup);
 	}
@@ -122,7 +117,7 @@ public class CodecParsingHelper {
 
 	private static MetadataMap postProcessMappingsInternal(
 		Codec<?> nextLevel, AbstractCodecResult underlying,
-		PVector<Object> parameters, HolderLookup.Provider lookup
+		PVector<Object> parameters, HolderLookup.@Nullable Provider lookup
 	) {
 		MetadataMap metadata = MetadataMap.EMPTY;
 		metadata = CodecParseEvents.POST_PROCESS.invoker().modify(metadata, nextLevel, underlying, parameters, lookup);
@@ -133,7 +128,7 @@ public class CodecParsingHelper {
 	}
 
 	public static AbstractCodecResult postProcessMappings(
-		Codec<?> nextLevel, AbstractCodecResult underlying, PVector<Object> parameters, HolderLookup.Provider lookup
+		Codec<?> nextLevel, AbstractCodecResult underlying, PVector<Object> parameters, HolderLookup.@Nullable Provider lookup
 	) {
 		return CodecResult.createMapped(
 			nextLevel, postProcessMappingsInternal(nextLevel, underlying, parameters, lookup), underlying
@@ -141,7 +136,7 @@ public class CodecParsingHelper {
 	}
 
 	public static AbstractCodecResult postProcessMappings(
-		MapCodec<?> nextLevel, AbstractCodecResult underlying, PVector<Object> parameters, HolderLookup.Provider lookup
+		MapCodec<?> nextLevel, AbstractCodecResult underlying, PVector<Object> parameters, HolderLookup.@Nullable Provider lookup
 	) {
 		return MapCodecResult.createMapped(
 			nextLevel, postProcessMappingsInternal(nextLevel.codec(), underlying, parameters, lookup), underlying
