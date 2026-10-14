@@ -4,6 +4,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.action.Action;
@@ -88,13 +89,13 @@ public class DebugWarnings {
 	}
 
 	private static void validateText(Component text, CommonDialogData data) {
-		var click = text.getStyle().getClickEvent();
-		if (click != null) {
-			validateClickEvent(click, data);
-		}
-		for (var sibling : text.getSiblings()) {
-			validateText(sibling, data);
-		}
+		text.visit((style, contents) -> {
+			var clickEvent = style.getClickEvent();
+			if (clickEvent != null) {
+				validateClickEvent(clickEvent, data);
+			}
+			return Optional.empty();
+		}, Style.EMPTY);
 	}
 
 	public static void validateDialog(Holder<Dialog> dialog) {
