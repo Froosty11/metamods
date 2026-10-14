@@ -201,7 +201,8 @@ jobs:
             *) echo "::error::$RELEASE is not a deploy of $SERVER (expected deploy-$SERVER-...)"; exit 1 ;;
           esac
           mkdir -p "build/deploy/$SERVER"
-          gh release download "$RELEASE" --dir "build/deploy/$SERVER" --pattern '*.jar' --pattern manifest.json
+          gh release download "$RELEASE" --dir "build/deploy/$SERVER" --pattern '*.jar' --pattern manifest.json \
+            --pattern '*.zip' --pattern datapacks.json
       - name: deploy ${{ inputs.release }} to ${{ inputs.server }}
         env:
           AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}
