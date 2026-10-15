@@ -21,12 +21,13 @@ public enum Family {
 	TERRACOTTA("terracotta", Kind.SIMPLE, Blocks.DYED_TERRACOTTA.white(), Items.DYED_TERRACOTTA.white(), null),
 	GLAZED_TERRACOTTA("glazed_terracotta", Kind.GLAZED, Blocks.GLAZED_TERRACOTTA.white(), Items.GLAZED_TERRACOTTA.white(), null),
 	CANDLE("candle", Kind.CANDLE, Blocks.DYED_CANDLE.white(), Items.DYED_CANDLE.white(), null),
-	// Stairs and slabs copy the material block's properties and, for the client, its item (so the
-	// placer's predicted placement sound is the material's, per craftycorvid/wool-polymer).
-	WOOL_STAIRS("wool_stairs", Kind.STAIRS, Blocks.WOOL.white(), Items.WOOL.white(), "wool"),
-	WOOL_SLAB("wool_slab", Kind.SLAB, Blocks.WOOL.white(), Items.WOOL.white(), "wool"),
-	CONCRETE_STAIRS("concrete_stairs", Kind.STAIRS, Blocks.CONCRETE.white(), Items.CONCRETE.white(), "concrete"),
-	CONCRETE_SLAB("concrete_slab", Kind.SLAB, Blocks.CONCRETE.white(), Items.CONCRETE.white(), "concrete"),
+	// Stairs and slabs copy vanilla's white wool/concrete stairs and slabs, and the client is told it
+	// holds that vanilla shape: the placer's client then predicts a stair or slab where the server puts
+	// one (a full-block item predicted a full cube), still with the material's placement sound.
+	WOOL_STAIRS("wool_stairs", Kind.STAIRS, Blocks.WOOL_STAIRS.white(), Items.WOOL_STAIRS.white(), "wool"),
+	WOOL_SLAB("wool_slab", Kind.SLAB, Blocks.WOOL_SLAB.white(), Items.WOOL_SLAB.white(), "wool"),
+	CONCRETE_STAIRS("concrete_stairs", Kind.STAIRS, Blocks.CONCRETE_STAIRS.white(), Items.CONCRETE_STAIRS.white(), "concrete"),
+	CONCRETE_SLAB("concrete_slab", Kind.SLAB, Blocks.CONCRETE_SLAB.white(), Items.CONCRETE_SLAB.white(), "concrete"),
 	BED("bed", Kind.BED, Blocks.BED.white(), Items.BED.white(), null),
 	SHULKER_BOX("shulker_box", Kind.SHULKER_BOX, Blocks.DYED_SHULKER_BOX.white(), Items.DYED_SHULKER_BOX.white(), null),
 	STAINED_GLASS("stained_glass", Kind.GLASS, Blocks.STAINED_GLASS.white(), Items.STAINED_GLASS.white(), null),
@@ -41,7 +42,7 @@ public enum Family {
 	public final Kind kind;
 	/** the vanilla white block whose properties (sound, hardness, tool) are copied */
 	public final Block template;
-	/** the vanilla item a client is told it holds; drives its placement-sound prediction. Null: no item. */
+	/** the vanilla item a client is told it holds; drives its placement prediction (shape, sound). Null: none. */
 	public final @Nullable Item clientItem;
 	/** the family this one is made of / depends on (stairs of wool, cake with candle) */
 	public final @Nullable String material;
