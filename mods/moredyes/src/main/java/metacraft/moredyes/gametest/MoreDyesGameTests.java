@@ -1,11 +1,15 @@
 package metacraft.moredyes.gametest;
 
+import eu.pb4.polymer.blocks.impl.BlockExtBlockMapper;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import metacraft.moredyes.sign.SignColors;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.sounds.SoundEvent;
 import eu.pb4.polymer.soundpatcher.impl.SoundRemapperImpl;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import eu.pb4.polymer.virtualentity.api.attachment.BlockBoundAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
@@ -482,6 +486,45 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(BannerPatterns.derived(creeper) != null, "derived record missing for " + creeper);
 		helper.succeed();
 	}
+
+	/**
+	 * A stair, slab or pane breaking shows its material's particles. Replays what Polymer does to a
+	 * break event for a client with the pack: the break-event chain, then the textured-block mapper,
+	 * which turns any donor state it is handed back into the plain vanilla block.
+	 */
+	@GameTest
+	public void breakParticlesUseTheMaterial(GameTestHelper helper) {
+		Family[][] shapes = {
+				{Family.WOOL_STAIRS, Family.WOOL}, {Family.WOOL_SLAB, Family.WOOL},
+				{Family.CONCRETE_STAIRS, Family.CONCRETE}, {Family.CONCRETE_SLAB, Family.CONCRETE},
+				{Family.STAINED_GLASS_PANE, Family.STAINED_GLASS}};
+		for (Family[] pair : shapes) {
+			Block shape = block(pair[0]);
+			BlockState expected = ((PolymerBlock) block(pair[1])).getPolymerBlockState(block(pair[1]).defaultBlockState(), null);
+			BlockState sent = BlockExtBlockMapper.INSTANCE.toClientSideState(
+					PolymerBlockUtils.getBlockBreakBlockStateSafely((PolymerBlock) shape, shape.defaultBlockState(), 32, null), null);
+			helper.assertValueEqual(sent, expected, pair[0].id + " break particles");
+		}
+		helper.succeed();
+	}
+
+	/** Adding a candle updates the item display players already see, not just the server copy. */
+	@GameTest
+	public void candleDisplayUpdatesInPlace(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, block(Family.CANDLE));
+		helper.setBlock(pos, block(Family.CANDLE).defaultBlockState().setValue(CandleBlock.CANDLES, 2));
+		BlockBoundAttachment attachment = BlockBoundAttachment.get(helper.getLevel(), helper.absolutePos(pos));
+		helper.assertTrue(attachment != null, "no display holder");
+		ItemDisplayElement display = (ItemDisplayElement) attachment.holder().getElements().getFirst();
+		helper.assertTrue(String.valueOf(display.getItem().get(DataComponents.ITEM_MODEL)).endsWith("_two_candles"),
+				"display model " + display.getItem().get(DataComponents.ITEM_MODEL));
+		helper.assertFalse(display.getSyncedData().isDirty(),
+				net.minecraft.network.chat.Component.literal("display change was never sent to watching players"));
+		helper.succeed();
+	}
+
 	/** Our candle on a vanilla cake becomes our candle cake; breaking it gives the candle back. */
 	@GameTest
 	public void candleOnCake(GameTestHelper helper) {
