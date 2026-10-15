@@ -4,7 +4,7 @@ import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.item.OvveItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
@@ -107,8 +107,8 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 	 * same layers — the section applies and gestures work.
 	 *
 	 * <p>The fix is one line — those five entries under {@code "mixins"} instead of {@code "server"}
-	 * — and the dev jar in {@code libs/} carries it (see {@code libs/danse-LICENSE-NOTICE.txt}), so
-	 * here the gesture starts and the screenshots in {@code docs/danse/} come from this test. With
+	 * — and our fork's jar, which the dev runtime uses, carries it, so here the gesture starts and
+	 * this test can photograph it. With
 	 * an unpatched Danse this says why it cannot photograph anything rather than failing.
 	 */
 	private static boolean danseCanGestureHere() {

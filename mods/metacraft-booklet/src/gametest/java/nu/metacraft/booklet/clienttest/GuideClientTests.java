@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * The guidebook as a vanilla client sees it: the index, then every page this mod ships, each
  * opened as the dialog a player gets, in a 1080p window, and photographed ({@code guide_*.png} in
- * the client test's screenshots directory; {@code docs/} holds a copy).
+ * the client test's screenshots directory, {@code build/run/clientGameTest/screenshots/}).
  *
  * <p>It asserts only that each page opens as a screen: {@code GuideTests} checks the pages on the
  * server, and the picture is the check for how they read.

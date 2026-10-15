@@ -6,7 +6,9 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import nu.metacraft.nether_rifts.mob.GrenadierSword;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.WarGhast;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -272,12 +274,13 @@ public final class RiftClientTests implements FabricClientGameTest {
 					ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_turning_" + i).withSize(1920, 1080));
 				}
 
-				// facing the camera, its sad face, then its shooting face as it charges a fireball
+				// facing the camera, its sad face, then its shooting face as it fires
 				turn(server, -90);
 				ctx.waitTicks(15);
 				var calm = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_front").withSize(1920, 1080)));
+				// (the shooting face shows from 0.44 s to 0.88 s into its shoot animation, which charging starts)
 				charging(server, true);
-				ctx.waitTicks(10);
+				ctx.waitTicks(14);
 				var shooting = read(ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_shoot").withSize(1920, 1080)));
 				charging(server, false);
 				System.out.println("[nether-rifts-clienttest] war ghast face changed=" + changed(calm, shooting, 24));
@@ -295,6 +298,39 @@ public final class RiftClientTests implements FabricClientGameTest {
 					server.runCommand(shot[1]);
 					ctx.waitTicks(15);
 					ctx.takeScreenshot(TestScreenshotOptions.of(shot[0]).withSize(1920, 1080));
+				}
+
+				// the ghast's gear where the artist marked it: the spear in the spear piglin's fist, the crossbow on the
+				// crossbow piglin; each from in front of the figure and from its right
+				for (var crew : new WarGhast.Crew[] {WarGhast.Crew.SPEAR, WarGhast.Crew.CROSSBOW}) {
+					WarGhast.Spot[] spot = new WarGhast.Spot[1];
+					server.runOnServer(s -> spot[0] = s.overworld().getEntities(RiftEntities.WAR_GHAST, e -> true).getFirst().spot(crew));
+					var feet = spot[0].feet();
+					double yaw = Math.toRadians(spot[0].yaw());
+					double ax = -Math.sin(yaw), az = Math.cos(yaw);
+					String[][] views = {{"front", String.valueOf(ax), String.valueOf(az)}, {"right", String.valueOf(-az), String.valueOf(ax)}};
+					for (var view : views) {
+						double dx = Double.parseDouble(view[1]), dz = Double.parseDouble(view[2]);
+						server.runCommand(tpLooking(feet.x + dx * 2.4, feet.y + 1.4, feet.z + dz * 2.4, feet.x, feet.y + 0.8, feet.z));
+						ctx.waitTicks(15);
+						ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_" + crew.figure + "_" + view[0]).withSize(1920, 1080));
+					}
+				}
+
+				// the artist's animations, each held on a frame, from the front close-up: over each, the crew and tentacles
+				// keep idle's places (the import gives every animation idle's tracks)
+				server.runCommand(tpLooking(-34.5, -55.0, 0.5, -40.5, -56.0, 0.5));
+				String[][] held = {{WarGhast.SHOOT, "4"}, {WarGhast.SHOOT, String.valueOf(WarGhast.SHOT_FRAME)}, {WarGhast.DIVE, "6"},
+						{WarGhast.CLIMB, "6"}, {WarGhast.DROP_BOMB, "4"}, {WarGhast.IDLE, "4"}};
+				for (var hold : held) {
+					AnimationHold.hold(server, RiftEntities.WAR_GHAST, hold[0], Integer.parseInt(hold[1]));
+					ctx.waitTicks(10);
+					ctx.takeScreenshot(TestScreenshotOptions.of("war_ghast_held_" + hold[0] + "_" + hold[1]).withSize(1920, 1080));
+					AnimationHold.release(server);
+					if (!hold[0].equals(WarGhast.IDLE)) {
+						server.runOnServer(s -> s.overworld().getEntities(RiftEntities.WAR_GHAST, e -> true)
+								.forEach(ghast -> ghast.getHolder().getAnimator().stopAnimation(hold[0])));
+					}
 				}
 
 				// from 130 blocks off, past vanilla's display range (64 blocks, 96 at this view distance), with the view
@@ -356,16 +392,37 @@ public final class RiftClientTests implements FabricClientGameTest {
 				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_ghasts").withSize(1920, 1080));
 				server.runCommand("rifts showcase clear");
 
-				// the Bombardier on foot: a vanilla piglin with a golden sword and the bombardier helmet (goggles over a leather
-				// cap, an item model from the mod's pack) on its head, from the front where the drummer stood. Only logged for
-				// now: the helmet is a placeholder, the lens count gives a later check its numbers.
+				// the Grenadier on foot: a vanilla piglin wearing the artist's goggles (an item model from the mod's pack, on its
+				// head by the model's head display) and his gloved right arm over its own, the golden sword in its hand; from
+				// the front and from its right. Then mid-throw: the arm with the bomb (as it swings, too), and let go. Only
+				// logged: the lens count gives a later check its numbers.
 				server.runCommand("summon nether_rifts:ghast_bombardier -20.5 -60 -12.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
-				server.runCommand("tp Tester -18.0 -58.6 -12.5 90 15");
+				String front = "tp Tester -18.0 -58.6 -12.5 90 15";
+				String side = "tp Tester -20.5 -58.6 -10.0 180 15";
+				server.runCommand(front);
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(20);
 				var onFoot = read(ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_on_foot").withSize(1920, 1080)));
 				int lenses = countAll(onFoot, (r, g, b) -> b > 160 && b > r + 50 && g > 100);
 				System.out.println("[nether-rifts-clienttest] bombardier on foot lens=" + lenses);
+				server.runCommand(side);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_on_foot_side").withSize(1920, 1080));
+				for (var at : GrenadierSword.Throw.values()) {
+					grenadierThrow(server, at);
+					server.runCommand(front);
+					ctx.waitTicks(10);
+					ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_" + at.name().toLowerCase(java.util.Locale.ROOT)).withSize(1920, 1080));
+					server.runCommand(side);
+					ctx.waitTicks(10);
+					ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_" + at.name().toLowerCase(java.util.Locale.ROOT) + "_side").withSize(1920, 1080));
+				}
+				grenadierThrow(server, GrenadierSword.Throw.BOMB);
+				server.runOnServer(s -> s.overworld().getEntities(RiftEntities.GHAST_BOMBARDIER, e -> true)
+						.forEach(b -> b.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT)));
+				ctx.waitTicks(2);
+				ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_swing_side").withSize(1920, 1080));
+				grenadierThrow(server, null);
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
 				server.runCommand("difficulty peaceful");
 				server.runCommand("time set midnight");
@@ -731,6 +788,12 @@ public final class RiftClientTests implements FabricClientGameTest {
 		double yaw = Math.toDegrees(Math.atan2(-dx, dz));
 		double pitch = Math.toDegrees(-Math.atan2(dy, Math.hypot(dx, dz)));
 		return String.format(java.util.Locale.ROOT, "tp Tester %.3f %.3f %.3f %.2f %.2f", x, y - 1.62, z, yaw, pitch);
+	}
+
+	/** Sets where a throw is on the overworld's Grenadiers' swords (null: none, the sword shows). */
+	private static void grenadierThrow(TestDedicatedServerContext server, GrenadierSword.Throw at) {
+		server.runOnServer(s -> s.overworld().getEntities(RiftEntities.GHAST_BOMBARDIER, e -> true)
+				.forEach(b -> GrenadierSword.setThrow(b.getMainHandItem(), at)));
 	}
 
 	/** Sets the overworld's war ghasts charging a fireball (their shooting face) or not. */

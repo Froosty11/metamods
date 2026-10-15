@@ -15,7 +15,7 @@ public final class DanseCompat {
 	public static void init() {
 		if (!DanseHooks.layers()) {
 			Ovvar.LOGGER.warn("[ovvar] Danse is here but not our fork (no body-layer API): gestures hold still for "
-					+ "the ovve but will not show it. The fork: libs/danse/NOTICE.txt");
+					+ "the ovve but will not show it. The fork: https://github.com/Froosty11/danse");
 			return;
 		}
 		BodyLayers.register(DanseLayers.INSTANCE);

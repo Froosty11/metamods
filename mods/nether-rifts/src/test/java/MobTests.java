@@ -136,9 +136,12 @@ public class MobTests {
 					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER})) {
 				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
 				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
-				// metacraft-core's Spawn Eggs creative tab gathers every modded egg
+				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
 				ctx.assertTrue(nu.metacraft.core.item.SpawnEggsCreativeTab.eggs().contains((Item) egg[0]), egg[0] + " isn't in the Spawn Eggs tab");
 			}
+			// the Grenadier's kit is hidden from the METAcraft tab
+			var tab = nu.metacraft.core.item.METAcraftCreativeTab.items();
+			ctx.assertFalse(tab.contains(RiftItems.BOMBARDIER_HELMET) || tab.contains(RiftItems.GRENADIER_SWORD), "the Grenadier's kit is in the METAcraft tab");
 			ctx.succeed();
 		});
 		NetherRiftsTests.register("mobs/names_translated", ctx -> {
@@ -157,7 +160,7 @@ public class MobTests {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
-				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
+				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
 					ctx.assertTrue(names.has(item.getDescriptionId()), lang + " doesn't name " + item.getDescriptionId());
 				}
 			}

@@ -7,28 +7,21 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nu.metacraft.core.METAcraftCore;
+import nu.metacraft.lib.CreativeTabNamespaces;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 /**
  * One creative tab, "METAcraft", with every item our mods add. Polymer shows a server's items in a
  * client's creative menu (when the client has Polymer) only through tabs registered with it, and
  * most of our mods register items without one. Mods with a tab of their own (ovvar, moredyes) keep it.
  *
- * <p>The tab is filled when it is shown, so items registered after metacraft-core count too.
+ * <p>The tab lists the namespaces mods opt in to with {@link CreativeTabNamespaces#add}, which is empty until they
+ * do: a mod adds its namespace from its item registration class. It is filled when it is shown, so items and
+ * namespaces added after metacraft-core count too.
  */
 public final class METAcraftCreativeTab {
-
-	/**
-	 * The item namespaces our mods use. A mod adding items under a new namespace adds it here.
-	 * {@code booklet} is the server's guidebook ("The Encyclopedia"), which has no tab of its own.
-	 */
-	public static final Set<String> NAMESPACES = Set.of(
-			"metacraft", "better_pets", "booklet", "faster_minecarts", "metacraft_plots", "portable_jukebox",
-			"portal_blocker", "simple_custom_features"
-	);
 
 	private METAcraftCreativeTab() {}
 
@@ -44,7 +37,7 @@ public final class METAcraftCreativeTab {
 	/** Our items, by id. */
 	public static List<Item> items() {
 		return BuiltInRegistries.ITEM.entrySet().stream()
-				.filter(entry -> NAMESPACES.contains(entry.getKey().identifier().getNamespace()))
+				.filter(entry -> CreativeTabNamespaces.lists(entry.getKey().identifier().getNamespace(), entry.getValue()))
 				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
 				.map(entry -> entry.getValue())
 				.toList();

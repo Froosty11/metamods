@@ -39,7 +39,7 @@ public final class KulturGameTests {
 		List<String> wrong = new ArrayList<>();
 		for (Catalogue.Owned<Catalogue.Pattern> owned : Kultur.catalogue().patterns()) {
 			Catalogue.Pattern p = owned.value();
-			Identifier id = Identifier.fromNamespaceAndPath(Kultur.MOD_ID, p.id());
+			Identifier id = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, p.id());
 			var holder = registry.get(id);
 			if (holder.isEmpty()) { wrong.add(p.id() + ": not in the banner pattern registry"); continue; }
 			if (!holder.get().value().assetId().equals(id)) wrong.add(p.id() + ": asset id " + holder.get().value().assetId());
@@ -64,16 +64,16 @@ public final class KulturGameTests {
 			}
 			gated++;
 			if (item == null) { wrong.add(p.id() + ": no item"); continue; }
-			Identifier itemId = Identifier.fromNamespaceAndPath(Kultur.MOD_ID, p.itemPath());
+			Identifier itemId = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, p.itemPath());
 			if (BuiltInRegistries.ITEM.getValue(itemId) != item) wrong.add(p.id() + ": item not registered as " + itemId);
 			ItemStack stack = new ItemStack(item);
 			if (!stack.is(ItemTags.LOOM_PATTERNS)) wrong.add(p.id() + ": item not in #minecraft:loom_patterns, so the loom refuses it");
 			HolderSet<BannerPattern> provides = stack.get(DataComponents.PROVIDES_BANNER_PATTERNS);
 			if (provides == null) { wrong.add(p.id() + ": item has no provides_banner_patterns"); continue; }
 			List<Identifier> ids = provides.stream().map(h -> h.unwrapKey().map(ResourceKey::identifier).orElse(null)).toList();
-			Identifier want = Identifier.fromNamespaceAndPath(Kultur.MOD_ID, p.id());
+			Identifier want = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, p.id());
 			if (ids.size() != 1 || !want.equals(ids.getFirst())) wrong.add(p.id() + ": item provides " + ids + ", wanted [" + want + "]");
-			TagKey<BannerPattern> tag = TagKey.create(Registries.BANNER_PATTERN, Identifier.fromNamespaceAndPath(Kultur.MOD_ID, "pattern_item/" + p.id()));
+			TagKey<BannerPattern> tag = TagKey.create(Registries.BANNER_PATTERN, Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "pattern_item/" + p.id()));
 			if (registry.get(tag).isEmpty()) wrong.add(p.id() + ": tag " + tag + " missing");
 		}
 		if (gated == 0) wrong.add("no gated pattern in the catalogue to test");
@@ -87,7 +87,7 @@ public final class KulturGameTests {
 		List<String> wrong = new ArrayList<>();
 		for (Catalogue.Owned<Catalogue.Painting> owned : Kultur.catalogue().paintings()) {
 			Catalogue.Painting q = owned.value();
-			Identifier id = Identifier.fromNamespaceAndPath(Kultur.MOD_ID, q.id());
+			Identifier id = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, q.id());
 			var holder = registry.get(id);
 			if (holder.isEmpty()) { wrong.add(q.id() + ": not in the painting variant registry"); continue; }
 			PaintingVariant v = holder.get().value();
@@ -124,7 +124,7 @@ public final class KulturGameTests {
 	}
 
 	private static void need(List<String> missing, String path) {
-		try (InputStream in = Kultur.class.getResourceAsStream("/assets/" + Kultur.MOD_ID + "/" + path)) {
+		try (InputStream in = Kultur.class.getResourceAsStream("/assets/" + Kultur.NAMESPACE + "/" + path)) {
 			if (in == null) missing.add(path);
 		} catch (java.io.IOException e) {
 			missing.add(path + " (" + e + ")");

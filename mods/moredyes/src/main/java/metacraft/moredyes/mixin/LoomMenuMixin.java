@@ -2,7 +2,7 @@ package metacraft.moredyes.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import metacraft.moredyes.banner.BannerPatterns;
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.component.DataComponents;

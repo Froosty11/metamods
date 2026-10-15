@@ -9,8 +9,7 @@ One ovve per chapter — Data (cerise), IT (purple), the older silicon-blue IT �
 frack. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
-METAmods; here `libs/metacraft-bundles-1.0.0.jar` is compiled against and the dev server runs
-without it, with vanilla-sized pockets). Right-click is the bundle's (hold to empty); sneak +
+METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
 right-click rolls the top up or down; neither equips it, so drag it in or shift-click. While the
 top is up and the chest slot is free the
 mod keeps a companion "top" there so the sleeves render; it is not a real item and deletes itself
@@ -178,7 +177,7 @@ on), plus each patch's art scaled up whole to fit 96 px (an 8×8 at 12×, a 12×
 traces each patch's outline from its opaque texels into `ovvar/outlines.json` (`Outline`), which
 `Seam` spreads the holes along at runtime. Replace the PNGs and `runDatagen`; the
 `sewingLabelsFitTheirButtons` game test checks every label of every seam still measures what the
-client centres without scrolling. Mockups of the design are in `docs/mockups/sewing/`.
+client centres without scrolling.
 
 ## Wardrobes: one look per player, on every server
 
@@ -537,10 +536,10 @@ The file backend is fine for one server or a shared mount; a network of servers 
 
 ## Testing
 
-`Start Server.command` runs an offline dev server on localhost with the pack auto-hosted;
-`Start Vanilla Client.command` launches a plain vanilla client that joins it. Give yourself an
-ovve with `/ovvar give data all` or from the Ovvar creative tab. `Run Tests.command` runs the
-game tests — `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
+`./gradlew :mods:ovvar:runServer` runs a dev server (set `online-mode=false` and turn on Polymer's
+pack host to join it with a plain vanilla client). Give yourself an
+ovve with `/ovvar give data all` or from the Ovvar creative tab. The
+game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
 with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
 sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping (the
 shoulders are left out of the posed run: an arm rotated 60° about z swings the top of its box into
@@ -750,8 +749,8 @@ inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings'
 
 [Danse](https://github.com/tomalbrc/danse) plays gestures (`/gesture wave`, …) by hiding the real
 player and animating a stand-in built of item displays. We run **our fork**
-([Froosty11/danse](https://github.com/Froosty11/danse), branch `metacraft`, AGPL-3.0; the jar and
-its notice are in `libs/danse/`), which adds *body layers*: any mod can put an ordinary textured
+([Froosty11/danse](https://github.com/Froosty11/danse), branch `metacraft`, AGPL-3.0; the build
+fetches its jar from the fork's release [v2.6.0-metacraft.2](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.2), see "The danse fork" below), which adds *body layers*: any mod can put an ordinary textured
 item model on each part of the stand-in, just inside Danse's armour.
 
 Upstream Danse draws skin and armour as one tinted square per skin texel. Ovvar's layer textures
@@ -776,12 +775,8 @@ Ovvar never depends on Danse: the package is reached only behind `isModLoaded("d
 holds still during gestures, but the stand-in wears no ovve, and the log says so. Players can find the fork's source with
 `/danse source`.
 
-| Compat off | Compat on | After the gesture |
-|---|---|---|
-| ![](docs/danse/before.png) | ![](docs/danse/after.png) | ![](docs/danse/after_gesture_end.png) |
-
-Clips: [zombie](docs/danse/gesture.mp4), [helicopter](docs/danse/helicopter.mp4),
-[handstand](docs/danse/handstand.mp4). `OVVAR_DANSE_FILM=1` makes the client test photograph every
+The client test (`OvvarDanseClientTests`) photographs a gesture with compat off and on, into
+`build/run/clientGameTest/screenshots/`. `OVVAR_DANSE_FILM=1` makes the client test photograph every
 other tick instead of once, and ffmpeg stitches the frames at 7 fps. The in-process server runs in
 real time while each screenshot holds the client up, so the gesture ends about halfway through the
 frames; a clip is the frames that still show the stand-in. Other gestures:
@@ -792,6 +787,28 @@ Tests: `DanseShellParityTests` (a shell shows each texel where Danse's pixels do
 `DanseModelsTests`, `DanseLayersTests`, and the client test `OvvarDanseClientTests`
 (`./gradlew :mods:ovvar:runClientGameTest`; with `JAVA_TOOL_OPTIONS=-Dovvar.danse.compat=false`
 for the "before" frame).
+
+### The danse fork
+
+Danse is by tomalbrc, Drex and ExtraJuiceMan ([tomalbrc/danse](https://github.com/tomalbrc/danse)),
+under the GNU Affero General Public License v3.0 (`LICENSE_danse` inside the jar; upstream's
+`fabric.mod.json` says LGPL-3.0-and-later while its LICENSE file is AGPL-3.0, and we follow the AGPL).
+Ovvar compiles against our fork's release jar, `danse-2.6.0-metacraft.2+26.3.jar` from
+[Froosty11/danse v2.6.0-metacraft.2](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.2),
+which the root `build.gradle` fetches as `Froosty11:danse` (an ivy repository on the fork's GitHub
+releases, version `danse_version` in `gradle.properties`). It is `compileOnly` and a dev/test
+`runtimeOnly`: nothing in METAmods includes or relicenses it, and ovvar only calls its API.
+
+The jar is built from branch `metacraft`, commit `4c4a0868738acd88d988e002ce333abeec80845a`:
+
+    git clone https://github.com/Froosty11/danse && cd danse && git checkout 4c4a0868738acd88d988e002ce333abeec80845a
+    JAVA_HOME=<a JDK 25> ./gradlew build
+
+Changes from upstream v2.6.0+26.3: mixins listed as common, a body-layer API
+(`de.tomalbrc.danse.api`, with cropped-texture shells), `/danse source` (open to every player, also
+`/gesture source`), which tells players where this source is, and gestures that end with a real
+teleport (upstream's position packet carried the entity id as its teleport id, which 26.3 could
+answer with a kick). A server that runs ovvar with gestures needs that jar beside it.
 
 ## The guidebook
 

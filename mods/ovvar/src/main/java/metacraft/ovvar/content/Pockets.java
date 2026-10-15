@@ -12,8 +12,7 @@ import org.apache.commons.lang3.math.Fraction;
  * larger bundle usable at all — the vanilla client otherwise predicts "full" at 64.
  *
  * The component is {@link Bundles} — a direct reference to the mod's class, in its own class so
- * that it is only loaded when the mod is present. In METAmods it always is (a hard dependency);
- * the standalone dev repo compiles against its jar in {@code libs/} and runs without it.
+ * that it is only loaded when the mod is present. In METAmods it always is (a hard dependency).
  */
 final class Pockets {
 	private Pockets() {}

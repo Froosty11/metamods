@@ -26,6 +26,8 @@ dependencies {
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
 	// The reader's language, for wrapping text beside a picture (Booklet bundles it).
 	compileOnly("xyz.nucleoid:server-translations-api:${project.server_translations_version}")
+	// GuideTests renders the welcome page the way a player sees it (Booklet bundles it).
+	compileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}")
 
 	// Dev/test runtime only: the mods the book has chapters for, so the chapters load and their
 	// item icons resolve. None of them is a dependency of the shipped mod.

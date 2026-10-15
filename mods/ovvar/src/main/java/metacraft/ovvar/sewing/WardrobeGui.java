@@ -7,7 +7,7 @@ import eu.pb4.sgui.api.gui.SimpleGui;
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.item.OvveItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
@@ -294,8 +294,7 @@ public final class WardrobeGui extends SimpleGui {
 	}
 
 	/**
-	 * {@code [background glyph][active tab highlight][preview glyph][stats text]}, per
-	 * {@code docs/superpowers/specs/2026-09-12-ovvar-wardrobe-screen-design.md} §3 and the paper
+	 * {@code [background glyph][active tab highlight][preview glyph][stats text]}, and the paper
 	 * doll {@link WardrobePreview} adds to it. Every glyph leaves the cursor where it found it, so
 	 * the stats strip reads as ordinary text on the same line.
 	 */

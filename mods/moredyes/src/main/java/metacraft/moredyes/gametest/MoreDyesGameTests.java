@@ -1,19 +1,23 @@
 package metacraft.moredyes.gametest;
 
+import eu.pb4.polymer.blocks.impl.BlockExtBlockMapper;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import metacraft.moredyes.sign.SignColors;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.sounds.SoundEvent;
 import eu.pb4.polymer.soundpatcher.impl.SoundRemapperImpl;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import eu.pb4.polymer.virtualentity.api.attachment.BlockBoundAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import metacraft.moredyes.MoreDyes;
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
-import metacraft.moredyes.content.ClientStates;
+import metacraft.moredyes.content.block.ClientStates;
 import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.sheep.SheepColors;
@@ -56,6 +60,7 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +71,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.entity.BannerPattern;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -80,9 +86,8 @@ import java.util.Map;
 /**
  * Server-side game tests (Fabric GameTest API, vanilla test framework underneath).
  *
- * <p>Run headless: {@code ./gradlew runGametest} — starts a server, runs every test in an empty
- * 8×8×8 structure, writes {@code build/test-results/gametest.xml}, and fails the build on any
- * failure. Or in a normal world as an op: {@code /test runall} — the lectern/beacon feedback is
+ * <p>Run headless: {@code JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:moredyes:runServer}
+ * — starts a test server, runs every test in an empty 8×8×8 structure, and fails on any failure. Or in a normal world as an op: {@code /test runall} — the lectern/beacon feedback is
  * vanilla's test framework.
  *
  * <p>What these can and can't cover: everything a vanilla client would be sent (client states,
@@ -132,6 +137,36 @@ public final class MoreDyesGameTests {
 			}
 		}
 		MoreDyes.LOGGER.info("[gametest] {} client states resolved", states);
+		helper.succeed();
+	}
+
+	/**
+	 * A stair or slab is held, on the client, as vanilla's white stair or slab of the same material, so
+	 * the placer's client predicts that shape (not a full cube) with the material's placement sound.
+	 */
+	@GameTest
+	public void stairsAndSlabsAreHeldAsVanillaShapes(GameTestHelper helper) {
+		Map<Family, Item> vanilla = Map.of(
+				Family.WOOL_STAIRS, Items.WOOL_STAIRS.white(), Family.WOOL_SLAB, Items.WOOL_SLAB.white(),
+				Family.CONCRETE_STAIRS, Items.CONCRETE_STAIRS.white(), Family.CONCRETE_SLAB, Items.CONCRETE_SLAB.white());
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		int checked = 0;
+		for (ModColor color : ModColors.all()) {
+			for (Family family : Family.values()) {
+				if (family.kind != Family.Kind.STAIRS && family.kind != Family.Kind.SLAB) continue;
+				Block ours = ModContent.block(color, family);
+				ItemStack client = PolymerItemUtils.getPolymerItemStack(new ItemStack(ours),
+						viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+				helper.assertValueEqual(client.getItem(), vanilla.get(family), "the client item of " + ours);
+				Block shown = ((BlockItem) client.getItem()).getBlock();
+				helper.assertTrue(family.kind == Family.Kind.STAIRS ? shown instanceof StairBlock : shown instanceof SlabBlock,
+						ours + " is held as " + shown + ", not its shape");
+				helper.assertTrue(ModContent.sameSounds(shown.defaultBlockState().getSoundType(), ours.defaultBlockState().getSoundType()),
+						ours + " is held as " + shown + ", which places with another sound");
+				checked++;
+			}
+		}
+		helper.assertValueEqual(checked, vanilla.size() * ModColors.all().size(), "stairs and slabs checked");
 		helper.succeed();
 	}
 
@@ -451,6 +486,45 @@ public final class MoreDyesGameTests {
 		helper.assertTrue(BannerPatterns.derived(creeper) != null, "derived record missing for " + creeper);
 		helper.succeed();
 	}
+
+	/**
+	 * A stair, slab or pane breaking shows its material's particles. Replays what Polymer does to a
+	 * break event for a client with the pack: the break-event chain, then the textured-block mapper,
+	 * which turns any donor state it is handed back into the plain vanilla block.
+	 */
+	@GameTest
+	public void breakParticlesUseTheMaterial(GameTestHelper helper) {
+		Family[][] shapes = {
+				{Family.WOOL_STAIRS, Family.WOOL}, {Family.WOOL_SLAB, Family.WOOL},
+				{Family.CONCRETE_STAIRS, Family.CONCRETE}, {Family.CONCRETE_SLAB, Family.CONCRETE},
+				{Family.STAINED_GLASS_PANE, Family.STAINED_GLASS}};
+		for (Family[] pair : shapes) {
+			Block shape = block(pair[0]);
+			BlockState expected = ((PolymerBlock) block(pair[1])).getPolymerBlockState(block(pair[1]).defaultBlockState(), null);
+			BlockState sent = BlockExtBlockMapper.INSTANCE.toClientSideState(
+					PolymerBlockUtils.getBlockBreakBlockStateSafely((PolymerBlock) shape, shape.defaultBlockState(), 32, null), null);
+			helper.assertValueEqual(sent, expected, pair[0].id + " break particles");
+		}
+		helper.succeed();
+	}
+
+	/** Adding a candle updates the item display players already see, not just the server copy. */
+	@GameTest
+	public void candleDisplayUpdatesInPlace(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, block(Family.CANDLE));
+		helper.setBlock(pos, block(Family.CANDLE).defaultBlockState().setValue(CandleBlock.CANDLES, 2));
+		BlockBoundAttachment attachment = BlockBoundAttachment.get(helper.getLevel(), helper.absolutePos(pos));
+		helper.assertTrue(attachment != null, "no display holder");
+		ItemDisplayElement display = (ItemDisplayElement) attachment.holder().getElements().getFirst();
+		helper.assertTrue(String.valueOf(display.getItem().get(DataComponents.ITEM_MODEL)).endsWith("_two_candles"),
+				"display model " + display.getItem().get(DataComponents.ITEM_MODEL));
+		helper.assertFalse(display.getSyncedData().isDirty(),
+				net.minecraft.network.chat.Component.literal("display change was never sent to watching players"));
+		helper.succeed();
+	}
+
 	/** Our candle on a vanilla cake becomes our candle cake; breaking it gives the candle back. */
 	@GameTest
 	public void candleOnCake(GameTestHelper helper) {

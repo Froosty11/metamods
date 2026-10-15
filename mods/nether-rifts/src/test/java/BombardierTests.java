@@ -1,5 +1,6 @@
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import de.tomalbrc.bil.core.model.Node;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.TagParser;
@@ -25,6 +26,7 @@ import nu.metacraft.nether_rifts.mob.ArmourPieces;
 import nu.metacraft.nether_rifts.mob.BombingRunGoal;
 import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
+import nu.metacraft.nether_rifts.mob.GrenadierSword;
 import nu.metacraft.nether_rifts.mob.HeldItems;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.RiftItems;
@@ -53,7 +55,7 @@ public class BombardierTests {
 				ctx.assertFalse(ghast.isVehicle(), "the war ghast carries " + ghast.getPassengers());
 				ctx.assertTrue(RiftMobs.isRiftMob(ghast), "the war ghast isn't a rift mob");
 				var bones = ghast.getHolder().getModel().nodeMap().values().stream().map(Node::name).collect(Collectors.toSet());
-				for (var bone : List.of("drummer_piglin", "piglin1", "piglin2", "bombardier", "magma_bomb", "deck")) {
+				for (var bone : List.of("drummer_piglin", "spear_piglin", "crossbow_piglin", "bombardier", "magma_bomb", "deck")) {
 					ctx.assertTrue(bones.contains(bone), "the war ghast's model has no " + bone + ": " + bones);
 				}
 				ctx.killAllEntities();
@@ -194,12 +196,14 @@ public class BombardierTests {
 							case CROSSBOW -> mob.getType() == EntityTypes.PIGLIN && mob.getMainHandItem().is(Items.CROSSBOW);
 						}, figure.figure + " came off as " + mob + " holding " + mob.getMainHandItem());
 						ctx.assertTrue(Mth.degreesDifferenceAbs(mob.getYRot(), spot.yaw()) < 1, mob + " doesn't face as " + figure.figure + " did");
-						ctx.assertTrue(spot.feet().y >= ghast.getY() - WarGhast.DECK_DROP && spot.feet().y < ghast.getY(),
-								figure.figure + " stood off the deck, at " + spot.feet());
+						// on the deck; the Grenadier sits on its stern, his feet hanging over (a block at most below it)
+						double lowest = ghast.getY() - WarGhast.DECK_DROP - (figure == WarGhast.Crew.BOMBARDIER ? 1 : 0);
+						ctx.assertTrue(spot.feet().y >= lowest && spot.feet().y < ghast.getY(), figure.figure + " stood off the deck, at " + spot.feet());
 					}
-					// the drummer and the Grenadier face the ghast's way; the crossbow piglin is turned to its right
+					// the drummer faces the ghast's way, the Grenadier back off the deck's stern (the artist turned him round);
+					// the crossbow piglin is turned to its right
 					ctx.assertTrue(Mth.degreesDifferenceAbs(spots.get(WarGhast.Crew.DRUMMER).yaw(), ghast.yBodyRot) < 1, "the drummer faces " + spots.get(WarGhast.Crew.DRUMMER).yaw());
-					ctx.assertTrue(Mth.degreesDifferenceAbs(spots.get(WarGhast.Crew.BOMBARDIER).yaw(), ghast.yBodyRot) < 1, "the Grenadier faces " + spots.get(WarGhast.Crew.BOMBARDIER).yaw());
+					ctx.assertTrue(Mth.degreesDifferenceAbs(spots.get(WarGhast.Crew.BOMBARDIER).yaw(), ghast.yBodyRot + 180) < 1, "the Grenadier faces " + spots.get(WarGhast.Crew.BOMBARDIER).yaw());
 					ctx.assertTrue(Math.abs(Mth.degreesDifferenceAbs(spots.get(WarGhast.Crew.CROSSBOW).yaw(), ghast.yBodyRot) - 90) < 1,
 							"the crossbow piglin isn't turned a quarter: " + spots.get(WarGhast.Crew.CROSSBOW).yaw() + " on " + ghast.yBodyRot);
 					for (var mob : crew) {
@@ -244,7 +248,7 @@ public class BombardierTests {
 						}
 					}
 					ctx.assertTrue(shown(holder.getBone(ArmourPieces.Piece.CHEST.bone)).isEmpty(), "the chestplate stayed on the ghast");
-					for (var bone : List.of("body", "deck", "tentacle1", WarGhast.FACE)) {
+					for (var bone : List.of("chains", "deck", "tentacle1", WarGhast.FACE)) {
 						ctx.assertFalse(shown(holder.getBone(bone)).isEmpty(), bone + " went with the crew");
 					}
 					for (var spot : HeldItems.Spot.values()) {
@@ -255,39 +259,52 @@ public class BombardierTests {
 				});
 			});
 		});
-		NetherRiftsTests.register("bombardier/faces_swap_when_charging", ctx -> {
-			// The sad face shows; charging a fireball, the shooting face shows instead, and back after. Unknown animations
-			// (the model has only its idle) do nothing.
-			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 8, 12));
+		NetherRiftsTests.register("bombardier/animations_play", ctx -> {
+			// Idle always plays. Charging a fireball plays shoot, which swaps the faces at its shot (no bone is hidden for
+			// it). The first bomb of a run starts the Grenadier's bombing, which goes on while bombs come and stops after.
+			// A bombing run's dive and climb play as it dives and climbs (bombardier/run_drops_bombs flies one).
+			stoneFloor(ctx);
+			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 9, 12));
+			ghast.setNoAi(true);
 			var holder = ghast.getHolder();
-			var face = holder.getBone(WarGhast.FACE);
-			var shooting = holder.getBone(WarGhast.SHOOTING_FACE);
-			ctx.assertTrue(!shown(face).isEmpty() && shown(shooting).isEmpty(), "at rest it doesn't show the sad face alone");
+			var animator = holder.getAnimator();
+			for (var face : List.of(WarGhast.FACE, WarGhast.SHOOTING_FACE)) {
+				ctx.assertFalse(shown(holder.getBone(face)).isEmpty(), face + " is hidden: the animations show the faces");
+			}
 			ghast.setCharging(true);
-			ctx.assertTrue(shown(face).isEmpty() && !shown(shooting).isEmpty(), "charging, it doesn't show the shooting face alone");
+			ctx.assertTrue(animator.isPlaying(WarGhast.SHOOT), "charging doesn't play shoot");
 			ghast.setCharging(false);
-			ctx.assertTrue(!shown(face).isEmpty() && shown(shooting).isEmpty(), "done charging, it doesn't show the sad face alone");
 			ghast.dropBomb(ctx.getLevel());
-			ctx.assertFalse(holder.getAnimator().isPlaying("drop_bomb"), "a missing animation plays");
-			ctx.assertTrue(holder.getAnimator().isPlaying("idle"), "the idle stopped");
-			ctx.killAllEntities();
-			ctx.succeed();
+			ctx.assertTrue(animator.isPlaying(WarGhast.DROP_BOMB), "a bomb doesn't start the bombing");
+			int every = nu.metacraft.nether_rifts.NetherRiftsConfig.getInstance().mobs().bombardier().bombEvery();
+			ctx.runAfterDelay(every, () -> {
+				ctx.assertTrue(animator.isPlaying(WarGhast.DROP_BOMB), "the bombing stopped between bombs");
+				ghast.dropBomb(ctx.getLevel());
+			});
+			ctx.runAfterDelay(2 * every + 3, () -> {
+				ctx.assertFalse(animator.isPlaying(WarGhast.DROP_BOMB), "the bombing goes on without bombs");
+				ctx.assertTrue(animator.isPlaying(WarGhast.IDLE), "the idle stopped");
+				ctx.killAllEntities();
+				ctx.succeed();
+			});
 		});
 		NetherRiftsTests.register("bombardier/gear_on_crew", ctx -> {
-			// A summoned ghast has its kit (a golden spear, a crossbow, the goggles; none drop, left-handed), shown on the
-			// crew: the main hand in the spear piglin's left hand, the off hand in the crossbow piglin's right, the head
-			// slot on the Grenadier's head. None of the crew's heads turn with the ghast's look.
+			// A summoned ghast has its kit (a golden spear and a crossbow; neither drops, right-handed), shown on the crew
+			// where the artist marked it: the main hand in the spear piglin's left fist, the off hand on the crossbow piglin.
+			// The Grenadier's goggles are modelled, so the head slot shows nothing; goggles an older ghast wore come off.
+			// None of the crew's heads turn with the ghast's look.
 			var ghast = RiftEntities.WAR_GHAST.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
 			var at = ctx.absolutePos(new BlockPos(12, 8, 12));
 			ghast.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			ghast.setItemSlot(EquipmentSlot.HEAD, new ItemStack(RiftItems.BOMBARDIER_HELMET));
 			for (int i = 0; i < 40; i++) {
 				ghast.finalizeSpawn(ctx.getLevel(), ctx.getLevel().getCurrentDifficultyAt(at), EntitySpawnReason.COMMAND, null);
-				ctx.assertTrue(ghast.isLeftHanded(), "a summoned ghast is right-handed");
+				ctx.assertFalse(ghast.isLeftHanded(), "a summoned ghast is left-handed");
 			}
 			ctx.getLevel().addFreshEntity(ghast);
 			ctx.assertTrue(ghast.getMainHandItem().is(Items.GOLDEN_SPEAR), "the ghast holds " + ghast.getMainHandItem());
 			ctx.assertTrue(ghast.getOffhandItem().is(Items.CROSSBOW), "the ghast's off hand holds " + ghast.getOffhandItem());
-			ctx.assertTrue(ghast.getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET), "the ghast wears " + ghast.getItemBySlot(EquipmentSlot.HEAD));
+			ctx.assertTrue(ghast.getItemBySlot(EquipmentSlot.HEAD).isEmpty(), "the ghast wears " + ghast.getItemBySlot(EquipmentSlot.HEAD));
 			for (var slot : EquipmentSlot.values()) {
 				ctx.assertTrue(ghast.getDropChances().byEquipment(slot) == 0f, "the ghast's " + slot + " can drop");
 			}
@@ -296,9 +313,9 @@ public class BombardierTests {
 				held.tick();
 				var model = ghast.getHolder().getModel();
 				for (var shownOn : List.of(
-						new Object[] {HeldItems.Spot.LEFT_HAND, "piglin1", Items.GOLDEN_SPEAR},
-						new Object[] {HeldItems.Spot.RIGHT_HAND, "piglin2", Items.CROSSBOW},
-						new Object[] {HeldItems.Spot.HEAD, "bombardier", RiftItems.BOMBARDIER_HELMET})) {
+						new Object[] {HeldItems.Spot.RIGHT_HAND, "spear_piglin", Items.GOLDEN_SPEAR},
+						new Object[] {HeldItems.Spot.LEFT_HAND, "crossbow_piglin", Items.CROSSBOW},
+						new Object[] {HeldItems.Spot.HEAD, "bombardier", Items.AIR})) {
 					var spot = (HeldItems.Spot) shownOn[0];
 					var item = held.display(spot).getItem();
 					ctx.assertTrue(item.is((net.minecraft.world.item.Item) shownOn[2]), spot + " shows " + item);
@@ -328,7 +345,7 @@ public class BombardierTests {
 				var armour = ghast.getHolder().armour();
 				armour.tick();
 				var bone = armour.bone(ArmourPieces.Piece.CHEST);
-				ctx.assertTrue(bone != null && within(bone.node(), "piglin1"), "the chestplate isn't on the spear piglin");
+				ctx.assertTrue(bone != null && within(bone.node(), "spear_piglin"), "the chestplate isn't on the spear piglin");
 				ctx.assertTrue(NetherRifts.getID("war_ghast/armour/netherite/armor_chest").equals(shown(bone).get(net.minecraft.core.component.DataComponents.ITEM_MODEL)),
 						"the chestplate shows " + shown(bone));
 				ctx.assertTrue(ghast.getArmorValue() == 0, "the ghast has " + ghast.getArmorValue() + " armour");
@@ -429,8 +446,8 @@ public class BombardierTests {
 			});
 		});
 		NetherRiftsTests.register("bombardier/on_foot_kit", ctx -> {
-			// On foot the Bombardier is a piglin to clients, with a golden sword and its helmet, neither of which ever drops.
-			// A summon (finalizeSpawn) doesn't make it a baby or swap its kit. Of no rift, it still never barters, picks
+			// On foot the Bombardier is a piglin to clients, with its sword and goggles, neither of which ever drops, and
+			// right-handed (the glove is a right arm). A summon (finalizeSpawn) doesn't make it a baby or swap its kit. Of no rift, it still never barters, picks
 			// things up or turns zombie, and gold armour doesn't spare a player from it.
 			var player = StageTests.player(ctx);
 			var spot = ctx.absolutePos(new BlockPos(12, 1, 12));
@@ -443,7 +460,8 @@ public class BombardierTests {
 				var summoned = RiftEntities.GHAST_BOMBARDIER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
 				summoned.finalizeSpawn(ctx.getLevel(), difficulty, EntitySpawnReason.COMMAND, null);
 				ctx.assertFalse(summoned.isBaby(), "a summoned Bombardier is a baby");
-				ctx.assertTrue(summoned.getMainHandItem().is(Items.GOLDEN_SWORD), "a summoned Bombardier holds " + summoned.getMainHandItem());
+				ctx.assertTrue(summoned.getMainHandItem().is(RiftItems.GRENADIER_SWORD), "a summoned Bombardier holds " + summoned.getMainHandItem());
+				ctx.assertFalse(summoned.isLeftHanded(), "a summoned Bombardier is left-handed");
 				ctx.assertTrue(summoned.getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET), "a summoned Bombardier wears " + summoned.getItemBySlot(EquipmentSlot.HEAD));
 			}
 			var bombardier = RiftEntities.GHAST_BOMBARDIER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
@@ -472,6 +490,49 @@ public class BombardierTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("bombardier/grenadier_sword", ctx -> {
+			// The Grenadier's sword is a golden sword on the server: the same components (but its name and model), in
+			// every item tag vanilla's is (vanilla's own and the c: convention tags). Clients get a golden sword with the gloved arm's model; through a throw the arm
+			// with the bomb, then without, and never the throw's component. An old save's plain golden sword (and
+			// left hand) give way to it.
+			var ours = new ItemStack(RiftItems.GRENADIER_SWORD);
+			var golden = new ItemStack(Items.GOLDEN_SWORD);
+			var ops = ctx.getLevel().registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);
+			var types = new java.util.HashSet<net.minecraft.core.component.DataComponentType<?>>(ours.getComponents().keySet());
+			types.addAll(golden.getComponents().keySet());
+			types.removeAll(List.of(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.core.component.DataComponents.ITEM_MODEL));
+			for (var type : types) {
+				ctx.assertTrue(encoded(type, ours, ops).equals(encoded(type, golden, ops)), type + " differs from a golden sword's: "
+						+ encoded(type, ours, ops) + " to " + encoded(type, golden, ops));
+			}
+			Items.GOLDEN_SWORD.builtInRegistryHolder().tags().forEach(tag -> ctx.assertTrue(ours.is(tag), "the sword isn't in " + tag.location()));
+
+			var player = StageTests.player(ctx);
+			var context = player.connection.getPacketContext();
+			var lookup = ctx.getLevel().registryAccess();
+			var shown = new java.util.LinkedHashMap<String, String>();
+			for (var at : new GrenadierSword.Throw[] {null, GrenadierSword.Throw.BOMB, GrenadierSword.Throw.THROWN, null}) {
+				GrenadierSword.setThrow(ours, at);
+				var client = PolymerItemUtils.getPolymerItemStack(ours, context, lookup);
+				ctx.assertTrue(client.is(Items.GOLDEN_SWORD), "clients get " + client);
+				ctx.assertFalse(client.has(GrenadierSword.THROW), "the throw reaches clients");
+				shown.put(String.valueOf(at), String.valueOf(client.get(net.minecraft.core.component.DataComponents.ITEM_MODEL)));
+			}
+			ctx.assertTrue(shown.equals(java.util.Map.of("null", "nether_rifts:grenadier_sword", "BOMB", "nether_rifts:grenadier_sword_bomb",
+					"THROWN", "nether_rifts:grenadier_sword_thrown")), "clients see " + shown);
+
+			var at = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 12)));
+			var old = EntityType.loadEntityRecursive(nbt("{id:\"nether_rifts:ghast_bombardier\",LeftHanded:1b,equipment:{mainhand:{id:\"minecraft:golden_sword\",count:1}}}"),
+					ctx.getLevel(), new EntitySpawnRequest(EntitySpawnReason.LOAD, false), e -> {
+						e.snapTo(at.x, at.y, at.z, 0, 0);
+						return e;
+					});
+			ctx.assertTrue(old instanceof GhastBombardier b && b.getMainHandItem().is(RiftItems.GRENADIER_SWORD) && !b.isLeftHanded(),
+					"an old save's Grenadier holds " + (old instanceof Mob m ? m.getMainHandItem() : old));
+			StageTests.remove(ctx, player);
+			ctx.killAllEntities();
+			ctx.succeed();
+		});
 		NetherRiftsTests.register("bombardier/hand_bombs", ctx -> {
 			// On foot, the Bombardier lobs bombs at a player 8 blocks off (slowed to a stop, so it keeps its distance): the
 			// ground warning goes up under the player at least the warning time before the blast, even with the player
@@ -483,7 +544,15 @@ public class BombardierTests {
 			Vec3[] burn = new Vec3[1];
 			UUID[] bombRift = new UUID[1];
 			var thrown = new AtomicBoolean();
+			// the throw's looks on the sword, in the order they came
+			var looks = new java.util.ArrayList<GrenadierSword.Throw>();
 			ctx.onEachTick(() -> {
+				for (var bombardier : ctx.getEntities(RiftEntities.GHAST_BOMBARDIER)) {
+					var look = bombardier.getMainHandItem().get(GrenadierSword.THROW);
+					if (look != null && (looks.isEmpty() || looks.getLast() != look)) {
+						looks.add(look);
+					}
+				}
 				for (var bomb : ctx.getEntities(RiftEntities.MAGMA_BOMB)) {
 					if (bomb.getOwner() instanceof GhastBombardier && !thrown.getAndSet(true)) {
 						bombRift[0] = bomb.getAttached(RiftMobs.RIFT);
@@ -519,6 +588,11 @@ public class BombardierTests {
 			});
 			ctx.succeedWhen(() -> {
 				ctx.assertTrue(thrown.get(), "no bomb thrown yet");
+				// the glove holds the bomb, then lets it go, then the sword is back
+				ctx.assertTrue(looks.size() >= 2 && looks.get(0) == GrenadierSword.Throw.BOMB && looks.get(1) == GrenadierSword.Throw.THROWN,
+						"the throw looked " + looks);
+				ctx.assertTrue(ctx.getEntities(RiftEntities.GHAST_BOMBARDIER).stream().noneMatch(b -> b.getMainHandItem().has(GrenadierSword.THROW)),
+						"the sword is still away");
 				ctx.assertTrue(warning[0] != null, "no ground warning");
 				ctx.assertTrue(burn[0] != null, "the bomb hasn't landed");
 				var rift = FormingTests.riftIn(ctx);
@@ -558,6 +632,12 @@ public class BombardierTests {
 				ctx.succeed();
 			});
 		});
+	}
+
+	/** A component of a stack as its codec writes it ("none" without it), to compare. */
+	static <T> String encoded(net.minecraft.core.component.DataComponentType<T> type, ItemStack stack, com.mojang.serialization.DynamicOps<com.google.gson.JsonElement> ops) {
+		var value = stack.get(type);
+		return value == null ? "none" : type.codecOrThrow().encodeStart(ops, value).getOrThrow().toString();
 	}
 
 	/** A war ghast of the room's rift (lit beforehand), its feet at {@code pos}. */

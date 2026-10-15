@@ -1,12 +1,26 @@
 package nu.metacraft.booklet.gametest;
 
+import eu.pb4.booklet.api.body.AlignedItemBody;
+import eu.pb4.booklet.api.body.AlignedMessage;
+import eu.pb4.booklet.api.body.HeaderMessage;
+import eu.pb4.booklet.api.body.ImageBody;
 import eu.pb4.booklet.impl.BookletInit;
+import eu.pb4.booklet.impl.BookletOpenState;
 import eu.pb4.booklet.impl.BookletPage;
+import eu.pb4.placeholders.api.ParserContext;
+import eu.pb4.placeholders.api.ServerPlaceholderContext;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.dialog.body.DialogBody;
+import net.minecraft.server.dialog.body.ItemBody;
+import net.minecraft.server.dialog.body.PlainMessage;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.Resource;
 import nu.metacraft.booklet.MetacraftBooklet;
 
 import java.io.IOException;
@@ -17,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -140,6 +155,82 @@ public final class GuideTests {
 		String title = langs == null || langs.get(LANG) == null ? null : langs.get(LANG).info().title().getString();
 		if (!"Welcome to METAcraft".equals(title)) helper.fail("/guide opens " + MetacraftBooklet.INDEX + " titled " + title + ", not the welcome page");
 		helper.succeed();
+	}
+
+	private static final Identifier LOGO = Identifier.fromNamespaceAndPath("metacraft", "logo");
+	private static final String INTRO = "You play METAcraft on a vanilla client";
+	private static final String DISCORD = "https://discord.com/invite/MttUbkmeyD";
+
+	/**
+	 * {@code /guide} opens our welcome page, not the index in Booklet's jar: the server reads
+	 * {@code booklet:index} from the welcome pack, and the page shows the METAcraft logo above the
+	 * welcome text, then a "Join our Discord" link that opens the invite, then still lists every section
+	 * on the bookshelf.
+	 */
+	@GameTest
+	@SuppressWarnings("removal")   // the mock player, as ovvar's tests use it
+	public void theWelcomePageShowsTheLogoAndTheDiscordLink(GameTestHelper helper) {
+		var file = Identifier.fromNamespaceAndPath("booklet", "booklet/pages/" + LANG + "/index.txt");
+		List<String> sources = helper.getLevel().getServer().getResourceManager().getResourceStack(file).stream()
+				.map(Resource::sourcePackId).toList();
+		String welcome = Identifier.fromNamespaceAndPath(MetacraftBooklet.MOD_ID, "welcome").toString();
+		if (sources.isEmpty() || !sources.getLast().equals(welcome)) {
+			helper.fail("booklet:index is read from " + (sources.isEmpty() ? "nowhere" : sources.getLast()) + ", not "
+					+ welcome + " (the packs that have one, bottom to top: " + sources + ")");
+		}
+
+		BookletPage page = BookletInit.PAGES.getOrDefault(MetacraftBooklet.INDEX, Map.of()).get(LANG);
+		if (page == null) {
+			helper.fail("booklet:index did not load");
+			return;
+		}
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ParserContext context = ParserContext.of(BookletOpenState.KEY, BookletOpenState.DEFAULT)
+				.with(ServerPlaceholderContext.SERVER_KEY, ServerPlaceholderContext.of(player));
+		List<DialogBody> body = page.body().stream().flatMap(part -> part.apply(context).stream()).toList();
+
+		int logo = -1;
+		int intro = -1;
+		int discord = -1;
+		for (int i = 0; i < body.size(); i++) {
+			DialogBody part = body.get(i);
+			if (logo < 0 && part instanceof ImageBody image && image.identifier().equals(LOGO)) logo = i;
+			Component text = text(part);
+			if (text == null) continue;
+			if (intro < 0 && text.getString().contains(INTRO)) intro = i;
+			if (discord < 0 && text.toFlatList().stream().anyMatch(bit -> bit.getString().contains("Join our Discord")
+					&& bit.getStyle().getClickEvent() instanceof ClickEvent.OpenUrl url && url.uri().toString().equals(DISCORD))) {
+				discord = i;
+			}
+		}
+		if (logo < 0) helper.fail("the welcome page shows no " + LOGO + " image");
+		if (intro < 0) helper.fail("the welcome page has no line starting \"" + INTRO + "\"");
+		if (discord < 0) helper.fail("the welcome page has no \"Join our Discord\" that opens " + DISCORD);
+		if (!(logo < intro && intro < discord)) helper.fail("the welcome page is not logo, welcome text, Discord link, in that order");
+
+		// Every section on the bookshelf, by title, below the Discord link.
+		String below = body.subList(discord + 1, body.size()).stream().map(GuideTests::text)
+				.filter(Objects::nonNull).map(Component::getString).reduce("", (a, b) -> a + "\n" + b);
+		List<Identifier> sections = BookletInit.CATEGORIES.getOrDefault(BOOKSHELF, List.of());
+		if (sections.isEmpty()) helper.fail("no section is on the bookshelf");
+		for (Identifier section : sections) {
+			BookletPage sectionPage = BookletInit.PAGES.getOrDefault(section, Map.of()).get(LANG);
+			String title = sectionPage == null ? section.toString() : sectionPage.info().getExternalTitle().getString();
+			if (!below.contains(title)) helper.fail("the welcome page does not list " + section + " (" + title + ")");
+		}
+		helper.succeed();
+	}
+
+	/** The text a body part shows (an item's, its label), or null for one that is not text (an image). */
+	private static Component text(DialogBody part) {
+		return switch (part) {
+			case PlainMessage m -> m.contents();
+			case AlignedMessage m -> m.contents();
+			case HeaderMessage m -> m.contents();
+			case AlignedItemBody m -> m.description().contents();
+			case ItemBody m -> m.description().map(PlainMessage::contents).orElse(null);
+			default -> null;
+		};
 	}
 
 	@GameTest

@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"id": "kultur",
+	"id": "metacraft-kultur",
 	"version": "${version}",
 	"name": "Kultur",
 	"description": "Chapter culture for METAcraft: banner and shield patterns, paintings and (with Patbox's Brewery) the chapter drinks for vanilla clients, via Polymer. Players only need the auto-served resource pack.",

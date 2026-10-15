@@ -36,13 +36,14 @@ dependencies {
 	// metacraft-booklet); /ovvar guide opens it. Bundled jar-in-jar the way metacraft-core bundles Polymer.
 	implementation(include("eu.pb4:booklet:${project.booklet_version}"))
 
-	// Danse (gestures) — our AGPL fork, as its own jar (libs/danse/NOTICE.txt). Compat only, and only
+	// Danse (gestures) — our AGPL fork, as its own jar, fetched from the fork's GitHub release (README:
+	// "The danse fork"; the repository is in the root build.gradle). Compat only, and only
 	// in this module's dev/test runtime. Never a `depends`: metacraft.ovvar.compat.danse is the one
 	// package that names Danse types and it is reached only behind FabricLoader.isModLoaded("danse"),
 	// its mixins behind DanseMixinPlugin.
 	// (This Loom auto-remaps plain configurations and the jar already carries Mojang names, so
 	// compileOnly/runtimeOnly are the `modCompileOnly`/`modLocalRuntime` of the spec.)
-	def danseJar = rootProject.files("libs/danse/danse-2.6.0-metacraft.2+26.3.jar")
+	def danseJar = "Froosty11:danse:${project.danse_version}"
 	compileOnly danseJar
 	runtimeOnly danseJar
 	// Danse's one Polymer module ovvar does not already have. It bundles bil, DialogUtils, sgui,
@@ -68,8 +69,8 @@ tasks.register('patcherJar', Jar) {
 	from('tools/shaderpatcher/README.txt')
 	// The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
 	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
-	// and metacraft-core's rifts, the code its item shader includes
-	from(project(':mods:metacraft-core').file('src/main/resources/assets/metacraft/shaders/include')) {
+	// and metacraft-shaders' rifts, the code its item shader includes
+	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
 		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
 	}
 	archiveFileName = 'OvvarShaderPatcher.jar'

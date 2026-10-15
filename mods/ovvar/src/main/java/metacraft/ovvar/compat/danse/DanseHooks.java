@@ -1,6 +1,6 @@
 package metacraft.ovvar.compat.danse;
 
-import metacraft.ovvar.content.OvveFeet;
+import metacraft.ovvar.content.item.OvveFeet;
 import metacraft.ovvar.pack.Combos;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,7 +20,7 @@ import net.minecraft.world.entity.LivingEntity;
  * {@link Impl}), in {@link DanseCompat}, {@link DanseLayers} and {@link DanseModels}, none of which
  * load until {@link #active()} has said Danse is here, so a server without Danse never verifies a
  * class that mentions it. The body layers need <em>our fork</em> of Danse
- * ({@code libs/danse/NOTICE.txt}); upstream Danse has the same mod id but not the API, and gets the
+ * (<a href="https://github.com/Froosty11/danse">Froosty11/danse</a>); upstream Danse has the same mod id but not the API, and gets the
  * etiquette only ({@link #mode}). The system property {@code ovvar.danse.compat=false} turns the
  * whole layer off (this and {@link DanseMixinPlugin} read the same flag), which is how the "before"
  * screenshot is taken.

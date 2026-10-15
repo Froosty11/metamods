@@ -2,8 +2,8 @@
 
 The server's guidebook: [Booklet](https://github.com/Patbox/booklet) (Patbox's server-side, data-driven
 guidebook, a dialog on a vanilla client) with a page for each thing METAcraft adds. `/guide` (anyone)
-opens it on "Welcome to METAcraft". `docs/` has screenshots of the older pages; the client test (below)
-photographs every page.
+opens it on "Welcome to METAcraft": the METAcraft logo (`assets/metacraft/textures/booklet/image/logo.png`),
+the server's idea, a link to our Discord, and the sections. The client test (below) photographs every page.
 
 ## The structure
 
@@ -48,11 +48,11 @@ none of them has no such section.
 | hook | on with | what it adds |
 | --- | --- | --- |
 | `welcome` | always | "Welcome to METAcraft", in place of Booklet's index "The Encyclopedia": what METAcraft is about, then the sections |
-| `student_culture` | ovvar, brewery, kultur or moredyes | the Student Culture Features section page |
+| `student_culture` | ovvar, brewery, metacraft-kultur or moredyes | the Student Culture Features section page |
 | `ovvar` | ovvar | "Ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
-| `brewing_kultur` | kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
-| `kultur` | kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
+| `brewing_kultur` | metacraft-kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
+| `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
 | `moredyes` | moredyes | "Colors": Cerise and Laserviolet |
 | `vanilla_plus` | metacraft-qol or polydecorations | the Vanilla+ Features section page |
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the muffler), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
@@ -147,7 +147,7 @@ The dev runtime loads ovvar (run its `runDatagen` first) and the PolyDecorations
 features, so every chapter is on.
 `GuideTests` checks every page loads with a title, description and icon, is reachable from the index
 (and stays reachable whichever of the mods are missing), names only pages and items that exist, that
-`/guide` opens on the welcome page and every section lists at least one page, and that PolyDecorations is
-down to the recipes we keep.
+`/guide` opens on the welcome page (with the logo, the Discord link and every section) and every section
+lists at least one page, and that PolyDecorations is down to the recipes we keep.
 `GuideClientTests` opens every page on a vanilla client in a 1080p window and photographs it, and again
-scrolled down (`docs/*_more.png`).
+scrolled down (`*_more.png`), into `build/run/clientGameTest/screenshots/`.

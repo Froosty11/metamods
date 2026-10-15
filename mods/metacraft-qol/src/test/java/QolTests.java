@@ -49,6 +49,7 @@ public class QolTests {
 					SilenceMobsTests.registerTests();
 					register("config/dialog_round_trips", QolTests::dialogRoundTrips);
 				},
+				// ConfigGUI too: its player preferences registry must exist before the first (mock) player does
 				METAcraftLib::new, METAcraftCore::new, ConfigGUI::new, Qol::new
 		);
 	}

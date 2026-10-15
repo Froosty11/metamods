@@ -1,14 +1,13 @@
 # More Dyes
 
-METAmods module `mods/moredyes` (mod id `moredyes`). Targets Minecraft 26.2 / Polymer 0.17.1+26.2.
+METAmods module `mods/moredyes` (mod id `moredyes`). Targets Minecraft 26.3 / Polymer 0.18.4+26.3.
 Assets are generated: `./gradlew runDatagen` (repo root) after editing `colors.json`.
 
 Server-side dye colours for vanilla clients: Cerise, Laserviolet, and whatever `colors.json`
-says next. Fabric + [Polymer](https://polymer.pb4.eu), Minecraft 26.2, Java 25. Players need
+says next. Fabric + [Polymer](https://polymer.pb4.eu), Minecraft 26.3, Java 25. Players need
 only the auto-served resource pack; no client mod.
 
-The design and phase plan live in the "Cerise & Laserviolet" artifact; this file is the
-how-to-build. Status: all block phases done — dyes; wool, concrete, concrete powder,
+This file is the how-to-build. Status: all block phases done — dyes; wool, concrete, concrete powder,
 terracotta, glazed terracotta (visible note-block donors); carpet (flat tripwire donor, no
 collision); candles (invisible lantern donor + item display, server-sent flame particles) and
 candle cakes (vanilla cake on the client + candle display); wool and concrete stairs and slabs
@@ -24,7 +23,7 @@ and firework stars mixed with vanilla dyes; happy ghast harnesses and llama carp
 equippable on our own equipment asset); sign text in our exact colour (component colour on every
 line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
 nearest vanilla dye); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
-tinting (our glass passes the beam untinted; see the worktree-beacon-beam-spike branch).
+tinting (our glass passes the beam untinted).
 
 ## Later
 
@@ -91,7 +90,8 @@ that cannot serve even the chosen look still stops the server.
   decorates a shield. A cauldron washes patterns off down to the colour but not the
   colour itself (`CauldronInteractionsMixin`), as with a banner's own colour. To copy one, the blank
   is a plain *white* banner: vanilla only copies onto a banner with no layers.
-- Dyes have no recipe yet (a flower is planned); use the creative tab or `/give`.
+- Dyes come from flowers: a sniffer digs up Cerise and Laserviolet torchflowers beside vanilla's
+  torchflower seeds (`ModTorchflower`), and each crafts into its dye.
 
 ## Ground rules (short version)
 
@@ -127,21 +127,19 @@ export JAVA_HOME=/path/to/jdk-25
 ```
 
 Output: `build/libs/moredyes-<version>.jar` (Polymer bundled). Server needs Fabric Loader
-≥ 0.19.2 and Fabric API 0.150.x for 26.2.
+≥ 0.19.5 and Fabric API 0.161.x for 26.3.
 
-Dev server: `./gradlew mods:moredyes:runServer` (or `Start Server.command`); `run/` ships `eula.txt`,
-`server.properties` with `online-mode=false`, and `config/polymer/auto-host.json` enabling the
-pack host. Vanilla client: `python3 tools/vanilla_client.py` (or `Start Vanilla Client.command`)
-downloads the real 26.2 client into `run-vanilla/`, starts it with an offline profile and joins
-`localhost`. That is the client that counts. `./gradlew runClient` also exists but it is a
+Dev server: `./gradlew mods:moredyes:runServer`; set `online-mode=false` in `run/server.properties`
+and turn on Polymer's pack host (`config/polymer/auto-host.json`), then join `localhost` with a
+vanilla client. That is the client that counts. `./gradlew runClient` also exists but it is a
 Fabric client with Polymer's client half loaded, so it does not show what players see; it runs
 in `run-client/` so it cannot clobber the server's generated pack.
 
 ## Tests
 
-`./gradlew mods:moredyes:runGametest` (or `Run Tests.command`) runs the server-side game tests in
-`metacraft.moredyes.gametest` on a throwaway test server and fails the build on any failure; the
-JUnit-style report lands in `build/test-results/gametest.xml`. They cover what a vanilla client is
+`JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:moredyes:runServer` runs the
+server-side game tests in `metacraft.moredyes.gametest` on a test server and exits non-zero on any
+failure. They cover what a vanilla client is
 *sent* — every block state resolving to a real client state, the sheep being sent invisible, the
 derived banner registry — plus drops and interactions (double slabs, beds, shulker contents,
 concrete hardening, sheep dye/shear/death/vanilla-dye reset, candle tags). In a normal world an op
@@ -155,8 +153,11 @@ colors.json                         single source of truth
 metacraft.moredyes.datagen.GeneratedAssets                 colours → textures, models, lang, loot, recipes, tags
 metacraft.moredyes.MoreDyes         entrypoint: colours → content → resource pack
 metacraft.moredyes.color            ModColor record, colors.json loader
-metacraft.moredyes.content          Family enum, ColoredBlocks, ShapedBlocks (stairs/slabs +
-                                    display holder), items, creative tab, ClientStates
+metacraft.moredyes.content          Family enum, Looks, ModContent (registration, creative tab)
+metacraft.moredyes.content.block    ColoredBlocks, ShapedBlocks (stairs/slabs + display holder),
+                                    GlassBlocks, ContainerBlocks, ModTorchflower, ClientStates
+metacraft.moredyes.content.item     ColoredBlockItem, ModDyeItem, ModBundleItem, ModCushionItem,
+                                    ModHarnessItem
 metacraft.moredyes.sheep            SheepColors (attachment + events), SheepOverlay, SheepWoolRig
 metacraft.moredyes.banner           BannerPatterns (derive + tint, coloured banners, the loom's layer cap
                                     and client view)
@@ -169,4 +170,4 @@ Generated assets are gitignored (they are recoloured Mojang textures); regenerat
 
 The stairs/slabs pattern (invisible shaped donor + item display per block) comes from
 [craftycorvid/wool-polymer](https://github.com/craftycorvid/wool-polymer) (MIT), which also
-provided the 26.2 build template.
+provided the original build template.

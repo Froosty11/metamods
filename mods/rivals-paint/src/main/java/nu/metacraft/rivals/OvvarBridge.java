@@ -2,7 +2,7 @@ package nu.metacraft.rivals;
 
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.item.OvveItem;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.EquipmentSlot;
