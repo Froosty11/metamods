@@ -15,7 +15,7 @@
 		"kultur-clienttest.mixins.json"
 	],
 	"depends": {
-		"kultur": "*",
+		"metacraft-kultur": "*",
 		"fabric-client-gametest-api-v1": "*"
 	}
 }

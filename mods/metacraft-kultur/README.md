@@ -1,6 +1,6 @@
 # Kultur
 
-METAmods module `mods/metacraft-kultur` (mod id `kultur`). Chapter culture for vanilla clients:
+METAmods module `mods/metacraft-kultur` (mod id `metacraft-kultur`, namespace `kultur`). Chapter culture for vanilla clients:
 banner and shield patterns for the chapters and their clubs, paintings, and drinks. Fabric +
 [Polymer](https://polymer.pb4.eu), Minecraft 26.3, Java 25. Players need only the auto-served
 resource pack; no client mod. The successor of PolymITer (the IT chapter's 1.21.10 mod this content
