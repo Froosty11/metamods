@@ -61,6 +61,12 @@ public final class ColoredBlocks {
 		public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
 			return client;
 		}
+
+		/** See {@link ClientStates#materialBreakState}: stairs and slabs break with our particles. */
+		@Override
+		public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
+			return defaultBlockState();
+		}
 	}
 
 	/** Concrete powder: vanilla gravity and water-hardening, producing OUR concrete. */

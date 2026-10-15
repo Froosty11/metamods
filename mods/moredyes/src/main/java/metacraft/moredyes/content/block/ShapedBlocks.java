@@ -37,7 +37,8 @@ import java.util.Map;
  * display carrying the real model. Pattern from craftycorvid/wool-polymer (MIT).
  *
  * Break particles and sound come from {@link PolymerTexturedBlock#getPolymerBreakEventBlockState},
- * which returns the material's own client state so the particles use our texture.
+ * which returns the material (see {@link ClientStates#materialBreakState}) so the particles use our
+ * texture.
  */
 public final class ShapedBlocks {
 	private ShapedBlocks() {}
@@ -102,7 +103,7 @@ public final class ShapedBlocks {
 
 		@Override
 		public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
-			return ClientStates.clientStateOf(material, context);
+			return ClientStates.materialBreakState(material);
 		}
 
 		@Override
@@ -187,7 +188,7 @@ public final class ShapedBlocks {
 
 		@Override
 		public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
-			return ClientStates.clientStateOf(material, context);
+			return ClientStates.materialBreakState(material);
 		}
 
 		@Override
@@ -254,6 +255,9 @@ public final class ShapedBlocks {
 				var attachment = BlockAwareAttachment.get(this);
 				if (attachment != null) {
 					refresh(attachment.getBlockState());
+					// Block-bound holders are not ticked (tickElementHolder is false), and only a tick
+					// sends element changes to players already watching; push this one now.
+					tick();
 				}
 			}
 		}
