@@ -99,7 +99,7 @@ public final class KulturDrinkTests {
 	}
 
 	private static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(Kultur.MOD_ID, path);
+		return Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, path);
 	}
 
 	/**

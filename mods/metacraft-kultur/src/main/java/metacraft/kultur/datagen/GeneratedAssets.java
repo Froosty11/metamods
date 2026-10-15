@@ -33,7 +33,7 @@ import static metacraft.kultur.datagen.J.strings;
  * problem at {@code runDatagen}, not as an invisible pattern on a server.
  */
 public final class GeneratedAssets implements DataProvider {
-	private static final String MOD = Kultur.MOD_ID;
+	private static final String MOD = Kultur.NAMESPACE;
 	/** Vanilla's sixteen dyes, in DyeColor order, with the names its own lang file uses. */
 	static final String[][] DYES = {
 			{"white", "White"}, {"orange", "Orange"}, {"magenta", "Magenta"}, {"light_blue", "Light Blue"},

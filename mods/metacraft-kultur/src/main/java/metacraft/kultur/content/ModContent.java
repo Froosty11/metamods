@@ -33,8 +33,8 @@ public final class ModContent {
 		for (Catalogue.Owned<Catalogue.Pattern> owned : catalogue.patterns()) {
 			Catalogue.Pattern p = owned.value();
 			if (!p.item()) continue;
-			Identifier itemId = Identifier.fromNamespaceAndPath(Kultur.MOD_ID, p.itemPath());
-			TagKey<BannerPattern> tag = TagKey.create(Registries.BANNER_PATTERN, Identifier.fromNamespaceAndPath(Kultur.MOD_ID, "pattern_item/" + p.id()));
+			Identifier itemId = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, p.itemPath());
+			TagKey<BannerPattern> tag = TagKey.create(Registries.BANNER_PATTERN, Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "pattern_item/" + p.id()));
 			// The tag resolves against the dynamic registry, which does not exist when items are
 			// registered — hence the delayed component, the way vanilla attaches its own pattern tags.
 			Item.Properties props = new Item.Properties()
@@ -63,10 +63,10 @@ public final class ModContent {
 	private static void registerCreativeTab() {
 		Item icon = ITEMS.isEmpty() ? Items.FLOWER_BANNER_PATTERN : ITEMS.values().iterator().next();
 		CreativeModeTab tab = PolymerCreativeModeTabUtils.builder()
-				.title(Component.translatable("itemGroup." + Kultur.MOD_ID))
+				.title(Component.translatable("itemGroup." + Kultur.NAMESPACE))
 				.icon(() -> new ItemStack(icon))
 				.displayItems((params, output) -> ITEMS.values().forEach(output::accept))
 				.build();
-		PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(Identifier.fromNamespaceAndPath(Kultur.MOD_ID, "main"), tab);
+		PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "main"), tab);
 	}
 }

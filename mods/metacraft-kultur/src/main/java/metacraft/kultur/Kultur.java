@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
  * the mod's own job is small: read the catalogue, register the pattern items, hand Polymer the assets.
  */
 public class Kultur implements ModInitializer {
-	public static final String MOD_ID = "kultur";
+	public static final String MOD_ID = "metacraft-kultur";
+	/** The resource and registry namespace ({@code kultur:itk}, {@code assets/kultur}); not the mod id. */
+	public static final String NAMESPACE = "kultur";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	private static Catalogue catalogue;
 
