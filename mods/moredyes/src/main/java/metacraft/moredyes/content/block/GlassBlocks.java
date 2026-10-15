@@ -54,6 +54,12 @@ public final class GlassBlocks {
 		public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
 			return client;
 		}
+
+		/** See {@link ClientStates#materialBreakState}: panes break with our particles. */
+		@Override
+		public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
+			return defaultBlockState();
+		}
 	}
 
 	/**
@@ -121,7 +127,7 @@ public final class GlassBlocks {
 		@Override
 		public BlockState getPolymerBreakEventBlockState(BlockState state, @Nullable PacketContext context) {
 			// Break particles from our glass texture rather than the copper donor's.
-			return ClientStates.clientStateOf(glass, context);
+			return ClientStates.materialBreakState(glass);
 		}
 	}
 }

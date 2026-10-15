@@ -48,6 +48,25 @@ public final class ClientStates {
 		return block instanceof PolymerBlock polymer ? polymer.getPolymerBlockState(state, context) : state;
 	}
 
+	/**
+	 * The break-event state for a block that should break with another block's particles (stairs
+	 * and slabs with their material's, panes with their glass's). Two Polymer behaviours shape this:
+	 *
+	 * <ul>
+	 *   <li>The break-event state is mapped for the client once more, and a donor state handed to that
+	 *	   mapping comes out as the plain vanilla block (a note block for wool and concrete). So this
+	 *	   is the material's server state, never its client state.</li>
+	 *   <li>When that state belongs to another Polymer block, Polymer asks that block for its own
+	 *	   break-event state, but passes the original (stair) state. So the material must override
+	 *	   {@code getPolymerBreakEventBlockState} to return its default state regardless of input.</li>
+	 * </ul>
+	 *
+	 * Covered by the {@code breakParticlesUseTheMaterial} game test.
+	 */
+	public static BlockState materialBreakState(Block material) {
+		return material.defaultBlockState();
+	}
+
 	public static BlockState requestEmpty(String what, BlockModelType type) {
 		BlockState state = PolymerBlockResourceUtils.requestEmpty(type);
 		if (state == null) {
