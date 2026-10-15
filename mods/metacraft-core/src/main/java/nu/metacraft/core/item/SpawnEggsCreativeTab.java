@@ -36,7 +36,7 @@ public final class SpawnEggsCreativeTab {
 	/** Our spawn eggs, by id. */
 	public static List<Item> eggs() {
 		return BuiltInRegistries.ITEM.entrySet().stream()
-				.filter(entry -> entry.getValue() instanceof SpawnEggItem && CreativeTabNamespaces.contains(entry.getKey().identifier().getNamespace()))
+				.filter(entry -> entry.getValue() instanceof SpawnEggItem && CreativeTabNamespaces.lists(entry.getKey().identifier().getNamespace(), entry.getValue()))
 				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
 				.map(entry -> entry.getValue())
 				.toList();
