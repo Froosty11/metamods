@@ -20,7 +20,7 @@ public class TestEntityLoading {
 	public static void init() {
 		Registry.register(
 				BuiltInRegistries.TEST_FUNCTION,
-				METAcraftLib.getID("entity-loading/waiting-keeps-ticking"),
+				METAcraftLib.getID(TestInit.TEST_PREFIX + "entity-loading/waiting-keeps-ticking"),
 				TestEntityLoading::waitingKeepsTicking
 		);
 	}
