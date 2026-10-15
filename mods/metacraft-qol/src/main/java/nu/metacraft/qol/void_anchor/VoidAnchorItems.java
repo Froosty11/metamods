@@ -1,5 +1,6 @@
 package nu.metacraft.qol.void_anchor;
 
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.qol.Qol;
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import net.minecraft.core.Registry;
@@ -20,7 +21,7 @@ public class VoidAnchorItems {
 	);
 
 	public static void init() {
-
+		CreativeTabNamespaces.add(Qol.NAMESPACE);
 	}
 
 	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {

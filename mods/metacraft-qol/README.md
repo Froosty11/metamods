@@ -45,7 +45,7 @@ The `void_anchor` section of `config/metacraft-qol.json`:
 ### The rift shader
 
 The rift is an item display of `metacraft:rift`, a flat quad with a painted, animated sprite
-tinted exactly `#FEFEFD`. The item shader override lives in **metacraft-core**
+tinted exactly `#FEFEFD`. The item shader override lives in **metacraft-shaders**
 (`assets/minecraft/shaders/core/item.{vsh,fsh}`), shared with nether-rifts; the void anchor's drawing
 is `assets/metacraft/shaders/include/void_rift.glsl` there. A vertex with that tint is flagged, and
 its fragments draw a moving swirl of stars instead of the sprite. Every other item takes the vanilla
