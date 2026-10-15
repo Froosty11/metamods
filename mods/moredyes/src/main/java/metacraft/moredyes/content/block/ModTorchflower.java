@@ -1,8 +1,9 @@
-package metacraft.moredyes.content;
+package metacraft.moredyes.content.block;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import metacraft.moredyes.content.ModContent;
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.resources.Identifier;

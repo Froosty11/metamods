@@ -1,4 +1,4 @@
-package metacraft.moredyes.content;
+package metacraft.moredyes.content.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import metacraft.moredyes.color.ModColor;

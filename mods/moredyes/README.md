@@ -153,8 +153,11 @@ colors.json                         single source of truth
 metacraft.moredyes.datagen.GeneratedAssets                 colours → textures, models, lang, loot, recipes, tags
 metacraft.moredyes.MoreDyes         entrypoint: colours → content → resource pack
 metacraft.moredyes.color            ModColor record, colors.json loader
-metacraft.moredyes.content          Family enum, ColoredBlocks, ShapedBlocks (stairs/slabs +
-                                    display holder), items, creative tab, ClientStates
+metacraft.moredyes.content          Family enum, Looks, ModContent (registration, creative tab)
+metacraft.moredyes.content.block    ColoredBlocks, ShapedBlocks (stairs/slabs + display holder),
+                                    GlassBlocks, ContainerBlocks, ModTorchflower, ClientStates
+metacraft.moredyes.content.item     ColoredBlockItem, ModDyeItem, ModBundleItem, ModCushionItem,
+                                    ModHarnessItem
 metacraft.moredyes.sheep            SheepColors (attachment + events), SheepOverlay, SheepWoolRig
 metacraft.moredyes.banner           BannerPatterns (derive + tint, coloured banners, the loom's layer cap
                                     and client view)

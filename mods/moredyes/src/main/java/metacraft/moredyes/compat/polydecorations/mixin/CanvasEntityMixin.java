@@ -4,7 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import eu.pb4.mapcanvas.api.core.CanvasColor;
 import eu.pb4.polydecorations.entity.CanvasEntity;
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;

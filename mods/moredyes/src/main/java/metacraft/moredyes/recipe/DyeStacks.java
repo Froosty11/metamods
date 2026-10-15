@@ -1,6 +1,6 @@
 package metacraft.moredyes.recipe;
 
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.item.DyeColor;
