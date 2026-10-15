@@ -37,7 +37,7 @@ public final class METAcraftCreativeTab {
 	/** Our items, by id. */
 	public static List<Item> items() {
 		return BuiltInRegistries.ITEM.entrySet().stream()
-				.filter(entry -> CreativeTabNamespaces.contains(entry.getKey().identifier().getNamespace()))
+				.filter(entry -> CreativeTabNamespaces.lists(entry.getKey().identifier().getNamespace(), entry.getValue()))
 				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
 				.map(entry -> entry.getValue())
 				.toList();
