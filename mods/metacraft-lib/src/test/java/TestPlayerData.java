@@ -188,7 +188,8 @@ public class TestPlayerData {
 
 	@Test
 	public void testPlayerDataMap() throws IOException, ContentValidationException, InterruptedException {
-		TestHelper.runTestServer(METAcraftLib.NAMESPACE,PLAYER_DATA_PREFIX+"*");
+		// every lib game test (TestEntityLoading's too): one test server per JVM
+		TestHelper.runTestServer(METAcraftLib.NAMESPACE, "*");
 	}
 
 }
