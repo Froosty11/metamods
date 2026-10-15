@@ -7,7 +7,7 @@ import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;

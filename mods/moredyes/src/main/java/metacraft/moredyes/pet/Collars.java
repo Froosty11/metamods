@@ -1,6 +1,6 @@
 package metacraft.moredyes.pet;
 
-import metacraft.moredyes.content.ModDyeItem;
+import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.mixin.CatAccessor;
 import metacraft.moredyes.mixin.WolfAccessor;
 import metacraft.moredyes.sign.SignColors;

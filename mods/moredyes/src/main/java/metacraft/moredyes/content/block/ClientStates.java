@@ -1,4 +1,4 @@
-package metacraft.moredyes.content;
+package metacraft.moredyes.content.block;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;

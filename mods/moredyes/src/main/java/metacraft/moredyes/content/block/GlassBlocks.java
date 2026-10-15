@@ -1,4 +1,4 @@
-package metacraft.moredyes.content;
+package metacraft.moredyes.content.block;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
@@ -6,6 +6,8 @@ import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import metacraft.moredyes.MoreDyes;
+import metacraft.moredyes.content.Family;
+import metacraft.moredyes.content.Looks;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
