@@ -56,6 +56,7 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +67,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.entity.BannerPattern;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -131,6 +133,36 @@ public final class MoreDyesGameTests {
 			}
 		}
 		MoreDyes.LOGGER.info("[gametest] {} client states resolved", states);
+		helper.succeed();
+	}
+
+	/**
+	 * A stair or slab is held, on the client, as vanilla's white stair or slab of the same material, so
+	 * the placer's client predicts that shape (not a full cube) with the material's placement sound.
+	 */
+	@GameTest
+	public void stairsAndSlabsAreHeldAsVanillaShapes(GameTestHelper helper) {
+		Map<Family, Item> vanilla = Map.of(
+				Family.WOOL_STAIRS, Items.WOOL_STAIRS.white(), Family.WOOL_SLAB, Items.WOOL_SLAB.white(),
+				Family.CONCRETE_STAIRS, Items.CONCRETE_STAIRS.white(), Family.CONCRETE_SLAB, Items.CONCRETE_SLAB.white());
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		int checked = 0;
+		for (ModColor color : ModColors.all()) {
+			for (Family family : Family.values()) {
+				if (family.kind != Family.Kind.STAIRS && family.kind != Family.Kind.SLAB) continue;
+				Block ours = ModContent.block(color, family);
+				ItemStack client = PolymerItemUtils.getPolymerItemStack(new ItemStack(ours),
+						viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+				helper.assertValueEqual(client.getItem(), vanilla.get(family), "the client item of " + ours);
+				Block shown = ((BlockItem) client.getItem()).getBlock();
+				helper.assertTrue(family.kind == Family.Kind.STAIRS ? shown instanceof StairBlock : shown instanceof SlabBlock,
+						ours + " is held as " + shown + ", not its shape");
+				helper.assertTrue(ModContent.sameSounds(shown.defaultBlockState().getSoundType(), ours.defaultBlockState().getSoundType()),
+						ours + " is held as " + shown + ", which places with another sound");
+				checked++;
+			}
+		}
+		helper.assertValueEqual(checked, vanilla.size() * ModColors.all().size(), "stairs and slabs checked");
 		helper.succeed();
 	}
 
