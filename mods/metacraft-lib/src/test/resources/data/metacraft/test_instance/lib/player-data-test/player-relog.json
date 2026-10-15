@@ -1,8 +1,8 @@
 {
 	"type": "minecraft:function",
 	"environment": "metacraft:default",
-	"function": "metacraft:entity-loading/waiting-keeps-ticking",
-	"max_ticks": 3,
+	"function": "metacraft:lib/player-data-test/player-relog",
+	"max_ticks": 2,
 	"required": true,
 	"setup_ticks": 1,
 	"structure": "minecraft:empty"
