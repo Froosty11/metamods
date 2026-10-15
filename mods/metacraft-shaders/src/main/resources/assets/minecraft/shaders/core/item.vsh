@@ -1,4 +1,4 @@
-// Vanilla 26.3 item.vsh with one addition (metacraft-core, shared by every rift drawn with item displays):
+// Vanilla 26.3 item.vsh with one addition (metacraft-shaders, shared by every rift drawn with item displays):
 // a vertex whose tint is a rift marker gets the part as riftFlag, its stage as riftStage and a corner index
 // for its place on the quad. Markers: void anchor #FEFEFD crack (1), #FEFEFC glowing crack (2), #FEFEFB
 // core (3); nether rift #FE{G}{B} with B FA body (11) / F9 edge (12) and G FD/FC/FB stage 1/2/3. A nether
