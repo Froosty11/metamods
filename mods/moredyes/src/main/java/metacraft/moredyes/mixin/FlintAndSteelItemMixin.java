@@ -2,7 +2,7 @@ package metacraft.moredyes.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import metacraft.moredyes.content.ColoredBlocks;
+import metacraft.moredyes.content.block.ColoredBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;

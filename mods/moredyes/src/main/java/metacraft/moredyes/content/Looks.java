@@ -4,6 +4,7 @@ import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
 import metacraft.moredyes.MoreDyes;
 import metacraft.moredyes.MoreDyesConfig;
+import metacraft.moredyes.content.block.ClientStates;
 import net.minecraft.core.Direction;
 
 import java.util.ArrayList;
