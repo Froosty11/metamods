@@ -11,6 +11,7 @@ public class TestInit implements BeforeAllCallback, ExtensionContext.Store.Close
 		TestHelper.init(
 				() -> {
 					TestPlayerData.init();
+					TestEntityLoading.init();
 				},
 				METAcraftLib::new
 		);
