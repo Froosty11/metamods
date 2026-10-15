@@ -1,4 +1,4 @@
-// Vanilla 26.3 item.fsh with one addition (metacraft-core): where item.vsh flagged a rift, the painted
+// Vanilla 26.3 item.fsh with one addition (metacraft-shaders): where item.vsh flagged a rift, the painted
 // sprite is replaced by that rift's drawing (void anchor: include void_rift; nether rift: include
 // nether_rift), and a nether rift skips the alpha cutout. Every other item takes the vanilla path. The Globals include is unconditional (vanilla
 // guards it with GLINT) because the rifts need GameTime, ScreenSize and CameraBlockPos. Re-diff against

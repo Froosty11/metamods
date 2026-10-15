@@ -1,4 +1,4 @@
-// Shared by every rift the item shader draws (metacraft-core/item.fsh): noise, and where on its sprite a fragment is.
+// Shared by every rift the item shader draws (metacraft-shaders' item.fsh): noise, and where on its sprite a fragment is.
 // Needs texCoord0 and riftUv declared before it is included.
 float riftHash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
