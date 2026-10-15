@@ -2,6 +2,8 @@ version = project.qol_version
 
 addCoreDependencies()
 addConfigDependency()
+// the rift's item shader
+addProjectDependency(":mods:metacraft-shaders")
 
 setupRunDatagen("metacraft-qol")
 

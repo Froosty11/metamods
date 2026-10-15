@@ -21,6 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.qol.Qol;
 
 import java.util.List;
@@ -54,6 +55,7 @@ public final class SilenceMobs {
 	}
 
 	public static void init() {
+		CreativeTabNamespaces.add(Qol.NAMESPACE);
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
 			if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof LivingEntity mob)) {
 				return InteractionResult.PASS;
