@@ -154,7 +154,9 @@ in `run-client/` so it cannot clobber the server's generated pack.
 
 `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:moredyes:runServer` runs the
 server-side game tests in `metacraft.moredyes.gametest` on a test server and exits non-zero on any
-failure. They cover what a vanilla client is
+failure. `./gradlew :mods:moredyes:runClientGameTest` (opens a window) has a vanilla client join an
+in-process server and take screenshots of the stairs and slabs (`src/gametest`, screenshots in
+`build/run/clientGameTest/screenshots`), judged by eye. They cover what a vanilla client is
 *sent* — every block state resolving to a real client state, the sheep being sent invisible, the
 derived banner registry — plus drops and interactions (double slabs, beds, shulker contents,
 concrete hardening, sheep dye/shear/death/vanilla-dye reset, candle tags). In a normal world an op
