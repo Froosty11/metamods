@@ -11,9 +11,10 @@ import net.minecraft.world.level.block.Block;
 import org.jspecify.annotations.Nullable;
 
 /**
- * BlockItem for a coloured block. The client is told it holds the vanilla white equivalent (so its
- * placement prediction, shape and sound, is right) with an item-model override pointing at our
- * pack asset {@code moredyes:items/<color>_<family>.json}, whose id equals this item's registry id.
+ * BlockItem for a coloured block. The client is told it holds a vanilla equivalent (so its placement
+ * prediction, shape and sound, is right: the white one, or for stairs and slabs the one in the nearest
+ * colour, which is what the server then shows) with an item-model override pointing at our pack asset
+ * {@code moredyes:items/<color>_<family>.json}, whose id equals this item's registry id.
  */
 public final class ColoredBlockItem extends BlockItem implements PolymerItem {
 	private final Item clientItem;
