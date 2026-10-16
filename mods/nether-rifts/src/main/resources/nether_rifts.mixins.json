@@ -16,6 +16,7 @@
 		"LargeFireballMixin",
 		"MobAccessor",
 		"MobMixin",
+		"NetherWartBlockMixin",
 		"PiglinAiInvoker",
 		"PiglinAiMixin",
 		"PiglinMixin",

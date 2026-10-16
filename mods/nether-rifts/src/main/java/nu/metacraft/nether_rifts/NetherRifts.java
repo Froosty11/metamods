@@ -35,6 +35,7 @@ public class NetherRifts implements ModInitializer {
 		Ignition.init();
 		RiftMobs.init();
 		Showcase.init();
+		SoulLock.init();
 		new IsLoaded("simple-custom-features").ifLoaded(() -> ScfCompat.init());
 		ServerTickEvents.END_LEVEL_TICK.register(level -> RiftData.get(level).tick(level));
 		RiftsCommand.init();
