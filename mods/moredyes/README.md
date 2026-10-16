@@ -29,8 +29,8 @@ tinting (our glass passes the beam untinted).
 ## Stairs and slabs
 
 The client is shown vanilla's wool or concrete stair or slab of the same shape, in the nearest
-vanilla colour (the same nearest dye signs, collars and the loom use: Cerise is pink, Laserviolet
-light gray), and holds that vanilla item, so its placement prediction is the block the server then
+vanilla colour (the same stand-in dye signs, collars and the loom use: Cerise is pink, Laserviolet
+purple), and holds that vanilla item, so its placement prediction is the block the server then
 shows. One item display per block draws our model over it, grown by 1/256 about a point inside the
 shape, so every face sits 1/1024 to 3/1024 of a block outside the vanilla face under it rather than
 risk z-fighting with it (`ShapedBlocks.COVER_GROWTH`; more than that hides the far edges of the
@@ -50,7 +50,9 @@ states.
 ## Adding a colour
 
 Add an entry to `src/main/resources/colors.json` — `id`, `name`, `rgb`; `ramp: [dark, light]` is
-optional (derived in CIELAB from `rgb` when absent) — and run `./gradlew runDatagen`. Everything
+optional (derived in CIELAB from `rgb` when absent), and so is `vanilla`, the vanilla dye shown for
+it on vanilla clients (signs, collars, banners, the stairs and slabs under their display) when the
+nearest one by text colour reads wrong (Laserviolet's would be light gray, so it says `purple`) — and run `./gradlew runDatagen`. Everything
 else loops over the list: blocks, items, recipes, tags, banner patterns, tests, the showcase.
 
 What limits how many colours fit is Polymer's donor-state budget, and `Looks` decides once at
