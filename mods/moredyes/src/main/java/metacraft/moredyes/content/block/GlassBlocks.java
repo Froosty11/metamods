@@ -67,6 +67,12 @@ public final class GlassBlocks {
 	 * multipart). In {@link Looks.Look#DONOR} mode each (connections, waterlogged) state gets a
 	 * visible copper-bars donor carrying that model; in {@link Looks.Look#DISPLAY} mode the donor is
 	 * the shared invisible one and an item display carries the model. Same hitbox either way.
+	 *
+	 * Unlike stairs ({@link ShapedBlocks}), an invisible pane is not x-ray: bars, like panes, hide
+	 * none of their neighbours' faces, so where the display is not drawn (beyond its view range) the
+	 * pane is simply missing. A visible stained-glass pane under the display, as stairs have, would
+	 * show through our translucent one up close (two panes' colours mixed, and their sorting fighting)
+	 * to fix only that.
 	 */
 	public static final class Pane extends IronBarsBlock implements PolymerTexturedBlock, BlockWithElementHolder, ShapedBlocks.DisplayProvider {
 		private final Map<BlockState, BlockState> client = new IdentityHashMap<>();

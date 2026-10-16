@@ -21,9 +21,10 @@ public enum Family {
 	TERRACOTTA("terracotta", Kind.SIMPLE, Blocks.DYED_TERRACOTTA.white(), Items.DYED_TERRACOTTA.white(), null),
 	GLAZED_TERRACOTTA("glazed_terracotta", Kind.GLAZED, Blocks.GLAZED_TERRACOTTA.white(), Items.GLAZED_TERRACOTTA.white(), null),
 	CANDLE("candle", Kind.CANDLE, Blocks.DYED_CANDLE.white(), Items.DYED_CANDLE.white(), null),
-	// Stairs and slabs copy vanilla's white wool/concrete stairs and slabs, and the client is told it
-	// holds that vanilla shape: the placer's client then predicts a stair or slab where the server puts
-	// one (a full-block item predicted a full cube), still with the material's placement sound.
+	// Stairs and slabs copy vanilla's white wool/concrete stairs and slabs. The client is told it holds,
+	// and is shown under the display, that vanilla shape in the nearest vanilla colour rather than white
+	// (ModContent, ShapedBlocks.vanillaShape): the placer's client then predicts a stair or slab where
+	// the server puts one (a full-block item predicted a full cube), with the material's placement sound.
 	WOOL_STAIRS("wool_stairs", Kind.STAIRS, Blocks.WOOL_STAIRS.white(), Items.WOOL_STAIRS.white(), "wool"),
 	WOOL_SLAB("wool_slab", Kind.SLAB, Blocks.WOOL_SLAB.white(), Items.WOOL_SLAB.white(), "wool"),
 	CONCRETE_STAIRS("concrete_stairs", Kind.STAIRS, Blocks.CONCRETE_STAIRS.white(), Items.CONCRETE_STAIRS.white(), "concrete"),
@@ -42,7 +43,10 @@ public enum Family {
 	public final Kind kind;
 	/** the vanilla white block whose properties (sound, hardness, tool) are copied */
 	public final Block template;
-	/** the vanilla item a client is told it holds; drives its placement prediction (shape, sound). Null: none. */
+	/**
+	 * the vanilla item a client is told it holds; drives its placement prediction (shape, sound). Null:
+	 * none. Stairs and slabs use this family's vanilla item in the colour's nearest dye instead.
+	 */
 	public final @Nullable Item clientItem;
 	/** the family this one is made of / depends on (stairs of wool, cake with candle) */
 	public final @Nullable String material;

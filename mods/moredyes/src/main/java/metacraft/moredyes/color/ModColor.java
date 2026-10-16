@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.material.MapColor;
 
 import java.util.List;
@@ -23,8 +24,12 @@ import java.util.regex.Pattern;
  * @param rampLight lightest stop of the texture ramp
  * @param mapColor  nearest vanilla map colour by RGB distance — the one approximation the client's
  *				  fixed 64-entry map palette forces on us
+ * @param vanilla   the vanilla dye standing in for it where a vanilla client can only be shown a
+ *				  vanilla colour (signs, collars, banners, the stairs and slabs under their display),
+ *				  when the nearest one by text colour reads wrong; empty: that nearest one
+ *				  ({@link metacraft.moredyes.sign.SignColors#nearestDye})
  */
-public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor) {
+public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor, Optional<DyeColor> vanilla) {
 
 	private static final Pattern ID = Pattern.compile("[a-z0-9_]+");
 
@@ -35,7 +40,8 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 					).forGetter(ModColor::id),
 					Codec.STRING.fieldOf("name").forGetter(ModColor::name),
 					ExtraCodecs.STRING_RGB_COLOR.fieldOf("rgb").forGetter(ModColor::rgb),
-					Ramp.CODEC.optionalFieldOf("ramp").forGetter(colour -> Optional.of(new Ramp(colour.rampDark(), colour.rampLight())))
+					Ramp.CODEC.optionalFieldOf("ramp").forGetter(colour -> Optional.of(new Ramp(colour.rampDark(), colour.rampLight()))),
+					DyeColor.CODEC.optionalFieldOf("vanilla").forGetter(ModColor::vanilla)
 			).apply(instance, ModColor::of)
 	);
 
@@ -48,16 +54,17 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp) {
+	public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp, Optional<DyeColor> vanilla) {
 		return of(
 				id, name, rgb,
 				ramp.map(Ramp::rampDark).orElseGet(() -> deriveRamp(rgb, true)),
-				ramp.map(Ramp::rampLight).orElseGet(() -> deriveRamp(rgb, false))
+				ramp.map(Ramp::rampLight).orElseGet(() -> deriveRamp(rgb, false)),
+				vanilla
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight) {
-		return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb));
+	public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight, Optional<DyeColor> vanilla) {
+		return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb), vanilla);
 	}
 
 	/** {@code 0xAARRGGBB} with full alpha, the form most vanilla colour APIs take. */

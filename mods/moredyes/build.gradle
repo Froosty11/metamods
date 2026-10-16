@@ -8,6 +8,19 @@ loom {
 // Every colour-derived file (recoloured textures, models, item definitions, lang, loot, recipes,
 // tags) comes from src/main/resources/colors.json via data generation: ./gradlew runDatagen.
 setupRunDatagen("moredyes")
+// Client screenshot test: a vanilla client joins an in-process dedicated server and looks at our
+// stairs and slabs close up, from 30 and from 100 blocks. Source set src/gametest, task
+// runClientGameTest (opens a window). The server-side game tests stay in the main source set.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "moredyes-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
 
 addPolymerDependency()
 addConfigDependency()

@@ -20,6 +20,7 @@ import metacraft.moredyes.content.item.ModBundleItem;
 import metacraft.moredyes.content.item.ModCushionItem;
 import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.content.item.ModHarnessItem;
+import metacraft.moredyes.sign.SignColors;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -182,8 +183,12 @@ public final class ModContent {
 		// Blocks. Concrete must exist before its powder.
 		Map<Family, Block> blocks = new EnumMap<>(Family.class);
 		BLOCKS.put(color, blocks);
+		DyeColor nearest = SignColors.nearestDye(color);
 		for (Family family : Family.values()) {
 			Identifier blockId = id(color.id() + "_" + family.id);
+			// Stairs and slabs are shown, and held, as vanilla's in the nearest colour (ShapedBlocks).
+			boolean shaped = family.kind == Family.Kind.STAIRS || family.kind == Family.Kind.SLAB;
+			Block shown = shaped ? ShapedBlocks.vanillaShape(family, nearest) : null;
 			BlockBehaviour.Properties props = BlockBehaviour.Properties.ofFullCopy(family.template)
 					.mapColor(color.mapColor())
 					.setId(ResourceKey.create(Registries.BLOCK, blockId));
@@ -193,8 +198,8 @@ public final class ModContent {
 				case GLAZED -> new ColoredBlocks.Glazed(props, blockId);
 				case CARPET -> new ColoredBlocks.Carpet(props, blockId);
 				case CANDLE -> new ColoredBlocks.Candle(props, blockId);
-				case STAIRS -> new ShapedBlocks.Stairs(blocks.get(family.materialFamily()), props, blockId);
-				case SLAB -> new ShapedBlocks.Slab(blocks.get(family.materialFamily()), props, blockId);
+				case STAIRS -> new ShapedBlocks.Stairs(blocks.get(family.materialFamily()), shown, props, blockId);
+				case SLAB -> new ShapedBlocks.Slab(blocks.get(family.materialFamily()), shown, props, blockId);
 				case BED -> new ContainerBlocks.Bed(props, blockId);
 				case SHULKER_BOX -> new ContainerBlocks.ShulkerBox(props, blockId);
 				case GLASS -> new GlassBlocks.Glass(props, blockId);
@@ -211,7 +216,8 @@ public final class ModContent {
 				if (family.kind == Family.Kind.SHULKER_BOX) itemProps.stacksTo(1);
 				// a llama wears a carpet as its decor, drawn from the equippable's asset
 				if (family.kind == Family.Kind.CARPET) itemProps.component(DataComponents.EQUIPPABLE, wornAs(Equippable.llamaSwag(DyeColor.WHITE), blockId));
-				Registry.register(BuiltInRegistries.ITEM, blockId, new ColoredBlockItem(block, itemProps, blockId, family.clientItem));
+				Registry.register(BuiltInRegistries.ITEM, blockId, new ColoredBlockItem(block, itemProps, blockId,
+						shown != null ? shown.asItem() : family.clientItem));
 			}
 			blocks.put(family, block);
 		}
