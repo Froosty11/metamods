@@ -49,11 +49,11 @@ public final class SignColors {
 		return color == null ? edited : paint(edited, color);
 	}
 
-	/** The vanilla dye whose text colour is nearest ours. */
+	/** The vanilla dye standing in for ours: colors.json's {@code vanilla}, else the one whose text colour is nearest. */
 	public static DyeColor nearestDye(ModColor color) {
-		return Arrays.stream(DyeColor.values())
+		return color.vanilla().orElseGet(() -> Arrays.stream(DyeColor.values())
 				.min(Comparator.comparingInt(d -> distance(d.getTextColor(), color.rgb())))
-				.orElse(DyeColor.BLACK);
+				.orElse(DyeColor.BLACK));
 	}
 
 	static int distance(int a, int b) {
