@@ -11,7 +11,8 @@ This file is the how-to-build. Status: all block phases done — dyes; wool, con
 terracotta, glazed terracotta (visible note-block donors); carpet (flat tripwire donor, no
 collision); candles (invisible lantern donor + item display, server-sent flame particles) and
 candle cakes (vanilla cake on the client + candle display); wool and concrete stairs and slabs
-(invisible shaped donor + one item display per block); beds (spare bed-state donors); shulker
+(vanilla's wool or concrete stair or slab in the nearest vanilla colour on the client, with one item
+display per block drawing ours over it, see below); beds (spare bed-state donors); shulker
 boxes (invisible donor + base/lid displays); stained glass and panes (leaves / copper-bars
 donors — since 26.x the client picks the render layer per sprite, so they are truly
 translucent); bundles; sheep (colour attachment, vanilla sheep sent invisible, whole-sheep
@@ -24,6 +25,20 @@ equippable on our own equipment asset); sign text in our exact colour (component
 line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
 nearest vanilla dye); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
 tinting (our glass passes the beam untinted).
+
+## Stairs and slabs
+
+The client is shown vanilla's wool or concrete stair or slab of the same shape, in the nearest
+vanilla colour (the same nearest dye signs, collars and the loom use: Cerise is pink, Laserviolet
+light gray), and holds that vanilla item, so its placement prediction is the block the server then
+shows. One item display per block draws our model over it, grown by 1/256 about a point inside the
+shape, so every face sits 1/1024 to 3/1024 of a block outside the vanilla face under it rather than
+risk z-fighting with it (`ShapedBlocks.COVER_GROWTH`; more than that hides the far edges of the
+selection outline). Where the display is not drawn (beyond its 64-block view range, or for the
+moment between a block arriving and its display) the vanilla block shows, never a hole: an
+invisible stair, which this used before, still hid its neighbours' faces and showed through the
+world. Double slabs are the material's full block, with no display. They take no Polymer donor
+states.
 
 ## Later
 
@@ -168,6 +183,6 @@ Generated assets are gitignored (they are recoloured Mojang textures); regenerat
 
 ## Reference
 
-The stairs/slabs pattern (invisible shaped donor + item display per block) comes from
+The item display per stair or slab comes from
 [craftycorvid/wool-polymer](https://github.com/craftycorvid/wool-polymer) (MIT), which also
 provided the original build template.

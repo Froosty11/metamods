@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.block.ClientStates;
+import metacraft.moredyes.content.block.ShapedBlocks;
 import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.sheep.SheepColors;
@@ -65,7 +66,10 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.ColorCollection;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
@@ -76,6 +80,10 @@ import net.minecraft.world.level.block.entity.BannerPattern;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.phys.AABB;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import net.minecraft.world.level.block.state.properties.SlabType;
 
 import java.util.ArrayList;
@@ -140,15 +148,18 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/** Vanilla's stairs and slabs of each of our stairs and slab families' material, in the sixteen colours. */
+	private static final Map<Family, ColorCollection<Block>> VANILLA_SHAPES = Map.of(
+			Family.WOOL_STAIRS, Blocks.WOOL_STAIRS, Family.WOOL_SLAB, Blocks.WOOL_SLAB,
+			Family.CONCRETE_STAIRS, Blocks.CONCRETE_STAIRS, Family.CONCRETE_SLAB, Blocks.CONCRETE_SLAB);
+
 	/**
-	 * A stair or slab is held, on the client, as vanilla's white stair or slab of the same material, so
-	 * the placer's client predicts that shape (not a full cube) with the material's placement sound.
+	 * A stair or slab is held, on the client, as vanilla's stair or slab of the same material in the
+	 * nearest vanilla colour, so the placer's client predicts that shape (not a full cube) with the
+	 * material's placement sound, and the block it predicts is the one the server then shows.
 	 */
 	@GameTest
 	public void stairsAndSlabsAreHeldAsVanillaShapes(GameTestHelper helper) {
-		Map<Family, Item> vanilla = Map.of(
-				Family.WOOL_STAIRS, Items.WOOL_STAIRS.white(), Family.WOOL_SLAB, Items.WOOL_SLAB.white(),
-				Family.CONCRETE_STAIRS, Items.CONCRETE_STAIRS.white(), Family.CONCRETE_SLAB, Items.CONCRETE_SLAB.white());
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
 		int checked = 0;
 		for (ModColor color : ModColors.all()) {
@@ -157,7 +168,8 @@ public final class MoreDyesGameTests {
 				Block ours = ModContent.block(color, family);
 				ItemStack client = PolymerItemUtils.getPolymerItemStack(new ItemStack(ours),
 						viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
-				helper.assertValueEqual(client.getItem(), vanilla.get(family), "the client item of " + ours);
+				helper.assertValueEqual(client.getItem(), VANILLA_SHAPES.get(family).pick(SignColors.nearestDye(color)).asItem(),
+						"the client item of " + ours);
 				Block shown = ((BlockItem) client.getItem()).getBlock();
 				helper.assertTrue(family.kind == Family.Kind.STAIRS ? shown instanceof StairBlock : shown instanceof SlabBlock,
 						ours + " is held as " + shown + ", not its shape");
@@ -166,7 +178,91 @@ public final class MoreDyesGameTests {
 				checked++;
 			}
 		}
-		helper.assertValueEqual(checked, vanilla.size() * ModColors.all().size(), "stairs and slabs checked");
+		helper.assertValueEqual(checked, VANILLA_SHAPES.size() * ModColors.all().size(), "stairs and slabs checked");
+		helper.succeed();
+	}
+
+	/**
+	 * Under its display, every state of a stair or slab is vanilla's stair or slab of the same material
+	 * in the nearest vanilla colour, with the same properties. A client that does not draw the display
+	 * (the block just placed, or beyond the display's view range) sees that stair, not through it. A
+	 * double slab has no display and is the material's own full block.
+	 */
+	@GameTest
+	public void stairsAndSlabsAreShownAsVanillaInTheNearestColour(GameTestHelper helper) {
+		int checked = 0;
+		for (ModColor color : ModColors.all()) {
+			DyeColor nearest = SignColors.nearestDye(color);
+			for (Map.Entry<Family, ColorCollection<Block>> entry : VANILLA_SHAPES.entrySet()) {
+				Block ours = ModContent.block(color, entry.getKey());
+				Block vanilla = entry.getValue().pick(nearest);
+				for (BlockState state : ours.getStateDefinition().getPossibleStates()) {
+					BlockState client = ModContent.clientState(state);
+					if (state.getBlock() instanceof SlabBlock && state.getValue(SlabBlock.TYPE) == SlabType.DOUBLE) {
+						BlockState material = ModContent.block(color, entry.getKey().materialFamily()).defaultBlockState();
+						helper.assertValueEqual(client, ModContent.clientState(material), "the client state of " + state);
+						continue;
+					}
+					helper.assertValueEqual(client.getBlock(), vanilla, "the client block of " + state);
+					helper.assertValueEqual(client.getProperties().size(), state.getProperties().size(), "the client's properties of " + state);
+					for (Property<?> property : state.getProperties()) {
+						helper.assertValueEqual(client.getValue(property), state.getValue(property), property.getName() + " of " + state + " on the client");
+					}
+					checked++;
+				}
+			}
+		}
+		MoreDyes.LOGGER.info("[gametest] {} stair and slab states shown as vanilla's in the nearest colour", checked);
+		helper.succeed();
+	}
+
+	/**
+	 * A stair's or slab's display covers the vanilla block under it with each face just outside the
+	 * vanilla one, so the two never z-fight. It grows about a point that sees every face of the shape
+	 * from inside, so any point of the shape's surface, taken back through the growth, lands strictly
+	 * inside the shape; one on a face the point does not see would land outside, and that face would
+	 * sink into the vanilla block. Also checks a placed block's display carries that growth.
+	 */
+	@GameTest
+	public void stairAndSlabDisplaysCoverTheVanillaFaces(GameTestHelper helper) {
+		int checked = 0;
+		for (Family family : VANILLA_SHAPES.keySet()) {
+			Block ours = block(family);
+			ShapedBlocks.DisplayProvider provider = (ShapedBlocks.DisplayProvider) ours;
+			for (BlockState state : ours.getStateDefinition().getPossibleStates()) {
+				if (provider.displayStack(state) == null) continue; // a double slab: no display
+				double growth = provider.displayGrowth(state);
+				helper.assertTrue(growth > 1, "the display of " + state + " is not grown");
+				// the translation is (1 - growth) × the centre of growth, in world axes from the cell centre
+				Vector3fc t = provider.displayTranslation(state);
+				Vec3 centre = new Vec3(t.x(), t.y(), t.z()).scale(1 / (1 - growth)).add(0.5, 0.5, 0.5);
+				List<AABB> boxes = state.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).toAabbs();
+				for (AABB box : boxes) {
+					for (int i = 0; i < 27; i++) {
+						Vec3 surface = new Vec3(Mth.lerp(i % 3 / 2.0, box.minX, box.maxX),
+								Mth.lerp(i / 3 % 3 / 2.0, box.minY, box.maxY), Mth.lerp(i / 9 / 2.0, box.minZ, box.maxZ));
+						Vec3 back = centre.add(surface.subtract(centre).scale(1 / growth));
+						boolean inside = boxes.stream().anyMatch(b -> b.minX < back.x && back.x < b.maxX
+								&& b.minY < back.y && back.y < b.maxY && b.minZ < back.z && back.z < b.maxZ);
+						helper.assertTrue(inside, "the display of " + state + ", grown about " + centre + ", leaves " + surface + " uncovered");
+					}
+				}
+				checked++;
+			}
+		}
+		helper.assertValueEqual(checked, 2 * (4 * 2 * 5 * 2) + 2 * (2 * 2), "stair and slab states with a display");
+
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		BlockState stair = block(Family.WOOL_STAIRS).defaultBlockState().setValue(StairBlock.FACING, Direction.WEST)
+				.setValue(StairBlock.HALF, net.minecraft.world.level.block.state.properties.Half.TOP);
+		helper.setBlock(pos, stair);
+		BlockBoundAttachment attachment = BlockBoundAttachment.get(helper.getLevel(), helper.absolutePos(pos));
+		helper.assertTrue(attachment != null, "no display holder");
+		ItemDisplayElement display = (ItemDisplayElement) attachment.holder().getElements().getFirst();
+		ShapedBlocks.DisplayProvider provider = (ShapedBlocks.DisplayProvider) stair.getBlock();
+		helper.assertValueEqual(display.getScale().x(), 2 * provider.displayGrowth(stair), "the placed display's scale");
+		helper.assertValueEqual(new Vector3f(display.getTranslation()), new Vector3f(provider.displayTranslation(stair)), "the placed display's translation");
 		helper.succeed();
 	}
 
