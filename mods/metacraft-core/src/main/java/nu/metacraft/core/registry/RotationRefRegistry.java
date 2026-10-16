@@ -24,6 +24,7 @@ public class RotationRefRegistry {
 	public static final RotationRefType<CopyFromEntity> COPY_FROM_ENTITY = register("copy_from_entity", CopyFromEntity.CODEC);
 	public static final RotationRefType<FirstValidRot> FIRST_VALID = register("first_valid", FirstValidRot.CODEC);
 	public static final RotationRefType<OffsetRot> OFFSET = register("offset", OffsetRot.CODEC);
+	public static final RotationRefType<CachedRot> CACHED = register("cached", CachedRot.CODEC);
 
 	public static void init() {
 
