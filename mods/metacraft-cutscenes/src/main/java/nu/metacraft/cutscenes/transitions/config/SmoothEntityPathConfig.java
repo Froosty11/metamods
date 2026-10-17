@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
@@ -109,7 +110,7 @@ public record SmoothEntityPathConfig(
 
 		public static Int2ObjectMap<InterpolationSet.Adjuster> adjuster(int start) {
 			return Int2ObjectMaps.singleton(
-				start + TRANSFORMATION_SIZE + 3,
+				start + TRANSFORMATION_SIZE + 2,
 				elements -> DoubleArrayList.toList(elements.doubleStream().map(e -> e < 0 ? 256 + e : e))
 			);
 		}
@@ -220,14 +221,17 @@ public record SmoothEntityPathConfig(
 
 			list.add(shadowRadius);
 			list.add(shadowStrength);
-			list.add(background);
 			list.add(textOpacity);
+			list.add(ARGB.alpha(background));
+			list.add(ARGB.red(background));
+			list.add(ARGB.green(background));
+			list.add(ARGB.blue(background));
 
 			return list;
 		}
 
 		private static final int TRANSFORMATION_SIZE = 14;
-		private static final int SIZE = TRANSFORMATION_SIZE + 4;
+		private static final int SIZE = TRANSFORMATION_SIZE + 7;
 		private static final int VARS_POS = TRANSFORMATION_SIZE;
 
 		public static DisplayEntityProperties fromList(int start, DoubleStream stream) {
@@ -236,12 +240,17 @@ public record SmoothEntityPathConfig(
 
 			var shadowRadius = array[start + VARS_POS];
 			var shadowStrength = array[start + VARS_POS + 1];
-			var background = array[start + VARS_POS + 2];
-			var textOpacity = array[start + VARS_POS + 3];
+			var textOpacity = array[start + VARS_POS + 2];
+			var background = ARGB.color(
+				(int) Math.round(array[start + VARS_POS + 3]),
+				(int) Math.round(array[start + VARS_POS + 4]),
+				(int) Math.round(array[start + VARS_POS + 5]),
+				(int) Math.round(array[start + VARS_POS + 6])
+			);
 
 			return new DisplayEntityProperties(
 				transformation, (float) shadowRadius, (float) shadowStrength,
-				(int) Math.round(background), (byte) Math.clamp(Math.round(textOpacity), 0, 255)
+				background, (byte) Math.clamp(Math.round(textOpacity), 0, 255)
 			);
 		}
 	}
