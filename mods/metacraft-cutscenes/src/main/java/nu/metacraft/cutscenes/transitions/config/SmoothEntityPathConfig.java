@@ -119,7 +119,7 @@ public record SmoothEntityPathConfig(
 				Transformation.CODEC.optionalFieldOf("transformation", Transformation.IDENTITY).forGetter(DisplayEntityProperties::transformation),
 				Codec.FLOAT.optionalFieldOf("shadow_radius", 0.0f).forGetter(DisplayEntityProperties::shadowRadius),
 				Codec.FLOAT.optionalFieldOf("shadow_strength", 1.0f).forGetter(DisplayEntityProperties::shadowStrength),
-				Codec.INT.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityProperties::background),
+				ExtraCodecs.STRING_ARGB_COLOR.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityProperties::background),
 				Codec.BYTE.optionalFieldOf("text_opacity", (byte) -1).forGetter(DisplayEntityProperties::textOpacity)
 			).apply(instance, DisplayEntityProperties::new)
 		);
