@@ -9,9 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Kultur: chapter culture for vanilla clients via Polymer — banner and shield patterns and
- * paintings now, drinks later. Everything the client sees is in the data files and the pack, so
- * the mod's own job is small: read the catalogue, register the pattern items, hand Polymer the assets.
+ * Kultur: chapter culture for vanilla clients via Polymer — banner and shield patterns, paintings
+ * and the chapter drinks. Everything the client sees is in the data files and the pack, so the
+ * mod's own job is small: read the catalogue, register the pattern items, hand Polymer the assets,
+ * and, when Brewery is not on the server, brew the drinks itself ({@link KulturDrinks}).
  */
 public class Kultur implements ModInitializer {
 	public static final String MOD_ID = "metacraft-kultur";
