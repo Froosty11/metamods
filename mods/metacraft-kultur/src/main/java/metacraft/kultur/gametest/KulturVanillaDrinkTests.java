@@ -246,7 +246,14 @@ public final class KulturVanillaDrinkTests {
 		flier.getAbilities().flying = true;
 		at(flier, 75);
 		helper.assertTrue(pushesTo(flier, () -> ticks(helper, flier, 40)).isEmpty(), "a flying player was pushed");
-		sober(rider, flier);
+
+		ServerPlayer sleeper = drinker(helper);
+		sleeper.setSleepingPos(sleeper.blockPosition());
+		helper.assertTrue(sleeper.isSleeping(), "the drinker is not asleep");
+		at(sleeper, 75);
+		helper.assertTrue(pushesTo(sleeper, () -> ticks(helper, sleeper, 40)).isEmpty(), "a sleeping player was pushed");
+		sleeper.clearSleepingPos();
+		sober(rider, flier, sleeper);
 		helper.succeed();
 	}
 
@@ -441,6 +448,44 @@ public final class KulturVanillaDrinkTests {
 		helper.assertTrue(player.level().dimension() == Level.NETHER, "woke up in " + player.level().dimension().identifier());
 		helper.assertTrue(player.getY() < 127, "woke up on the Nether's roof, at y " + player.getY());
 		sober(player);
+		helper.succeed();
+	}
+
+	/**
+	 * Out at sea or over the void, far from any loaded chunk: the blackout finds nowhere to go, loads
+	 * nothing looking (a chunk load per try would freeze the server), and leaves the player where they
+	 * are with their effects, water breathing included. The rest of the blackout still happens.
+	 */
+	@GameTest
+	public void blackoutWithNowhereToGoStaysPut(GameTestHelper helper) {
+		if (!vanilla(helper)) return;
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = drinker(helper);
+		Vec3 home = player.position();
+		// Moved in this tick, so the server has not yet loaded anything around the new spot.
+		player.snapTo(1_000_000.5, 100, 1_000_000.5);
+		helper.assertTrue(level.getChunkSource().getChunkNow(player.getBlockX() >> 4, player.getBlockZ() >> 4) == null,
+				"the far-off chunk is already loaded");
+		player.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 6000, 0));
+		player.setHealth(player.getMaxHealth());
+		Drunkenness.set(player, 90);
+		int loaded = level.getChunkSource().getLoadedChunksCount();
+		try {
+			var lines = sentTo(player, ClientboundSetActionBarTextPacket.class, () -> drink(helper, player, DrinkPotions.bottle(DrinkKind.ALCOHOL)));
+			helper.assertValueEqual(level.getChunkSource().getLoadedChunksCount(), loaded, "loaded chunks after the blackout");
+			helper.assertTrue(level.getChunkSource().getChunkNow(player.getBlockX() >> 4, player.getBlockZ() >> 4) == null,
+					"the blackout loaded the chunk it stood in");
+			helper.assertTrue(player.getX() == 1_000_000.5 && player.getZ() == 1_000_000.5, "the player moved to " + player.position());
+			helper.assertTrue(player.hasEffect(MobEffects.WATER_BREATHING), "the blackout took water breathing from a player it left at sea");
+			helper.assertTrue(player.hasEffect(MobEffects.BLINDNESS), "no blindness after the blackout");
+			helper.assertValueEqual(Drunkenness.get(player), Alcohol.AFTER_BLACKOUT, "alcohol after the blackout");
+			DamageSource last = player.getLastDamageSource();
+			helper.assertTrue(last != null && last.is(KulturDamageTypes.ALCOHOL_POISONING), "the blackout's damage was " + last);
+			helper.assertValueEqual(lines.size(), 1, "action bar lines after the blackout");
+		} finally {
+			player.snapTo(home);
+			sober(player);
+		}
 		helper.succeed();
 	}
 
