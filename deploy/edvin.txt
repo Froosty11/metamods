@@ -58,7 +58,7 @@ external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluema
 external tectonic https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar sha256:33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046
 external terralith https://cdn.modrinth.com/data/8oi3bsk5/versions/aGE3hYAA/Terralith_26.3_v2.6.5%2B26.3.jar sha256:ad953bdd258d23b85c6e5955d14fed89a525e50c68a80ac5cd652573068d0ca4
 external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar sha256:b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466
-external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.3/danse-2.6.0-metacraft.3%2B26.3.jar sha256:e126198a83598e52c7a65652b645daf7173008abac7e606cdf5d337599a07a8b
+external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.4/danse-2.6.0-metacraft.4%2B26.3.jar sha256:7e512ae8d654f1aa4beb62cdaf94d4ed42cb4195d0dc7795d914509327bebf2b
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
 
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
