@@ -101,10 +101,10 @@ public final class DrunkTicker {
 	 * Brewery's little steps: a push in a random, mostly level direction. The server does not move a
 	 * player, their client does, so the push goes to their client as an explosion's knockback (which
 	 * adds to how they are moving, where a motion packet would replace it), as Brewery sends it. Not
-	 * while riding, gliding or flying, where a push does nothing useful.
+	 * while riding, gliding, flying or asleep, where a push does nothing useful.
 	 */
 	static void stagger(ServerPlayer player, double alcohol) {
-		if (player.isPassenger() || player.isFallFlying() || player.getAbilities().flying || player.isSpectator()) return;
+		if (player.isPassenger() || player.isFallFlying() || player.getAbilities().flying || player.isSpectator() || player.isSleeping()) return;
 		RandomSource random = player.getRandom();
 		Vec3 direction = new Vec3(random.nextDouble() - 0.5, random.nextDouble() / 2 - 0.49, random.nextDouble() - 0.5);
 		double length = Alcohol.staggerLength(alcohol, random.nextDouble());

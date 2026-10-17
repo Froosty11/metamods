@@ -89,18 +89,24 @@ you are past 60), else fast (and weak past 60); harder past 70. Nyckeln does not
 
 A drink that takes you to 100 blacks you out instead: you wake up somewhere within 250 blocks (in the
 same dimension; if there is nowhere safe you stay where you are), with a splitting headache (four
-points of alcohol poisoning, which can kill), blind for 10 s, every other effect gone, at 30. Three
-Spiken is step VII; the fourth blacks you out. Splash and lingering bottles of the drinks do nothing to
-anybody: only drinking counts.
+points of alcohol poisoning, which can kill), blind for 10 s, every other effect gone, at 30. Only
+loaded ground counts as somewhere to wake up (looking further would freeze the server); with none,
+you wake where you were and keep your other effects, so a blackout at sea does not take your water
+breathing. Three Spiken is step VII; the fourth blacks you out. Splash and lingering bottles of the
+drinks do nothing to anybody: only drinking counts.
 
 Inebriated is `kultur:inebriated`; a vanilla client is told it is Luck, which the pack draws with
-PolymITer's icon and names "Inebriated" ("Berusad" in Swedish): `assets/minecraft/` holds that icon,
-those two lang keys and `potion.potency.6` (vanilla's potion names stop at VI). Polymer merges every
-mod's `assets/<namespace>/lang/*.json` key by key, so these add to another mod's `minecraft` lang files
-rather than replace them. Vanilla's own Luck (a creative-only potion) shows as Inebriated too.
+PolymITer's icon and names "Inebriated" ("Berusad" in Swedish). Those three files are in
+`src/main/resources/drinks_pack/assets/minecraft/`, not `assets/`, and go into the pack only in this
+mode (`DrinksPack`), so with Brewery Luck stays Luck. Polymer merges every mod's
+`assets/<namespace>/lang/*.json` key by key, so they add to another mod's `minecraft` lang files rather
+than replace them. Vanilla's own Luck (a creative-only potion) shows as Inebriated too. A client names
+the bottles, and arrows tipped in a lingering one, from the potion: Kultur's lang has
+`item.minecraft.{potion,splash_potion,lingering_potion,tipped_arrow}.effect.kultur_<drink>`.
 
 None of this registers with Brewery on the server: no potions, recipes (`fabric:load_conditions`),
-effect, damage type, tick handler or mixin (`DrinksMixinPlugin`, the inverse of `KulturMixinPlugin`).
+effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the inverse of
+`KulturMixinPlugin`).
 
 ## Adding a banner pattern
 

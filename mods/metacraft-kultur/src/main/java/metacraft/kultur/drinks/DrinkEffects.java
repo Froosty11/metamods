@@ -90,11 +90,12 @@ public final class DrinkEffects {
 
 	/**
 	 * PolymITer's fourth drink: you come to somewhere within 250 blocks, with no effects but blindness,
-	 * a headache (four points of alcohol poisoning, which can kill) and 30 alcohol.
+	 * a headache (four points of alcohol poisoning, which can kill) and 30 alcohol. With nowhere to go
+	 * you come to where you were and keep your effects: stripping water breathing or fire resistance
+	 * from someone who stays at sea or in lava would kill them.
 	 */
 	private static void blackout(ServerPlayer player) {
-		teleport(player);
-		player.removeAllEffects();
+		if (teleport(player)) player.removeAllEffects();
 		ServerLevel level = player.level();
 		player.hurtServer(level, KulturDamageTypes.alcoholPoisoning(level), BLACKOUT_DAMAGE);
 		ToClient.send(player, new ClientboundSetActionBarTextPacket(Component.literal(HEADACHE)
@@ -105,8 +106,8 @@ public final class DrinkEffects {
 
 	/**
 	 * Up to {@value #TELEPORT_TRIES} random spots within {@value #TELEPORT_REACH} blocks in the same
-	 * dimension; the first safe one wins. If none is, the player stays where they are (PolymITer's
-	 * version tried forever). Returns whether the player moved.
+	 * dimension, in chunks already loaded; the first safe one wins. If none is, the player stays where
+	 * they are (PolymITer's version tried forever). Returns whether the player moved.
 	 */
 	static boolean teleport(ServerPlayer player) {
 		ServerLevel level = player.level();
@@ -130,11 +131,12 @@ public final class DrinkEffects {
 	 * Where a player could stand in this column: two free blocks over a solid top, nothing that burns
 	 * or pricks, inside the world border. Open-sky dimensions use the surface (over the End's void there
 	 * is none); one with a roof, the Nether, is searched from just under the roof down, so no spot is in
-	 * or on top of the roof. Loads the chunk if it has to: a blackout is rare.
+	 * or on top of the roof. Only a column whose chunk is already loaded counts: loading or generating
+	 * one would freeze the server, sixteen times over at sea.
 	 */
-	static @Nullable BlockPos safeSpot(ServerLevel level, int x, int z) {
+	public static @Nullable BlockPos safeSpot(ServerLevel level, int x, int z) {
 		if (!level.getWorldBorder().isWithinBounds(new BlockPos(x, 0, z))) return null;
-		level.getChunk(x >> 4, z >> 4);
+		if (level.getChunkSource().getChunkNow(x >> 4, z >> 4) == null) return null;
 		int bottom = level.getMinY() + 1;
 		if (!level.dimensionType().hasCeiling()) {
 			int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);

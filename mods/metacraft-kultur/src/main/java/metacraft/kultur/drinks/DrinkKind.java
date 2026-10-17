@@ -41,8 +41,11 @@ public enum DrinkKind {
 		return Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "drink/" + this.id);
 	}
 
-	/** The lang key of the drink's name; {@code .splash} and {@code .lingering} after it for those bottles. */
-	public String nameKey() {
-		return "item." + Kultur.NAMESPACE + ".drink." + this.id;
+	/**
+	 * The potion's name, which a vanilla client names its bottles and tipped arrows by:
+	 * {@code item.minecraft.potion.effect.kultur_spiken} and so on, in Kultur's lang.
+	 */
+	public String potionName() {
+		return Kultur.NAMESPACE + "_" + this.id;
 	}
 }
