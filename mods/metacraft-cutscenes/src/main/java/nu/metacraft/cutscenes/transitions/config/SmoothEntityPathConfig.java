@@ -7,6 +7,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.ExtraCodecs;
@@ -55,7 +57,13 @@ public record SmoothEntityPathConfig(
 	public record DynamicDisplayTarget(
 		PlayerSpecificCameraPathTransition.DynamicTarget target, DisplayEntityProperties displayEntityProperties
 	) implements Interpolatable<CutsceneContext> {
-		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
+		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = new Int2ObjectOpenHashMap<>();
+
+		static {
+			ADJUSTER.putAll(Target.ADJUSTER);
+			ADJUSTER.putAll(DisplayEntityProperties.adjuster(PlayerSpecificCameraPathTransition.DynamicTarget.SIZE));
+		}
+
 		public static final MapCodec<DynamicDisplayTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 				PlayerSpecificCameraPathTransition.DynamicTarget.OR_FIXED_CODEC.forGetter(DynamicDisplayTarget::target),
@@ -98,6 +106,13 @@ public record SmoothEntityPathConfig(
 		float shadowRadius, float shadowStrength,
 		int background, byte textOpacity //Only used on text displays.
 	) {
+
+		public static Int2ObjectMap<InterpolationSet.Adjuster> adjuster(int start) {
+			return Int2ObjectMaps.singleton(
+				start + TRANSFORMATION_SIZE + 3,
+				elements -> DoubleArrayList.toList(elements.doubleStream().map(e -> e < 0 ? 256 + e : e))
+			);
+		}
 
 		public static final MapCodec<DisplayEntityProperties> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -226,7 +241,7 @@ public record SmoothEntityPathConfig(
 
 			return new DisplayEntityProperties(
 				transformation, (float) shadowRadius, (float) shadowStrength,
-				(int) Math.round(background), (byte) Math.round(textOpacity)
+				(int) Math.round(background), (byte) Math.clamp(Math.round(textOpacity), 0, 255)
 			);
 		}
 	}
