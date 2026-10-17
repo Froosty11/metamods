@@ -119,6 +119,12 @@ public final class GeneratedAssets implements DataProvider {
 			placeable.add(id);
 		}
 
+		// The drinks without Brewery (metacraft.kultur.drinks): Inebriated's own name (a vanilla client sees
+		// Luck, renamed by assets/minecraft/lang) and alcohol poisoning's death messages.
+		lang.put("effect." + MOD + ".inebriated", "Inebriated");
+		lang.put("death.attack." + MOD + ".alcohol_poisoning", "%1$s was killed by alcohol poisoning");
+		lang.put("death.attack." + MOD + ".alcohol_poisoning.player", "%1$s was killed by alcohol poisoning while fighting %2$s");
+
 		files.json(minecraftData.resolve("tags/banner_pattern/no_item_required.json"), tag(free));
 		files.json(minecraftData.resolve("tags/painting_variant/placeable.json"), tag(placeable));
 		files.json(minecraftData.resolve("tags/item/loom_patterns.json"), tag(loomItems));
