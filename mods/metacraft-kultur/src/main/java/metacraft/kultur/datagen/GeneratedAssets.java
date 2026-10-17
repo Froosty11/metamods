@@ -121,13 +121,15 @@ public final class GeneratedAssets implements DataProvider {
 		}
 
 		// The drinks without Brewery (metacraft.kultur.drinks): Inebriated's own name (a vanilla client sees
-		// Luck, renamed by assets/minecraft/lang) and alcohol poisoning's death messages.
+		// Luck, renamed by drinks_pack/assets/minecraft/lang) and alcohol poisoning's death messages.
 		lang.put("effect." + MOD + ".inebriated", "Inebriated");
+		// A vanilla client names a potion's bottles and tipped arrows from the potion's name, under vanilla's keys.
 		for (DrinkKind kind : DrinkKind.values()) {
-			lang.put(kind.nameKey(), kind.displayName());
 			if (kind == DrinkKind.NYCKELN) continue;
-			lang.put(kind.nameKey() + ".splash", "Splash " + kind.displayName());
-			lang.put(kind.nameKey() + ".lingering", "Lingering " + kind.displayName());
+			lang.put("item.minecraft.potion.effect." + kind.potionName(), kind.displayName());
+			lang.put("item.minecraft.splash_potion.effect." + kind.potionName(), "Splash " + kind.displayName());
+			lang.put("item.minecraft.lingering_potion.effect." + kind.potionName(), "Lingering " + kind.displayName());
+			lang.put("item.minecraft.tipped_arrow.effect." + kind.potionName(), "Arrow of " + kind.displayName());
 		}
 		lang.put("item." + MOD + ".nyckeln", DrinkKind.NYCKELN.displayName());
 		lang.put("death.attack." + MOD + ".alcohol_poisoning", "%1$s was killed by alcohol poisoning");

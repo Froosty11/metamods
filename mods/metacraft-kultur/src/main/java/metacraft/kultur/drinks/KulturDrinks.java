@@ -48,6 +48,7 @@ public final class KulturDrinks {
 		Drunkenness.register();
 		DrunkTicker.register();
 		DrinkPotions.register();
+		DrinksPack.register();
 		NYCKELN = Registry.register(BuiltInRegistries.ITEM, id("nyckeln"), new NyckelnItem(new Item.Properties()
 				.setId(ResourceKey.create(Registries.ITEM, id("nyckeln")))
 				.stacksTo(1)
