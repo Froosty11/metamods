@@ -3,6 +3,7 @@ package metacraft.kultur.datagen;
 import com.google.gson.JsonObject;
 import metacraft.kultur.Kultur;
 import metacraft.kultur.catalogue.Catalogue;
+import metacraft.kultur.drinks.DrinkKind;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -122,6 +123,13 @@ public final class GeneratedAssets implements DataProvider {
 		// The drinks without Brewery (metacraft.kultur.drinks): Inebriated's own name (a vanilla client sees
 		// Luck, renamed by assets/minecraft/lang) and alcohol poisoning's death messages.
 		lang.put("effect." + MOD + ".inebriated", "Inebriated");
+		for (DrinkKind kind : DrinkKind.values()) {
+			lang.put(kind.nameKey(), kind.displayName());
+			if (kind == DrinkKind.NYCKELN) continue;
+			lang.put(kind.nameKey() + ".splash", "Splash " + kind.displayName());
+			lang.put(kind.nameKey() + ".lingering", "Lingering " + kind.displayName());
+		}
+		lang.put("item." + MOD + ".nyckeln", DrinkKind.NYCKELN.displayName());
 		lang.put("death.attack." + MOD + ".alcohol_poisoning", "%1$s was killed by alcohol poisoning");
 		lang.put("death.attack." + MOD + ".alcohol_poisoning.player", "%1$s was killed by alcohol poisoning while fighting %2$s");
 

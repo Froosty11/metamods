@@ -39,6 +39,7 @@
 		"brewery": "*"
 	},
 	"mixins": [
-		"kultur.mixins.json"
+		"kultur.mixins.json",
+		"kultur-drinks.mixins.json"
 	]
 }
