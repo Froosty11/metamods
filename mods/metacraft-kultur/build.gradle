@@ -1,4 +1,4 @@
-// Kultur — chapter culture (banner and shield patterns, paintings, drinks on Brewery) for vanilla clients (Polymer).
+// Kultur — chapter culture (banner and shield patterns, paintings, drinks with or without Brewery) for vanilla clients (Polymer).
 // See README.md in this module.
 version = project.kultur_version
 
@@ -22,10 +22,13 @@ addPolymerDependency()
 dependencies {
 	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
-	// Patbox's Brewery brews the chapter drinks (data/kultur/brewery_drinks). Never a dependency: the drinks
-	// are data Brewery reads when it is there. Here only so the game tests can drink them.
+	// Patbox's Brewery brews the chapter drinks (data/kultur/brewery_drinks) when it is on the server; without
+	// it Kultur brews them itself (metacraft.kultur.drinks). Never a dependency. In the dev runtime so the game
+	// tests can drink Brewery's; -PkulturNoBrewery leaves it out, to run every test in the other mode.
 	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
-	runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
+	if (!project.hasProperty('kulturNoBrewery')) {
+		runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
+	}
 	gametestCompileOnly("maven.modrinth:brewery:${project.brewery_version}")
 	runtimeOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 }

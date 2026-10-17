@@ -20,7 +20,8 @@
 		],
 		"fabric-gametest": [
 			"metacraft.kultur.gametest.KulturGameTests",
-			"metacraft.kultur.gametest.KulturDrinkTests"
+			"metacraft.kultur.gametest.KulturDrinkTests",
+			"metacraft.kultur.gametest.KulturVanillaDrinkTests"
 		],
 		"fabric-datagen": [
 			"metacraft.kultur.datagen.KulturDataGenerator"
