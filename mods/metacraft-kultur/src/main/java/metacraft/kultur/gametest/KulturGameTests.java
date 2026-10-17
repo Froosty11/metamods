@@ -1,10 +1,18 @@
 package metacraft.kultur.gametest;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import eu.pb4.polymer.resourcepack.api.OutputGenerator;
+import eu.pb4.polymer.resourcepack.api.ResourcePackCreator;
+import eu.pb4.polymer.resourcepack.api.ResourcePackStatusConsumer;
 import metacraft.kultur.Kultur;
 import metacraft.kultur.catalogue.Catalogue;
 import metacraft.kultur.content.ModContent;
 import metacraft.kultur.content.PatternItem;
+import metacraft.kultur.drinks.DrinkKind;
+import metacraft.kultur.drinks.DrinksPack;
+import metacraft.kultur.drinks.KulturDrinks;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
@@ -23,8 +31,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BannerPattern;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What a server built from the catalogue actually holds: every pattern and painting in its
@@ -121,6 +133,110 @@ public final class KulturGameTests {
 		if (!PolymerResourcePackUtils.hasResources()) helper.fail("Polymer has no mod assets registered");
 		if (!PolymerResourcePackUtils.isRequired()) helper.fail("the pack is not marked required");
 		helper.succeed();
+	}
+
+	/**
+	 * The pack the server serves (Polymer's own, built here in memory). Without Brewery it shows Luck
+	 * as Inebriated (Berusad) with PolymITer's icon; with Brewery, Inebriated never appears, so Luck is
+	 * left alone: none of Kultur's {@code minecraft} files are in it.
+	 */
+	@GameTest(maxTicks = 400)
+	public void packRenamesLuckOnlyWithoutBrewery(GameTestHelper helper) {
+		Map<String, byte[]> pack = build(helper, PolymerResourcePackUtils.getInstance());
+		if (pack == null) return;
+		byte[] icon = pack.get(LUCK_ICON);
+		String english = string(lang(pack, "en_us"), "effect.minecraft.luck");
+		String swedish = string(lang(pack, "sv_se"), "effect.minecraft.luck");
+		if (KulturDrinks.active()) {
+			helper.assertTrue(icon != null && Arrays.equals(icon, DrinksPack.read(LUCK_ICON)), "the pack's luck.png is not PolymITer's icon");
+			helper.assertValueEqual(english, "Inebriated", "effect.minecraft.luck in en_us");
+			helper.assertValueEqual(swedish, "Berusad", "effect.minecraft.luck in sv_se");
+		} else {
+			helper.assertFalse(icon != null && Arrays.equals(icon, DrinksPack.read(LUCK_ICON)), "with Brewery, the pack still has PolymITer's luck.png");
+			helper.assertFalse("Inebriated".equals(english), "with Brewery, the pack still names Luck Inebriated");
+			helper.assertFalse("Berusad".equals(swedish), "with Brewery, the pack still names Luck Berusad");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * Kultur's {@code minecraft} lang files add their key to another mod's files of the same name rather
+	 * than replace them: Polymer merges every {@code assets/<namespace>/lang/*.json} key by key, whichever
+	 * comes first. A pack built with a stand-in for another mod's {@code en_us.json} before Kultur's
+	 * files and one after.
+	 */
+	@GameTest(maxTicks = 400)
+	public void packLangAddsToOtherMods(GameTestHelper helper) {
+		ResourcePackCreator creator = ResourcePackCreator.create();
+		creator.creationEvent.register(builder -> builder.addData("assets/minecraft/lang/en_us.json",
+				"{\"kultur.test.before\": \"another mod's key, added first\"}".getBytes(StandardCharsets.UTF_8)));
+		creator.creationEvent.register(DrinksPack::addTo);
+		creator.addAssetSource(Kultur.MOD_ID);
+		creator.afterInitialCreationEvent.register(builder -> builder.addData("assets/minecraft/lang/en_us.json",
+				"{\"kultur.test.after\": \"another mod's key, added last\"}".getBytes(StandardCharsets.UTF_8)));
+		Map<String, byte[]> pack = build(helper, creator);
+		if (pack == null) return;
+		JsonObject english = lang(pack, "en_us");
+		helper.assertValueEqual(string(english, "effect.minecraft.luck"), "Inebriated", "effect.minecraft.luck in en_us");
+		helper.assertTrue(english.has("kultur.test.before") && english.has("kultur.test.after"), "another mod's en_us keys did not survive: " + english.keySet());
+		helper.assertValueEqual(string(lang(pack, "sv_se"), "effect.minecraft.luck"), "Berusad", "effect.minecraft.luck in sv_se");
+		helper.succeed();
+	}
+
+	/**
+	 * A vanilla client names a potion, a splash or lingering one and a tipped arrow from the potion's
+	 * name, {@code item.minecraft.<item>.effect.kultur_<drink>}: so does {@code /give}'s feedback, a chat
+	 * mention, an arrow tipped in a lingering drink. Kultur's lang has every one of them.
+	 */
+	@GameTest
+	public void drinkNamesAreInTheLang(GameTestHelper helper) {
+		JsonObject lang;
+		try (InputStream in = Kultur.class.getResourceAsStream("/assets/" + Kultur.NAMESPACE + "/lang/en_us.json")) {
+			lang = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+		} catch (java.io.IOException | NullPointerException e) {
+			helper.fail("no kultur en_us.json: " + e);
+			return;
+		}
+		List<String> missing = new ArrayList<>();
+		for (DrinkKind kind : DrinkKind.values()) {
+			if (kind == DrinkKind.NYCKELN) continue;
+			for (String item : List.of("potion", "splash_potion", "lingering_potion", "tipped_arrow")) {
+				String key = "item.minecraft." + item + ".effect." + kind.potionName();
+				if (!lang.has(key)) missing.add(key);
+			}
+		}
+		if (!missing.isEmpty()) helper.fail("missing from the lang: " + missing);
+		helper.assertValueEqual(string(lang, "item.minecraft.potion.effect." + DrinkKind.SPIKEN.potionName()), "Spiken Patch Drink", "Spiken's name");
+		helper.assertValueEqual(string(lang, "item.minecraft.tipped_arrow.effect." + DrinkKind.SPIKEN.potionName()), "Arrow of Spiken Patch Drink", "Spiken's arrow's name");
+		helper.succeed();
+	}
+
+	private static final String LUCK_ICON = "assets/minecraft/textures/mob_effect/luck.png";
+
+	/** Builds a pack into memory, not a file: Polymer's own pack is the one the server would serve. */
+	private static Map<String, byte[]> build(GameTestHelper helper, ResourcePackCreator creator) {
+		OutputGenerator<Map<String, byte[]>> inMemory = (resources, converter, status) -> {
+			Map<String, byte[]> files = new HashMap<>();
+			for (var entry : resources) {
+				if (entry.getValue() != null) files.put(entry.getKey(), entry.getValue().readAllBytes());
+			}
+			return files;
+		};
+		try {
+			return creator.build(inMemory, ResourcePackStatusConsumer.nonLogging());
+		} catch (java.util.concurrent.ExecutionException | InterruptedException e) {
+			helper.fail("building the pack failed: " + e);
+			return null;
+		}
+	}
+
+	private static JsonObject lang(Map<String, byte[]> pack, String language) {
+		byte[] json = pack.get("assets/minecraft/lang/" + language + ".json");
+		return json == null ? new JsonObject() : JsonParser.parseString(new String(json, StandardCharsets.UTF_8)).getAsJsonObject();
+	}
+
+	private static String string(JsonObject json, String key) {
+		return json.has(key) ? json.get(key).getAsString() : null;
 	}
 
 	private static void need(List<String> missing, String path) {

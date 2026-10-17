@@ -21,7 +21,13 @@ pattern item in the loom, as a white one does.
 
 ## The drinks
 
-PolymITer's IT drinks, brewed with [Patbox's Brewery](https://modrinth.com/mod/brewery): cook the
+PolymITer's four IT drinks come two ways, depending on whether
+[Patbox's Brewery](https://modrinth.com/mod/brewery) is on the server. Kultur never depends on it; it
+looks once, at start-up, and only one of the two is ever active.
+
+### With Brewery
+
+Brewed with Brewery: cook the
 ingredients in a water cauldron over fire, a campfire or lava, take the brew out with a glass bottle, and distil the
 two that say so in a brewing stand. No barrel ageing.
 
@@ -40,8 +46,8 @@ for ten seconds and a little hurt, at 30 alcohol. Brewery counts a poor brew as 
 so bad ones get you there sooner.
 
 The drinks are data, `src/main/resources/data/kultur/brewery_drinks/*.json` (Brewery's format; their
-bottles, PolymITer's models, are `assets/kultur/items/drink/`). Brewery is not a dependency: without
-it nothing reads them. Four potatoes, not six, and a second ingredient each, because a cauldron offers
+bottles, PolymITer's models, are `assets/kultur/items/drink/`), which only Brewery reads. Four
+potatoes, not six, and a second ingredient each, because a cauldron offers
 every drink whose ingredients are all in it and Brewery's vodka is six potatoes.
 `KulturDrinkTests` checks every recipe brews only its own drink.
 
@@ -49,6 +55,58 @@ Brewery 0.17 on 26.3 cannot find its own drunkenness file (`brewery_effects.json
 resource root, which 26.3 refuses with "Invalid path ''"), so without help none of that loads on a
 real server. `compat/brewery`'s mixin finds it per namespace instead; it applies only when Brewery is
 loaded, and can go when Brewery fixes it.
+
+### Without Brewery
+
+Kultur brews them itself (`metacraft.kultur.drinks`), PolymITer's way: in a brewing stand.
+
+| drink | made by | alcohol |
+| --- | --- | --- |
+| Alcoholic Beverage | brewing stand: water bottle + potato | 20 |
+| Spiken Patch Drink | brewing stand: Alcoholic Beverage + sweet berries | 30 |
+| Släggan Patch Drink | brewing stand: Alcoholic Beverage + suspicious stew | 35 |
+| Nyckeln Patch Drink | crafting: apple + water bottle | 0 |
+
+Drinking one puts its alcohol on your meter, Brewery's: it adds the drink's value (and never leaves
+you below it), drains about 14 a minute, and comes down 3 for a slice of bread and 10 for a bucket of
+milk. Brewery's drunkenness comes in steps of ten, all below the blackout, and the step you are on is
+the level of **Inebriated** — on you whenever there is alcohol in you, its timer the time until
+you are sober:
+
+| alcohol | Inebriated | adds |
+| --- | --- | --- |
+| > 0 | I | nothing; tipsy |
+| 30 | II | weakness |
+| 40 | III | slowness |
+| 50 | IV | the stagger: little steps you did not mean to take |
+| 60 | V | nausea |
+| 70 | VI | alcohol poisoning, a point every 4 s, never below half a heart |
+| 80 | VII | darkness |
+
+Every one of these shows its icon. Each drink also has its own effect, as with Brewery: Alcoholic
+Beverage and Spiken send you fast or slow for 200 s, Släggan slow three times in four (and strong once
+you are past 60), else fast (and weak past 60); harder past 70. Nyckeln does nothing; it is the sober one.
+
+A drink that takes you to 100 blacks you out instead: you wake up somewhere within 250 blocks (in the
+same dimension; if there is nowhere safe you stay where you are), with a splitting headache (four
+points of alcohol poisoning, which can kill), blind for 10 s, every other effect gone, at 30. Only
+loaded ground counts as somewhere to wake up (looking further would freeze the server); with none,
+you wake where you were and keep your other effects, so a blackout at sea does not take your water
+breathing. Three Spiken is step VII; the fourth blacks you out. Splash and lingering bottles of the
+drinks do nothing to anybody: only drinking counts.
+
+Inebriated is `kultur:inebriated`; a vanilla client is told it is Luck, which the pack draws with
+PolymITer's icon and names "Inebriated" ("Berusad" in Swedish). Those three files are in
+`src/main/resources/drinks_pack/assets/minecraft/`, not `assets/`, and go into the pack only in this
+mode (`DrinksPack`), so with Brewery Luck stays Luck. Polymer merges every mod's
+`assets/<namespace>/lang/*.json` key by key, so they add to another mod's `minecraft` lang files rather
+than replace them. Vanilla's own Luck (a creative-only potion) shows as Inebriated too. A client names
+the bottles, and arrows tipped in a lingering one, from the potion: Kultur's lang has
+`item.minecraft.{potion,splash_potion,lingering_potion,tipped_arrow}.effect.kultur_<drink>`.
+
+None of this registers with Brewery on the server: no potions, recipes (`fabric:load_conditions`),
+effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the inverse of
+`KulturMixinPlugin`).
 
 ## Adding a banner pattern
 
@@ -94,10 +152,16 @@ folder `art/kultur/<chapter>/`.
   normaliser (`Masks`).
 - `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:metacraft-kultur:runServer` —
   server game tests (`KulturGameTests`): every catalogue entry in its registry and tag, gated
-  patterns behind their item, every asset in the jar.
+  patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
+  Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
+- The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
+  runs (recipes, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
+  once. Run both.
 - `./gradlew :mods:metacraft-kultur:runClientGameTest` — a real client joins a test server and
-  screenshots a banner, a shield and the painting into
-  `build/run/clientGameTest/screenshots/`. Look at it; that is the test.
+  screenshots a banner, a shield and the painting, and the drinks, into
+  `build/run/clientGameTest/screenshots/`. With `-PkulturNoBrewery` it screenshots Kultur's own
+  bottles (`drinks_vanilla_bottles.png`) and the inventory at 55 alcohol, Inebriated IV with weakness
+  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test.
 - `./gradlew :mods:metacraft-kultur:runServer` — a dev server with the pack auto-hosted; join with a
   vanilla client, `/give @s minecraft:loom`, `/give @s kultur:pirkko_banner_pattern`.
 

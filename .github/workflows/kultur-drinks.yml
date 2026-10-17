@@ -1,0 +1,106 @@
+# Fork only: Kultur's drinks-without-Brewery branch, tested on push. Every Kultur test in both modes
+# (with Brewery on the server and without it) and the client screenshot test without it. Drop this
+# file before the branch goes upstream.
+
+name: kultur-drinks
+on:
+  push:
+    branches: [edvin/kultur-drinks]
+  workflow_dispatch:
+
+jobs:
+  kultur:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      REPORTS: ${{ github.workspace }}/kultur-reports
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install a virtual display and Mesa
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libglx-mesa0 libegl1 mesa-utils mesa-vulkan-drivers
+          mkdir -p "$REPORTS"
+
+      - name: Datagen
+        id: datagen
+        run: ./gradlew runDatagen
+
+      - name: Unit tests
+        if: ${{ !cancelled() && steps.datagen.outcome == 'success' }}
+        run: ./gradlew :mods:metacraft-kultur:test
+
+      - name: Game tests with Brewery
+        if: ${{ !cancelled() && steps.datagen.outcome == 'success' }}
+        run: |
+          rm -rf mods/metacraft-kultur/run/world
+          JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true -Dfabric-api.gametest.report-file=$REPORTS/gametest-with-brewery.xml" \
+            ./gradlew :mods:metacraft-kultur:runServer
+          cp mods/metacraft-kultur/run/logs/latest.log "$REPORTS/server-with-brewery.log" || true
+
+      - name: Game tests without Brewery
+        if: ${{ !cancelled() && steps.datagen.outcome == 'success' }}
+        run: |
+          rm -rf mods/metacraft-kultur/run/world
+          JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true -Dfabric-api.gametest.report-file=$REPORTS/gametest-without-brewery.xml" \
+            ./gradlew :mods:metacraft-kultur:runServer -PkulturNoBrewery
+          cp mods/metacraft-kultur/run/logs/latest.log "$REPORTS/server-without-brewery.log" || true
+
+      # With CI set, Loom wraps a client run in its own `xvfb-run`, whose default screen is 8 bits deep:
+      # no GLX visual for OpenGL there ("Couldn't find matching GLX visual"). Without CI it runs in this one.
+      - name: Client screenshot test without Brewery
+        if: ${{ !cancelled() && steps.datagen.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          env -u CI xvfb-run -a -s "-screen 0 1920x1080x24 +extension GLX +render -noreset" \
+            ./gradlew :mods:metacraft-kultur:runClientGameTest -PkulturNoBrewery
+
+      - name: Game test summary
+        if: ${{ always() }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import glob, os, xml.etree.ElementTree as ET
+          reports = os.environ["REPORTS"]
+          print("| mode | tests | failures | skipped |\n| --- | --- | --- | --- |")
+          for path in sorted(glob.glob(os.path.join(reports, "gametest-*.xml"))):
+              root = ET.parse(path).getroot()
+              suites = [root] if root.tag == "testsuite" else root.findall("testsuite")
+              cases = [c for s in suites for c in s.findall("testcase")]
+              failed = [c.get("name") for c in cases if c.find("failure") is not None or c.find("error") is not None]
+              skipped = [c for c in cases if c.find("skipped") is not None]
+              print(f"| {os.path.basename(path)} | {len(cases)} | {len(failed)} | {len(skipped)} |")
+              for name in failed:
+                  print(f"\n- failed in {os.path.basename(path)}: `{name}`")
+          EOF
+          cat "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kultur-screenshots
+          path: mods/metacraft-kultur/build/run/clientGameTest/screenshots/
+          if-no-files-found: warn
+
+      - name: Upload reports and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kultur-reports-and-logs
+          path: |
+            kultur-reports/
+            mods/metacraft-kultur/build/reports/tests/
+            mods/metacraft-kultur/build/run/clientGameTest/logs/
+            mods/metacraft-kultur/run/logs/
+          if-no-files-found: warn
