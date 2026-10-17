@@ -1,6 +1,9 @@
 package metacraft.kultur.gametest;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import eu.pb4.polymer.resourcepack.api.ResourcePackCreator;
 import metacraft.kultur.Kultur;
 import metacraft.kultur.catalogue.Catalogue;
 import metacraft.kultur.content.ModContent;
@@ -23,8 +26,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BannerPattern;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 /**
  * What a server built from the catalogue actually holds: every pattern and painting in its
@@ -121,6 +129,58 @@ public final class KulturGameTests {
 		if (!PolymerResourcePackUtils.hasResources()) helper.fail("Polymer has no mod assets registered");
 		if (!PolymerResourcePackUtils.isRequired()) helper.fail("the pack is not marked required");
 		helper.succeed();
+	}
+
+	/**
+	 * The pack shows Luck as Inebriated (Berusad), with PolymITer's icon, and Kultur's
+	 * {@code assets/minecraft/lang} files add their keys to another mod's files of the same name rather
+	 * than replace them: Polymer merges every {@code assets/<namespace>/lang/*.json} key by key, whichever
+	 * mod comes first. Built in-process, with a stand-in for another mod's {@code en_us.json} added before
+	 * Kultur's assets and one after.
+	 */
+	@GameTest(maxTicks = 400)
+	public void packRenamesLuck(GameTestHelper helper) {
+		ResourcePackCreator creator = ResourcePackCreator.create();
+		creator.addAssetSource(Kultur.MOD_ID);
+		creator.creationEvent.register(builder -> builder.addData("assets/minecraft/lang/en_us.json",
+				"{\"kultur.test.before\": \"another mod's key, added first\"}".getBytes(StandardCharsets.UTF_8)));
+		creator.afterInitialCreationEvent.register(builder -> builder.addData("assets/minecraft/lang/en_us.json",
+				"{\"kultur.test.after\": \"another mod's key, added last\"}".getBytes(StandardCharsets.UTF_8)));
+		try {
+			Path zip = Files.createTempFile("kultur-pack", ".zip");
+			creator.build(zip);
+			try (ZipFile pack = new ZipFile(zip.toFile())) {
+				byte[] icon = read(pack, "assets/minecraft/textures/mob_effect/luck.png");
+				byte[] ours;
+				try (InputStream in = Kultur.class.getResourceAsStream("/assets/minecraft/textures/mob_effect/luck.png")) {
+					ours = in == null ? null : in.readAllBytes();
+				}
+				helper.assertTrue(ours != null && Arrays.equals(icon, ours), "the pack's luck.png is not PolymITer's icon");
+				JsonObject english = JsonParser.parseString(new String(read(pack, "assets/minecraft/lang/en_us.json"), StandardCharsets.UTF_8)).getAsJsonObject();
+				helper.assertValueEqual(string(english, "effect.minecraft.luck"), "Inebriated", "effect.minecraft.luck in en_us");
+				helper.assertValueEqual(string(english, "potion.potency.6"), "VII", "potion.potency.6 in en_us");
+				helper.assertTrue(english.has("kultur.test.before") && english.has("kultur.test.after"), "another mod's en_us keys did not survive: " + english.keySet());
+				JsonObject swedish = JsonParser.parseString(new String(read(pack, "assets/minecraft/lang/sv_se.json"), StandardCharsets.UTF_8)).getAsJsonObject();
+				helper.assertValueEqual(string(swedish, "effect.minecraft.luck"), "Berusad", "effect.minecraft.luck in sv_se");
+				helper.assertValueEqual(string(swedish, "potion.potency.6"), "VII", "potion.potency.6 in sv_se");
+			}
+			Files.deleteIfExists(zip);
+		} catch (java.io.IOException | java.util.concurrent.ExecutionException | InterruptedException e) {
+			helper.fail("building the pack failed: " + e);
+		}
+		helper.succeed();
+	}
+
+	private static byte[] read(ZipFile zip, String path) throws java.io.IOException {
+		var entry = zip.getEntry(path);
+		if (entry == null) throw new java.io.IOException(path + " is not in the pack");
+		try (InputStream in = zip.getInputStream(entry)) {
+			return in.readAllBytes();
+		}
+	}
+
+	private static String string(JsonObject json, String key) {
+		return json.has(key) ? json.get(key).getAsString() : null;
 	}
 
 	private static void need(List<String> missing, String path) {
