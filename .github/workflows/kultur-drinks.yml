@@ -30,7 +30,7 @@ jobs:
       - name: Install a virtual display and Mesa
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libglx-mesa0 libegl1 mesa-utils
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libglx-mesa0 libegl1 mesa-utils mesa-vulkan-drivers
           mkdir -p "$REPORTS"
 
       - name: Datagen
@@ -57,10 +57,14 @@ jobs:
             ./gradlew :mods:metacraft-kultur:runServer -PkulturNoBrewery
           cp mods/metacraft-kultur/run/logs/latest.log "$REPORTS/server-without-brewery.log" || true
 
+      # With CI set, Loom wraps a client run in its own `xvfb-run`, whose default screen is 8 bits deep:
+      # no GLX visual for OpenGL there ("Couldn't find matching GLX visual"). Without CI it runs in this one.
       - name: Client screenshot test without Brewery
         if: ${{ !cancelled() && steps.datagen.outcome == 'success' }}
+        timeout-minutes: 30
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew :mods:metacraft-kultur:runClientGameTest -PkulturNoBrewery
+          env -u CI xvfb-run -a -s "-screen 0 1920x1080x24 +extension GLX +render -noreset" \
+            ./gradlew :mods:metacraft-kultur:runClientGameTest -PkulturNoBrewery
 
       - name: Game test summary
         if: ${{ always() }}
