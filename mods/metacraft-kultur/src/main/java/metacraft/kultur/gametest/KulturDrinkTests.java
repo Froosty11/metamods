@@ -6,8 +6,12 @@ import eu.pb4.brewery.drink.DrinkType;
 import eu.pb4.brewery.drink.DrinkUtils;
 import metacraft.kultur.Kultur;
 import metacraft.kultur.compat.brewery.BreweryEffectsFiles;
+import metacraft.kultur.drinks.KulturDamageTypes;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
@@ -90,6 +94,29 @@ public final class KulturDrinkTests {
 	@GameTest
 	public void nyckelnIsSober(GameTestHelper helper) {
 		if (breweryHere(helper)) WithBrewery.nyckelnIsSober(helper);
+	}
+
+	/**
+	 * With Brewery on the server, Kultur's own brewing (metacraft.kultur.drinks) stays out of the way:
+	 * no potions, no Nyckeln item, no Inebriated, no recipes, no damage type of its own.
+	 */
+	@GameTest
+	public void noDrinksOfOurOwnBesideBrewery(GameTestHelper helper) {
+		if (!breweryHere(helper)) return;
+		List<String> wrong = new ArrayList<>();
+		for (String drink : List.of("alcohol", "spiken", "slaggan")) {
+			if (BuiltInRegistries.POTION.containsKey(id(drink))) wrong.add("potion " + drink + " registered");
+		}
+		if (BuiltInRegistries.ITEM.containsKey(id("nyckeln"))) wrong.add("item nyckeln registered");
+		if (BuiltInRegistries.MOB_EFFECT.containsKey(id("inebriated"))) wrong.add("effect inebriated registered");
+		for (String drink : DRINKS) {
+			if (helper.getLevel().recipeAccess().byKey(ResourceKey.create(Registries.RECIPE, id(drink))).isPresent()) wrong.add("recipe " + drink + " loaded");
+		}
+		if (helper.getLevel().registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).get(KulturDamageTypes.ALCOHOL_POISONING).isPresent()) {
+			wrong.add("damage type alcohol_poisoning loaded");
+		}
+		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
+		helper.succeed();
 	}
 
 	private static boolean breweryHere(GameTestHelper helper) {

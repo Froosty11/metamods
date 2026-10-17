@@ -20,12 +20,16 @@ import net.minecraft.world.level.block.entity.BannerPattern;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /** The pattern items, one per catalogue pattern marked {@code item}; everything else is data. */
 public final class ModContent {
 	private static final Map<String, PatternItem> ITEMS = new LinkedHashMap<>();
+	private static final List<Consumer<CreativeModeTab.Output>> ALSO_IN_TAB = new ArrayList<>();
 
 	private ModContent() {}
 
@@ -57,6 +61,11 @@ public final class ModContent {
 		return Collections.unmodifiableMap(ITEMS);
 	}
 
+	/** More for Kultur's creative tab, after the pattern items: the drinks, when Kultur brews them itself. */
+	public static void alsoInCreativeTab(Consumer<CreativeModeTab.Output> items) {
+		ALSO_IN_TAB.add(items);
+	}
+
 	/**
 	 * A creative tab, since a pattern item is found in no other way until a loot table gives one out.
 	 */
@@ -65,7 +74,10 @@ public final class ModContent {
 		CreativeModeTab tab = PolymerCreativeModeTabUtils.builder()
 				.title(Component.translatable("itemGroup." + Kultur.NAMESPACE))
 				.icon(() -> new ItemStack(icon))
-				.displayItems((params, output) -> ITEMS.values().forEach(output::accept))
+				.displayItems((params, output) -> {
+					ITEMS.values().forEach(output::accept);
+					ALSO_IN_TAB.forEach(also -> also.accept(output));
+				})
 				.build();
 		PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "main"), tab);
 	}
