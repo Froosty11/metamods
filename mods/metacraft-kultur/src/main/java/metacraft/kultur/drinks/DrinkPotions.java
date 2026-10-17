@@ -7,7 +7,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -36,20 +35,16 @@ public final class DrinkPotions {
 		for (DrinkKind kind : DrinkKind.values()) {
 			if (kind == DrinkKind.NYCKELN) continue;
 			Identifier id = Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, kind.id());
-			POTIONS.put(kind, Registry.registerForHolder(BuiltInRegistries.POTION, id, (Potion) new SimplePolymerPotion(Kultur.NAMESPACE + "_" + kind.id())));
+			// The name is the vanilla lang key's suffix: item.minecraft.potion.effect.kultur_spiken and the
+			// splash, lingering and tipped-arrow keys like it are in Kultur's lang, so every name a client
+			// builds from the potion (Polymer's own custom name for the bottle included) reads right.
+			POTIONS.put(kind, Registry.registerForHolder(BuiltInRegistries.POTION, id, (Potion) new SimplePolymerPotion(kind.potionName())));
 		}
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register((original, client, context) -> {
 			DrinkKind kind = kindOf(original);
 			if (kind == null || kind == DrinkKind.NYCKELN) return client;
 			if (!original.is(Items.POTION) && !original.is(Items.SPLASH_POTION) && !original.is(Items.LINGERING_POTION)) return client;   // a tipped arrow
-			String bottle =original.is(Items.SPLASH_POTION) ? "splash" : original.is(Items.LINGERING_POTION) ? "lingering" : null;
-			Component name = bottle == null
-					? Component.translatableWithFallback(kind.nameKey(), kind.displayName())
-					: Component.translatableWithFallback(kind.nameKey() + "." + bottle, (bottle.equals("splash") ? "Splash " : "Lingering ") + kind.displayName());
 			client.set(DataComponents.ITEM_MODEL, kind.model());
-			client.set(DataComponents.ITEM_NAME, name);
-			// A vanilla client names a potion by its contents, not its item name; Polymer names it with a custom name.
-			if (!original.has(DataComponents.CUSTOM_NAME)) client.set(DataComponents.CUSTOM_NAME, Component.empty().append(name).withStyle(style -> style.withItalic(false)));
 			// The tooltip would say "No Effects", which is no description of a drink.
 			client.set(DataComponents.LORE, original.get(DataComponents.LORE));
 			return client;
