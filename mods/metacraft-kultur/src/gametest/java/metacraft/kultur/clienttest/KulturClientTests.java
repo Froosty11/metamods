@@ -5,10 +5,23 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerConnection;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
+import metacraft.kultur.drinks.DrinkKind;
+import metacraft.kultur.drinks.DrinkPotions;
+import metacraft.kultur.drinks.DrunkTicker;
+import metacraft.kultur.drinks.Drunkenness;
+import metacraft.kultur.drinks.KulturDrinks;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CameraType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.item.ItemStack;
 
 import java.nio.file.Path;
 import java.util.Properties;
@@ -73,9 +86,54 @@ public final class KulturClientTests implements FabricClientGameTest {
 					ctx.waitTicks(40);
 					Path drinksShot = ctx.takeScreenshot(TestScreenshotOptions.of("kultur_drinks").withSize(1920, 1080));
 					System.out.println("[kultur-clienttest] screenshot: " + drinksShot);
+				} else {
+					drinksWithoutBrewery(ctx, server, conn);
 				}
 			}
 		}
+	}
+
+	/**
+	 * Without Brewery, Kultur brews the drinks itself: the four bottles, each in a frame on a wall behind
+	 * the camera with a Spiken in hand, should be PolymITer's models, not plain potions. Then the
+	 * inventory at 55 alcohol: "Inebriated IV" with PolymITer's icon (Luck, renamed by the pack), and
+	 * the weakness and slowness of the steps below it.
+	 */
+	private static void drinksWithoutBrewery(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn) {
+		server.runCommand("fill -3 -60 -7 3 -57 -7 minecraft:stone");
+		server.runOnServer(s -> {
+			var level = s.overworld();
+			DrinkKind[] kinds = DrinkKind.values();
+			for (int i = 0; i < kinds.length; i++) {
+				var frame = new ItemFrame(level, new BlockPos(i - 2, -59, -6), Direction.SOUTH);
+				frame.setItem(stack(kinds[i]));
+				level.addFreshEntity(frame);
+			}
+			s.getPlayerList().getPlayerByName("Tester").setItemInHand(InteractionHand.MAIN_HAND, stack(DrinkKind.SPIKEN));
+		});
+		server.runCommand("tp Tester -0.5 -60 -3.6 180 10");
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(40);
+		Path bottles = ctx.takeScreenshot(TestScreenshotOptions.of("drinks_vanilla_bottles").withSize(1920, 1080));
+		System.out.println("[kultur-clienttest] screenshot: " + bottles);
+
+		server.runCommand("gamemode survival Tester");
+		server.runOnServer(s -> {
+			ServerPlayer player = s.getPlayerList().getPlayerByName("Tester");
+			Drunkenness.set(player, 55);
+			DrunkTicker.refreshInebriated(player);
+		});
+		ctx.waitTicks(100);   // the steps' weakness and slowness come every 4 s
+		ctx.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
+		ctx.waitTicks(20);
+		Path inebriated = ctx.takeScreenshot(TestScreenshotOptions.of("drinks_vanilla_inebriated").withSize(1920, 1080));
+		System.out.println("[kultur-clienttest] screenshot: " + inebriated);
+		ctx.setScreen(() -> null);
+		server.runOnServer(s -> Drunkenness.set(s.getPlayerList().getPlayerByName("Tester"), 0));
+	}
+
+	private static ItemStack stack(DrinkKind kind) {
+		return kind == DrinkKind.NYCKELN ? new ItemStack(KulturDrinks.NYCKELN) : DrinkPotions.bottle(kind);
 	}
 
 	/** Everything that names a Brewery class, loaded only once Brewery is known to be there. */

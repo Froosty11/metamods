@@ -5,8 +5,9 @@ version = project.kultur_version
 // Every catalogue-derived file (banner patterns, painting variants, tags, textures, item model, lang)
 // comes from src/main/resources/kultur.json and art/kultur via data generation: ./gradlew runDatagen.
 setupRunDatagen("metacraft-kultur")
-// Client screenshot test: a real client joins an in-process dedicated server and a screenshot of a
-// banner, a shield and a painting is taken. Source set src/gametest, task runClientGameTest (needs a display).
+// Client screenshot test: a real client joins an in-process dedicated server and screenshots a banner,
+// a shield, a painting and the drinks. Source set src/gametest, task runClientGameTest (needs a display);
+// -PkulturNoBrewery for the drinks Kultur brews itself.
 fabricApi {
 	configureTests {
 		createSourceSet = true
