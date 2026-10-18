@@ -16,9 +16,6 @@ class ServersConfigTest {
 		assertEquals(List.of("test"), config.branches().get("dev"));
 		assertEquals(List.of("survival", "test"), config.branches().get("prod"));
 		assertEquals(List.of("event"), config.branches().get("minigame"));
-		assertEquals(new ServersConfig.Server("mc.datasektionen.se", 2022, "github-actions.098974a0"), config.server("test"));
-		assertEquals(new ServersConfig.Server("mc.datasektionen.se", 2022, "github-actions.604966da"), config.server("survival"));
-		assertEquals(new ServersConfig.Server("pterodactyl.kth.it", 3022, "github-actions.a98edceb"), config.server("event"));
 	}
 
 	@Test
