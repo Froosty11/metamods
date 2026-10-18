@@ -1,12 +1,18 @@
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.serialization.JsonOps;
+import io.netty.channel.embedded.EmbeddedChannel;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.TestHelper;
@@ -26,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -90,6 +98,40 @@ public class QolTests {
 			QolConfig.reload();
 			return 1;
 		}));
+	}
+
+	/**
+	 * Every packet the server has sent {@code player}, a mock player, since the last call. A mock
+	 * player's connection ends in an EmbeddedChannel with no encoder, so what the server sends piles
+	 * up there as packet objects.
+	 */
+	static List<Object> sentTo(ServerPlayer player) {
+		try {
+			var listenerConnection = ServerCommonPacketListenerImpl.class.getDeclaredField("connection");
+			listenerConnection.setAccessible(true);
+			var connectionChannel = Connection.class.getDeclaredField("channel");
+			connectionChannel.setAccessible(true);
+			var channel = (EmbeddedChannel) connectionChannel.get(listenerConnection.get(player.connection));
+			channel.flushOutbound();
+			var sent = new ArrayList<Object>();
+			for (Object message = channel.readOutbound(); message != null; message = channel.readOutbound()) {
+				sent.add(message);
+			}
+			return sent;
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("can't read a mock player's packets", e);
+		}
+	}
+
+	/** The actionbar messages among {@link #sentTo}. */
+	static List<Component> overlaysSentTo(ServerPlayer player) {
+		var overlays = new ArrayList<Component>();
+		for (var packet : sentTo(player)) {
+			if (packet instanceof ClientboundSystemChatPacket chat && chat.overlay()) {
+				overlays.add(chat.content());
+			}
+		}
+		return overlays;
 	}
 
 	/**

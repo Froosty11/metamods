@@ -4,10 +4,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
@@ -141,6 +143,47 @@ public class SilenceMobsTests {
 			useOn(player(ctx, GameType.SURVIVAL), cow, new ItemStack(SilenceMobs.MUFFLER));
 			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
 			ctx.assertTrue(Objects.equals(name(cow), "Bob"), "the cow is now called " + name(cow));
+			ctx.succeed();
+		});
+		register("muffler_swings_the_arm", ctx -> {
+			var cow = cow(ctx, null);
+			var player = player(ctx, GameType.SURVIVAL);
+			QolTests.sentTo(player);
+			useOn(player, cow, new ItemStack(SilenceMobs.MUFFLER));
+			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
+			ctx.assertTrue(player.isSwinging(), "the player's arm didn't swing");
+			ctx.assertTrue(player.getCurrentSwing().hand() == InteractionHand.MAIN_HAND, "swung " + player.getCurrentSwing().hand());
+			// the client sees a brick and predicts nothing, so the server must tell the user's own client too
+			boolean toSelf = QolTests.sentTo(player).stream().anyMatch(packet ->
+					packet instanceof ClientboundSwingAnimationPacket swing && swing.entityId() == player.getId()
+			);
+			ctx.assertTrue(toSelf, "the player's own client wasn't told to swing");
+			ctx.succeed();
+		});
+		register("muffler_item_interaction", ctx -> {
+			var cow = cow(ctx, null);
+			var player = player(ctx, GameType.SURVIVAL);
+			var muffler = new ItemStack(SilenceMobs.MUFFLER);
+			var result = muffler.interactLivingEntity(player, cow, InteractionHand.MAIN_HAND);
+			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
+			ctx.assertTrue(
+					result instanceof InteractionResult.Success success && success.swingSource() == InteractionResult.SwingSource.SERVER_ONLY,
+					"the muffler's interaction returned " + result + ", expected a server-swung success"
+			);
+			ctx.succeed();
+		});
+		register("muffler_before_villager", ctx -> {
+			// a villager without a job turns away whoever right-clicks it, before an item gets a go
+			var villager = EntityTypes.VILLAGER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
+			var at = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(2, 1, 2)));
+			villager.snapTo(at.x, at.y, at.z, 0, 0);
+			villager.setNoAi(true);
+			ctx.getLevel().addFreshEntity(villager);
+			var player = player(ctx, GameType.SURVIVAL);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SilenceMobs.MUFFLER));
+			player.connection.handleInteract(new ServerboundInteractPacket(villager.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
+			ctx.assertTrue(villager.isSilent(), "the villager's own right-click went before the muffler");
+			ctx.assertTrue(!villager.isTrading(), "the villager started trading");
 			ctx.succeed();
 		});
 		register("muffler_client_item_is_not_a_block", ctx -> {

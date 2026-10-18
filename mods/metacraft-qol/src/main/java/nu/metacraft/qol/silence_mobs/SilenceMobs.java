@@ -1,6 +1,5 @@
 package nu.metacraft.qol.silence_mobs;
 
-import eu.pb4.polymer.core.api.item.SimplePolymerItem;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
@@ -14,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -38,13 +38,9 @@ import java.util.function.Function;
 public final class SilenceMobs {
 
 
-	/**
-	 * The muffler: right-click a mob to silence it, again to undo it. Never used up. A vanilla client
-	 * sees a brick wearing the muffler's model: not a block item, so using it on a block places no
-	 * ghost block on the client.
-	 */
+	/** The muffler: right-click a mob to silence it, again to undo it. Never used up. */
 	public static final Item MUFFLER = register(
-			"muffler", properties -> new SimplePolymerItem(properties, Items.BRICK, true),
+			"muffler", MufflerItem::new,
 			new Item.Properties().stacksTo(1).component(DataComponents.LORE, new ItemLore(List.of(
 					Component.translatableWithFallback("item.metacraft.muffler.lore", "Use on a mob to silence it, again to undo it")
 							.withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GRAY))
@@ -64,13 +60,14 @@ public final class SilenceMobs {
 			if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof LivingEntity mob)) {
 				return InteractionResult.PASS;
 			}
-			if (mob instanceof Player || !mob.isAlive() || !SilenceMobsConfig.getInstance().enabled()) {
-				return InteractionResult.PASS;
-			}
 			var stack = player.getItemInHand(hand);
-			if (stack.is(MUFFLER)) {
-				apply(serverPlayer, mob, !mob.isSilent());
-				return InteractionResult.SUCCESS_SERVER;
+			if (stack.getItem() instanceof MufflerItem) {
+				// Vanilla offers the item a mob only after the mob's own right-click (a villager's
+				// trades, mounting a horse) passes, so the muffler goes first here.
+				return swing(serverPlayer, hand, stack, stack.interactLivingEntity(player, mob, hand));
+			}
+			if (!canSilence(mob)) {
+				return InteractionResult.PASS;
 			}
 			var silence = command(stack);
 			if (silence == null) {
@@ -80,6 +77,24 @@ public final class SilenceMobs {
 			stack.consume(1, player);
 			return InteractionResult.SUCCESS_SERVER;
 		});
+	}
+
+	/**
+	 * Swings the arm for a successful interaction, as vanilla's interact handling does: a non-PASS
+	 * result from Fabric's callback skips that handling, swing and all.
+	 */
+	private static InteractionResult swing(ServerPlayer player, InteractionHand hand, ItemStack stack, InteractionResult result) {
+		if (result instanceof InteractionResult.Success success && success.shouldSwing()) {
+			player.swingAndResetAttackStrength(
+					hand, stack.getInteractAnimation(), success.swingSource() != InteractionResult.SwingSource.PREDICTED
+			);
+		}
+		return result;
+	}
+
+	/** Whether silence mobs is on and {@code mob} is a living mob it may silence (not a player). */
+	static boolean canSilence(LivingEntity mob) {
+		return !(mob instanceof Player) && mob.isAlive() && SilenceMobsConfig.getInstance().enabled();
 	}
 
 	/** True for a "silence me" tag, false for "unsilence me", null for anything else. */
@@ -95,7 +110,7 @@ public final class SilenceMobs {
 		};
 	}
 
-	private static void apply(ServerPlayer player, LivingEntity mob, boolean silence) {
+	static void apply(ServerPlayer player, LivingEntity mob, boolean silence) {
 		mob.setSilent(silence);
 		// A puff of sparks to show it worked. Not Glowing: its outline is a post-processing pass that
 		// breaks many Iris shader packs.
