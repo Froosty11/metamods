@@ -1,3 +1,5 @@
+import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -10,6 +12,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
@@ -138,6 +141,13 @@ public class SilenceMobsTests {
 			useOn(player(ctx, GameType.SURVIVAL), cow, new ItemStack(SilenceMobs.MUFFLER));
 			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
 			ctx.assertTrue(Objects.equals(name(cow), "Bob"), "the cow is now called " + name(cow));
+			ctx.succeed();
+		});
+		register("muffler_client_item_is_not_a_block", ctx -> {
+			// a block item would place a ghost block on the client when the muffler is used on one
+			var muffler = new ItemStack(SilenceMobs.MUFFLER);
+			var client = ((PolymerItem) SilenceMobs.MUFFLER).getPolymerItem(muffler, PacketContext.get());
+			ctx.assertTrue(!(client instanceof BlockItem), "the muffler shows as " + client + ", a block item");
 			ctx.succeed();
 		});
 		register("muffler_recipe", ctx -> {
