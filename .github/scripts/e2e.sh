@@ -76,8 +76,7 @@ derive_set() { # <from> <to>
 [ -f "$SET1/manifest.json" ] || fail "no $SET1/manifest.json; run ./gradlew deploySet -Pserver=test first"
 
 echo "0. the test set holds every listed mod and metacraft-lib"
-# Datapack lines are folders in the world, not jars; this test covers jars and autodeploy only.
-for id in $(sed -e 's/^#.*//' -e 's/[[:space:]]#.*//' deploy/test.txt | awk 'NF && $1 != "datapack" { print ($1 == "external" ? $2 : $1) }') metacraft-lib; do
+for id in $(sed -e 's/^#.*//' -e 's/[[:space:]]#.*//' deploy/test.txt | awk 'NF { print ($1 == "external" ? $2 : $1) }') metacraft-lib; do
   jq -e --arg id "$id" 'has($id)' "$SET1/manifest.json" >/dev/null || fail "$id is missing from $SET1/manifest.json"
 done
 
