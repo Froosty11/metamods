@@ -74,8 +74,9 @@ Config: the `concrete_cauldron` section of `config/metacraft-qol.json` has just 
 ## Silence mobs
 
 **The muffler** (shapeless: any wool, an amethyst shard and string): right-click a mob to silence it,
-again to undo it. It's never used up. It works on mobs with a right-click of their own too
-(villagers, horses), because it acts before them.
+again to undo it, and your arm swings. It's never used up. It works on mobs with a right-click of their
+own too (villagers, horses), because it acts before them. A vanilla client sees a brick wearing the
+muffler's model, so using it on a block does nothing.
 
 **Or a name tag**, for players used to the datapack: one named `silence me` silences the mob, one
 named `unsilence me` undoes it. Case, spaces and underscores don't matter (`Silence_Me` works), and
@@ -98,7 +99,8 @@ muffler does nothing and "silence me" is just a name.
   game tests on one test server. Void anchor: charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
   disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
   last level, colours, other items and dry cauldrons. Silence mobs: the muffler and the name tags through
-  a real interact packet, kept names, any case, other names, creative, the muffler's recipe. Each feature's "switched off" tests run in
+  a real interact packet, kept names, any case, other names, creative, the muffler's swing, villagers,
+  its client item and its recipe. Each feature's "switched off" tests run in
   their own test environment (`metacraft:qol_<feature>_off`), whose setup and teardown flip the
   config through a test-only `/qoltest <feature> <true|false>` command, so no other test sees the
   feature off.
