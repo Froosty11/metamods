@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -20,6 +22,10 @@ import java.util.TreeSet;
  * manifest with an unknown sha256 for the mods it is about to upload or remove, so that after an
  * interrupted deploy (and maybe a restart that installed part of it) the next deploy sends or
  * removes those again.
+ *
+ * <p>It only manages its own mods: the mod ids in the server's manifest and the set (and the old
+ * {@code metacraft} bundle, which the set replaces). Jars of any other mod, in {@code mods/} or
+ * {@code mods/update}, are never uploaded over, listed for removal or deleted.
  */
 public final class Deployer {
     /** The first FabricModsUpdate version that handles remove.txt. */
@@ -43,8 +49,8 @@ public final class Deployer {
         checkLocalJars(deployDir, now);
 
         Optional<byte[]> oldBytes = remote.read(REMOTE_MANIFEST);
-        // First means no manifest on the server at all. The interim manifest below is only written
-        // over an existing one, so it never turns a first deploy into a later one or back.
+        // First means no manifest on the server at all. (After an interrupted first deploy the
+        // interim manifest below is there, so the retry no longer counts as first.)
         boolean first = oldBytes.isEmpty();
         Manifest old = first ? Manifest.empty() : parseServerManifest(server, oldBytes.get());
         ManifestDiff diff = ManifestDiff.of(old, now);
@@ -61,7 +67,7 @@ public final class Deployer {
         }
 
         SortedSet<String> upload = new TreeSet<>(diff.upload());
-        SortedSet<String> staleJars = new TreeSet<>();
+        SortedSet<String> otherJars = new TreeSet<>();
         for (String jar : jarsInUpdateDir) {
             String id = fileToId.get(jar);
             if (id != null) {
@@ -70,7 +76,7 @@ public final class Deployer {
                 // recorded it, so upload again to be sure.
                 upload.add(id);
             } else {
-                staleJars.add(jar);
+                otherJars.add(jar);
             }
         }
         SortedSet<String> unchanged = new TreeSet<>(diff.unchanged());
@@ -84,18 +90,44 @@ public final class Deployer {
         remove.add(DeployList.BUNDLE_ID);
         remove.removeAll(now.entries().keySet());
 
+        // A jar in mods/update that isn't in this set is an earlier deploy's upload that no restart
+        // installed yet, or one someone put there by hand. Ours (a mod id this deploy manages) is
+        // deleted, so the restart doesn't install an old or removed version; any other mod's is left
+        // for autodeploy to install, as whoever put it there meant.
+        Set<String> managed = new HashSet<>(old.entries().keySet());
+        managed.addAll(now.entries().keySet());
+        managed.addAll(remove);
+        SortedSet<String> staleJars = new TreeSet<>();
+        for (String jar : otherJars) {
+            Optional<byte[]> bytes = remote.read(UPDATE_DIR + "/" + jar);
+            if (bytes.isPresent() && managed.contains(modIdOf(bytes.get(), jar))) {
+                staleJars.add(jar);
+            }
+        }
+
         // The server's manifest records what was sent, and a restart installs whatever an
         // interrupted deploy got as far as sending (jar names don't change between builds). So
         // until this deploy is complete the server's manifest must not vouch for the bytes of any
         // mod it touches, yet must keep naming it: an entry whose sha256 matches no jar is uploaded
         // again by the next deploy if still listed, and removed if not. Ids new in this deploy get
-        // no entry: they aren't in the old manifest either, so the next deploy uploads them anyway.
+        // such an entry too, so the next deploy still counts them as its own: it deletes their
+        // upload from mods/update, or their jar if a restart installed it, if they are no longer
+        // listed. (A new id whose jar name an old entry already has goes without; the manifest
+        // can't name a file twice.)
         SortedMap<String, Manifest.Entry> interim = new TreeMap<>(old.entries());
         SortedSet<String> touched = new TreeSet<>(upload);
         touched.addAll(remove);
         touched.addAll(pendingRemovals);
         for (String id : touched) {
             interim.computeIfPresent(id, (i, e) -> new Manifest.Entry(e.file(), UNKNOWN_SHA256, e.version(), e.source()));
+        }
+        Set<String> interimFiles = new HashSet<>();
+        interim.values().forEach(e -> interimFiles.add(e.file()));
+        for (String id : upload) {
+            Manifest.Entry e = now.entries().get(id);
+            if (!interim.containsKey(id) && interimFiles.add(e.file())) {
+                interim.put(id, new Manifest.Entry(e.file(), UNKNOWN_SHA256, e.version(), e.source()));
+            }
         }
 
         if (!dryRun) {
@@ -145,6 +177,15 @@ public final class Deployer {
         } catch (DeployException e) {
             throw new DeployException(REMOTE_MANIFEST + " on " + server + " is unreadable (" + e.getMessage()
                     + "); delete it to redeploy everything; nothing was uploaded", e);
+        }
+    }
+
+    /** The mod id of a jar on the server, or null if it isn't a Fabric mod we can read. */
+    private static String modIdOf(byte[] jar, String name) {
+        try {
+            return ModInfo.read(jar, name).id();
+        } catch (DeployException notAMod) {
+            return null;
         }
     }
 

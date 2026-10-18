@@ -24,6 +24,15 @@ class ModInfoTest {
     }
 
     @Test
+    void readsAJarFromItsBytes() throws IOException {
+        Path jar = TestJars.modJar(tmp.resolve("plots.jar"), "metacraft-plots", "1.0.0", "metacraft-core");
+        assertEquals(ModInfo.read(jar), ModInfo.read(Files.readAllBytes(jar), "plots.jar"));
+        Path lib = TestJars.plainJar(tmp.resolve("lib.jar"));
+        assertThrows(DeployException.class, () -> ModInfo.read(Files.readAllBytes(lib), "lib.jar"));
+        assertThrows(DeployException.class, () -> ModInfo.read("not a jar".getBytes(StandardCharsets.UTF_8), "x.jar"));
+    }
+
+    @Test
     void readsTheIdOfASourceFabricModJsonWithPlaceholders() throws IOException {
         Path json = tmp.resolve("fabric.mod.json");
         Files.writeString(json, "{\"schemaVersion\":1,\"id\":\"faster-minecarts\",\"version\":\"${version}\"}", StandardCharsets.UTF_8);

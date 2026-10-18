@@ -2,6 +2,7 @@ package nu.metacraft.deploy;
 
 import groovy.json.JsonSlurper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -14,6 +15,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 /** What a deploy needs from a mod's {@code fabric.mod.json}: its id, version and {@code depends} keys. */
 public record ModInfo(String id, String version, Set<String> depends) {
@@ -29,6 +31,20 @@ public record ModInfo(String id, String version, Set<String> depends) {
             }
         } catch (IOException e) {
             throw new DeployException("cannot read " + jar.getFileName() + " as a jar: " + e.getMessage(), e);
+        }
+    }
+
+    /** Like {@link #read(Path)}, for a jar's bytes (one read from a server); {@code name} is for messages. */
+    public static ModInfo read(byte[] jar, String name) {
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(jar))) {
+            for (ZipEntry entry; (entry = zip.getNextEntry()) != null; ) {
+                if (entry.getName().equals("fabric.mod.json")) {
+                    return parse(new InputStreamReader(zip, StandardCharsets.UTF_8), name);
+                }
+            }
+            throw new DeployException(name + " has no fabric.mod.json; it is not a Fabric mod");
+        } catch (IOException e) {
+            throw new DeployException("cannot read " + name + " as a jar: " + e.getMessage(), e);
         }
     }
 

@@ -110,6 +110,11 @@ class DeployerTest {
         return Files.readAllBytes(set.resolve(file));
     }
 
+    /** A mod jar's bytes, for putting on the server. */
+    private byte[] modJar(String id, String version) throws IOException {
+        return Files.readAllBytes(TestJars.modJar(tmp.resolve("jars").resolve(id + "-" + version + ".jar"), id, version));
+    }
+
     @Test
     void refusesWithoutMarkerAndWritesNothing() throws IOException {
         remote.files.remove(MARKER);
@@ -198,8 +203,8 @@ class DeployerTest {
     @Test
     void staleUploadFromAnUnrestartedDeployIsDeleted() throws IOException {
         alreadyDeployed(set("old", mods("a", "1", "b", "2", "c", "1")));
-        remote.put(UPDATE_DIR + "/b-2.jar", "waiting for a restart");
-        remote.put(UPDATE_DIR + "/c-1.jar", "waiting for a restart");
+        remote.files.put(UPDATE_DIR + "/b-2.jar", modJar("b", "2"));
+        remote.files.put(UPDATE_DIR + "/c-1.jar", modJar("c", "1"));
         Deployer.deploy("test", set("new", mods("a", "1", "b", "3")), remote, false);
         assertEquals(Set.of("b-3.jar"), remote.jarsIn(UPDATE_DIR));
         assertEquals("c\nmetacraft\n", remote.text(REMOVE_FILE));
@@ -207,13 +212,30 @@ class DeployerTest {
 
     @Test
     void interruptedDeployThenDifferentSetLeavesNoOrphans() throws IOException {
-        // Deploy 2 (b-2, plus a new c-1) uploaded its jars then died before writing the manifest,
-        // so the server is still on M1 (b-1) with b-2.jar and c-1.jar sitting in mods/update.
+        // Deploy 2 (b-2, plus a new c-1) uploads its jars then dies before remove.txt and the
+        // manifest, leaving b-2.jar and c-1.jar in mods/update. Deploy 3 has neither.
         alreadyDeployed(set("m1", mods("b", "1")));
-        remote.put(UPDATE_DIR + "/b-2.jar", "left by an interrupted deploy");
-        remote.put(UPDATE_DIR + "/c-1.jar", "left by an interrupted deploy");
-        Deployer.deploy("test", set("m3", mods("b", "3")), remote, false);
+        remote.failOnWrite = 4; // the interim manifest, b-2.jar, c-1.jar, then remove.txt
+        assertThrows(IOException.class, () -> Deployer.deploy("test", set("m2", mods("b", "2", "c", "1")), remote, false));
+        assertEquals(Set.of("b-2.jar", "c-1.jar"), remote.jarsIn(UPDATE_DIR));
+
+        Deployer.Report report = Deployer.deploy("test", set("m3", mods("b", "3")), remote, false);
         assertEquals(Set.of("b-3.jar"), remote.jarsIn(UPDATE_DIR));
+        assertEquals("c\nmetacraft\n", remote.text(REMOVE_FILE), "c, new in the interrupted deploy, is still ours to remove");
+        assertEquals(Set.of("c"), report.removed());
+    }
+
+    @Test
+    void interruptedFirstDeployThenRestartThenDifferentSetRemovesTheNewMod() throws IOException {
+        remote.failOnWrite = 3; // the interim manifest, a-1.jar, then b-1.jar
+        assertThrows(IOException.class, () -> Deployer.deploy("test", set("m1", mods("a", "1", "b", "1")), remote, false));
+        restart();
+        assertTrue(remote.files.containsKey("mods/a-1.jar"), "the restart installed a");
+
+        Deployer.deploy("test", set("m2", mods("b", "1")), remote, false);
+        restart();
+        assertFalse(remote.files.containsKey("mods/a-1.jar"), "a is gone: it was this deploy's, not a hand-put jar");
+        assertEquals(Set.of("b-1.jar", "fabric-api.jar"), remote.jarsIn("mods"));
     }
 
     @Test
@@ -227,11 +249,25 @@ class DeployerTest {
     }
 
     @Test
-    void aJarNotFromTheManifestInUpdateIsDeleted() throws IOException {
+    void anotherModsJarInUpdateIsLeftAlone() throws IOException {
         Path set = set("s", mods("a", "1"));
-        remote.put(UPDATE_DIR + "/orphan-1.jar", "not in any manifest");
-        Deployer.deploy("test", set, remote, false);
-        assertEquals(Set.of("a-1.jar"), remote.jarsIn(UPDATE_DIR));
+        alreadyDeployed(set("old", mods("a", "1", "b", "1")));
+        remote.files.put(UPDATE_DIR + "/polymer-1.jar", modJar("polymer", "1"));
+        remote.put(UPDATE_DIR + "/notes.jar", "not a mod");
+        Deployer.Report report = Deployer.deploy("test", set, remote, false);
+        assertEquals(Set.of("notes.jar", "polymer-1.jar"), remote.jarsIn(UPDATE_DIR));
+        assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE), "only ids this deploy manages are removed");
+        assertEquals(Set.of("b"), report.removed());
+    }
+
+    @Test
+    void aHandPutModNeverGoesInRemoveTxt() throws IOException {
+        Path m1 = sameNamesSet("m1", mods("a", "1", "b", "1"));
+        installed(m1);
+        remote.files.put("mods/polymer.jar", modJar("polymer", "1"));
+        Deployer.deploy("test", sameNamesSet("m2", mods("a", "1")), remote, false);
+        restart();
+        assertEquals(Set.of("a.jar", "fabric-api.jar", "polymer.jar"), remote.jarsIn("mods"));
     }
 
     @Test
@@ -308,12 +344,14 @@ class DeployerTest {
         assertThrows(IOException.class, () -> Deployer.deploy("test", set("new", mods("a", "1", "b", "2", "e", "1")), remote, false));
         Map<String, Manifest.Entry> before = Manifest.read(old.resolve("manifest.json")).entries();
         Map<String, Manifest.Entry> interim = Manifest.parse(remote.text(REMOTE_MANIFEST)).entries();
-        assertEquals(Set.of("a", "b", "c", "d"), interim.keySet(), "touched mods stay named; the new e needs no entry");
+        assertEquals(Set.of("a", "b", "c", "d", "e"), interim.keySet(), "touched mods stay named, and the new e is named");
         assertEquals(before.get("a"), interim.get("a"), "an untouched mod keeps its entry");
         for (String touched : List.of("b", "c", "d")) {
             assertEquals("0".repeat(64), interim.get(touched).sha256());
             assertEquals(before.get(touched).file(), interim.get(touched).file());
         }
+        assertEquals("0".repeat(64), interim.get("e").sha256());
+        assertEquals("e-1.jar", interim.get("e").file());
     }
 
     @Test
