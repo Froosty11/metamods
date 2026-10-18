@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -93,10 +94,25 @@ public class VoidAnchorBlock extends RespawnAnchorBlock implements PolymerTextur
 			AnchorBinding.bind(serverPlayer, target);
 			level.playSound(null, pos, SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, SoundSource.BLOCKS, 1.0f, 1.0f);
 		}
-		player.sendOverlayMessage(Component.translatableWithFallback(
-				"block.metacraft.void_anchor.bound", "This void anchor will catch you if you fall"
-		).withStyle(ChatFormatting.LIGHT_PURPLE));
+		if (state.getValue(CHARGE) == 0) {
+			// bound all the same, but it won't catch anyone until it's charged
+			player.sendOverlayMessage(outOfFuel(VoidAnchorConfig.getInstance()).withStyle(ChatFormatting.RED));
+		} else {
+			player.sendOverlayMessage(Component.translatableWithFallback(
+					"block.metacraft.void_anchor.bound", "This void anchor will catch you if you fall"
+			).withStyle(ChatFormatting.LIGHT_PURPLE));
+		}
 		return InteractionResult.SUCCESS_SERVER;
+	}
+
+	/** "The void anchor is out of fuel", naming the configured fuel item (its id, if that names no item). */
+	public static MutableComponent outOfFuel(VoidAnchorConfig config) {
+		Component fuel = config.fuel()
+				.map(item -> item.getDefaultInstance().getItemName())
+				.orElseGet(() -> Component.literal(config.fuelItem().toString()));
+		return Component.translatableWithFallback(
+				"block.metacraft.void_anchor.out_of_fuel", "The void anchor is out of fuel. You can charge it with %s", fuel
+		);
 	}
 
 }

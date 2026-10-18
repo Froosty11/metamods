@@ -4,6 +4,8 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -26,6 +28,7 @@ import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
 import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
 import nu.metacraft.qol.void_anchor.rift.RiftTracker;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -99,6 +102,20 @@ public class VoidAnchorTests {
 
 	static boolean stillFalling(ServerPlayer player) {
 		return player.getY() < 0;
+	}
+
+	/** The last actionbar message sent to {@code player}; fails the test if there was none. */
+	static Component lastOverlay(GameTestHelper ctx, ServerPlayer player) {
+		var overlays = QolTests.overlaysSentTo(player);
+		if (overlays.isEmpty()) {
+			throw ctx.assertionException("no actionbar message was sent");
+		}
+		return overlays.getLast();
+	}
+
+	/** A translatable message's key, or its text if it isn't one. */
+	static String key(Component message) {
+		return message.getContents() instanceof TranslatableContents translatable ? translatable.getKey() : message.getString();
 	}
 
 	static void register(String name, Consumer<GameTestHelper> test) {
@@ -182,6 +199,34 @@ public class VoidAnchorTests {
 					GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)),
 					"bound to " + AnchorBinding.get(player)
 			);
+			ctx.succeed();
+		});
+		register("bind_empty_says_out_of_fuel", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 500, 0);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			QolTests.sentTo(player);
+			use(player, end, pos, ItemStack.EMPTY);
+			ctx.assertTrue(GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)), "an empty anchor didn't bind");
+			var message = lastOverlay(ctx, player);
+			ctx.assertTrue(key(message).equals("block.metacraft.void_anchor.out_of_fuel"), "said " + key(message) + " for an empty anchor");
+			var args = ((TranslatableContents) message.getContents()).getArgs();
+			ctx.assertTrue(
+					args.length == 1 && args[0] instanceof Component fuel && key(fuel).equals(Items.END_CRYSTAL.getDescriptionId()),
+					"the message doesn't name the end crystal: " + Arrays.toString(args)
+			);
+			ctx.succeed();
+		});
+		register("bind_charged_says_bound", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 520, 1);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			QolTests.sentTo(player);
+			use(player, end, pos, ItemStack.EMPTY);
+			var message = lastOverlay(ctx, player);
+			ctx.assertTrue(key(message).equals("block.metacraft.void_anchor.bound"), "said " + key(message) + " for a charged anchor");
 			ctx.succeed();
 		});
 		register("resolve_states", ctx -> {

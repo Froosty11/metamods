@@ -19,7 +19,8 @@ player who fell off an End island; a void anchor does.
   the fuel item tops up an anchor in front of it.
 - **Bind** it by using it with an empty hand. It only works in the End; elsewhere it refuses to bind
   (and, unlike a respawn anchor, never explodes or sets your spawn). One anchor per player; several
-  players may share one, and its charges.
+  players may share one, and its charges. An empty anchor binds too, but says it's out of fuel and
+  names the fuel item.
 - **Fall.** Below the End's lowest Y a rift opens beneath a bound player, their fall eases into it,
   and they come out beside their anchor, which loses one charge. If the anchor is empty, broken or
   blocked, the player is told so and falls as before (into season 5's overworld teleport, if that
@@ -96,7 +97,8 @@ muffler does nothing and "silence me" is just a name.
 ## Tests
 
 - `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs every feature's
-  game tests on one test server. Void anchor: charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
+  game tests on one test server. Void anchor: charging, binding (and what it says, empty or charged),
+  dispensers, and the rescue: empty, gone, flying, creative,
   disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
   last level, colours, other items and dry cauldrons. Silence mobs: the muffler and the name tags through
   a real interact packet, kept names, any case, other names, creative, the muffler's swing, villagers,
