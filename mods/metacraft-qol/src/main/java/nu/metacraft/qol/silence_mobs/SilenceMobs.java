@@ -38,9 +38,13 @@ import java.util.function.Function;
 public final class SilenceMobs {
 
 
-	/** The muffler: right-click a mob to silence it, again to undo it. Never used up. */
+	/**
+	 * The muffler: right-click a mob to silence it, again to undo it. Never used up. A vanilla client
+	 * sees a brick wearing the muffler's model: not a block item, so using it on a block places no
+	 * ghost block on the client.
+	 */
 	public static final Item MUFFLER = register(
-			"muffler", properties -> new SimplePolymerItem(properties, Items.WOOL.white(), true),
+			"muffler", properties -> new SimplePolymerItem(properties, Items.BRICK, true),
 			new Item.Properties().stacksTo(1).component(DataComponents.LORE, new ItemLore(List.of(
 					Component.translatableWithFallback("item.metacraft.muffler.lore", "Use on a mob to silence it, again to undo it")
 							.withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GRAY))
