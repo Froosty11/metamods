@@ -1,7 +1,12 @@
 # Deploying mods to the servers
 
-Every server gets the mods on its list, each as its own jar. A push uploads only the jars that changed
-and deletes mods that were taken off the list. Changes take effect at the server's next restart.
+Every server gets the METAmods modules on its list, each as its own jar. A push uploads only the jars
+that changed and deletes mods that were taken off the list. Changes take effect at the server's next
+restart.
+
+The lists are not the server's whole mod list. Fabric API, Polymer, datapacks and anything else the
+server runs are added by hand through the Pterodactyl panel, as before, and the deploy never touches
+them (see [What the pipeline doesn't touch](#what-the-pipeline-doesnt-touch)).
 
 ## Which branch goes where
 
@@ -38,21 +43,29 @@ A brand-new mod also needs its `include "mods:<name>"` line in `settings.gradle`
 Delete its line from `deploy/<server>.txt` and push. The deploy tells the server to delete it. At the
 next restart it is gone, together with any other changes.
 
-Taking a mod off a list deletes that mod id from the server even if its jar was put there by hand.
+The deploy only removes mods it deployed itself. If someone replaced one of them by hand with a jar of
+the same mod id, that jar is deleted too: the deploy tracks its mods by mod id, and Fabric loads only
+one jar per mod id anyway.
 
-## Adding a mod from outside the repo
+## A mod from outside the repo that our modules depend on
 
-For jars built elsewhere (ovvar, metacraft-booklet, the PolyDecorations fork, a Modrinth mod):
+Only for a mod that one of our modules directly depends on but doesn't embed (jar-in-jar), so that the
+module and the mod it needs reach the server together. It is not a way to manage the server's other
+mods: those are added through the Pterodactyl panel, and the lists don't name them.
 
 ```
-external ovvar https://github.com/Froosty11/ovvar/releases/download/v1.4.0/ovvar-1.4.0.jar sha256:3f2a…
+external some-library https://github.com/someone/some-library/releases/download/v1.4.0/some-library-1.4.0.jar sha256:3f2a…
 ```
 
-- `ovvar` is the jar's mod id (the `id` in its `fabric.mod.json`).
+- `some-library` is the jar's mod id (the `id` in its `fabric.mod.json`).
+- If that mod is already on the server by hand, the deploy's jar replaces it (same mod id), and from
+  then on the deploy manages it: taking the line off deletes it.
 - Use a URL that never changes: a release download, not "latest".
 - Get the hash with `shasum -a 256 ovvar-1.4.0.jar`. The build refuses a jar whose hash doesn't match,
   so a changed or tampered download never reaches a server.
 - To update it, change the URL and hash in the same line.
+- If a listed module depends on it and it is neither embedded nor listed, the build doesn't fail on
+  that: mods that aren't ours are assumed to be on the server by hand.
 
 ## Changing one of our mods
 
@@ -105,13 +118,20 @@ Gradle build to configure.
 
 ## What the pipeline doesn't touch
 
-Jars it didn't deploy stay as they are, for example Fabric API or Polymer put in `mods/` by hand. It
-keeps track of what it deployed in `mods/metacraft-deploy.json` on each server. Don't edit or delete
-that file; if it is lost, the next deploy uploads everything again, which is harmless.
+The deploy only adds, replaces and removes the mods it deployed itself. It keeps track of them, by mod
+id, in `mods/metacraft-deploy.json` on each server. Every other mod stays as it is, for example Fabric
+API or Polymer put in `mods/` by hand: the deploy never uploads over it, never lists it for removal and
+never deletes it. The one exception is `metacraft`, the old all-in-one bundle of our modules, which the
+separate jars replace: every deploy lists it for removal.
 
-The deploy owns `mods/update`: it is a staging folder, not a place to put jars by hand. Any jar found
-there that isn't part of the deploy is deleted by the next deploy. Jars put in `mods/` itself by hand
-are still left alone.
+The deploy stages its uploads in `mods/update`, where autodeploy picks them up at the restart. A jar
+there that isn't in the set being deployed is deleted only if it is one of the deploy's own mods (an
+upload no restart has installed yet, or a jar of one of its mods put there by hand). A jar of any
+other mod is left there for autodeploy to install, as before.
+
+Don't edit or delete `mods/metacraft-deploy.json`. If it is lost, the next deploy uploads everything on
+the list again, which is harmless, but it no longer knows mods it deployed before that have since been
+taken off the list: delete those by hand.
 
 ## Testing the deploy tooling
 
