@@ -112,8 +112,10 @@ public final class RiftTracker {
 			if (!config.enabled() || player.getY() >= trigger || SESSIONS.containsKey(id) || HANDLED.contains(id)) {
 				continue;
 			}
-			// Creative players can fly out and shouldn't drain an anchor others may share.
-			if (player.isSpectator() || player.isCreative() || player.getAbilities().flying || !player.isAlive() || player.isPassenger()) {
+			// No exception for creative, spectating, flying or riding players, as a respawn anchor makes
+			// none: it works for them and spends its charge just the same (ease() gets a flyer or a
+			// rider into the hang). Only a dead player has nothing left to catch.
+			if (!player.isAlive()) {
 				continue;
 			}
 			start(player, end, config);
@@ -189,11 +191,21 @@ public final class RiftTracker {
 
 	/**
 	 * Holds the fall to a slow drift toward the rift's centre; syncVelocity sends the motion to the
-	 * client. A glider stops gliding, as on hitting water, or the elytra would fight the hang.
+	 * client. A glider stops gliding, as on hitting water, and a flyer stops flying, or either would
+	 * fight the hang. A rider gets off: the vehicle would hold them where it is, and below the world
+	 * a vehicle is discarded or dies anyway. A spectator keeps flying, though: one that couldn't
+	 * would sink through the ground at the anchor and back into the void.
 	 */
 	private static void ease(ServerPlayer player, Vec3 centre, double sink) {
 		if (player.isFallFlying()) {
 			player.stopFallFlying();
+		}
+		if (player.getAbilities().flying && !player.isSpectator()) {
+			player.getAbilities().flying = false;
+			player.onUpdateAbilities();
+		}
+		if (player.isPassenger()) {
+			player.stopRiding();
 		}
 		double dx = Mth.clamp((centre.x - player.getX()) * 0.25, -0.5, 0.5);
 		double dz = Mth.clamp((centre.z - player.getZ()) * 0.25, -0.5, 0.5);

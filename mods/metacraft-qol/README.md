@@ -24,7 +24,8 @@ player who fell off an End island; a void anchor does.
 - **Fall.** Below the End's lowest Y a rift opens beneath a bound player, their fall eases into it,
   and they come out beside their anchor, which loses one charge. If the anchor is empty, broken or
   blocked, the player is told so and falls as before (into season 5's overworld teleport, if that
-  is on). Players without an anchor see no change.
+  is on). Players without an anchor see no change. As with a respawn anchor, creative players and
+  spectators are caught too, and spend a charge; a flyer stops flying (spectators excepted) and a rider gets off.
 
 `/voidanchor rift [pos]` (permission `metacraft.qol.voidanchor`, level 2) opens a rift that only
 looks, for checking how it renders.
@@ -98,7 +99,7 @@ muffler does nothing and "silence me" is just a name.
 
 - `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs every feature's
   game tests on one test server. Void anchor: charging, binding (and what it says, empty or charged),
-  dispensers, and the rescue: empty, gone, flying, creative,
+  dispensers, and the rescue: empty, gone, flying, creative, spectating, riding,
   disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
   last level, colours, other items and dry cauldrons. Silence mobs: the muffler and the name tags through
   a real interact packet, kept names, any case, other names, creative, the muffler's swing, villagers,
