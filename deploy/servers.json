@@ -5,8 +5,8 @@
     "minigame": ["event"]
   },
   "servers": {
-    "test": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.098974a0"},
-    "survival": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.604966da"},
+    "test": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.6a3d6c42"},
+    "survival": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.8b013000"},
     "event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"}
   }
 }
