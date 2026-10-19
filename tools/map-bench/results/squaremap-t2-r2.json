@@ -1,0 +1,163 @@
+{
+  "variant": "squaremap",
+  "name": "squaremap-t2-r2",
+  "threads": 2,
+  "rep": 2,
+  "desc": "squaremap 1.4.3, default config",
+  "boot_s": 27.1,
+  "mspt_before": {
+    "Average time per tick": 23.4,
+    "P50": 14.5,
+    "P95": 65.4,
+    "P99": 210.9
+  },
+  "full": {
+    "wall_s": 10.6,
+    "cpu_s": 39.3,
+    "peak_rss_mb": 3102,
+    "samples": []
+  },
+  "idle": {
+    "cpu_per_s": 0.269,
+    "tick": {
+      "Average time per tick": 6.8,
+      "P50": 6.5,
+      "P95": 12.3,
+      "P99": 15.2
+    }
+  },
+  "incremental": {
+    "window_s": 151,
+    "cpu_s_above_idle": -8.1,
+    "ticks": [
+      {
+        "Average time per tick": 6.8,
+        "P50": 6.5,
+        "P95": 13.4,
+        "P99": 19.3
+      },
+      {
+        "Average time per tick": 6.6,
+        "P50": 6.4,
+        "P95": 13.1,
+        "P99": 18.0
+      },
+      {
+        "Average time per tick": 6.0,
+        "P50": 6.2,
+        "P95": 10.8,
+        "P99": 13.7
+      },
+      {
+        "Average time per tick": 6.5,
+        "P50": 6.5,
+        "P95": 10.8,
+        "P99": 13.3
+      },
+      {
+        "Average time per tick": 6.3,
+        "P50": 6.0,
+        "P95": 12.2,
+        "P99": 19.6
+      },
+      {
+        "Average time per tick": 6.4,
+        "P50": 6.3,
+        "P95": 11.0,
+        "P99": 14.6
+      },
+      {
+        "Average time per tick": 6.1,
+        "P50": 6.1,
+        "P95": 10.2,
+        "P99": 22.5
+      },
+      {
+        "Average time per tick": 6.5,
+        "P50": 6.7,
+        "P95": 10.5,
+        "P99": 16.6
+      },
+      {
+        "Average time per tick": 6.1,
+        "P50": 6.1,
+        "P95": 10.2,
+        "P99": 15.0
+      },
+      {
+        "Average time per tick": 5.9,
+        "P50": 6.1,
+        "P95": 10.0,
+        "P99": 27.6
+      }
+    ],
+    "setblock_replies": [
+      "Changed the block at -120, 200, -120",
+      "Changed the block at -120, 200, -24",
+      "Changed the block at -120, 200, -56",
+      "Changed the block at -120, 200, -88",
+      "Changed the block at -120, 200, 104",
+      "Changed the block at -120, 200, 40",
+      "Changed the block at -120, 200, 72",
+      "Changed the block at -120, 200, 8",
+      "Changed the block at -24, 200, -120",
+      "Changed the block at -24, 200, -24",
+      "Changed the block at -24, 200, -56",
+      "Changed the block at -24, 200, -88",
+      "Changed the block at -24, 200, 104",
+      "Changed the block at -24, 200, 40",
+      "Changed the block at -24, 200, 72",
+      "Changed the block at -24, 200, 8",
+      "Changed the block at -56, 200, -120",
+      "Changed the block at -56, 200, -24",
+      "Changed the block at -56, 200, -56",
+      "Changed the block at -56, 200, -88",
+      "Changed the block at -56, 200, 104",
+      "Changed the block at -56, 200, 40",
+      "Changed the block at -56, 200, 72",
+      "Changed the block at -56, 200, 8",
+      "Changed the block at -88, 200, -120",
+      "Changed the block at -88, 200, -24",
+      "Changed the block at -88, 200, -56",
+      "Changed the block at -88, 200, -88",
+      "Changed the block at -88, 200, 104",
+      "Changed the block at -88, 200, 40",
+      "Changed the block at -88, 200, 72",
+      "Changed the block at -88, 200, 8",
+      "Changed the block at 104, 200, -120",
+      "Changed the block at 104, 200, -24",
+      "Changed the block at 104, 200, -56",
+      "Changed the block at 104, 200, -88",
+      "Changed the block at 104, 200, 104",
+      "Changed the block at 104, 200, 40",
+      "Changed the block at 104, 200, 72",
+      "Changed the block at 104, 200, 8",
+      "Changed the block at 40, 200, -120",
+      "Changed the block at 40, 200, -24",
+      "Changed the block at 40, 200, -56",
+      "Changed the block at 40, 200, -88",
+      "Changed the block at 40, 200, 104",
+      "Changed the block at 40, 200, 40",
+      "Changed the block at 40, 200, 72",
+      "Changed the block at 40, 200, 8",
+      "Changed the block at 72, 200, -120",
+      "Changed the block at 72, 200, -24",
+      "Changed the block at 72, 200, -56",
+      "Changed the block at 72, 200, -88",
+      "Changed the block at 72, 200, 104",
+      "Changed the block at 72, 200, 40",
+      "Changed the block at 72, 200, 72",
+      "Changed the block at 72, 200, 8",
+      "Changed the block at 8, 200, -120",
+      "Changed the block at 8, 200, -24",
+      "Changed the block at 8, 200, -56",
+      "Changed the block at 8, 200, -88",
+      "Changed the block at 8, 200, 104",
+      "Changed the block at 8, 200, 40",
+      "Changed the block at 8, 200, 72",
+      "Changed the block at 8, 200, 8"
+    ]
+  },
+  "output_mb": 2.3,
+  "output_files": 46
+}
