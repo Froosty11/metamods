@@ -1,0 +1,16 @@
+date: Mon Oct 19 12:24:05 UTC 2026
+nproc: 4
+CPU(s):                                  4
+Model name:                              Intel(R) Xeon(R) Processor @ 2.80GHz
+Thread(s) per core:                      1
+Socket(s):                               1
+Hypervisor vendor:                       KVM
+
+               total        used        free      shared  buff/cache   available
+Mem:              15           0          15           0           0          15
+Swap:              0           0           0
+
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G  9.0G   30G  23% /
+/dev/vda        252G  9.0G   30G  23% /
+java: /root/jdk/jdk-25.0.4.1+1 (Temurin 25.0.4.1+1)
