@@ -1,0 +1,46 @@
+# Extra profiled rep (bluemap-nocaves, rep 9): spark profiler start --thread * --interval 4, explore + settled
+spark: https://spark.lucko.me/89SOrIveOg
+
+## Server thread: share of samples in BlueMap code
+== Server thread 510748.0
+ bluemap frames total 0.03% [('0x000000008aec1478.onEndTick', 164.0)]
+  incl  49.85% MinecraftServer.waitForTasks
+  incl  41.72% MinecraftServer.tickServer
+  incl  41.53% MinecraftServer.tickChildren
+  incl  41.47% ServerLevel.tick
+  incl  20.47% ServerChunkCache.tick
+  incl   0.00% MinecraftServer.managedBlock
+  incl   8.16% MinecraftServer.pollTask
+ top self:
+   49.85% 6.__GI___futex_abstimed_wait_cancelable64
+    2.98% LevelChunkSection.isRandomlyTickingBlocks
+    2.52% 6.___pthread_cond_signal
+    2.21% ServerChunkCache.wrapMethod$zzh000$c2me-base$instrumentGetChunk
+    1.77% NewChunkHolderVanillaInterface.wrapOptionalWorldChunkFuture
+    1.39% NewChunkHolderVanillaInterface.getTickingChunkFuture
+    1.22% native.itable stub
+    1.14% 6.syscall
+    1.05% ItemHolder.getFutureForStatus0
+    0.93% Long2ObjectLinkedOpenHashMap.get
+    0.85% PalettedContainer.get
+    0.84% ChunkMap.lambda$forEachBlockTickingChunk$0
+ top incl:
+   99.80% Thread.run
+   99.80% Thread.runWith
+   99.80% 0x000000008b38f8e0.run
+   99.80% MinecraftServer.lambda$spin$0
+   99.80% MinecraftServer.runServer
+   58.02% MinecraftServer.waitUntilNextTick
+   53.35% BlockableEventLoop.managedBlock
+
+## top -H, mean %CPU per thread group over 60 snapshots (10 min)
+ 136.7%  BlueMap-R+
+  66.0%  BlueMap-F+
+  44.6%  c2me-work+
+  23.4%  Server th+
+  12.5%  C2 Compil+
+   4.6%  spark-asy+
+   3.1%  G1 Conc
+   1.9%  GC Thread+
+   0.6%  C2ME Stor+
+   0.4%  RCON List+
