@@ -87,10 +87,47 @@ render-thread-count: 1
 ```
 
 Expected: a one-off full render of a 16.6k-chunk world in about 15 min using about 1.6 cores, with
-tick time unaffected, ~90 MB on disk, and near-zero ongoing cost. If close-up zoom isn't needed,
+tick time unaffected (with 4 exploring bots: +4 ms average tick, TPS ≥ 19.9 on average), ~90 MB on disk, and near-zero ongoing cost. If close-up zoom isn't needed,
 `enable-hires: false` (keeping 3D at far zoom) is ~15% cheaper still and ~20× smaller. If the 3D
 views are wanted, plan on ~4× the CPU of flat. Either way, squaremap does the same top-down job for
 about 1/25 of the CPU.
+
+## With simulated players (players.py)
+
+4 Carpet fake players (spectator) start at spawn and travel diagonally outward at 6 blocks/s,
+about sprint speed, for 10 min. For the first ~4 min they cross the pregenerated area; for the last
+~6 min they push into new terrain that has to be generated. The mapper works at the same time:
+BlueMap does its initial full render under load (the worst case), and squaremap does a full render
+plus live updates. `/tick query` runs every 5 s, so the samples cover the whole window. There are 2
+interleaved reps per variant; `results/players/`.
+
+| mapper | thr | n | MSPT avg | MSPT P95 | MSPT avg, old terrain (0–4 min) | MSPT avg, new terrain (4–10 min) | mean TPS | worst 5 s TPS | 5 s windows < 20 TPS (of 119) | lag spikes logged | cores used |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| none | – | 2 | 25.6 (25.0–26.2) | 41.1 (39.5–42.8) | 31.2 (30.4–32.0) | 21.9 (21.4–22.4) | 19.96 (19.96–19.97) | 15.4 | 1 (1–1) | 2 (2–3) | 3.0 (2.9–3.0) |
+| squaremap | 2 | 2 | 26.4 (26.2–26.5) | 42.6 (42.3–42.9) | 31.7 (30.7–32.7) | 22.9 (22.5–23.2) | 20.00 (20.00–20.00) | 19.8 | 0 (0–1) | 2 (2–2) | 3.0 (3.0–3.0) |
+| bluemap | 2 | 2 | 30.9 (30.3–31.5) | 52.1 (50.7–53.5) | 42.7 (42.4–43.0) | 23.2 (22.0–24.4) | 19.88 (19.88–19.89) | 15.1 | 8 (5–10) | 6 (6–6) | 3.9 (3.9–3.9) |
+| bluemap-flat | 1 | 2 | 29.5 (28.1–30.9) | 47.1 (44.4–49.9) | 34.7 (33.5–35.9) | 26.1 (24.6–27.6) | 19.94 (19.93–19.94) | 16.7 | 4 (3–4) | 3 (3–3) | 3.6 (3.6–3.6) |
+| bluemap-flat | 2 | 2 | 28.6 (27.8–29.5) | 46.5 (45.5–47.4) | 39.0 (38.4–39.7) | 21.9 (20.9–22.9) | 19.92 (19.86–19.98) | 16.6 | 6 (4–7) | 4 (2–5) | 3.9 (3.8–3.9) |
+
+"Lag spikes logged" = "Can't keep up" warnings after the bots spawned.
+
+- **TPS barely moves.** Mean TPS is 19.88–20.00 for every variant. The worst 5 s window drops to
+  15–17 TPS, and that happens even with no mapper at all (15.4).
+- **squaremap is indistinguishable from no mapper:** +0.8 ms average tick, 0 extra windows below
+  20 TPS.
+- **BlueMap default costs about +5 ms average and +11 ms P95.** It costs about +11 ms while the bots
+  are in loaded terrain (31 → 43 ms). It produces ~8 windows below 20 TPS vs ~1 without a mapper,
+  and pins the box at 3.9 of 4 cores.
+- **BlueMap flat on 1 thread is the gentlest BlueMap:** +4 ms average, only +3.5 ms in loaded terrain,
+  3–4 windows below 20 TPS, and it leaves about 0.4 core free. Flat on 2 threads sits in between.
+- **New terrain shows lower tick times than old terrain for every variant.** The bots outrun chunk
+  generation, so fewer chunks reach the fully ticking state. The worldgen cost lands on C2ME's
+  threads, not the tick.
+- **Caveat:** 4 spectator bots don't build, fight or receive packets. Exploring alone already
+  uses ~3 of the 4 cores, though, so this is a fair picture of how little headroom an S6 box has. With
+  more real players, BlueMap competes for the same cores, and a 1-thread flat render (or doing the
+  initial render before opening) matters more. On a faster or wider CPU the same load leaves more
+  headroom, and all of these gaps shrink.
 
 ## Caveats
 
