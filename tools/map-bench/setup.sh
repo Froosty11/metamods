@@ -21,6 +21,7 @@ grep -v '^#' "$HERE/mods.txt" | while read -r url sha; do
   [ -n "$url" ] && fetch "$url" "$sha" "base/mods/$(basename "${url//%2B/+}")"
 done
 fetch https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluemap-5.28-fabric.jar 0f4289092d6cd5e1e028ace14b4464f096e90595 jars/bluemap-5.28-fabric.jar
+fetch https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-carpet-26.3%2Bv260915.jar 564c46b80e3a98430f0265b0485833f335d94a8d jars/fabric-carpet-26.3+v260915.jar
 fetch https://cdn.modrinth.com/data/PFb7ZqK6/versions/YPMtDS9D/squaremap-fabric-mc26.3-1.4.3.jar 871594177a5bf4c445b1b0efb3a3f56fbfd2f28c jars/squaremap-fabric-mc26.3-1.4.3.jar
 cp "$HERE/jars/BlueMapPolymerPatch-1.2.1+26.3.jar" jars/
 CLIENT=$(curl -sSf https://piston-meta.mojang.com/mc/game/version_manifest_v2.json \
