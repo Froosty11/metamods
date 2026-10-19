@@ -1,0 +1,14 @@
+{
+  "variant": "squaremap-t2",
+  "threads": 2,
+  "desc": "squaremap 1.4.3, default config",
+  "boot_s": 26.5,
+  "idle_cpu_per_s": 0.041,
+  "render_wall_s": 5.2,
+  "render_cpu_s": 18.4,
+  "peak_rss_mb": 2935,
+  "samples": [],
+  "done_line": "Finished rendering map for minecraft:overworld",
+  "output_mb": 2.3,
+  "output_files": 46
+}

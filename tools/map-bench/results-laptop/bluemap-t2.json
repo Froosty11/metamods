@@ -1,0 +1,198 @@
+{
+  "variant": "bluemap-t2",
+  "threads": 2,
+  "desc": "BlueMap 5.28 + Polymer patch 1.2.1, default map config",
+  "boot_s": 24.6,
+  "render_wall_s": 701.3,
+  "render_cpu_s": 1372.3,
+  "peak_rss_mb": 2449,
+  "samples": [
+    {
+      "t": 31,
+      "cpu": 128.88,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 60,
+      "cpu": 214.2,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 90,
+      "cpu": 245.9,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 120,
+      "cpu": 264.47,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 151,
+      "cpu": 283.46,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 181,
+      "cpu": 302.31,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 211,
+      "cpu": 368.92,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 241,
+      "cpu": 390.22,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 271,
+      "cpu": 431.64,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 301,
+      "cpu": 470.03,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 331,
+      "cpu": 525.44,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 360,
+      "cpu": 601.51,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 391,
+      "cpu": 698.33,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 420,
+      "cpu": 781.31,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 451,
+      "cpu": 866.86,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 480,
+      "cpu": 945.78,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 511,
+      "cpu": 1032.03,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 540,
+      "cpu": 1109.72,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 570,
+      "cpu": 1194.07,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 600,
+      "cpu": 1230.25,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 630,
+      "cpu": 1268.97,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 661,
+      "cpu": 1332.86,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 690,
+      "cpu": 1397.5,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 364.3,
+  "output_files": 4196
+}

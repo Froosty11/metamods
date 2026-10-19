@@ -1,0 +1,70 @@
+{
+  "variant": "bluemap-lean-t2",
+  "threads": 2,
+  "desc": "flat only + no caves + min-y 0 + zstd",
+  "boot_s": 22.4,
+  "render_wall_s": 222.7,
+  "render_cpu_s": 397.8,
+  "peak_rss_mb": 3126,
+  "samples": [
+    {
+      "t": 30,
+      "cpu": 91.59,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 60,
+      "cpu": 135.54,
+      "spark": {
+        "raw": "[\u26a1] TPS from last 5s, 10s, 1m, 5m, 15m:",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 91,
+      "cpu": 187.46,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 121,
+      "cpu": 237.5,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 150,
+      "cpu": 288.93,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 180,
+      "cpu": 349.54,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 211,
+      "cpu": 417.63,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 87.1,
+  "output_files": 4196
+}

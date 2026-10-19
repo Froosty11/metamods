@@ -1,0 +1,126 @@
+{
+  "variant": "bluemap-nocaves-t2",
+  "threads": 2,
+  "desc": "remove-caves-below-y: 10000 (no caves anywhere)",
+  "boot_s": 11.1,
+  "render_wall_s": 429.2,
+  "render_cpu_s": 1260.4,
+  "peak_rss_mb": 4106,
+  "samples": [
+    {
+      "t": 30,
+      "cpu": 143.94,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 61,
+      "cpu": 251.15,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 90,
+      "cpu": 341.6,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 120,
+      "cpu": 449.31,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 151,
+      "cpu": 554.69,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 181,
+      "cpu": 602.38,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 211,
+      "cpu": 630.44,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 240,
+      "cpu": 675.38,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 271,
+      "cpu": 793.09,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 301,
+      "cpu": 892.25,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 330,
+      "cpu": 991.21,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 360,
+      "cpu": 1090.63,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 391,
+      "cpu": 1184.23,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 420,
+      "cpu": 1272.46,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 276.5,
+  "output_files": 4196
+}

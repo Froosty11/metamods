@@ -1,0 +1,54 @@
+{
+  "variant": "bluemap-lowres-t2",
+  "threads": 2,
+  "desc": "enable-hires: false (lowres layer only)",
+  "boot_s": 24.7,
+  "render_wall_s": 162.4,
+  "render_cpu_s": 253.9,
+  "peak_rss_mb": 3171,
+  "samples": [
+    {
+      "t": 30,
+      "cpu": 93.19,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 61,
+      "cpu": 147.09,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 91,
+      "cpu": 186.41,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 120,
+      "cpu": 226.24,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 151,
+      "cpu": 280.57,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 4.6,
+  "output_files": 100
+}

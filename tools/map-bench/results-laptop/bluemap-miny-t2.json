@@ -1,0 +1,190 @@
+{
+  "variant": "bluemap-miny-t2",
+  "threads": 2,
+  "desc": "render-mask min-y: 0, render-edges false",
+  "boot_s": 10.1,
+  "render_wall_s": 669.4,
+  "render_cpu_s": 1048.9,
+  "peak_rss_mb": 4012,
+  "samples": [
+    {
+      "t": 30,
+      "cpu": 125.4,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 61,
+      "cpu": 218.9,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 91,
+      "cpu": 309.34,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 121,
+      "cpu": 367.07,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 150,
+      "cpu": 416.12,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 180,
+      "cpu": 476.96,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 211,
+      "cpu": 534.93,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 241,
+      "cpu": 586.56,
+      "spark": {
+        "raw": "[\u26a1] TPS from last 5s, 10s, 1m, 5m, 15m:[\u26a1]  19.99, 19.99, 20.0, *20.0, *20.0[\u26a1] [\u26a1] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 270,
+      "cpu": 609.84,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 300,
+      "cpu": 626.91,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 331,
+      "cpu": 640.54,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 361,
+      "cpu": 673.82,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 391,
+      "cpu": 724.2,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 421,
+      "cpu": 765.18,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 450,
+      "cpu": 817.4,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 481,
+      "cpu": 832.19,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 511,
+      "cpu": 852.76,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 541,
+      "cpu": 873.78,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 571,
+      "cpu": 906.65,
+      "spark": {
+        "raw": "[\u26a1] TPS from last 5s, 10s, 1m, 5m, 15m:[\u26a1]  *20.0, 20.0, 20.0, 20.0, *20.0[\u26a1] [\u26a1] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 601,
+      "cpu": 967.48,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 630,
+      "cpu": 1014.2,
+      "spark": {
+        "raw": "[\u26a1] TPS from last 5s, 10s, 1m, 5m, 15m:",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 660,
+      "cpu": 1065.68,
+      "spark": {
+        "raw": "[\u26a1] TPS from last 5s, 10s, 1m, 5m, 15m:[\u26a1]  *20.0, *20.0, *20.0, *20.0, *20.0[\u26a1] [\u26a1] Tick durations (min/med/95%ile/max ms) from last 10s, 1m:",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 358.8,
+  "output_files": 4196
+}

@@ -1,0 +1,38 @@
+{
+  "variant": "bluemap-flat-t2",
+  "threads": 2,
+  "desc": "flat view only (perspective + free-flight off)",
+  "boot_s": 12.1,
+  "render_wall_s": 119.5,
+  "render_cpu_s": 316.2,
+  "peak_rss_mb": 3228,
+  "samples": [
+    {
+      "t": 30,
+      "cpu": 113.9,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 61,
+      "cpu": 198.25,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    },
+    {
+      "t": 90,
+      "cpu": 277.6,
+      "spark": {
+        "raw": "",
+        "mspt_last": []
+      }
+    }
+  ],
+  "done_line": "bluemap tasks: all done",
+  "output_mb": 89.1,
+  "output_files": 4196
+}
