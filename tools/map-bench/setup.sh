@@ -41,6 +41,7 @@ server-port=25565
 spawn-protection=0
 max-tick-time=60000
 sync-chunk-writes=true
+pause-when-empty-seconds=0
 EOF
 
 "$HERE/start.sh" base
