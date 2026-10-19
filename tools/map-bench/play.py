@@ -126,7 +126,7 @@ class Bots:
             raise RuntimeError(f"bots did not spawn: {online}")
 
     def step(self, t, explore):
-        replies = set()
+        replies = []
         for i, name in enumerate(self.pos):
             if explore and i < 2:
                 x = (900 + 8 * t) * (1 if i == 0 else -1)
@@ -136,7 +136,7 @@ class Bots:
                 cx, cz = [(500, 0), (-500, 0), (300, 300), (-300, -300)][i]
                 a = (t * 2 / 400) + i
                 x, z = int(cx + 400 * math.cos(a)), int(cz + 400 * math.sin(a))
-                replies.add(rcon.run(f"setblock {x} 199 {z} minecraft:gold_block")[:60])
+                replies.append(rcon.run(f"setblock {x} 199 {z} minecraft:gold_block")[:60])
             rcon.run(f"tp {name} {int(x)} 200 {int(z)}")
             self.pos[name] = (x, z)
         return replies
@@ -147,11 +147,15 @@ class Bots:
 
 
 def phase(name, pid, seconds, bots, explore, t_start):
-    samples, replies = [], set()
+    samples, replies, counts = [], set(), {}
     c0, t0 = bench.cpu_seconds(pid), time.time()
     next_sample = t0 + 5
     while time.time() - t0 < seconds:
-        replies |= bots.step(time.time() - t_start, explore)
+        r = bots.step(time.time() - t_start, explore)
+        replies |= set(r)
+        for x in r:
+            k = "changed" if x.startswith("Changed the block") else x[:40]
+            counts[k] = counts.get(k, 0) + 1
         time.sleep(1)
         if time.time() >= next_sample:
             samples.append({"t": round(time.time() - t0), "tick": bench.tick_query(),
@@ -166,6 +170,7 @@ def phase(name, pid, seconds, bots, explore, t_start):
         "mspt_p95_mean": round(sum(s["P95"] for s in ticks) / len(ticks), 2) if ticks else None,
         "mspt_p99_max": max((s["P99"] for s in ticks), default=None),
         "samples_over_50ms_avg": sum(1 for a in avg if a > 50),
+        "setblock_counts": counts,
         "setblock_replies": sorted(replies),
         "samples": samples,
     }
