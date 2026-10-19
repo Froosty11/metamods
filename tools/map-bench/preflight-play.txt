@@ -1,0 +1,8 @@
+# map-bench-play preflight, 2026-10-19T12:41:32Z
+hosts: piston-meta.mojang.com (manifest 200), meta.fabricmc.net 200, maven.fabricmc.net 200, cdn.modrinth.com reachable (root 404, api.modrinth.com 200)
+nproc: 4
+Model name:                              Intel(R) Xeon(R) Processor @ 2.10GHz
+               total        used        free      shared  buff/cache   available
+Mem:              15           0          15           0           0          15
+Swap:              0           0           0
+java: Temurin 25.0.4.1+1 at ~/jdk/jdk-25.0.4.1+1
