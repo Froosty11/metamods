@@ -8,6 +8,7 @@ https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabri
 https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar 21b21cb88e412f0bce73b6609de6dd6aca958d7d
 https://cdn.modrinth.com/data/r0v8vy1s/versions/nSBWPz6x/alternate-current-mc26.3-1.9.0.jar 1316efc4195fbf152f8521542bc2435bd588ddb6
 https://cdn.modrinth.com/data/ayPU0OHc/versions/crWm7jXS/structure_layout_optimizer-1.1.4%2B26.3-fabric.jar ce6a03a927297a5441dfa239bf2d6d804931530a
+https://cdn.modrinth.com/data/M1953qlQ/versions/t3odHyFJ/ResourcefulConfig-6.0.2.jar c66b02799463e57baf8c9fa8979b2cf167e284b8
 https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar 1e0725c00c974190d19babf7ba61f44397e30f4b
 https://cdn.modrinth.com/data/8oi3bsk5/versions/aGE3hYAA/Terralith_26.3_v2.6.5%2B26.3.jar 725bd469bc72d6e366ecbf4818e0438524ca5741
 https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar f93e848eaa72aee51c2094880c6ad5d583c6b647
