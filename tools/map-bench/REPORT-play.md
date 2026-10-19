@@ -53,7 +53,7 @@ BlueMap's startup update on an already rendered map: 9–14 s.
   (`NewChunkHolderVanillaInterface.getTickingChunk*`) are the largest non-idle frames. BlueMap makes the
   worst P99 a bit higher (1128 vs 894–952 ms) because it competes for the same cores.
 - **Why BlueMap costs tick time: CPU contention, not main-thread work.** In an extra profiled BlueMap rep
-  (spark, all threads, explore + settled: https://spark.lucko.me/89SOrIveOg), BlueMap code accounts for
+  (spark, all threads, explore + settled: https://spark.lucko.me/89SOrIveOg; that rep measured 24.9 / 17.8 ms, in line with the others), BlueMap code accounts for
   **0.03%** of the server thread's samples (only an end-of-tick hook). Per-thread CPU from `top -H` over
   the same 10 min: BlueMap render threads 1.37 cores, BlueMap-FJP (4 threads, mostly Caffeine cache
   cleanup contending on a lock) 0.66, C2ME workers 0.45, server thread 0.23, C2 JIT 0.13. So BlueMap

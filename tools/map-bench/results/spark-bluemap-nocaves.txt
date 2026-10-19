@@ -1,5 +1,6 @@
 # Extra profiled rep (bluemap-nocaves, rep 9): spark profiler start --thread * --interval 4, explore + settled
 spark: https://spark.lucko.me/89SOrIveOg
+profiled rep tick numbers (not in the report tables): explore 24.9 ms mean MSPT / 41.2 P95, settled 17.8 / 28.6, catch-up 754 s; JSON in spark-bluemap-nocaves-r9.json
 
 ## Server thread: share of samples in BlueMap code
 == Server thread 510748.0
