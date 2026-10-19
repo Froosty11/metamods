@@ -70,6 +70,7 @@ def tick_query():
 def setup(variant, threads, run):
     if run.exists():
         shutil.rmtree(run)
+    run.parent.mkdir(parents=True, exist_ok=True)
     clone = ["cp", "-cR"] if sys.platform == "darwin" else ["cp", "-a", "--reflink=auto"]
     subprocess.run(clone + [str(WORK / "base"), str(run)], check=True)
     spec = VARIANTS[variant]
