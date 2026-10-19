@@ -1,0 +1,1428 @@
+{
+  "variant": "bluemap",
+  "name": "bluemap-t2-r2",
+  "threads": 2,
+  "rep": 2,
+  "desc": "BlueMap 5.28 + Polymer patch 1.2.1, default map config",
+  "boot_s": 24.1,
+  "full": {
+    "wall_s": 1908.4,
+    "cpu_s": 5800.5,
+    "peak_rss_mb": 5827,
+    "samples": [
+      {
+        "t": 15,
+        "cpu": 58.4,
+        "tick": {
+          "Average time per tick": 27.7,
+          "P50": 26.0,
+          "P95": 61.8,
+          "P99": 73.9
+        }
+      },
+      {
+        "t": 31,
+        "cpu": 118.2,
+        "tick": {
+          "Average time per tick": 15.7,
+          "P50": 12.7,
+          "P95": 38.1,
+          "P99": 93.5
+        }
+      },
+      {
+        "t": 46,
+        "cpu": 165.9,
+        "tick": {
+          "Average time per tick": 10.4,
+          "P50": 8.9,
+          "P95": 23.9,
+          "P99": 47.3
+        }
+      },
+      {
+        "t": 61,
+        "cpu": 215.4,
+        "tick": {
+          "Average time per tick": 12.8,
+          "P50": 11.6,
+          "P95": 23.7,
+          "P99": 29.7
+        }
+      },
+      {
+        "t": 75,
+        "cpu": 261.2,
+        "tick": {
+          "Average time per tick": 13.8,
+          "P50": 11.7,
+          "P95": 28.5,
+          "P99": 69.7
+        }
+      },
+      {
+        "t": 91,
+        "cpu": 310.1,
+        "tick": {
+          "Average time per tick": 10.6,
+          "P50": 9.7,
+          "P95": 21.9,
+          "P99": 42.4
+        }
+      },
+      {
+        "t": 105,
+        "cpu": 354.9,
+        "tick": {
+          "Average time per tick": 9.7,
+          "P50": 9.9,
+          "P95": 18.9,
+          "P99": 30.1
+        }
+      },
+      {
+        "t": 120,
+        "cpu": 404.0,
+        "tick": {
+          "Average time per tick": 10.9,
+          "P50": 10.8,
+          "P95": 24.4,
+          "P99": 34.6
+        }
+      },
+      {
+        "t": 136,
+        "cpu": 451.8,
+        "tick": {
+          "Average time per tick": 11.7,
+          "P50": 10.0,
+          "P95": 28.7,
+          "P99": 32.7
+        }
+      },
+      {
+        "t": 150,
+        "cpu": 497.6,
+        "tick": {
+          "Average time per tick": 10.0,
+          "P50": 9.5,
+          "P95": 17.5,
+          "P99": 24.9
+        }
+      },
+      {
+        "t": 166,
+        "cpu": 546.6,
+        "tick": {
+          "Average time per tick": 9.2,
+          "P50": 8.7,
+          "P95": 17.4,
+          "P99": 41.7
+        }
+      },
+      {
+        "t": 180,
+        "cpu": 590.1,
+        "tick": {
+          "Average time per tick": 9.3,
+          "P50": 8.8,
+          "P95": 19.3,
+          "P99": 25.9
+        }
+      },
+      {
+        "t": 196,
+        "cpu": 636.7,
+        "tick": {
+          "Average time per tick": 7.9,
+          "P50": 7.5,
+          "P95": 16.7,
+          "P99": 23.2
+        }
+      },
+      {
+        "t": 211,
+        "cpu": 683.9,
+        "tick": {
+          "Average time per tick": 9.1,
+          "P50": 8.4,
+          "P95": 18.3,
+          "P99": 31.3
+        }
+      },
+      {
+        "t": 225,
+        "cpu": 727.6,
+        "tick": {
+          "Average time per tick": 8.4,
+          "P50": 8.4,
+          "P95": 18.0,
+          "P99": 30.5
+        }
+      },
+      {
+        "t": 241,
+        "cpu": 775.3,
+        "tick": {
+          "Average time per tick": 8.5,
+          "P50": 7.9,
+          "P95": 17.6,
+          "P99": 21.1
+        }
+      },
+      {
+        "t": 256,
+        "cpu": 822.5,
+        "tick": {
+          "Average time per tick": 7.7,
+          "P50": 7.6,
+          "P95": 16.6,
+          "P99": 24.4
+        }
+      },
+      {
+        "t": 270,
+        "cpu": 867.2,
+        "tick": {
+          "Average time per tick": 10.3,
+          "P50": 9.8,
+          "P95": 20.5,
+          "P99": 29.1
+        }
+      },
+      {
+        "t": 286,
+        "cpu": 914.5,
+        "tick": {
+          "Average time per tick": 8.6,
+          "P50": 8.0,
+          "P95": 17.2,
+          "P99": 22.5
+        }
+      },
+      {
+        "t": 300,
+        "cpu": 959.9,
+        "tick": {
+          "Average time per tick": 8.8,
+          "P50": 8.4,
+          "P95": 16.9,
+          "P99": 25.5
+        }
+      },
+      {
+        "t": 315,
+        "cpu": 1008.0,
+        "tick": {
+          "Average time per tick": 8.1,
+          "P50": 7.5,
+          "P95": 15.8,
+          "P99": 29.7
+        }
+      },
+      {
+        "t": 331,
+        "cpu": 1055.6,
+        "tick": {
+          "Average time per tick": 9.5,
+          "P50": 8.6,
+          "P95": 19.8,
+          "P99": 32.0
+        }
+      },
+      {
+        "t": 345,
+        "cpu": 1099.6,
+        "tick": {
+          "Average time per tick": 7.3,
+          "P50": 7.6,
+          "P95": 14.4,
+          "P99": 23.5
+        }
+      },
+      {
+        "t": 360,
+        "cpu": 1147.3,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 6.3,
+          "P95": 17.8,
+          "P99": 27.7
+        }
+      },
+      {
+        "t": 376,
+        "cpu": 1193.8,
+        "tick": {
+          "Average time per tick": 8.3,
+          "P50": 7.5,
+          "P95": 17.4,
+          "P99": 20.7
+        }
+      },
+      {
+        "t": 390,
+        "cpu": 1238.0,
+        "tick": {
+          "Average time per tick": 7.3,
+          "P50": 7.9,
+          "P95": 14.5,
+          "P99": 17.8
+        }
+      },
+      {
+        "t": 405,
+        "cpu": 1285.3,
+        "tick": {
+          "Average time per tick": 8.2,
+          "P50": 7.3,
+          "P95": 17.2,
+          "P99": 20.7
+        }
+      },
+      {
+        "t": 421,
+        "cpu": 1332.8,
+        "tick": {
+          "Average time per tick": 7.9,
+          "P50": 7.3,
+          "P95": 17.0,
+          "P99": 29.5
+        }
+      },
+      {
+        "t": 435,
+        "cpu": 1376.6,
+        "tick": {
+          "Average time per tick": 7.6,
+          "P50": 5.3,
+          "P95": 19.5,
+          "P99": 26.7
+        }
+      },
+      {
+        "t": 450,
+        "cpu": 1423.2,
+        "tick": {
+          "Average time per tick": 7.9,
+          "P50": 6.5,
+          "P95": 18.5,
+          "P99": 26.7
+        }
+      },
+      {
+        "t": 466,
+        "cpu": 1469.2,
+        "tick": {
+          "Average time per tick": 8.7,
+          "P50": 8.8,
+          "P95": 19.6,
+          "P99": 29.6
+        }
+      },
+      {
+        "t": 480,
+        "cpu": 1513.0,
+        "tick": {
+          "Average time per tick": 8.0,
+          "P50": 6.7,
+          "P95": 17.0,
+          "P99": 27.2
+        }
+      },
+      {
+        "t": 495,
+        "cpu": 1559.8,
+        "tick": {
+          "Average time per tick": 9.9,
+          "P50": 9.3,
+          "P95": 22.9,
+          "P99": 33.0
+        }
+      },
+      {
+        "t": 511,
+        "cpu": 1606.0,
+        "tick": {
+          "Average time per tick": 7.6,
+          "P50": 7.5,
+          "P95": 16.2,
+          "P99": 23.5
+        }
+      },
+      {
+        "t": 525,
+        "cpu": 1648.9,
+        "tick": {
+          "Average time per tick": 7.5,
+          "P50": 7.8,
+          "P95": 14.8,
+          "P99": 20.6
+        }
+      },
+      {
+        "t": 540,
+        "cpu": 1696.2,
+        "tick": {
+          "Average time per tick": 7.7,
+          "P50": 7.1,
+          "P95": 17.7,
+          "P99": 25.9
+        }
+      },
+      {
+        "t": 556,
+        "cpu": 1744.2,
+        "tick": {
+          "Average time per tick": 11.6,
+          "P50": 10.3,
+          "P95": 29.0,
+          "P99": 35.2
+        }
+      },
+      {
+        "t": 570,
+        "cpu": 1789.0,
+        "tick": {
+          "Average time per tick": 6.5,
+          "P50": 5.2,
+          "P95": 13.8,
+          "P99": 21.4
+        }
+      },
+      {
+        "t": 585,
+        "cpu": 1836.5,
+        "tick": {
+          "Average time per tick": 5.8,
+          "P50": 4.2,
+          "P95": 12.9,
+          "P99": 25.5
+        }
+      },
+      {
+        "t": 600,
+        "cpu": 1880.9,
+        "tick": {
+          "Average time per tick": 5.3,
+          "P50": 4.0,
+          "P95": 13.1,
+          "P99": 16.7
+        }
+      },
+      {
+        "t": 616,
+        "cpu": 1929.2,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 6.7,
+          "P95": 17.1,
+          "P99": 31.1
+        }
+      },
+      {
+        "t": 631,
+        "cpu": 1975.9,
+        "tick": {
+          "Average time per tick": 4.7,
+          "P50": 3.7,
+          "P95": 9.7,
+          "P99": 18.1
+        }
+      },
+      {
+        "t": 645,
+        "cpu": 2019.5,
+        "tick": {
+          "Average time per tick": 5.6,
+          "P50": 4.4,
+          "P95": 12.4,
+          "P99": 22.7
+        }
+      },
+      {
+        "t": 661,
+        "cpu": 2066.0,
+        "tick": {
+          "Average time per tick": 5.3,
+          "P50": 4.2,
+          "P95": 9.8,
+          "P99": 10.9
+        }
+      },
+      {
+        "t": 676,
+        "cpu": 2112.4,
+        "tick": {
+          "Average time per tick": 5.8,
+          "P50": 5.5,
+          "P95": 9.9,
+          "P99": 14.6
+        }
+      },
+      {
+        "t": 690,
+        "cpu": 2156.4,
+        "tick": {
+          "Average time per tick": 6.5,
+          "P50": 6.2,
+          "P95": 12.2,
+          "P99": 36.9
+        }
+      },
+      {
+        "t": 706,
+        "cpu": 2203.2,
+        "tick": {
+          "Average time per tick": 5.8,
+          "P50": 4.1,
+          "P95": 12.1,
+          "P99": 29.1
+        }
+      },
+      {
+        "t": 720,
+        "cpu": 2246.8,
+        "tick": {
+          "Average time per tick": 4.7,
+          "P50": 3.6,
+          "P95": 10.1,
+          "P99": 15.5
+        }
+      },
+      {
+        "t": 736,
+        "cpu": 2293.2,
+        "tick": {
+          "Average time per tick": 10.9,
+          "P50": 9.9,
+          "P95": 22.0,
+          "P99": 36.7
+        }
+      },
+      {
+        "t": 750,
+        "cpu": 2337.9,
+        "tick": {
+          "Average time per tick": 13.6,
+          "P50": 7.8,
+          "P95": 20.0,
+          "P99": 608.3
+        }
+      },
+      {
+        "t": 766,
+        "cpu": 2384.6,
+        "tick": {
+          "Average time per tick": 5.3,
+          "P50": 4.1,
+          "P95": 10.1,
+          "P99": 17.6
+        }
+      },
+      {
+        "t": 780,
+        "cpu": 2428.0,
+        "tick": {
+          "Average time per tick": 4.9,
+          "P50": 4.1,
+          "P95": 9.0,
+          "P99": 17.5
+        }
+      },
+      {
+        "t": 795,
+        "cpu": 2473.6,
+        "tick": {
+          "Average time per tick": 5.3,
+          "P50": 4.1,
+          "P95": 10.1,
+          "P99": 16.1
+        }
+      },
+      {
+        "t": 811,
+        "cpu": 2520.5,
+        "tick": {
+          "Average time per tick": 5.7,
+          "P50": 4.4,
+          "P95": 11.0,
+          "P99": 13.4
+        }
+      },
+      {
+        "t": 825,
+        "cpu": 2563.4,
+        "tick": {
+          "Average time per tick": 6.3,
+          "P50": 5.6,
+          "P95": 10.7,
+          "P99": 22.7
+        }
+      },
+      {
+        "t": 840,
+        "cpu": 2609.6,
+        "tick": {
+          "Average time per tick": 4.9,
+          "P50": 3.9,
+          "P95": 9.5,
+          "P99": 17.5
+        }
+      },
+      {
+        "t": 856,
+        "cpu": 2656.1,
+        "tick": {
+          "Average time per tick": 5.0,
+          "P50": 3.9,
+          "P95": 11.1,
+          "P99": 16.8
+        }
+      },
+      {
+        "t": 870,
+        "cpu": 2699.7,
+        "tick": {
+          "Average time per tick": 5.4,
+          "P50": 3.9,
+          "P95": 10.4,
+          "P99": 21.1
+        }
+      },
+      {
+        "t": 885,
+        "cpu": 2746.4,
+        "tick": {
+          "Average time per tick": 5.2,
+          "P50": 3.9,
+          "P95": 9.7,
+          "P99": 24.9
+        }
+      },
+      {
+        "t": 901,
+        "cpu": 2791.6,
+        "tick": {
+          "Average time per tick": 4.7,
+          "P50": 3.8,
+          "P95": 9.9,
+          "P99": 12.7
+        }
+      },
+      {
+        "t": 915,
+        "cpu": 2835.2,
+        "tick": {
+          "Average time per tick": 4.9,
+          "P50": 3.8,
+          "P95": 9.5,
+          "P99": 14.6
+        }
+      },
+      {
+        "t": 930,
+        "cpu": 2882.4,
+        "tick": {
+          "Average time per tick": 5.3,
+          "P50": 4.1,
+          "P95": 9.9,
+          "P99": 11.8
+        }
+      },
+      {
+        "t": 946,
+        "cpu": 2928.7,
+        "tick": {
+          "Average time per tick": 6.8,
+          "P50": 6.3,
+          "P95": 12.6,
+          "P99": 19.8
+        }
+      },
+      {
+        "t": 960,
+        "cpu": 2972.7,
+        "tick": {
+          "Average time per tick": 5.4,
+          "P50": 4.3,
+          "P95": 9.8,
+          "P99": 14.1
+        }
+      },
+      {
+        "t": 975,
+        "cpu": 3017.9,
+        "tick": {
+          "Average time per tick": 5.0,
+          "P50": 3.8,
+          "P95": 9.3,
+          "P99": 18.5
+        }
+      },
+      {
+        "t": 991,
+        "cpu": 3064.4,
+        "tick": {
+          "Average time per tick": 5.1,
+          "P50": 4.2,
+          "P95": 9.3,
+          "P99": 14.0
+        }
+      },
+      {
+        "t": 1005,
+        "cpu": 3108.1,
+        "tick": {
+          "Average time per tick": 5.0,
+          "P50": 4.1,
+          "P95": 10.4,
+          "P99": 15.5
+        }
+      },
+      {
+        "t": 1020,
+        "cpu": 3154.0,
+        "tick": {
+          "Average time per tick": 5.0,
+          "P50": 4.0,
+          "P95": 10.2,
+          "P99": 15.8
+        }
+      },
+      {
+        "t": 1036,
+        "cpu": 3201.1,
+        "tick": {
+          "Average time per tick": 6.1,
+          "P50": 4.0,
+          "P95": 18.6,
+          "P99": 26.3
+        }
+      },
+      {
+        "t": 1051,
+        "cpu": 3247.7,
+        "tick": {
+          "Average time per tick": 5.1,
+          "P50": 4.1,
+          "P95": 9.2,
+          "P99": 16.2
+        }
+      },
+      {
+        "t": 1065,
+        "cpu": 3289.6,
+        "tick": {
+          "Average time per tick": 4.6,
+          "P50": 3.6,
+          "P95": 9.3,
+          "P99": 9.8
+        }
+      },
+      {
+        "t": 1081,
+        "cpu": 3335.8,
+        "tick": {
+          "Average time per tick": 4.5,
+          "P50": 3.5,
+          "P95": 8.8,
+          "P99": 11.2
+        }
+      },
+      {
+        "t": 1095,
+        "cpu": 3379.5,
+        "tick": {
+          "Average time per tick": 5.4,
+          "P50": 4.8,
+          "P95": 9.7,
+          "P99": 17.6
+        }
+      },
+      {
+        "t": 1110,
+        "cpu": 3425.7,
+        "tick": {
+          "Average time per tick": 4.5,
+          "P50": 3.8,
+          "P95": 8.6,
+          "P99": 11.8
+        }
+      },
+      {
+        "t": 1126,
+        "cpu": 3472.2,
+        "tick": {
+          "Average time per tick": 6.2,
+          "P50": 4.4,
+          "P95": 13.0,
+          "P99": 26.1
+        }
+      },
+      {
+        "t": 1141,
+        "cpu": 3519.0,
+        "tick": {
+          "Average time per tick": 5.6,
+          "P50": 4.0,
+          "P95": 11.7,
+          "P99": 21.9
+        }
+      },
+      {
+        "t": 1155,
+        "cpu": 3563.1,
+        "tick": {
+          "Average time per tick": 4.8,
+          "P50": 3.8,
+          "P95": 9.9,
+          "P99": 15.3
+        }
+      },
+      {
+        "t": 1170,
+        "cpu": 3609.9,
+        "tick": {
+          "Average time per tick": 5.5,
+          "P50": 4.2,
+          "P95": 11.1,
+          "P99": 16.3
+        }
+      },
+      {
+        "t": 1186,
+        "cpu": 3657.1,
+        "tick": {
+          "Average time per tick": 6.9,
+          "P50": 7.1,
+          "P95": 13.6,
+          "P99": 15.1
+        }
+      },
+      {
+        "t": 1201,
+        "cpu": 3704.6,
+        "tick": {
+          "Average time per tick": 8.2,
+          "P50": 8.0,
+          "P95": 16.7,
+          "P99": 23.2
+        }
+      },
+      {
+        "t": 1215,
+        "cpu": 3748.9,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 6.9,
+          "P95": 15.9,
+          "P99": 23.1
+        }
+      },
+      {
+        "t": 1231,
+        "cpu": 3793.7,
+        "tick": {
+          "Average time per tick": 7.4,
+          "P50": 6.5,
+          "P95": 14.7,
+          "P99": 16.3
+        }
+      },
+      {
+        "t": 1246,
+        "cpu": 3840.2,
+        "tick": {
+          "Average time per tick": 8.5,
+          "P50": 7.1,
+          "P95": 16.0,
+          "P99": 30.1
+        }
+      },
+      {
+        "t": 1260,
+        "cpu": 3883.3,
+        "tick": {
+          "Average time per tick": 8.3,
+          "P50": 7.2,
+          "P95": 15.7,
+          "P99": 19.5
+        }
+      },
+      {
+        "t": 1275,
+        "cpu": 3929.1,
+        "tick": {
+          "Average time per tick": 8.9,
+          "P50": 8.3,
+          "P95": 14.3,
+          "P99": 22.7
+        }
+      },
+      {
+        "t": 1291,
+        "cpu": 3974.4,
+        "tick": {
+          "Average time per tick": 8.0,
+          "P50": 7.4,
+          "P95": 15.2,
+          "P99": 18.2
+        }
+      },
+      {
+        "t": 1305,
+        "cpu": 4016.9,
+        "tick": {
+          "Average time per tick": 7.9,
+          "P50": 6.8,
+          "P95": 15.3,
+          "P99": 22.2
+        }
+      },
+      {
+        "t": 1320,
+        "cpu": 4062.3,
+        "tick": {
+          "Average time per tick": 6.5,
+          "P50": 5.1,
+          "P95": 14.2,
+          "P99": 17.4
+        }
+      },
+      {
+        "t": 1336,
+        "cpu": 4109.3,
+        "tick": {
+          "Average time per tick": 8.9,
+          "P50": 7.6,
+          "P95": 19.2,
+          "P99": 24.6
+        }
+      },
+      {
+        "t": 1350,
+        "cpu": 4151.8,
+        "tick": {
+          "Average time per tick": 8.3,
+          "P50": 7.0,
+          "P95": 15.7,
+          "P99": 24.8
+        }
+      },
+      {
+        "t": 1365,
+        "cpu": 4197.4,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 6.8,
+          "P95": 14.5,
+          "P99": 21.3
+        }
+      },
+      {
+        "t": 1381,
+        "cpu": 4243.7,
+        "tick": {
+          "Average time per tick": 8.6,
+          "P50": 8.5,
+          "P95": 15.9,
+          "P99": 20.0
+        }
+      },
+      {
+        "t": 1396,
+        "cpu": 4289.3,
+        "tick": {
+          "Average time per tick": 7.0,
+          "P50": 5.8,
+          "P95": 15.4,
+          "P99": 21.3
+        }
+      },
+      {
+        "t": 1410,
+        "cpu": 4331.5,
+        "tick": {
+          "Average time per tick": 8.0,
+          "P50": 6.9,
+          "P95": 15.5,
+          "P99": 20.8
+        }
+      },
+      {
+        "t": 1426,
+        "cpu": 4377.1,
+        "tick": {
+          "Average time per tick": 8.2,
+          "P50": 7.3,
+          "P95": 16.1,
+          "P99": 23.7
+        }
+      },
+      {
+        "t": 1441,
+        "cpu": 4423.2,
+        "tick": {
+          "Average time per tick": 8.6,
+          "P50": 8.3,
+          "P95": 14.5,
+          "P99": 18.7
+        }
+      },
+      {
+        "t": 1455,
+        "cpu": 4466.3,
+        "tick": {
+          "Average time per tick": 7.7,
+          "P50": 6.7,
+          "P95": 15.5,
+          "P99": 18.5
+        }
+      },
+      {
+        "t": 1470,
+        "cpu": 4512.0,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 6.6,
+          "P95": 16.1,
+          "P99": 18.6
+        }
+      },
+      {
+        "t": 1486,
+        "cpu": 4558.5,
+        "tick": {
+          "Average time per tick": 7.1,
+          "P50": 5.8,
+          "P95": 16.2,
+          "P99": 18.1
+        }
+      },
+      {
+        "t": 1501,
+        "cpu": 4604.1,
+        "tick": {
+          "Average time per tick": 8.0,
+          "P50": 7.5,
+          "P95": 15.4,
+          "P99": 23.0
+        }
+      },
+      {
+        "t": 1515,
+        "cpu": 4645.9,
+        "tick": {
+          "Average time per tick": 8.0,
+          "P50": 7.0,
+          "P95": 16.1,
+          "P99": 21.4
+        }
+      },
+      {
+        "t": 1531,
+        "cpu": 4691.9,
+        "tick": {
+          "Average time per tick": 8.8,
+          "P50": 8.1,
+          "P95": 16.2,
+          "P99": 46.5
+        }
+      },
+      {
+        "t": 1546,
+        "cpu": 4737.6,
+        "tick": {
+          "Average time per tick": 7.4,
+          "P50": 6.1,
+          "P95": 14.2,
+          "P99": 20.4
+        }
+      },
+      {
+        "t": 1560,
+        "cpu": 4780.6,
+        "tick": {
+          "Average time per tick": 7.6,
+          "P50": 6.2,
+          "P95": 15.2,
+          "P99": 23.9
+        }
+      },
+      {
+        "t": 1575,
+        "cpu": 4826.6,
+        "tick": {
+          "Average time per tick": 6.6,
+          "P50": 5.6,
+          "P95": 13.1,
+          "P99": 16.9
+        }
+      },
+      {
+        "t": 1591,
+        "cpu": 4871.7,
+        "tick": {
+          "Average time per tick": 7.3,
+          "P50": 6.4,
+          "P95": 15.2,
+          "P99": 22.9
+        }
+      },
+      {
+        "t": 1605,
+        "cpu": 4914.9,
+        "tick": {
+          "Average time per tick": 9.3,
+          "P50": 9.0,
+          "P95": 16.1,
+          "P99": 19.6
+        }
+      },
+      {
+        "t": 1620,
+        "cpu": 4961.1,
+        "tick": {
+          "Average time per tick": 8.8,
+          "P50": 8.8,
+          "P95": 16.1,
+          "P99": 19.7
+        }
+      },
+      {
+        "t": 1636,
+        "cpu": 5008.2,
+        "tick": {
+          "Average time per tick": 9.0,
+          "P50": 8.4,
+          "P95": 16.4,
+          "P99": 22.2
+        }
+      },
+      {
+        "t": 1651,
+        "cpu": 5054.1,
+        "tick": {
+          "Average time per tick": 8.9,
+          "P50": 8.4,
+          "P95": 16.2,
+          "P99": 26.0
+        }
+      },
+      {
+        "t": 1665,
+        "cpu": 5098.1,
+        "tick": {
+          "Average time per tick": 7.5,
+          "P50": 6.7,
+          "P95": 15.1,
+          "P99": 16.6
+        }
+      },
+      {
+        "t": 1681,
+        "cpu": 5145.3,
+        "tick": {
+          "Average time per tick": 7.6,
+          "P50": 7.2,
+          "P95": 14.4,
+          "P99": 19.9
+        }
+      },
+      {
+        "t": 1696,
+        "cpu": 5189.5,
+        "tick": {
+          "Average time per tick": 7.8,
+          "P50": 7.7,
+          "P95": 12.6,
+          "P99": 18.3
+        }
+      },
+      {
+        "t": 1710,
+        "cpu": 5231.4,
+        "tick": {
+          "Average time per tick": 7.9,
+          "P50": 7.4,
+          "P95": 15.3,
+          "P99": 19.5
+        }
+      },
+      {
+        "t": 1725,
+        "cpu": 5276.2,
+        "tick": {
+          "Average time per tick": 6.7,
+          "P50": 5.5,
+          "P95": 13.7,
+          "P99": 27.8
+        }
+      },
+      {
+        "t": 1741,
+        "cpu": 5320.8,
+        "tick": {
+          "Average time per tick": 7.0,
+          "P50": 6.1,
+          "P95": 14.7,
+          "P99": 21.8
+        }
+      },
+      {
+        "t": 1756,
+        "cpu": 5365.4,
+        "tick": {
+          "Average time per tick": 4.6,
+          "P50": 3.5,
+          "P95": 9.7,
+          "P99": 11.5
+        }
+      },
+      {
+        "t": 1770,
+        "cpu": 5408.4,
+        "tick": {
+          "Average time per tick": 8.1,
+          "P50": 6.6,
+          "P95": 17.4,
+          "P99": 30.0
+        }
+      },
+      {
+        "t": 1785,
+        "cpu": 5454.1,
+        "tick": {
+          "Average time per tick": 7.0,
+          "P50": 4.9,
+          "P95": 16.2,
+          "P99": 21.0
+        }
+      },
+      {
+        "t": 1801,
+        "cpu": 5498.6,
+        "tick": {
+          "Average time per tick": 6.9,
+          "P50": 4.7,
+          "P95": 16.9,
+          "P99": 19.3
+        }
+      },
+      {
+        "t": 1816,
+        "cpu": 5543.2,
+        "tick": {
+          "Average time per tick": 4.3,
+          "P50": 3.3,
+          "P95": 9.3,
+          "P99": 16.0
+        }
+      },
+      {
+        "t": 1830,
+        "cpu": 5584.1,
+        "tick": {
+          "Average time per tick": 4.4,
+          "P50": 3.3,
+          "P95": 10.7,
+          "P99": 16.0
+        }
+      },
+      {
+        "t": 1845,
+        "cpu": 5628.3,
+        "tick": {
+          "Average time per tick": 4.7,
+          "P50": 3.5,
+          "P95": 11.2,
+          "P99": 16.4
+        }
+      },
+      {
+        "t": 1861,
+        "cpu": 5672.9,
+        "tick": {
+          "Average time per tick": 3.7,
+          "P50": 2.7,
+          "P95": 8.4,
+          "P99": 18.1
+        }
+      },
+      {
+        "t": 1876,
+        "cpu": 5711.6,
+        "tick": {
+          "Average time per tick": 4.8,
+          "P50": 3.5,
+          "P95": 10.6,
+          "P99": 15.0
+        }
+      },
+      {
+        "t": 1890,
+        "cpu": 5753.0,
+        "tick": {
+          "Average time per tick": 4.8,
+          "P50": 3.6,
+          "P95": 10.0,
+          "P99": 16.7
+        }
+      },
+      {
+        "t": 1905,
+        "cpu": 5797.7,
+        "tick": {
+          "Average time per tick": 4.4,
+          "P50": 3.5,
+          "P95": 10.4,
+          "P99": 13.7
+        }
+      }
+    ]
+  },
+  "idle": {
+    "cpu_per_s": 0.669,
+    "tick": {
+      "Average time per tick": 4.7,
+      "P50": 3.6,
+      "P95": 9.0,
+      "P99": 71.6
+    }
+  },
+  "incremental": {
+    "window_s": 151,
+    "cpu_s_above_idle": 12.3,
+    "ticks": [
+      {
+        "Average time per tick": 3.6,
+        "P50": 3.3,
+        "P95": 6.8,
+        "P99": 10.8
+      },
+      {
+        "Average time per tick": 3.4,
+        "P50": 3.1,
+        "P95": 6.2,
+        "P99": 8.1
+      },
+      {
+        "Average time per tick": 5.0,
+        "P50": 4.1,
+        "P95": 9.9,
+        "P99": 16.8
+      },
+      {
+        "Average time per tick": 5.7,
+        "P50": 5.1,
+        "P95": 11.4,
+        "P99": 15.9
+      },
+      {
+        "Average time per tick": 3.7,
+        "P50": 3.1,
+        "P95": 6.9,
+        "P99": 11.4
+      },
+      {
+        "Average time per tick": 3.5,
+        "P50": 3.0,
+        "P95": 6.0,
+        "P99": 14.4
+      },
+      {
+        "Average time per tick": 3.4,
+        "P50": 3.1,
+        "P95": 5.0,
+        "P99": 10.3
+      },
+      {
+        "Average time per tick": 3.6,
+        "P50": 3.0,
+        "P95": 6.4,
+        "P99": 26.7
+      },
+      {
+        "Average time per tick": 3.3,
+        "P50": 2.8,
+        "P95": 6.3,
+        "P99": 8.2
+      },
+      {
+        "Average time per tick": 3.5,
+        "P50": 3.3,
+        "P95": 5.4,
+        "P99": 8.5
+      }
+    ],
+    "setblock_replies": [
+      "Changed the block at -120, 200, -120",
+      "Changed the block at -120, 200, -24",
+      "Changed the block at -120, 200, -56",
+      "Changed the block at -120, 200, -88",
+      "Changed the block at -120, 200, 104",
+      "Changed the block at -120, 200, 40",
+      "Changed the block at -120, 200, 72",
+      "Changed the block at -120, 200, 8",
+      "Changed the block at -24, 200, -120",
+      "Changed the block at -24, 200, -24",
+      "Changed the block at -24, 200, -56",
+      "Changed the block at -24, 200, -88",
+      "Changed the block at -24, 200, 104",
+      "Changed the block at -24, 200, 40",
+      "Changed the block at -24, 200, 72",
+      "Changed the block at -24, 200, 8",
+      "Changed the block at -56, 200, -120",
+      "Changed the block at -56, 200, -24",
+      "Changed the block at -56, 200, -56",
+      "Changed the block at -56, 200, -88",
+      "Changed the block at -56, 200, 104",
+      "Changed the block at -56, 200, 40",
+      "Changed the block at -56, 200, 72",
+      "Changed the block at -56, 200, 8",
+      "Changed the block at -88, 200, -120",
+      "Changed the block at -88, 200, -24",
+      "Changed the block at -88, 200, -56",
+      "Changed the block at -88, 200, -88",
+      "Changed the block at -88, 200, 104",
+      "Changed the block at -88, 200, 40",
+      "Changed the block at -88, 200, 72",
+      "Changed the block at -88, 200, 8",
+      "Changed the block at 104, 200, -120",
+      "Changed the block at 104, 200, -24",
+      "Changed the block at 104, 200, -56",
+      "Changed the block at 104, 200, -88",
+      "Changed the block at 104, 200, 104",
+      "Changed the block at 104, 200, 40",
+      "Changed the block at 104, 200, 72",
+      "Changed the block at 104, 200, 8",
+      "Changed the block at 40, 200, -120",
+      "Changed the block at 40, 200, -24",
+      "Changed the block at 40, 200, -56",
+      "Changed the block at 40, 200, -88",
+      "Changed the block at 40, 200, 104",
+      "Changed the block at 40, 200, 40",
+      "Changed the block at 40, 200, 72",
+      "Changed the block at 40, 200, 8",
+      "Changed the block at 72, 200, -120",
+      "Changed the block at 72, 200, -24",
+      "Changed the block at 72, 200, -56",
+      "Changed the block at 72, 200, -88",
+      "Changed the block at 72, 200, 104",
+      "Changed the block at 72, 200, 40",
+      "Changed the block at 72, 200, 72",
+      "Changed the block at 72, 200, 8",
+      "Changed the block at 8, 200, -120",
+      "Changed the block at 8, 200, -24",
+      "Changed the block at 8, 200, -56",
+      "Changed the block at 8, 200, -88",
+      "Changed the block at 8, 200, 104",
+      "Changed the block at 8, 200, 40",
+      "Changed the block at 8, 200, 72",
+      "Changed the block at 8, 200, 8"
+    ]
+  },
+  "output_mb": 366.3,
+  "output_files": 4196
+}
