@@ -1,7 +1,7 @@
 package nu.metacraft.qol.void_anchor;
 
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -11,9 +11,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Collection;
+import nu.metacraft.qol.Qol;
 import nu.metacraft.qol.void_anchor.block.VoidAnchorBlock;
 import nu.metacraft.qol.void_anchor.rift.Rift;
 import nu.metacraft.qol.void_anchor.rift.RiftStyle;
@@ -48,7 +50,7 @@ public final class VoidAnchorCommand {
 							ctx.getSource(), EntityArgument.getPlayers(ctx, "players"), BlockPosArgument.getLoadedBlockPos(ctx, "pos")
 					))
 			));
-			dispatcher.register(Commands.literal("voidanchor").requires(Permissions.require("metacraft.qol.voidanchor", 2)).then(rift).then(bind));
+			dispatcher.register(Commands.literal("voidanchor").requires(PermissionPredicates.require(Qol.getID("voidanchor"), PermissionLevel.GAMEMASTERS)).then(rift).then(bind));
 		});
 	}
 

@@ -27,7 +27,7 @@ player who fell off an End island; a void anchor does.
   is on). Players without an anchor see no change. As with a respawn anchor, creative players and
   spectators are caught too, and spend a charge; a flyer stops flying (spectators excepted) and a rider gets off.
 
-`/voidanchor rift [pos]` (permission `metacraft.qol.voidanchor`, level 2) opens a rift that only
+`/voidanchor rift [pos]` (permission `metacraft:voidanchor`, level 2) opens a rift that only
 looks, for checking how it renders.
 
 ### Config
