@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Vanilla's dye recipe would average the Rainbow armour's static colour into whatever dye it is
+ * Vanilla's dye recipe would average the RGB armour's static colour into whatever dye it is
  * given. Armour dyed with an animated colour is dyed by {@link metacraft.moredyes.recipe.ModDyeRecipe}
  * instead, which starts from the new dyes alone.
  */

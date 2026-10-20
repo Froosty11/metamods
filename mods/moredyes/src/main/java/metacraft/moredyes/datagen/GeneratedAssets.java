@@ -725,12 +725,14 @@ public final class GeneratedAssets implements DataProvider {
 	 * A texture recoloured for {@code color}; {@code make} takes the ramp's {@code (dark, light)}. An
 	 * animated colour gets a strip with a frame per keyframe, plus the {@code .mcmeta} that plays it.
 	 * Equipment textures are the exception: the equipment layer renderer binds them directly, not from
-	 * an atlas, so a strip would draw all its frames squashed into one; they stay a single frame.
+	 * an atlas, so a strip would draw all its frames squashed into one. They stay a single frame, cut
+	 * into horizontal bands of the animation's stripe colours (red, green, blue for RGB).
 	 */
 	private void sprite(String path, ModColor color, BiFunction<Integer, Integer, Tex> make) {
 		var animation = color.animation();
 		if (animation.isEmpty() || path.startsWith("textures/entity/equipment/")) {
-			Tex tex = make.apply(color.rampDark(), color.rampLight());
+			Tex tex = animation.isEmpty() ? make.apply(color.rampDark(), color.rampLight())
+					: Tex.bands(animation.get().stripes().stream().map(f -> make.apply(f.rampDark(), f.rampLight())).toList());
 			if (!drawn(path)) textureBytes.merge(color.id(), (long) tex.png().length, Long::sum);
 			png(path, tex);
 			return;

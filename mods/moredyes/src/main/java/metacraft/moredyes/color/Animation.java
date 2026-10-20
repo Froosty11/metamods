@@ -19,8 +19,10 @@ import java.util.Optional;
  * @param frames	  the keyframes, in order; the last blends back into the first
  * @param frametime   ticks per keyframe
  * @param interpolate whether vanilla blends between keyframes (it does for sprite animations that ask)
+ * @param stripes	  the colours of the static horizontal bands that stand in for the animation on textures
+ *					  that cannot animate (equipment layers); left out, three keyframes sampled evenly
  */
-public record Animation(List<Frame> frames, int frametime, boolean interpolate) {
+public record Animation(List<Frame> frames, int frametime, boolean interpolate, List<Frame> stripes) {
 
 	/** One keyframe: the colour itself and the dark/light stops its textures are recoloured with, all plain {@code 0xRRGGBB}. */
 	public record Frame(int rgb, int rampDark, int rampLight) {
@@ -56,7 +58,8 @@ public record Animation(List<Frame> frames, int frametime, boolean interpolate) 
 			instance -> instance.group(
 					Frame.CODEC.listOf().fieldOf("frames").forGetter(Animation::frames),
 					Codec.INT.fieldOf("frametime").forGetter(Animation::frametime),
-					Codec.BOOL.optionalFieldOf("interpolate", true).forGetter(Animation::interpolate)
+					Codec.BOOL.optionalFieldOf("interpolate", true).forGetter(Animation::interpolate),
+					Frame.CODEC.listOf().optionalFieldOf("stripes", List.of()).forGetter(Animation::stripes)
 			).apply(instance, Animation::new)
 	).validate(animation -> {
 		if (animation.frames.size() < 2) return DataResult.error(() -> "\"frames\" needs at least 2 keyframes");
@@ -66,6 +69,13 @@ public record Animation(List<Frame> frames, int frametime, boolean interpolate) 
 
 	public Animation {
 		frames = List.copyOf(frames);
+		if (stripes.isEmpty()) {
+			int count = Math.min(3, frames.size());
+			List<Frame> sampled = new ArrayList<>(count);
+			for (int i = 0; i < count; i++) sampled.add(frames.get(i * frames.size() / count));
+			stripes = sampled;
+		}
+		stripes = List.copyOf(stripes);
 	}
 
 	/** Ticks for the whole loop. */

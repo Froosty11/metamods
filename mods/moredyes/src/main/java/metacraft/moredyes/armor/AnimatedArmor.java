@@ -50,7 +50,7 @@ public final class AnimatedArmor {
 
 	private AnimatedArmor() {}
 
-	/** Everything wearing Rainbow armour, so the refresh does not have to scan every entity. */
+	/** Everything wearing RGB armour, so the refresh does not have to scan every entity. */
 	private static final Set<LivingEntity> WEARERS = Collections.newSetFromMap(new WeakHashMap<>());
 
 	/** Ticks between re-sending worn armour: at a three-minute loop the colour moves 2-3 RGB units in that time. */
@@ -92,7 +92,7 @@ public final class AnimatedArmor {
 		return colour.animation().map(animation -> animation.rgbAt(PackClock.ticksSince(viewer, nowMillis))).orElse(colour.rgb() & 0xFFFFFF);
 	}
 
-	/** Every living entity currently wearing Rainbow armour (weakly held). */
+	/** Every living entity currently wearing RGB armour (weakly held). */
 	public static Set<LivingEntity> wearers() {
 		return WEARERS;
 	}

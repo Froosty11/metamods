@@ -1233,6 +1233,11 @@ public final class MoreDyesGameTests {
 		helper.assertValueEqual(a.rgbAt(20), 0xFF0000, "wraps");
 		helper.assertValueEqual(a.frames().get(1).rampDark(), 0x000040, "explicit ramp kept");
 		helper.assertTrue(ModColors.get("cerise").animation().isEmpty(), "static colour has no animation");
+		helper.assertValueEqual(a.stripes().size(), 2, "stripes default to the keyframes when there are fewer than three");
+		var withStripes = Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
+				"{\"frametime\":10,\"frames\":[\"#FF0000\",\"#00FF00\",\"#0000FF\",\"#FFFFFF\"],\"stripes\":[\"#123456\"]}")).getOrThrow();
+		helper.assertValueEqual(withStripes.stripes().size(), 1, "explicit stripes");
+		helper.assertValueEqual(withStripes.stripes().get(0).rgb(), 0x123456, "explicit stripe colour");
 		helper.succeed();
 	}
 
@@ -1257,27 +1262,62 @@ public final class MoreDyesGameTests {
 	/** Every texture of an animated colour ships as a strip of frames with its mcmeta; static ones don't. */
 	@GameTest
 	public void animatedTexturesShipAsStrips(GameTestHelper helper) {
-		ModColor rainbow = animated();
-		int frames = rainbow.animation().orElseThrow().frames().size();
+		ModColor rgb = animated();
+		int frames = rgb.animation().orElseThrow().frames().size();
 		for (String p : List.of("block/{c}_wool", "block/{c}_concrete", "block/{c}_stained_glass", "block/{c}_bed_head_up",
 				"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_torchflower",
 				"entity/shulker/{c}", "item/{c}_dye")) {
 			java.awt.image.BufferedImage still = image(p.replace("{c}", first().id()));
-			java.awt.image.BufferedImage strip = image(p.replace("{c}", rainbow.id()));
+			java.awt.image.BufferedImage strip = image(p.replace("{c}", rgb.id()));
 			helper.assertValueEqual(strip.getWidth(), still.getWidth(), p + " width");
 			helper.assertValueEqual(strip.getHeight(), still.getHeight() * frames, p + " height");
-			helper.assertTrue(resource(p.replace("{c}", rainbow.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
+			helper.assertTrue(resource(p.replace("{c}", rgb.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
 			helper.assertTrue(resourceOrNull(p.replace("{c}", first().id()) + ".png.mcmeta") == null, p + " static has mcmeta");
 		}
 		// frames that aren't square have to say so, or vanilla cuts the strip into squares
-		String sheep = resource("block/sheep/" + rainbow.id() + "_wool.png.mcmeta");
+		String sheep = resource("block/sheep/" + rgb.id() + "_wool.png.mcmeta");
 		helper.assertTrue(sheep.contains("\"width\":64") && sheep.contains("\"height\":32"), "sheep mcmeta frame size: " + sheep);
-		// equipment textures aren't atlas sprites: they stay one static frame even for an animated colour
+		// equipment textures aren't atlas sprites: they stay one static frame, in red, green and blue bands
+		var stripes = rgb.animation().orElseThrow().stripes();
+		helper.assertValueEqual(stripes.size(), 3, "stripes");
 		for (String p : List.of("entity/equipment/llama_body/{c}", "entity/equipment/happy_ghast_body/{c}_harness")) {
-			helper.assertValueEqual(image(p.replace("{c}", rainbow.id())).getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
-			helper.assertTrue(resourceOrNull(p.replace("{c}", rainbow.id()) + ".png.mcmeta") == null, p + " has mcmeta");
+			java.awt.image.BufferedImage tex = image(p.replace("{c}", rgb.id()));
+			helper.assertValueEqual(tex.getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
+			helper.assertTrue(resourceOrNull(p.replace("{c}", rgb.id()) + ".png.mcmeta") == null, p + " has mcmeta");
+			float[] hues = new float[3];
+			for (int band = 0; band < 3; band++) hues[band] = bandHue(tex, band, 3);
+			helper.assertTrue(Math.abs(hues[0] - hues[1]) > 0.2f && Math.abs(hues[1] - hues[2]) > 0.2f && Math.abs(hues[0] - hues[2]) > 0.2f,
+					p + " top, middle and bottom bands share a hue: " + java.util.Arrays.toString(hues));
 		}
 		helper.succeed();
+	}
+
+	/** Mean hue (0..1, as a point on the colour circle) of the visible pixels in one of {@code bands} equal bands of the visible rows. */
+	private static float bandHue(java.awt.image.BufferedImage img, int band, int bands) {
+		int top = img.getHeight(), bottom = -1;
+		for (int py = 0; py < img.getHeight(); py++) {
+			for (int px = 0; px < img.getWidth(); px++) {
+				if ((img.getRGB(px, py) >>> 24) > 0) {
+					top = Math.min(top, py);
+					bottom = py;
+					break;
+				}
+			}
+		}
+		int rows = bottom - top + 1;
+		double x = 0, y = 0;
+		for (int py = top + band * rows / bands; py < top + (band + 1) * rows / bands; py++) {
+			for (int px = 0; px < img.getWidth(); px++) {
+				int p = img.getRGB(px, py);
+				if ((p >>> 24) < 128) continue;
+				float[] hsb = java.awt.Color.RGBtoHSB(p >> 16 & 0xFF, p >> 8 & 0xFF, p & 0xFF, null);
+				if (hsb[1] < 0.2f) continue;
+				x += Math.cos(hsb[0] * 2 * Math.PI);
+				y += Math.sin(hsb[0] * 2 * Math.PI);
+			}
+		}
+		double angle = Math.atan2(y, x) / (2 * Math.PI);
+		return (float) (angle < 0 ? angle + 1 : angle);
 	}
 
 	/** An animated colour's banner mask is one tinted copy per keyframe, stacked. */
@@ -1303,9 +1343,9 @@ public final class MoreDyesGameTests {
 		return stack.get(DataComponents.DYED_COLOR).rgb() & 0xFFFFFF;
 	}
 
-	/** Rainbow dye turns armour Rainbow whatever colour it had. */
+	/** RGB dye turns armour RGB whatever colour it had. */
 	@GameTest
-	public void rainbowDyeOverwritesArmour(GameTestHelper helper) {
+	public void rgbDyeOverwritesArmour(GameTestHelper helper) {
 		ItemStack blue = new ItemStack(Items.LEATHER_CHESTPLATE);
 		blue.set(DataComponents.DYED_COLOR, new DyedItemColor(0x0000FF));
 		ItemStack out = craft(helper, grid(blue, new ItemStack(ModContent.dye(animated()))));
@@ -1314,19 +1354,19 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
-	/** Nothing else goes in the grid with Rainbow dye. */
+	/** Nothing else goes in the grid with RGB dye. */
 	@GameTest
-	public void rainbowDyeDoesNotMix(GameTestHelper helper) {
-		ItemStack rainbow = new ItemStack(ModContent.dye(animated()));
-		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), new ItemStack(Items.DYE.red()))).isEmpty(), "mixed with vanilla red");
-		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), new ItemStack(ModContent.dye(first())))).isEmpty(), "mixed with ours");
-		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), rainbow.copy())).isEmpty(), "two Rainbow dyes");
+	public void rgbDyeDoesNotMix(GameTestHelper helper) {
+		ItemStack rgb = new ItemStack(ModContent.dye(animated()));
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), new ItemStack(Items.DYE.red()))).isEmpty(), "mixed with vanilla red");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), new ItemStack(ModContent.dye(first())))).isEmpty(), "mixed with ours");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), rgb.copy())).isEmpty(), "two RGB dyes");
 		helper.succeed();
 	}
 
-	/** Dyeing Rainbow armour with ordinary dyes gives those dyes' colour alone, and ends the animation. */
+	/** Dyeing RGB armour with ordinary dyes gives those dyes' colour alone, and ends the animation. */
 	@GameTest
-	public void normalDyeEndsTheRainbow(GameTestHelper helper) {
+	public void normalDyeEndsTheAnimation(GameTestHelper helper) {
 		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_HELMET), new ItemStack(ModContent.dye(animated()))));
 		for (ItemStack dye : List.of(new ItemStack(Items.DYE.red()), new ItemStack(ModContent.dye(first())))) {
 			ItemStack out = craft(helper, grid(rb.copy(), dye));
@@ -1370,7 +1410,7 @@ public final class MoreDyesGameTests {
 		return String.format("#%06X", rgb);
 	}
 
-	/** What a viewer is sent for Rainbow armour follows the clock of their own pack load; the server's stack never changes. */
+	/** What a viewer is sent for RGB armour follows the clock of their own pack load; the server's stack never changes. */
 	@GameTest
 	public void armourFollowsTheViewersClock(GameTestHelper helper) {
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
@@ -1396,7 +1436,7 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
-	/** Armour that is no longer Rainbow (a stale marker) is sent as it is. */
+	/** Armour that is no longer RGB (a stale marker) is sent as it is. */
 	@GameTest
 	public void staleMarkerIsSentAsItIs(GameTestHelper helper) {
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
@@ -1409,7 +1449,7 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
-	/** Armour stands (and by the same route horses and wolves) are refreshed while they wear Rainbow, and not after. */
+	/** Armour stands (and by the same route horses and wolves) are refreshed while they wear RGB, and not after. */
 	@GameTest
 	public void armourStandWearersComeAndGo(GameTestHelper helper) {
 		var stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(1, 2, 1));

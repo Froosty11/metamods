@@ -13,12 +13,13 @@
 		"vanilla": "purple"
 	},
 	{
-		"id": "rainbow",
-		"name": "Rainbow",
+		"id": "rgb",
+		"name": "RGB",
 		"rgb": "#FF4040",
 		"animation": {
 			"frametime": 150,
 			"interpolate": true,
+			"stripes": ["#FF0000", "#00FF00", "#0000FF"],
 			"frames": ["#FF0000", "#FF4000", "#FF8000", "#FFBF00", "#FFFF00", "#BFFF00",
 				"#80FF00", "#40FF00", "#00FF00", "#00FF40", "#00FF80", "#00FFBF",
 				"#00FFFF", "#00BFFF", "#0080FF", "#0040FF", "#0000FF", "#4000FF",

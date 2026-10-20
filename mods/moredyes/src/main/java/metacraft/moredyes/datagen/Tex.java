@@ -96,6 +96,32 @@ final class Tex {
 	}
 
 	/**
+	 * Horizontal bands of equal height across the rows that have visible pixels (equipment sheets
+	 * leave much of their height empty, so bands over the whole sheet would miss the cloth);
+	 * band {@code i} is taken from {@code variants.get(i)}.
+	 */
+	static Tex bands(java.util.List<Tex> variants) {
+		Tex first = variants.get(0);
+		int top = first.height, bottom = -1;
+		for (int y = 0; y < first.height; y++) {
+			for (int x = 0; x < first.width; x++) {
+				if (a(first.argb[y * first.width + x]) > 0) {
+					top = Math.min(top, y);
+					bottom = y;
+					break;
+				}
+			}
+		}
+		int rows = Math.max(1, bottom - top + 1);
+		int[] out = new int[first.argb.length];
+		for (int y = 0; y < first.height; y++) {
+			int band = Math.max(0, Math.min(variants.size() - 1, (y - top) * variants.size() / rows));
+			System.arraycopy(variants.get(band).argb, y * first.width, out, y * first.width, first.width);
+		}
+		return new Tex(first.width, first.height, out);
+	}
+
+	/**
 	 * {@link #recolour} for the petals only: the warm, saturated texels (a torchflower's flame), mapped
 	 * onto the ramp by their own lightness; stem and leaves keep their colours.
 	 */

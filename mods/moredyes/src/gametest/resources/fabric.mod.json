@@ -9,7 +9,7 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"metacraft.moredyes.clienttest.MoreDyesClientTests",
-			"metacraft.moredyes.clienttest.RainbowClientTests"
+			"metacraft.moredyes.clienttest.RgbClientTests"
 		]
 	},
 	"mixins": [

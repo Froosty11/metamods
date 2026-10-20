@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Rainbow drifts on a vanilla client. Each thing that should change colour stands in front of a
+ * RGB drifts on a vanilla client. Each thing that should change colour stands in front of a
  * white wall; the camera looks at each in turn, then again a quarter of the loop later (900 ticks,
  * about 90 degrees of hue), and the mean hue of each shot is compared.
  *
@@ -30,7 +30,7 @@ import java.util.Properties;
  * Run: {@code ./gradlew :mods:moredyes:runClientGameTest}. Screenshots land in
  * {@code mods/moredyes/build/run/clientGameTest/screenshots}.
  */
-public final class RainbowClientTests implements FabricClientGameTest {
+public final class RgbClientTests implements FabricClientGameTest {
 	/** What the camera looks at: where from, and at what. */
 	private record Subject(String name, double x, double y, double z, double lookX, double lookY, double lookZ) {
 		/** Camera 5 blocks in front of a thing at (x, y, z) on the line z = 6, looking at it. */
@@ -86,7 +86,7 @@ public final class RainbowClientTests implements FabricClientGameTest {
 				ctx.waitTicks(700);
 				List<Double> after = pass(ctx, server, conn, "t1");
 
-				System.out.println("[moredyes-clienttest] Rainbow hue per region (degrees, mean of the coloured pixels in each shot):");
+				System.out.println("[moredyes-clienttest] RGB hue per region (degrees, mean of the coloured pixels in each shot):");
 				double wool = Double.NaN;
 				for (int i = 0; i < SUBJECTS.size(); i++) {
 					double moved = hueDelta(before.get(i), after.get(i));
@@ -95,7 +95,7 @@ public final class RainbowClientTests implements FabricClientGameTest {
 					if (SUBJECTS.get(i).name().equals("wool")) wool = moved;
 				}
 				if (Double.isNaN(wool) || Math.abs(wool) < 20) {
-					throw new AssertionError("the Rainbow wool's hue moved " + wool + " degrees in about 800 ticks; expected at least 20");
+					throw new AssertionError("the RGB wool's hue moved " + wool + " degrees in about 800 ticks; expected at least 20");
 				}
 			}
 		}
@@ -106,19 +106,19 @@ public final class RainbowClientTests implements FabricClientGameTest {
 		server.runCommand("fill -8 " + FLOOR + " -6 56 " + FLOOR + " 12 minecraft:stone");
 		server.runCommand("fill -8 " + Y + " 8 56 -50 8 minecraft:white_concrete");
 		// wool, concrete, glass: a 3x3 wall each, glass on the white wall so its tint reads
-		server.runCommand("fill -1 " + Y + " 7 1 " + (Y + 2) + " 7 moredyes:rainbow_wool");
-		server.runCommand("fill 5 " + Y + " 7 7 " + (Y + 2) + " 7 moredyes:rainbow_concrete");
-		server.runCommand("fill 11 " + Y + " 7 13 " + (Y + 2) + " 7 moredyes:rainbow_stained_glass");
+		server.runCommand("fill -1 " + Y + " 7 1 " + (Y + 2) + " 7 moredyes:rgb_wool");
+		server.runCommand("fill 5 " + Y + " 7 7 " + (Y + 2) + " 7 moredyes:rgb_concrete");
+		server.runCommand("fill 11 " + Y + " 7 13 " + (Y + 2) + " 7 moredyes:rgb_stained_glass");
 		// a shulker box in an invisible item frame on the wall
-		server.runCommand("summon item_frame 18 " + (Y + 1) + " 7 {Facing:2b,Invisible:1b,Invulnerable:1b,Item:{id:\"moredyes:rainbow_shulker_box\",count:1}}");
-		// a banner on the wall, in the Rainbow colour
+		server.runCommand("summon item_frame 18 " + (Y + 1) + " 7 {Facing:2b,Invisible:1b,Invulnerable:1b,Item:{id:\"moredyes:rgb_shulker_box\",count:1}}");
+		// a banner on the wall, in the RGB colour
 		server.runCommand("setblock 24 " + (Y + 1) + " 7 minecraft:white_wall_banner[facing=north]");
-		server.runCommand("data merge block 24 " + (Y + 1) + " 7 {patterns:[{pattern:\"moredyes:rainbow/minecraft/base\",color:\"white\"}]}");
-		// worn: leather armour (the marker is the colour id; the colour is Rainbow's own #FF4040), a carpet, a harness
+		server.runCommand("data merge block 24 " + (Y + 1) + " 7 {patterns:[{pattern:\"moredyes:rgb/minecraft/base\",color:\"white\"}]}");
+		// worn: leather armour (the marker is the colour id; the colour is RGB's own #FF4040), a carpet, a harness
 		server.runCommand("summon armor_stand 30.5 " + Y + " 5 {Invulnerable:1b,Rotation:[180f,0f],equipment:{chest:{id:\"minecraft:leather_chestplate\","
-				+ "count:1,components:{\"minecraft:dyed_color\":16728128,\"moredyes:animated_dye\":\"rainbow\"}}}}");
-		server.runCommand("summon llama 36.5 " + Y + " 5 {NoAI:1b,Silent:1b,Rotation:[180f,0f],equipment:{body:{id:\"moredyes:rainbow_carpet\",count:1}}}");
-		server.runCommand("summon happy_ghast 44.5 " + (Y + 2) + " 4 {NoAI:1b,Silent:1b,Rotation:[180f,0f],equipment:{body:{id:\"moredyes:rainbow_harness\",count:1}}}");
+				+ "count:1,components:{\"minecraft:dyed_color\":16728128,\"moredyes:animated_dye\":\"rgb\"}}}}");
+		server.runCommand("summon llama 36.5 " + Y + " 5 {NoAI:1b,Silent:1b,Rotation:[180f,0f],equipment:{body:{id:\"moredyes:rgb_carpet\",count:1}}}");
+		server.runCommand("summon happy_ghast 44.5 " + (Y + 2) + " 4 {NoAI:1b,Silent:1b,Rotation:[180f,0f],equipment:{body:{id:\"moredyes:rgb_harness\",count:1}}}");
 	}
 
 	/** The client's game time at each subject's shot, per pass. */
@@ -134,7 +134,7 @@ public final class RainbowClientTests implements FabricClientGameTest {
 			conn.waitForClientboundPackets();
 			ctx.waitTicks(20);
 			at.add(ctx.computeOnClient(client -> client.level.getGameTime()));
-			Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("rainbow_" + s.name() + "_" + phase).withSize(1920, 1080));
+			Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("rgb_" + s.name() + "_" + phase).withSize(1920, 1080));
 			System.out.println("[moredyes-clienttest] screenshot: " + shot);
 			hues.add(meanHue(shot));
 		}
