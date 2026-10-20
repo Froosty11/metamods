@@ -153,6 +153,10 @@ public void animationStepsWithoutInterpolate(GameTestHelper helper) {
     - static colour: `png(path, make(dark, light))`, the same bytes as today
     - animated: `png(path, Tex.stack(frames.map(f -> make(f.rampDark(), f.rampLight()))))` plus the
       raw `mcmeta()` string at `path + ".mcmeta"` (through `bytes(...)`)
+    - animated, but `path` is under `textures/entity/equipment/`: static, as for a static colour
+      (`make(dark, light)` with the colour's own ramp, no mcmeta). In 26.3 the equipment layer
+      renderer binds those textures directly; there's no atlas for them, so a strip would draw all
+      frames squashed. This covers the happy ghast harness and the llama carpet.
     - animated, with a hand-drawn file at that path (`drawnOr` / the `png` existence check):
       throw `IllegalStateException("hand-drawn <path> can't serve animated colour <id>")`
 
@@ -168,13 +172,18 @@ public void animatedTexturesShipAsStrips(GameTestHelper helper) {
 	int frames = rainbow.animation().orElseThrow().frames().size();
 	for (String p : List.of("block/{c}_wool", "block/{c}_concrete", "block/{c}_stained_glass", "block/{c}_bed_head_up",
 			"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_torchflower",
-			"entity/shulker/{c}", "item/{c}_dye", "entity/equipment/llama_body/{c}")) {
+			"entity/shulker/{c}", "item/{c}_dye")) {
 		BufferedImage still = image(p.replace("{c}", first().id()));
 		BufferedImage strip = image(p.replace("{c}", rainbow.id()));
 		helper.assertValueEqual(strip.getWidth(), still.getWidth(), p + " width");
 		helper.assertValueEqual(strip.getHeight(), still.getHeight() * frames, p + " height");
 		helper.assertTrue(resource(p.replace("{c}", rainbow.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
 		helper.assertTrue(resourceOrNull(p.replace("{c}", first().id()) + ".png.mcmeta") == null, p + " static has mcmeta");
+	}
+	// equipment textures aren't atlas sprites: they stay one static frame even for an animated colour
+	for (String p : List.of("entity/equipment/llama_body/{c}", "entity/equipment/happy_ghast_body/{c}_harness")) {
+		helper.assertValueEqual(image(p.replace("{c}", rainbow.id())).getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
+		helper.assertTrue(resourceOrNull(p.replace("{c}", rainbow.id()) + ".png.mcmeta") == null, p + " has mcmeta");
 	}
 	helper.succeed();
 }
@@ -430,7 +439,8 @@ public void animatedTexturesShipAsStrips(GameTestHelper helper) {
   - Per region, compute the mean hue in each shot.
   - Assert the wool region's hue moved by at least 20°.
   - Log the hue change for every other region, without asserting. Those regions are the spec's
-    "needs confirming" atlases.
+    "needs confirming" atlases. The llama carpet and the ghast harness are expected to stay still,
+    since they're static by design.
 - [ ] **Step 2: Run it in a cloud session with environment `Minecraft`**
       (`./gradlew :mods:moredyes:runDatagen :mods:moredyes:runClientGameTest`), never locally.
       Expected: pass. Collect both screenshots and the logged hue changes.

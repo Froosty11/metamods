@@ -111,6 +111,13 @@ by display entities using block-atlas models, so they animate for free.
 All sprites of a colour use the same frame count and frametime, so they start together at pack
 load and stay in phase.
 
+**Exception: equipment textures** (`entity/equipment/...`: the happy ghast harness and the llama
+carpet). In 26.3 the equipment layer renderer binds these directly, not from an atlas, so `.mcmeta`
+animation does not run and a strip would draw squashed. For an animated colour they stay one static
+frame in the colour's own ramp. For the same reason, a custom armour item with an animated
+equipment texture is not an option for worn armour (checked 2026-10-20 against the 26.3-rc-1
+client jar). Only the item icon could animate.
+
 ### 3. Banner patterns (pack build, runtime)
 
 `BannerPatterns.generateTextures` multiplies each mask by `d.color().rgb()`. For an animated
