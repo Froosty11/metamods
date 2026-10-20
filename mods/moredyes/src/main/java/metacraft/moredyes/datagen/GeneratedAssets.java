@@ -15,6 +15,7 @@ import net.minecraft.data.PackOutput;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 import static metacraft.moredyes.datagen.J.arr;
 import static metacraft.moredyes.datagen.J.itemDef;
@@ -45,6 +47,8 @@ public final class GeneratedAssets implements DataProvider {
 
 	private final Path assets, data;
 	private final List<CompletableFuture<?>> writes = new ArrayList<>();
+	/** Generated texture bytes per colour id, logged so a colour's weight in the pack is visible. */
+	private final Map<String, Long> textureBytes = new LinkedHashMap<>();
 	private CachedOutput out;
 
 	public GeneratedAssets(FabricPackOutput output) {
@@ -562,11 +566,21 @@ public final class GeneratedAssets implements DataProvider {
 	public CompletableFuture<?> run(CachedOutput output) {
 		this.out = output;
 		writes.clear();
+		textureBytes.clear();
 		ModColors.load();
 		List<ModColor> colors = ModColors.all();
 
 		Map<String, Tex> sources = new LinkedHashMap<>();
 		TEXTURES.forEach((dest, src) -> sources.put(dest, Vanilla.texture(src)));
+		// vanilla's red counterpart of each white source: only what it recolours takes our colour, so a
+		// bed's pillow and frame, a bundle's string, a candle's wick and a harness's leather stay vanilla's
+		Map<String, Tex> dyedVariants = new LinkedHashMap<>();
+		TEXTURES.forEach((dest, src) -> {
+			String red = src.substring(0, src.lastIndexOf('/') + 1) + src.substring(src.lastIndexOf('/') + 1).replace("white", "red");
+			if (red.equals(src) || !Vanilla.hasTexture(red)) return;
+			Tex variant = Vanilla.texture(red);
+			if (variant.width == sources.get(dest).width && variant.height == sources.get(dest).height) dyedVariants.put(dest, variant);
+		});
 		String bundleItemDef = Vanilla.json("assets/minecraft/items/white_bundle.json").toString();
 		// vanilla's shulker item definition carries a transformation the special renderer needs
 		String shulkerItemDef = Vanilla.json("assets/minecraft/items/white_shulker_box.json").toString();
@@ -599,14 +613,17 @@ public final class GeneratedAssets implements DataProvider {
 			int dark = color.rampDark(), light = color.rampLight();
 			String dye = MOD + ":" + cid + "_dye";
 
-			sources.forEach((dest, img) -> png("textures/" + dest.replace("{c}", cid) + ".png", img.recolour(dark, light)));
+			sources.forEach((dest, img) -> sprite("textures/" + dest.replace("{c}", cid) + ".png", color,
+					dyedVariants.containsKey(dest) ? (d, l) -> img.recolourWhereDyed(dyedVariants.get(dest), d, l) : img::recolour));
 			// sheared body: sheep.png with the tinted undercoat on top. The hurt flashes are made from
 			// whichever wool and sheared body the sheep wears, drawn by hand or not.
-			Tex sheared = drawnOr("textures/block/sheep/" + cid + "_body_sheared.png", sheepBody.composite(undercoat.recolour(dark, light)));
-			png("textures/block/sheep/" + cid + "_body_sheared.png", sheared);
-			png("textures/block/sheep/" + cid + "_body_sheared_hurt.png", sheared.hurt());
-			Tex wool = drawnOr("textures/block/sheep/" + cid + "_wool.png", sources.get("block/sheep/{c}_wool").recolour(dark, light));
-			png("textures/block/sheep/" + cid + "_wool_hurt.png", wool.hurt());
+			String shearedPath = "textures/block/sheep/" + cid + "_body_sheared.png";
+			BiFunction<Integer, Integer, Tex> sheared = (d, l) -> drawnOr(shearedPath, sheepBody.composite(undercoat.recolour(d, l)));
+			sprite(shearedPath, color, sheared);
+			sprite("textures/block/sheep/" + cid + "_body_sheared_hurt.png", color, (d, l) -> sheared.apply(d, l).hurt());
+			String woolPath = "textures/block/sheep/" + cid + "_wool.png";
+			sprite("textures/block/sheep/" + cid + "_wool_hurt.png", color,
+					(d, l) -> drawnOr(woolPath, sources.get("block/sheep/{c}_wool").recolour(d, l)).hurt());
 			MODELS.forEach((name, model) -> json(assets.resolve("models/block/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
 			ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
 
@@ -620,7 +637,7 @@ public final class GeneratedAssets implements DataProvider {
 			itemTags.get("bundles").add(MOD + ":" + cid + "_bundle");
 			// torchflower: dug up by sniffers, a dye of its colour
 			String flower = cid + "_torchflower";
-			png("textures/block/" + flower + ".png", torchflower.recolourPetals(dark, light));
+			sprite("textures/block/" + flower + ".png", color, torchflower::recolourPetals);
 			json(assets.resolve("items/" + flower + ".json"), itemDef(MOD + ":item/" + flower));
 			lang.put("block." + MOD + "." + flower, cname + " Torchflower");
 			json(data.resolve(MOD + "/loot_table/blocks/" + flower + ".json"), lootTable("simple", MOD + ":" + flower));
@@ -663,6 +680,11 @@ public final class GeneratedAssets implements DataProvider {
 			recipes(color, dye).forEach((name, recipe) -> json(data.resolve(MOD + "/recipe/" + name + ".json"), recipe));
 		}
 
+		for (ModColor color : colors) {
+			MoreDyes.LOGGER.info("[{}] {} textures: {} KB{}", MOD, color.id(), (textureBytes.getOrDefault(color.id(), 0L) + 512) / 1024,
+					color.animation().map(a -> " (animated, " + a.frames().size() + " frames)").orElse(""));
+		}
+
 		blockTags.forEach((tag, ids) -> json(data.resolve("minecraft/tags/block/" + tag + ".json"), obj("replace", false, "values", J.strings(ids))));
 		itemTags.forEach((tag, ids) -> json(data.resolve("minecraft/tags/item/" + tag + ".json"), obj("replace", false, "values", J.strings(ids))));
 		// our own dye tag (NOT #minecraft:dyes: vanilla recipes read a DyeColor off those and would treat ours as white)
@@ -699,13 +721,39 @@ public final class GeneratedAssets implements DataProvider {
 	}
 
 	private void png(String path, Tex tex) {
-		var existingAssets = assets.getParent().getParent().getParent().resolve(
-				"resources/assets/" + MoreDyes.MOD_ID + "/" + path
-		);
-		if (existingAssets.toFile().exists()) {
+		if (drawn(path)) {
 			return;
 		}
 		bytes(assets.resolve(path), tex.png());
+	}
+
+	private boolean drawn(String path) {
+		return assets.getParent().getParent().getParent().resolve("resources/assets/" + MoreDyes.MOD_ID + "/" + path).toFile().exists();
+	}
+
+	/**
+	 * A texture recoloured for {@code color}; {@code make} takes the ramp's {@code (dark, light)}. An
+	 * animated colour gets a strip with a frame per keyframe, plus the {@code .mcmeta} that plays it.
+	 * Equipment textures are the exception: the equipment layer renderer binds them directly, not from
+	 * an atlas, so a strip would draw all its frames squashed into one. They stay a single frame, cut
+	 * into horizontal bands of the animation's stripe colours (red, green, blue for RGB).
+	 */
+	private void sprite(String path, ModColor color, BiFunction<Integer, Integer, Tex> make) {
+		var animation = color.animation();
+		if (animation.isEmpty() || path.startsWith("textures/entity/equipment/")) {
+			Tex tex = animation.isEmpty() ? make.apply(color.rampDark(), color.rampLight())
+					: Tex.bands(animation.get().stripes().stream().map(f -> make.apply(f.rampDark(), f.rampLight())).toList());
+			if (!drawn(path)) textureBytes.merge(color.id(), (long) tex.png().length, Long::sum);
+			png(path, tex);
+			return;
+		}
+		if (drawn(path)) throw new IllegalStateException("hand-drawn " + path + " can't serve animated colour " + color.id());
+		var frames = animation.get().frames().stream().map(f -> make.apply(f.rampDark(), f.rampLight())).toList();
+		Tex strip = Tex.stack(frames);
+		byte[] png = strip.png();
+		textureBytes.merge(color.id(), (long) png.length, Long::sum);
+		bytes(assets.resolve(path), png);
+		bytes(assets.resolve(path + ".mcmeta"), animation.get().mcmeta(strip.width, strip.height / frames.size()).getBytes(StandardCharsets.UTF_8));
 	}
 
 	private void bytes(Path path, byte[] data) {

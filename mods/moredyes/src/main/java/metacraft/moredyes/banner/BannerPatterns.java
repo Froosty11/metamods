@@ -241,8 +241,16 @@ public final class BannerPatterns {
 					continue;
 				}
 				try {
-					byte[] tinted = multiply(mask, d.color().rgb());
-					builder.addData("assets/" + MoreDyes.MOD_ID + "/textures/entity/" + kind + "/" + id.getPath() + ".png", tinted);
+					String path = "assets/" + MoreDyes.MOD_ID + "/textures/entity/" + kind + "/" + id.getPath() + ".png";
+					var animation = d.color().animation();
+					if (animation.isPresent()) {
+						// a strip, one frame per keyframe; the mcmeta spells out the frame size, as masks needn't be square
+						BufferedImage size = ImageIO.read(new java.io.ByteArrayInputStream(mask));
+						builder.addData(path, multiplyFrames(mask, animation.get().frames().stream().mapToInt(f -> f.rgb()).toArray()));
+						builder.addStringData(path + ".mcmeta", animation.get().mcmeta(size.getWidth(), size.getHeight()));
+					} else {
+						builder.addData(path, multiply(mask, d.color().rgb()));
+					}
 					any = true;
 				} catch (IOException e) {
 					MoreDyes.LOGGER.error("[{}] failed to tint {} mask for {}", MoreDyes.MOD_ID, kind, d.source(), e);
@@ -293,15 +301,23 @@ public final class BannerPatterns {
 	}
 
 	static byte[] multiply(byte[] png, int rgb) throws IOException {
+		return multiplyFrames(png, new int[]{rgb});
+	}
+
+	/** {@link #multiply} for each colour, stacked top to bottom into one PNG: the frames of an animated sprite. */
+	public static byte[] multiplyFrames(byte[] png, int[] rgbs) throws IOException {
 		BufferedImage src = ImageIO.read(new java.io.ByteArrayInputStream(png));
 		if (src == null) throw new IOException("not a PNG");
-		int cr = (rgb >> 16) & 0xFF, cg = (rgb >> 8) & 0xFF, cb = rgb & 0xFF;
-		BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_ARGB);
-		for (int y = 0; y < src.getHeight(); y++) {
-			for (int x = 0; x < src.getWidth(); x++) {
-				int p = src.getRGB(x, y);
-				int a = (p >>> 24), r = (p >> 16) & 0xFF, g = (p >> 8) & 0xFF, b = p & 0xFF;
-				out.setRGB(x, y, (a << 24) | ((r * cr / 255) << 16) | ((g * cg / 255) << 8) | (b * cb / 255));
+		int h = src.getHeight();
+		BufferedImage out = new BufferedImage(src.getWidth(), h * rgbs.length, BufferedImage.TYPE_INT_ARGB);
+		for (int f = 0; f < rgbs.length; f++) {
+			int cr = (rgbs[f] >> 16) & 0xFF, cg = (rgbs[f] >> 8) & 0xFF, cb = rgbs[f] & 0xFF;
+			for (int y = 0; y < h; y++) {
+				for (int x = 0; x < src.getWidth(); x++) {
+					int p = src.getRGB(x, y);
+					int a = (p >>> 24), r = (p >> 16) & 0xFF, g = (p >> 8) & 0xFF, b = p & 0xFF;
+					out.setRGB(x, f * h + y, (a << 24) | ((r * cr / 255) << 16) | ((g * cg / 255) << 8) | (b * cb / 255));
+				}
 			}
 		}
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();

@@ -10,6 +10,7 @@ import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.sheep.SheepColors;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.util.Prediction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,8 +20,10 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.item.DyeColor;
@@ -47,6 +50,8 @@ import net.minecraft.world.level.block.state.properties.SlabType;
  *   <li>{@code /moredyes give [player]} — one stack of every dye and block item.</li>
  *   <li>{@code /moredyes showcase} — a debug-world style grid of every block, one row per colour,
  *	   starting a few blocks in front of the player.</li>
+ *   <li>{@code /moredyes showcase backdrop} — the same grid for showing off: a white concrete wall
+ *	   (grey in its own shade) behind every row, on stone, with room to stand in front of each row.</li>
  * </ul>
  * Vanilla clients can't see server-side creative tabs (the creative menu is client-side), so
  * Polymer's {@code /polymer creative} GUI and these commands are the way to get at the items.
@@ -60,7 +65,7 @@ public final class ModCommands {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				dispatcher.register(Commands.literal(MoreDyes.MOD_ID)
-						.requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+						.requires(PermissionPredicates.require(Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, "command"), PermissionLevel.GAMEMASTERS))
 						.then(Commands.literal("dye")
 								.then(Commands.argument("targets", EntityArgument.entities())
 										.then(Commands.argument("color", StringArgumentType.word())
@@ -72,7 +77,8 @@ public final class ModCommands {
 								.then(Commands.argument("player", EntityArgument.player())
 										.executes(ctx -> give(ctx, EntityArgument.getPlayer(ctx, "player")))))
 						.then(Commands.literal("showcase")
-								.executes(ModCommands::showcase))
+								.executes(ctx -> showcase(ctx, false))
+								.then(Commands.literal("backdrop").executes(ctx -> showcase(ctx, true))))
 						// Debug: toggle a shulker box's lid without opening its menu (for looking at the model).
 						.then(Commands.literal("lid")
 								.then(Commands.argument("pos", BlockPosArgument.blockPos())
@@ -126,9 +132,11 @@ public final class ModCommands {
 
 	/**
 	 * Grid: rows per colour (away from the player), columns per family (to the right), 2 blocks
-	 * apart on a smooth-stone platform. Shaped blocks get a representative state.
+	 * apart on a smooth-stone platform. Shaped blocks get a representative state. With a backdrop,
+	 * rows are 5 apart instead of 3: the row, its beds' heads, a 3-high wall, and two blocks to
+	 * stand in front of the next row, on stone.
 	 */
-	private static int showcase(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+	private static int showcase(CommandContext<CommandSourceStack> ctx, boolean backdrop) throws CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
 		ServerLevel level = player.level();
 		Direction facing = player.getDirection();
@@ -137,12 +145,17 @@ public final class ModCommands {
 
 		int families = Family.values().length;
 		int colors = ModColors.all().size() + 2; // + vanilla white and red rows for comparison
-		for (int r = -1; r < colors * 3; r++) {
+		int spacing = backdrop ? 5 : 3;
+		BlockState floor = (backdrop ? Blocks.STONE : Blocks.SMOOTH_STONE).defaultBlockState();
+		for (int r = -1; r < colors * spacing; r++) {
 			for (int c = -1; c < families * 2; c++) {
 				BlockPos p = origin.relative(facing, r).relative(right, c);
-				level.setBlockAndUpdate(p.below(), Blocks.SMOOTH_STONE.defaultBlockState());
-				level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
-				level.setBlockAndUpdate(p.above(), Blocks.AIR.defaultBlockState());
+				level.setBlockAndUpdate(p.below(), floor);
+				// the wall sits right behind each row's bed heads
+				boolean wall = backdrop && r % spacing == 2;
+				for (int up = 0; up < (backdrop ? 4 : 2); up++) {
+					level.setBlockAndUpdate(p.above(up), wall && up < 3 ? Blocks.CONCRETE.pick(DyeColor.WHITE).defaultBlockState() : Blocks.AIR.defaultBlockState());
+				}
 			}
 		}
 		int placed = 0;
@@ -151,7 +164,7 @@ public final class ModCommands {
 			int col = 0;
 			for (Family family : Family.values()) {
 				Block block = ModContent.block(color, family);
-				BlockPos pos = origin.relative(facing, row * 3).relative(right, col * 2);
+				BlockPos pos = origin.relative(facing, row * spacing).relative(right, col * 2);
 				placeShowcase(level, pos, block, facing);
 				placed++;
 				col++;
@@ -179,7 +192,7 @@ public final class ModCommands {
 					default -> null;
 				};
 				if (block != null) {
-					BlockPos pos = origin.relative(facing, row * 3).relative(right, col * 2);
+					BlockPos pos = origin.relative(facing, row * spacing).relative(right, col * 2);
 					placeShowcase(level, pos, block, facing);
 					placed++;
 				}

@@ -28,8 +28,10 @@ import java.util.regex.Pattern;
  *				  vanilla colour (signs, collars, banners, the stairs and slabs under their display),
  *				  when the nearest one by text colour reads wrong; empty: that nearest one
  *				  ({@link metacraft.moredyes.sign.SignColors#nearestDye})
+ * @param animation keyframes it drifts through, if it is not a single colour; {@code rgb} is still
+ *				  what anything that cannot animate (fireworks, the map) uses
  */
-public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor, Optional<DyeColor> vanilla) {
+public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor, Optional<DyeColor> vanilla, Optional<Animation> animation) {
 
 	private static final Pattern ID = Pattern.compile("[a-z0-9_]+");
 
@@ -41,7 +43,8 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 					Codec.STRING.fieldOf("name").forGetter(ModColor::name),
 					ExtraCodecs.STRING_RGB_COLOR.fieldOf("rgb").forGetter(ModColor::rgb),
 					Ramp.CODEC.optionalFieldOf("ramp").forGetter(colour -> Optional.of(new Ramp(colour.rampDark(), colour.rampLight()))),
-					DyeColor.CODEC.optionalFieldOf("vanilla").forGetter(ModColor::vanilla)
+					DyeColor.CODEC.optionalFieldOf("vanilla").forGetter(ModColor::vanilla),
+					Animation.CODEC.optionalFieldOf("animation").forGetter(ModColor::animation)
 			).apply(instance, ModColor::of)
 	);
 
@@ -54,17 +57,17 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp, Optional<DyeColor> vanilla) {
+	public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp, Optional<DyeColor> vanilla, Optional<Animation> animation) {
 		return of(
 				id, name, rgb,
 				ramp.map(Ramp::rampDark).orElseGet(() -> deriveRamp(rgb, true)),
 				ramp.map(Ramp::rampLight).orElseGet(() -> deriveRamp(rgb, false)),
-				vanilla
+				vanilla, animation
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight, Optional<DyeColor> vanilla) {
-		return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb), vanilla);
+	public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight, Optional<DyeColor> vanilla, Optional<Animation> animation) {
+		return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb), vanilla, animation);
 	}
 
 	/** {@code 0xAARRGGBB} with full alpha, the form most vanilla colour APIs take. */

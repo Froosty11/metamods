@@ -15,12 +15,19 @@ import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
+import metacraft.moredyes.armor.AnimatedArmor;
+import metacraft.moredyes.armor.PackClock;
+import metacraft.moredyes.color.Animation;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.block.ClientStates;
 import metacraft.moredyes.content.block.ShapedBlocks;
 import metacraft.moredyes.content.Family;
+import metacraft.moredyes.content.Looks;
 import metacraft.moredyes.content.ModContent;
+import metacraft.moredyes.recipe.DyeStacks;
 import metacraft.moredyes.sheep.SheepColors;
 import metacraft.moredyes.sheep.SheepOverlay;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -90,6 +97,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Server-side game tests (Fabric GameTest API, vanilla test framework underneath).
@@ -105,8 +113,39 @@ import java.util.Map;
 public final class MoreDyesGameTests {
 	private static final BlockPos FLOOR = new BlockPos(0, 0, 0);
 
+	/** A static colour: the tests that say "a colour" mean one that holds still. */
 	private static ModColor first() {
-		return ModColors.all().getFirst();
+		return ModColors.all().stream().filter(c -> c.animation().isEmpty()).findFirst().orElseThrow();
+	}
+
+	/** The first colour that animates; the tests that need one fail if colors.json has none. */
+	private static ModColor animated() {
+		return ModColors.all().stream().filter(c -> c.animation().isPresent()).findFirst()
+				.orElseThrow(() -> new IllegalStateException("colors.json has no animated colour"));
+	}
+
+	private static byte[] resourceOrNull(String path) {
+		try (var in = MoreDyes.class.getResourceAsStream("/assets/moredyes/textures/" + path)) {
+			return in == null ? null : in.readAllBytes();
+		} catch (java.io.IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
+	}
+
+	private static String resource(String path) {
+		byte[] data = resourceOrNull(path);
+		if (data == null) throw new IllegalStateException("missing texture resource " + path);
+		return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+	}
+
+	private static java.awt.image.BufferedImage image(String path) {
+		byte[] data = resourceOrNull(path + ".png");
+		if (data == null) throw new IllegalStateException("missing texture " + path);
+		try {
+			return javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(data));
+		} catch (java.io.IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
 	}
 
 	private static Block block(Family family) {
@@ -364,7 +403,10 @@ public final class MoreDyesGameTests {
 	/** A PolyDecorations canvas takes our dyes, in their colour's nearest map colour (CanvasEntityMixin). */
 	@GameTest
 	public void canvasTakesOurDyes(GameTestHelper helper) {
-		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) Canvas.takesOurDyes(helper, first());
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.takesOurDyes(helper, first());
+			Canvas.paintsRandomKeyframes(helper, animated());
+		}
 		helper.succeed();
 	}
 
@@ -375,6 +417,19 @@ public final class MoreDyesGameTests {
 			helper.assertTrue(painted.isPresent(), "the canvas does not take " + color.name() + " dye");
 			helper.assertValueEqual(painted.get(), eu.pb4.mapcanvas.api.core.CanvasColor.from(color.mapColor(),
 					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
+		}
+
+		/** An animated dye paints a random colour from its keyframes' map colours every time. */
+		static void paintsRandomKeyframes(GameTestHelper helper, ModColor color) {
+			var allowed = color.animation().orElseThrow().mapColors().stream()
+					.map(m -> eu.pb4.mapcanvas.api.core.CanvasColor.from(m, net.minecraft.world.level.material.MapColor.Brightness.NORMAL)).toList();
+			var seen = new java.util.HashSet<eu.pb4.mapcanvas.api.core.CanvasColor>();
+			for (int i = 0; i < 200; i++) {
+				var painted = eu.pb4.polydecorations.entity.CanvasEntity.getColor(new ItemStack(ModContent.dye(color)));
+				helper.assertTrue(painted.isPresent() && allowed.contains(painted.get()), "painted " + painted + ", not one of " + allowed);
+				seen.add(painted.get());
+			}
+			helper.assertTrue(seen.size() >= 5, "only " + seen.size() + " distinct colours in 200 pixels");
 		}
 	}
 
@@ -1143,5 +1198,327 @@ public final class MoreDyesGameTests {
 			helper.fail("the default config is not auto");
 		}
 		helper.succeed();
+	}
+
+	/**
+	 * Each copper-bars pool holds four waxed states and Polymer keeps one back for the invisible donor, so
+	 * three colours fit and panes stay in the donor look. (Looks once subtracted that reserved state a
+	 * second time, which tipped panes into the display look at three colours.)
+	 */
+	@GameTest
+	public void panesStayDonorWithThreeColours(GameTestHelper helper) {
+		if (metacraft.moredyes.MoreDyesConfig.get().look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO
+				|| System.getProperty("moredyes.look." + Family.STAINED_GLASS_PANE.id) != null) {
+			helper.succeed(); // forced by config or -D: the planner's own decision is not what is shown
+			return;
+		}
+		int colours = ModColors.all().size();
+		if (colours <= 3 && Looks.of(Family.STAINED_GLASS_PANE) != Looks.Look.DONOR) {
+			helper.fail("panes are " + Looks.of(Family.STAINED_GLASS_PANE) + " with " + colours + " colours; each bars pool fits three");
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationParsesAndBlends(GameTestHelper helper) {
+		var json = JsonParser.parseString("""
+				{"id":"t","name":"T","rgb":"#FF0000","animation":{"frametime":10,"interpolate":true,
+				"frames":["#FF0000",{"rgb":"#0000FF","ramp":["#000040","#8080FF"]}]}}""");
+		ModColor c = ModColor.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
+		Animation a = c.animation().orElseThrow();
+		helper.assertValueEqual(a.cycleTicks(), 20, "cycle");
+		helper.assertValueEqual(a.rgbAt(0), 0xFF0000, "frame 0");
+		helper.assertValueEqual(a.rgbAt(5), 0x7F007F, "halfway red->blue");   // truncated, like vanilla's (int) blend
+		helper.assertValueEqual(a.rgbAt(10), 0x0000FF, "frame 1");
+		helper.assertValueEqual(a.rgbAt(20), 0xFF0000, "wraps");
+		helper.assertValueEqual(a.frames().get(1).rampDark(), 0x000040, "explicit ramp kept");
+		helper.assertTrue(ModColors.get("cerise").animation().isEmpty(), "static colour has no animation");
+		helper.assertValueEqual(a.stripes().size(), 2, "stripes default to the keyframes when there are fewer than three");
+		var withStripes = Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
+				"{\"frametime\":10,\"frames\":[\"#FF0000\",\"#00FF00\",\"#0000FF\",\"#FFFFFF\"],\"stripes\":[\"#123456\"]}")).getOrThrow();
+		helper.assertValueEqual(withStripes.stripes().size(), 1, "explicit stripes");
+		helper.assertValueEqual(withStripes.stripes().get(0).rgb(), 0x123456, "explicit stripe colour");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationRejectsBadInput(GameTestHelper helper) {
+		for (String bad : List.of(
+				"{\"frametime\":10,\"frames\":[\"#FF0000\"]}",
+				"{\"frametime\":0,\"frames\":[\"#FF0000\",\"#00FF00\"]}")) {
+			helper.assertTrue(Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(bad)).isError(), "accepted " + bad);
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationStepsWithoutInterpolate(GameTestHelper helper) {
+		var a = Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
+				"{\"frametime\":10,\"interpolate\":false,\"frames\":[\"#FF0000\",\"#0000FF\"]}")).getOrThrow();
+		helper.assertValueEqual(a.rgbAt(9), 0xFF0000, "still frame 0");
+		helper.succeed();
+	}
+
+	/**
+	 * An animated colour's frames keep their source's grain, as vanilla's dyed blocks do (wool varies
+	 * by about a tenth of its brightness, concrete by about a hundredth), and a bed's pillow, wooden
+	 * frame and legs are vanilla's in every frame.
+	 */
+	@GameTest
+	public void animatedTexturesKeepTheirGrain(GameTestHelper helper) {
+		ModColor animated = animated();
+		int frames = animated.animation().orElseThrow().frames().size();
+		Map<String, Double> limit = Map.of("block/{c}_wool", 0.15, "block/{c}_concrete", 0.05);
+		limit.forEach((p, max) -> {
+			java.awt.image.BufferedImage strip = image(p.replace("{c}", animated.id()));
+			int size = strip.getWidth();
+			for (int frame = 0; frame < frames; frame += frames / 3) {
+				double sum = 0, sq = 0;
+				for (int y = 0; y < size; y++) {
+					for (int x = 0; x < size; x++) {
+						int c = strip.getRGB(x, frame * size + y);
+						double l = 0.2126 * ((c >> 16) & 0xFF) + 0.7152 * ((c >> 8) & 0xFF) + 0.0722 * (c & 0xFF);
+						sum += l;
+						sq += l * l;
+					}
+				}
+				double mean = sum / (size * size), sd = Math.sqrt(Math.max(0, sq / (size * size) - mean * mean));
+				helper.assertTrue(sd / mean < max, p + " frame " + frame + " varies by " + String.format("%.3f", sd / mean) + " of its brightness, over " + max);
+			}
+		});
+		java.awt.image.BufferedImage bed = image("block/" + animated.id() + "_bed_foot_south");
+		int size = bed.getWidth(), half = frames / 2;
+		boolean woolMoved = false;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				int a = bed.getRGB(x, y), b = bed.getRGB(x, half * size + y);
+				if (y == size - 1) helper.assertValueEqual(b, a, "the bed's leg row at x=" + x + " changes between frames");
+				if (a != b) woolMoved = true;
+			}
+		}
+		helper.assertTrue(woolMoved, "the bed's wool does not animate");
+		// the head end: the pillow (white in every vanilla bed) and the frame hold still, the blanket moves
+		java.awt.image.BufferedImage head = image("block/" + animated.id() + "_bed_head_east");
+		int still = 0, moving = 0;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				int a = head.getRGB(x, y), b = head.getRGB(x, half * size + y);
+				if ((a >>> 24) == 0) continue;
+				if (a == b) still++; else moving++;
+			}
+		}
+		helper.assertTrue(moving > 0 && still > moving, "bed head side: " + still + " texels hold still, " + moving + " move; the pillow should hold still");
+		// items keep what vanilla's dyed ones keep: the dye's outline, the bundle's string
+		for (String item : List.of("item/" + animated.id() + "_dye", "item/" + animated.id() + "_bundle")) {
+			java.awt.image.BufferedImage strip = image(item);
+			int side = strip.getWidth(), held = 0, changed = 0;
+			for (int y = 0; y < side; y++) {
+				for (int x = 0; x < side; x++) {
+					int a = strip.getRGB(x, y), b = strip.getRGB(x, half * side + y);
+					if ((a >>> 24) == 0) continue;
+					if (a == b) held++; else changed++;
+				}
+			}
+			helper.assertTrue(held > 0 && changed > 0, item + ": " + held + " texels hold still, " + changed + " move");
+		}
+		helper.succeed();
+	}
+
+	/** Every texture of an animated colour ships as a strip of frames with its mcmeta; static ones don't. */
+	@GameTest
+	public void animatedTexturesShipAsStrips(GameTestHelper helper) {
+		ModColor rgb = animated();
+		int frames = rgb.animation().orElseThrow().frames().size();
+		for (String p : List.of("block/{c}_wool", "block/{c}_concrete", "block/{c}_stained_glass", "block/{c}_bed_head_up",
+				"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_torchflower",
+				"entity/shulker/{c}", "item/{c}_dye")) {
+			java.awt.image.BufferedImage still = image(p.replace("{c}", first().id()));
+			java.awt.image.BufferedImage strip = image(p.replace("{c}", rgb.id()));
+			helper.assertValueEqual(strip.getWidth(), still.getWidth(), p + " width");
+			helper.assertValueEqual(strip.getHeight(), still.getHeight() * frames, p + " height");
+			helper.assertTrue(resource(p.replace("{c}", rgb.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
+			helper.assertTrue(resourceOrNull(p.replace("{c}", first().id()) + ".png.mcmeta") == null, p + " static has mcmeta");
+		}
+		// frames that aren't square have to say so, or vanilla cuts the strip into squares
+		String sheep = resource("block/sheep/" + rgb.id() + "_wool.png.mcmeta");
+		helper.assertTrue(sheep.contains("\"width\":64") && sheep.contains("\"height\":32"), "sheep mcmeta frame size: " + sheep);
+		// equipment textures aren't atlas sprites: they stay one static frame, in red, green and blue bands
+		var stripes = rgb.animation().orElseThrow().stripes();
+		helper.assertValueEqual(stripes.size(), 3, "stripes");
+		for (String p : List.of("entity/equipment/llama_body/{c}", "entity/equipment/happy_ghast_body/{c}_harness")) {
+			java.awt.image.BufferedImage tex = image(p.replace("{c}", rgb.id()));
+			helper.assertValueEqual(tex.getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
+			helper.assertTrue(resourceOrNull(p.replace("{c}", rgb.id()) + ".png.mcmeta") == null, p + " has mcmeta");
+			// each stripe colour shows up (bright and saturated, so not the leather), top to bottom in order
+			double lastRow = -1;
+			for (var stripe : stripes) {
+				float hue = java.awt.Color.RGBtoHSB(stripe.rgb() >> 16 & 0xFF, stripe.rgb() >> 8 & 0xFF, stripe.rgb() & 0xFF, null)[0];
+				double rows = 0;
+				int count = 0;
+				for (int py = 0; py < tex.getHeight(); py++) {
+					for (int px = 0; px < tex.getWidth(); px++) {
+						int c = tex.getRGB(px, py);
+						if ((c >>> 24) < 128) continue;
+						float[] hsb = java.awt.Color.RGBtoHSB(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, null);
+						float off = Math.abs(hsb[0] - hue);
+						if (Math.min(off, 1 - off) < 0.04f && hsb[1] > 0.5f && hsb[2] > 0.6f) {
+							rows += py;
+							count++;
+						}
+					}
+				}
+				helper.assertTrue(count > 0, p + " has no texels in stripe colour #" + Integer.toHexString(stripe.rgb()));
+				helper.assertTrue(rows / count > lastRow, p + " stripes out of order at #" + Integer.toHexString(stripe.rgb()));
+				lastRow = rows / count;
+			}
+		}
+		helper.succeed();
+	}
+
+	/** Mean hue (0..1, as a point on the colour circle) of the visible pixels in one of {@code bands} equal bands of the visible rows. */
+	/** An animated colour's banner mask is one tinted copy per keyframe, stacked. */
+	@GameTest
+	public void bannerMasksStackPerFrame(GameTestHelper helper) throws java.io.IOException {
+		var white = new java.awt.image.BufferedImage(2, 2, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+		for (int y = 0; y < 2; y++) for (int x = 0; x < 2; x++) white.setRGB(x, y, 0xFFFFFFFF);
+		var in = new java.io.ByteArrayOutputStream();
+		javax.imageio.ImageIO.write(white, "png", in);
+		var out = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(BannerPatterns.multiplyFrames(in.toByteArray(), new int[]{0xFF0000, 0x00FF00})));
+		helper.assertValueEqual(out.getWidth(), 2, "width");
+		helper.assertValueEqual(out.getHeight(), 4, "height");
+		for (int x = 0; x < 2; x++) {
+			helper.assertValueEqual(out.getRGB(x, 0), 0xFFFF0000, "top frame");
+			helper.assertValueEqual(out.getRGB(x, 1), 0xFFFF0000, "top frame");
+			helper.assertValueEqual(out.getRGB(x, 2), 0xFF00FF00, "bottom frame");
+			helper.assertValueEqual(out.getRGB(x, 3), 0xFF00FF00, "bottom frame");
+		}
+		helper.succeed();
+	}
+
+	private static int rgb(ItemStack stack) {
+		return stack.get(DataComponents.DYED_COLOR).rgb() & 0xFFFFFF;
+	}
+
+	/** RGB dye turns armour RGB whatever colour it had. */
+	@GameTest
+	public void rgbDyeOverwritesArmour(GameTestHelper helper) {
+		ItemStack blue = new ItemStack(Items.LEATHER_CHESTPLATE);
+		blue.set(DataComponents.DYED_COLOR, new DyedItemColor(0x0000FF));
+		ItemStack out = craft(helper, grid(blue, new ItemStack(ModContent.dye(animated()))));
+		helper.assertValueEqual(rgb(out), animated().rgb() & 0xFFFFFF, "overwritten colour");
+		helper.assertValueEqual(AnimatedArmor.animatedColour(out), Optional.of(animated()), "marked");
+		helper.succeed();
+	}
+
+	/** Nothing else goes in the grid with RGB dye. */
+	@GameTest
+	public void rgbDyeDoesNotMix(GameTestHelper helper) {
+		ItemStack rgb = new ItemStack(ModContent.dye(animated()));
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), new ItemStack(Items.DYE.red()))).isEmpty(), "mixed with vanilla red");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), new ItemStack(ModContent.dye(first())))).isEmpty(), "mixed with ours");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rgb.copy(), rgb.copy())).isEmpty(), "two RGB dyes");
+		helper.succeed();
+	}
+
+	/** Dyeing RGB armour with ordinary dyes gives those dyes' colour alone, and ends the animation. */
+	@GameTest
+	public void normalDyeEndsTheAnimation(GameTestHelper helper) {
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_HELMET), new ItemStack(ModContent.dye(animated()))));
+		for (ItemStack dye : List.of(new ItemStack(Items.DYE.red()), new ItemStack(ModContent.dye(first())))) {
+			ItemStack out = craft(helper, grid(rb.copy(), dye));
+			helper.assertValueEqual(out.get(DataComponents.DYED_COLOR), DyeStacks.mix(null, List.of(DyeStacks.armorRgb(dye))), "plain colour from " + dye);
+			helper.assertTrue(AnimatedArmor.animatedColour(out).isEmpty(), "still animated after " + dye);
+			helper.assertFalse(out.has(AnimatedArmor.ANIMATED_DYE), "marker left behind after " + dye);
+		}
+		helper.succeed();
+	}
+
+	/** A marker that no longer matches the armour's colour, or names nothing animated, is just plain armour. */
+	@GameTest
+	public void staleMarkersArePlain(GameTestHelper helper) {
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_LEGGINGS), new ItemStack(ModContent.dye(animated()))));
+		ItemStack washed = rb.copy();
+		washed.remove(DataComponents.DYED_COLOR);
+		ItemStack unknown = rb.copy();
+		unknown.set(AnimatedArmor.ANIMATED_DYE, "no_such_colour");
+		ItemStack staticId = rb.copy();
+		staticId.set(AnimatedArmor.ANIMATED_DYE, first().id());
+		ItemStack recoloured = rb.copy();
+		recoloured.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		for (ItemStack s : List.of(washed, unknown, staticId, recoloured)) {
+			helper.assertTrue(AnimatedArmor.animatedColour(s).isEmpty(), "stale marker counted: " + s);
+		}
+		helper.assertTrue(AnimatedArmor.animatedColour(new ItemStack(Items.LEATHER_BOOTS)).isEmpty(), "unmarked armour counted");
+		helper.succeed();
+	}
+
+	private static int clientRgb(GameTestHelper helper, ServerPlayer viewer, ItemStack stack) {
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(stack, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		return rgb(client);
+	}
+
+	private static boolean near(int a, int b) {
+		return Math.abs((a >> 16 & 0xFF) - (b >> 16 & 0xFF)) <= 3 && Math.abs((a >> 8 & 0xFF) - (b >> 8 & 0xFF)) <= 3
+				&& Math.abs((a & 0xFF) - (b & 0xFF)) <= 3;
+	}
+
+	private static String hex(int rgb) {
+		return String.format("#%06X", rgb);
+	}
+
+	/** What a viewer is sent for RGB armour follows the clock of their own pack load; the server's stack never changes. */
+	@GameTest
+	public void armourFollowsTheViewersClock(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), new ItemStack(ModContent.dye(animated()))));
+		Animation a = animated().animation().orElseThrow();
+		long now = System.currentTimeMillis();
+		PackClock.loaded(viewer.getUUID(), now - 75 * 50);          // mid-keyframe 0
+		int early = clientRgb(helper, viewer, rb);
+		PackClock.loaded(viewer.getUUID(), now - 1875 * 50);        // a later load replaces the earlier one; mid-keyframe 12
+		int late = clientRgb(helper, viewer, rb);
+		helper.assertTrue(near(early, a.rgbAt(75)) && near(late, a.rgbAt(1875)), "phases " + hex(early) + " " + hex(late));
+		helper.assertValueEqual(rgb(rb), animated().rgb() & 0xFFFFFF, "server stack untouched");
+		helper.succeed();
+	}
+
+	/** A viewer whose pack load was never seen (declined, or the packet has not come yet) is sent the first keyframe. */
+	@GameTest
+	public void viewerWithoutPackSeesTheFirstKeyframe(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		PackClock.forget(viewer.getUUID());
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), new ItemStack(ModContent.dye(animated()))));
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), animated().animation().orElseThrow().rgbAt(0), "no clock");
+		helper.succeed();
+	}
+
+	/** Armour that is no longer RGB (a stale marker) is sent as it is. */
+	@GameTest
+	public void staleMarkerIsSentAsItIs(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		PackClock.loaded(viewer.getUUID(), System.currentTimeMillis() - 1875 * 50);
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), new ItemStack(ModContent.dye(animated()))));
+		rb.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), 0x123456, "recoloured armour");
+		rb.set(AnimatedArmor.ANIMATED_DYE, "no_such_colour");
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), 0x123456, "unknown colour");
+		helper.succeed();
+	}
+
+	/** Armour stands (and by the same route horses and wolves) are refreshed while they wear RGB, and not after. */
+	@GameTest
+	public void armourStandWearersComeAndGo(GameTestHelper helper) {
+		var stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(1, 2, 1));
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), new ItemStack(ModContent.dye(animated()))));
+		stand.setItemSlot(EquipmentSlot.CHEST, rb);
+		// EQUIPMENT_CHANGE fires from the entity's tick, not from setItemSlot: give it a couple of ticks
+		helper.runAfterDelay(2, () -> {
+			helper.assertTrue(AnimatedArmor.wearers().contains(stand), "stand not tracked");
+			stand.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+			helper.runAfterDelay(2, () -> {
+				helper.assertFalse(AnimatedArmor.wearers().contains(stand), "stand still tracked");
+				helper.succeed();
+			});
+		});
 	}
 }
