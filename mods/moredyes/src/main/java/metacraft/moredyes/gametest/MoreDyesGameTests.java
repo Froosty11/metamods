@@ -1239,4 +1239,23 @@ public final class MoreDyesGameTests {
 		}
 		helper.succeed();
 	}
+
+	/** An animated colour's banner mask is one tinted copy per keyframe, stacked. */
+	@GameTest
+	public void bannerMasksStackPerFrame(GameTestHelper helper) throws java.io.IOException {
+		var white = new java.awt.image.BufferedImage(2, 2, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+		for (int y = 0; y < 2; y++) for (int x = 0; x < 2; x++) white.setRGB(x, y, 0xFFFFFFFF);
+		var in = new java.io.ByteArrayOutputStream();
+		javax.imageio.ImageIO.write(white, "png", in);
+		var out = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(BannerPatterns.multiplyFrames(in.toByteArray(), new int[]{0xFF0000, 0x00FF00})));
+		helper.assertValueEqual(out.getWidth(), 2, "width");
+		helper.assertValueEqual(out.getHeight(), 4, "height");
+		for (int x = 0; x < 2; x++) {
+			helper.assertValueEqual(out.getRGB(x, 0), 0xFFFF0000, "top frame");
+			helper.assertValueEqual(out.getRGB(x, 1), 0xFFFF0000, "top frame");
+			helper.assertValueEqual(out.getRGB(x, 2), 0xFF00FF00, "bottom frame");
+			helper.assertValueEqual(out.getRGB(x, 3), 0xFF00FF00, "bottom frame");
+		}
+		helper.succeed();
+	}
 }
