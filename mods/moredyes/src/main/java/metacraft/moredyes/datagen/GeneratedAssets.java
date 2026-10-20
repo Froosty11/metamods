@@ -572,6 +572,10 @@ public final class GeneratedAssets implements DataProvider {
 
 		Map<String, Tex> sources = new LinkedHashMap<>();
 		TEXTURES.forEach((dest, src) -> sources.put(dest, Vanilla.texture(src)));
+		Map<String, Tex> bedBlankets = new LinkedHashMap<>();
+		TEXTURES.forEach((dest, src) -> {
+			if (src.startsWith("block/white_bed_")) bedBlankets.put(dest, Vanilla.texture(src.replace("white_bed_", "red_bed_")));
+		});
 		String bundleItemDef = Vanilla.json("assets/minecraft/items/white_bundle.json").toString();
 		// vanilla's shulker item definition carries a transformation the special renderer needs
 		String shulkerItemDef = Vanilla.json("assets/minecraft/items/white_shulker_box.json").toString();
@@ -604,9 +608,9 @@ public final class GeneratedAssets implements DataProvider {
 			int dark = color.rampDark(), light = color.rampLight();
 			String dye = MOD + ":" + cid + "_dye";
 
-			// beds: only the wool takes the colour; the wooden frame and legs stay vanilla's
+			// beds: only what vanilla's red bed changes takes the colour; the pillow and the wooden frame stay vanilla's
 			sources.forEach((dest, img) -> sprite("textures/" + dest.replace("{c}", cid) + ".png", color,
-					dest.contains("_bed_") ? img::recolourWool : img::recolour));
+					bedBlankets.containsKey(dest) ? (d, l) -> img.recolourWhereDyed(bedBlankets.get(dest), d, l) : img::recolour));
 			// sheared body: sheep.png with the tinted undercoat on top. The hurt flashes are made from
 			// whichever wool and sheared body the sheep wears, drawn by hand or not.
 			String shearedPath = "textures/block/sheep/" + cid + "_body_sheared.png";

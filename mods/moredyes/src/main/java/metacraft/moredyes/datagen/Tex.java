@@ -74,20 +74,27 @@ final class Tex {
 	 * equal is a plain colour: see {@link #recolourWhere}.
 	 */
 	Tex recolour(int dark, int light) {
-		return recolourWhere(p -> a(p) > 0, p -> true, dark, light);
+		return recolourWhere(i -> a(argb[i]) > 0, i -> true, dark, light);
 	}
 
-	/** {@link #recolour} for the wool only (the near-grey texels): a bed's wooden frame and legs keep vanilla's wood. */
-	Tex recolourWool(int dark, int light) {
-		java.util.function.IntPredicate wool = p -> a(p) > 0 && java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null)[1] < 0.25f;
-		return recolourWhere(wool, wool, dark, light);
+	/**
+	 * {@link #recolour} for just the texels a vanilla dyed variant changes from this one: a bed's
+	 * blanket, but not its pillow (white in every vanilla bed) or its wooden frame and legs.
+	 */
+	Tex recolourWhereDyed(Tex dyed, int dark, int light) {
+		if (dyed.width != width || dyed.height != height) throw new IllegalArgumentException("size mismatch");
+		// vanilla's dyed beds also shade the pillow a touch differently (a channel sum of 20-40 apart);
+		// the blanket is 300+ apart, so anything under 100 counts as unchanged
+		java.util.function.IntPredicate blanket = i -> a(argb[i]) > 0 && Math.abs(r(argb[i]) - r(dyed.argb[i]))
+				+ Math.abs(g(argb[i]) - g(dyed.argb[i])) + Math.abs(b(argb[i]) - b(dyed.argb[i])) > 100;
+		return recolourWhere(blanket, blanket, dark, light);
 	}
 
 	/** Below 1 so a tinted texture's highlights (up to ~8% over its mean on wool) don't clip. */
 	private static final double TINT_HEADROOM = 0.9;
 
 	/**
-	 * Recolour the texels {@code write} accepts, measured over those {@code measure} accepts. With
+	 * Recolour the texels (by index) {@code write} accepts, measured over those {@code measure} accepts. With
 	 * {@code dark != light} the measured luminance range is stretched onto the ramp. With
 	 * {@code dark == light} (an animation keyframe without a ramp) each texel is that colour scaled by
 	 * its luminance over the measured mean: the source keeps its own, usually slight, contrast, the way
@@ -96,9 +103,9 @@ final class Tex {
 	private Tex recolourWhere(java.util.function.IntPredicate measure, java.util.function.IntPredicate write, int dark, int light) {
 		double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE, sum = 0;
 		int n = 0;
-		for (int p : argb) {
-			if (measure.test(p)) {
-				double l = lum(p);
+		for (int i = 0; i < argb.length; i++) {
+			if (measure.test(i)) {
+				double l = lum(argb[i]);
 				lo = Math.min(lo, l);
 				hi = Math.max(hi, l);
 				sum += l;
@@ -111,7 +118,7 @@ final class Tex {
 		int[] out = argb.clone();
 		for (int i = 0; i < argb.length; i++) {
 			int p = argb[i];
-			if (!write.test(p)) continue;
+			if (!write.test(i)) continue;
 			if (dark == light) {
 				double f = TINT_HEADROOM * lum(p) / mean;
 				out[i] = pack(a(p), (int) Math.round(r(dark) * f), (int) Math.round(g(dark) * f), (int) Math.round(b(dark) * f));
@@ -162,7 +169,7 @@ final class Tex {
 			float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
 			return hsb[1] > 0.35f && (hsb[0] < 0.17f || hsb[0] > 0.95f);
 		};
-		return recolourWhere(petal, petal, dark, light);
+		return recolourWhere(i -> petal.test(argb[i]), i -> petal.test(argb[i]), dark, light);
 	}
 
 	/**

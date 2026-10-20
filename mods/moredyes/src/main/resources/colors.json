@@ -19,11 +19,11 @@
 		"animation": {
 			"frametime": 150,
 			"interpolate": true,
-			"stripes": ["#FF0000", "#00FF00", "#0000FF"],
-			"frames": ["#FF0000", "#FF4000", "#FF8000", "#FFBF00", "#FFFF00", "#BFFF00",
-				"#80FF00", "#40FF00", "#00FF00", "#00FF40", "#00FF80", "#00FFBF",
-				"#00FFFF", "#00BFFF", "#0080FF", "#0040FF", "#0000FF", "#4000FF",
-				"#8000FF", "#BF00FF", "#FF00FF", "#FF00BF", "#FF0080", "#FF0040"]
+			"stripes": ["#FF3333", "#33FF33", "#3333FF"],
+			"frames": ["#FF3333", "#FF6633", "#FF9933", "#FFCC33", "#FFFF33", "#CCFF33",
+				"#99FF33", "#66FF33", "#33FF33", "#33FF66", "#33FF99", "#33FFCC",
+				"#33FFFF", "#33CCFF", "#3399FF", "#3366FF", "#3333FF", "#6633FF",
+				"#9933FF", "#CC33FF", "#FF33FF", "#FF33CC", "#FF3399", "#FF3366"]
 		}
 	}
 ]

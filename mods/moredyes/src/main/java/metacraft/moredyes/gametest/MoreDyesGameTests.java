@@ -1261,8 +1261,8 @@ public final class MoreDyesGameTests {
 
 	/**
 	 * An animated colour's frames keep their source's grain, as vanilla's dyed blocks do (wool varies
-	 * by about a tenth of its brightness, concrete by about a hundredth), and a bed's wooden frame and
-	 * legs are vanilla's wood in every frame.
+	 * by about a tenth of its brightness, concrete by about a hundredth), and a bed's pillow, wooden
+	 * frame and legs are vanilla's in every frame.
 	 */
 	@GameTest
 	public void animatedTexturesKeepTheirGrain(GameTestHelper helper) {
@@ -1297,6 +1297,17 @@ public final class MoreDyesGameTests {
 			}
 		}
 		helper.assertTrue(woolMoved, "the bed's wool does not animate");
+		// the head end: the pillow (white in every vanilla bed) and the frame hold still, the blanket moves
+		java.awt.image.BufferedImage head = image("block/" + animated.id() + "_bed_head_east");
+		int still = 0, moving = 0;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				int a = head.getRGB(x, y), b = head.getRGB(x, half * size + y);
+				if ((a >>> 24) == 0) continue;
+				if (a == b) still++; else moving++;
+			}
+		}
+		helper.assertTrue(moving > 0 && still > moving, "bed head side: " + still + " texels hold still, " + moving + " move; the pillow should hold still");
 		helper.succeed();
 	}
 
