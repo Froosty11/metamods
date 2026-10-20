@@ -15,6 +15,9 @@ import metacraft.moredyes.content.item.ModDyeItem;
 import metacraft.moredyes.banner.BannerPatterns;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
+import metacraft.moredyes.color.Animation;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.block.ClientStates;
@@ -1142,6 +1145,41 @@ public final class MoreDyesGameTests {
 		if (metacraft.moredyes.MoreDyesConfig.get().look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO) {
 			helper.fail("the default config is not auto");
 		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationParsesAndBlends(GameTestHelper helper) {
+		var json = JsonParser.parseString("""
+				{"id":"t","name":"T","rgb":"#FF0000","animation":{"frametime":10,"interpolate":true,
+				 "frames":["#FF0000",{"rgb":"#0000FF","ramp":["#000040","#8080FF"]}]}}""");
+		ModColor c = ModColor.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
+		Animation a = c.animation().orElseThrow();
+		helper.assertValueEqual(a.cycleTicks(), 20, "cycle");
+		helper.assertValueEqual(a.rgbAt(0), 0xFF0000, "frame 0");
+		helper.assertValueEqual(a.rgbAt(5), 0x7F007F, "halfway red->blue");   // truncated, like vanilla's (int) blend
+		helper.assertValueEqual(a.rgbAt(10), 0x0000FF, "frame 1");
+		helper.assertValueEqual(a.rgbAt(20), 0xFF0000, "wraps");
+		helper.assertValueEqual(a.frames().get(1).rampDark(), 0x000040, "explicit ramp kept");
+		helper.assertTrue(ModColors.get("cerise").animation().isEmpty(), "static colour has no animation");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationRejectsBadInput(GameTestHelper helper) {
+		for (String bad : List.of(
+				"{\"frametime\":10,\"frames\":[\"#FF0000\"]}",
+				"{\"frametime\":0,\"frames\":[\"#FF0000\",\"#00FF00\"]}")) {
+			helper.assertTrue(Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(bad)).isError(), "accepted " + bad);
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void animationStepsWithoutInterpolate(GameTestHelper helper) {
+		var a = Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
+				"{\"frametime\":10,\"interpolate\":false,\"frames\":[\"#FF0000\",\"#0000FF\"]}")).getOrThrow();
+		helper.assertValueEqual(a.rgbAt(9), 0xFF0000, "still frame 0");
 		helper.succeed();
 	}
 }
