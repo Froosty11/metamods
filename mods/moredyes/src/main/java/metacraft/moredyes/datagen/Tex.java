@@ -79,12 +79,13 @@ final class Tex {
 
 	/**
 	 * {@link #recolour} for just the texels a vanilla dyed variant changes from this one: a bed's
-	 * blanket, but not its pillow (white in every vanilla bed) or its wooden frame and legs.
+	 * blanket but not its pillow or wooden frame, a bundle's cloth but not its string, a candle's wax
+	 * but not its wick.
 	 */
 	Tex recolourWhereDyed(Tex dyed, int dark, int light) {
 		if (dyed.width != width || dyed.height != height) throw new IllegalArgumentException("size mismatch");
 		// vanilla's dyed beds also shade the pillow a touch differently (a channel sum of 20-40 apart);
-		// the blanket is 300+ apart, so anything under 100 counts as unchanged
+		// what the dye colours is 300+ apart, so anything under 100 counts as unchanged
 		java.util.function.IntPredicate blanket = i -> a(argb[i]) > 0 && Math.abs(r(argb[i]) - r(dyed.argb[i]))
 				+ Math.abs(g(argb[i]) - g(dyed.argb[i])) + Math.abs(b(argb[i]) - b(dyed.argb[i])) > 100;
 		return recolourWhere(blanket, blanket, dark, light);
@@ -134,16 +135,17 @@ final class Tex {
 	}
 
 	/**
-	 * Horizontal bands of equal height across the rows that have visible pixels (equipment sheets
-	 * leave much of their height empty, so bands over the whole sheet would miss the cloth);
-	 * band {@code i} is taken from {@code variants.get(i)}.
+	 * Horizontal bands of equal height across the rows the variants colour differently (where they
+	 * all agree, as on a harness's leather, there is nothing to band; equipment sheets also leave much
+	 * of their height empty); band {@code i} is taken from {@code variants.get(i)}.
 	 */
 	static Tex bands(java.util.List<Tex> variants) {
 		Tex first = variants.get(0);
 		int top = first.height, bottom = -1;
 		for (int y = 0; y < first.height; y++) {
 			for (int x = 0; x < first.width; x++) {
-				if (a(first.argb[y * first.width + x]) > 0) {
+				int i = y * first.width + x;
+				if (a(first.argb[i]) > 0 && variants.stream().anyMatch(v -> v.argb[i] != first.argb[i])) {
 					top = Math.min(top, y);
 					bottom = y;
 					break;

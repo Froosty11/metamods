@@ -36,6 +36,10 @@ final class Vanilla {
 		}
 	}
 
+	static boolean hasTexture(String path) {
+		return Vanilla.class.getResource("/assets/minecraft/textures/" + path + ".png") != null;
+	}
+
 	static Tex texture(String path) {
 		return Tex.read(open("assets/minecraft/textures/" + path + ".png"));
 	}

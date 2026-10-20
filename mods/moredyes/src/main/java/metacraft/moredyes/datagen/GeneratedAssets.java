@@ -572,9 +572,14 @@ public final class GeneratedAssets implements DataProvider {
 
 		Map<String, Tex> sources = new LinkedHashMap<>();
 		TEXTURES.forEach((dest, src) -> sources.put(dest, Vanilla.texture(src)));
-		Map<String, Tex> bedBlankets = new LinkedHashMap<>();
+		// vanilla's red counterpart of each white source: only what it recolours takes our colour, so a
+		// bed's pillow and frame, a bundle's string, a candle's wick and a harness's leather stay vanilla's
+		Map<String, Tex> dyedVariants = new LinkedHashMap<>();
 		TEXTURES.forEach((dest, src) -> {
-			if (src.startsWith("block/white_bed_")) bedBlankets.put(dest, Vanilla.texture(src.replace("white_bed_", "red_bed_")));
+			String red = src.substring(0, src.lastIndexOf('/') + 1) + src.substring(src.lastIndexOf('/') + 1).replace("white", "red");
+			if (red.equals(src) || !Vanilla.hasTexture(red)) return;
+			Tex variant = Vanilla.texture(red);
+			if (variant.width == sources.get(dest).width && variant.height == sources.get(dest).height) dyedVariants.put(dest, variant);
 		});
 		String bundleItemDef = Vanilla.json("assets/minecraft/items/white_bundle.json").toString();
 		// vanilla's shulker item definition carries a transformation the special renderer needs
@@ -608,9 +613,8 @@ public final class GeneratedAssets implements DataProvider {
 			int dark = color.rampDark(), light = color.rampLight();
 			String dye = MOD + ":" + cid + "_dye";
 
-			// beds: only what vanilla's red bed changes takes the colour; the pillow and the wooden frame stay vanilla's
 			sources.forEach((dest, img) -> sprite("textures/" + dest.replace("{c}", cid) + ".png", color,
-					bedBlankets.containsKey(dest) ? (d, l) -> img.recolourWhereDyed(bedBlankets.get(dest), d, l) : img::recolour));
+					dyedVariants.containsKey(dest) ? (d, l) -> img.recolourWhereDyed(dyedVariants.get(dest), d, l) : img::recolour));
 			// sheared body: sheep.png with the tinted undercoat on top. The hurt flashes are made from
 			// whichever wool and sheared body the sheep wears, drawn by hand or not.
 			String shearedPath = "textures/block/sheep/" + cid + "_body_sheared.png";

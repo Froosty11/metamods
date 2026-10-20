@@ -1308,6 +1308,19 @@ public final class MoreDyesGameTests {
 			}
 		}
 		helper.assertTrue(moving > 0 && still > moving, "bed head side: " + still + " texels hold still, " + moving + " move; the pillow should hold still");
+		// items keep what vanilla's dyed ones keep: the dye's outline, the bundle's string
+		for (String item : List.of("item/" + animated.id() + "_dye", "item/" + animated.id() + "_bundle")) {
+			java.awt.image.BufferedImage strip = image(item);
+			int side = strip.getWidth(), held = 0, changed = 0;
+			for (int y = 0; y < side; y++) {
+				for (int x = 0; x < side; x++) {
+					int a = strip.getRGB(x, y), b = strip.getRGB(x, half * side + y);
+					if ((a >>> 24) == 0) continue;
+					if (a == b) held++; else changed++;
+				}
+			}
+			helper.assertTrue(held > 0 && changed > 0, item + ": " + held + " texels hold still, " + changed + " move");
+		}
 		helper.succeed();
 	}
 
@@ -1336,42 +1349,33 @@ public final class MoreDyesGameTests {
 			java.awt.image.BufferedImage tex = image(p.replace("{c}", rgb.id()));
 			helper.assertValueEqual(tex.getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
 			helper.assertTrue(resourceOrNull(p.replace("{c}", rgb.id()) + ".png.mcmeta") == null, p + " has mcmeta");
-			float[] hues = new float[3];
-			for (int band = 0; band < 3; band++) hues[band] = bandHue(tex, band, 3);
-			helper.assertTrue(Math.abs(hues[0] - hues[1]) > 0.2f && Math.abs(hues[1] - hues[2]) > 0.2f && Math.abs(hues[0] - hues[2]) > 0.2f,
-					p + " top, middle and bottom bands share a hue: " + java.util.Arrays.toString(hues));
+			// each stripe colour shows up (bright and saturated, so not the leather), top to bottom in order
+			double lastRow = -1;
+			for (var stripe : stripes) {
+				float hue = java.awt.Color.RGBtoHSB(stripe.rgb() >> 16 & 0xFF, stripe.rgb() >> 8 & 0xFF, stripe.rgb() & 0xFF, null)[0];
+				double rows = 0;
+				int count = 0;
+				for (int py = 0; py < tex.getHeight(); py++) {
+					for (int px = 0; px < tex.getWidth(); px++) {
+						int c = tex.getRGB(px, py);
+						if ((c >>> 24) < 128) continue;
+						float[] hsb = java.awt.Color.RGBtoHSB(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, null);
+						float off = Math.abs(hsb[0] - hue);
+						if (Math.min(off, 1 - off) < 0.04f && hsb[1] > 0.5f && hsb[2] > 0.6f) {
+							rows += py;
+							count++;
+						}
+					}
+				}
+				helper.assertTrue(count > 0, p + " has no texels in stripe colour #" + Integer.toHexString(stripe.rgb()));
+				helper.assertTrue(rows / count > lastRow, p + " stripes out of order at #" + Integer.toHexString(stripe.rgb()));
+				lastRow = rows / count;
+			}
 		}
 		helper.succeed();
 	}
 
 	/** Mean hue (0..1, as a point on the colour circle) of the visible pixels in one of {@code bands} equal bands of the visible rows. */
-	private static float bandHue(java.awt.image.BufferedImage img, int band, int bands) {
-		int top = img.getHeight(), bottom = -1;
-		for (int py = 0; py < img.getHeight(); py++) {
-			for (int px = 0; px < img.getWidth(); px++) {
-				if ((img.getRGB(px, py) >>> 24) > 0) {
-					top = Math.min(top, py);
-					bottom = py;
-					break;
-				}
-			}
-		}
-		int rows = bottom - top + 1;
-		double x = 0, y = 0;
-		for (int py = top + band * rows / bands; py < top + (band + 1) * rows / bands; py++) {
-			for (int px = 0; px < img.getWidth(); px++) {
-				int p = img.getRGB(px, py);
-				if ((p >>> 24) < 128) continue;
-				float[] hsb = java.awt.Color.RGBtoHSB(p >> 16 & 0xFF, p >> 8 & 0xFF, p & 0xFF, null);
-				if (hsb[1] < 0.2f) continue;
-				x += Math.cos(hsb[0] * 2 * Math.PI);
-				y += Math.sin(hsb[0] * 2 * Math.PI);
-			}
-		}
-		double angle = Math.atan2(y, x) / (2 * Math.PI);
-		return (float) (angle < 0 ? angle + 1 : angle);
-	}
-
 	/** An animated colour's banner mask is one tinted copy per keyframe, stacked. */
 	@GameTest
 	public void bannerMasksStackPerFrame(GameTestHelper helper) throws java.io.IOException {
