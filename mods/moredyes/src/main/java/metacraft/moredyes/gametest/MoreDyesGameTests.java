@@ -25,6 +25,7 @@ import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.block.ClientStates;
 import metacraft.moredyes.content.block.ShapedBlocks;
 import metacraft.moredyes.content.Family;
+import metacraft.moredyes.content.Looks;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.recipe.DyeStacks;
 import metacraft.moredyes.sheep.SheepColors;
@@ -1195,6 +1196,25 @@ public final class MoreDyesGameTests {
 		if (empty.look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO) helper.fail("an empty file is not auto");
 		if (metacraft.moredyes.MoreDyesConfig.get().look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO) {
 			helper.fail("the default config is not auto");
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * Each copper-bars pool holds four waxed states and Polymer keeps one back for the invisible donor, so
+	 * three colours fit and panes stay in the donor look. (Looks once subtracted that reserved state a
+	 * second time, which tipped panes into the display look at three colours.)
+	 */
+	@GameTest
+	public void panesStayDonorWithThreeColours(GameTestHelper helper) {
+		if (metacraft.moredyes.MoreDyesConfig.get().look(Family.STAINED_GLASS_PANE) != metacraft.moredyes.MoreDyesConfig.LookChoice.AUTO
+				|| System.getProperty("moredyes.look." + Family.STAINED_GLASS_PANE.id) != null) {
+			helper.succeed(); // forced by config or -D: the planner's own decision is not what is shown
+			return;
+		}
+		int colours = ModColors.all().size();
+		if (colours <= 3 && Looks.of(Family.STAINED_GLASS_PANE) != Looks.Look.DONOR) {
+			helper.fail("panes are " + Looks.of(Family.STAINED_GLASS_PANE) + " with " + colours + " colours; each bars pool fits three");
 		}
 		helper.succeed();
 	}

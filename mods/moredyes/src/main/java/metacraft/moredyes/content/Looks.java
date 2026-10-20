@@ -54,8 +54,9 @@ public final class Looks {
 		int tightest = Integer.MAX_VALUE;
 		BlockModelType tightestPool = null;
 		for (BlockModelType pool : pools) {
-			// requestBlock keeps the last state of a pool for the invisible donor, so it is not usable.
-			int usable = PolymerBlockResourceUtils.getBlocksLeft(pool) - 1;
+			// Polymer's getBlocksLeft already leaves out the state requestBlock keeps back for the
+			// invisible donor (until an empty block was requested), so it is the usable count as is.
+			int usable = PolymerBlockResourceUtils.getBlocksLeft(pool);
 			if (usable < tightest) {
 				tightest = usable;
 				tightestPool = pool;
