@@ -1259,6 +1259,47 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * An animated colour's frames keep their source's grain, as vanilla's dyed blocks do (wool varies
+	 * by about a tenth of its brightness, concrete by about a hundredth), and a bed's wooden frame and
+	 * legs are vanilla's wood in every frame.
+	 */
+	@GameTest
+	public void animatedTexturesKeepTheirGrain(GameTestHelper helper) {
+		ModColor animated = animated();
+		int frames = animated.animation().orElseThrow().frames().size();
+		Map<String, Double> limit = Map.of("block/{c}_wool", 0.15, "block/{c}_concrete", 0.05);
+		limit.forEach((p, max) -> {
+			java.awt.image.BufferedImage strip = image(p.replace("{c}", animated.id()));
+			int size = strip.getWidth();
+			for (int frame = 0; frame < frames; frame += frames / 3) {
+				double sum = 0, sq = 0;
+				for (int y = 0; y < size; y++) {
+					for (int x = 0; x < size; x++) {
+						int c = strip.getRGB(x, frame * size + y);
+						double l = 0.2126 * ((c >> 16) & 0xFF) + 0.7152 * ((c >> 8) & 0xFF) + 0.0722 * (c & 0xFF);
+						sum += l;
+						sq += l * l;
+					}
+				}
+				double mean = sum / (size * size), sd = Math.sqrt(Math.max(0, sq / (size * size) - mean * mean));
+				helper.assertTrue(sd / mean < max, p + " frame " + frame + " varies by " + String.format("%.3f", sd / mean) + " of its brightness, over " + max);
+			}
+		});
+		java.awt.image.BufferedImage bed = image("block/" + animated.id() + "_bed_foot_south");
+		int size = bed.getWidth(), half = frames / 2;
+		boolean woolMoved = false;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				int a = bed.getRGB(x, y), b = bed.getRGB(x, half * size + y);
+				if (y == size - 1) helper.assertValueEqual(b, a, "the bed's leg row at x=" + x + " changes between frames");
+				if (a != b) woolMoved = true;
+			}
+		}
+		helper.assertTrue(woolMoved, "the bed's wool does not animate");
+		helper.succeed();
+	}
+
 	/** Every texture of an animated colour ships as a strip of frames with its mcmeta; static ones don't. */
 	@GameTest
 	public void animatedTexturesShipAsStrips(GameTestHelper helper) {

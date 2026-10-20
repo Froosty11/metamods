@@ -24,7 +24,11 @@ import java.util.Optional;
  */
 public record Animation(List<Frame> frames, int frametime, boolean interpolate, List<Frame> stripes) {
 
-	/** One keyframe: the colour itself and the dark/light stops its textures are recoloured with, all plain {@code 0xRRGGBB}. */
+	/**
+	 * One keyframe: the colour itself and the dark/light stops its textures are recoloured with, all plain
+	 * {@code 0xRRGGBB}. Without a {@code ramp} both stops are the colour itself, which tells the texture
+	 * generator to tint around it and keep the source texture's own contrast, as vanilla's dyed blocks do.
+	 */
 	public record Frame(int rgb, int rampDark, int rampLight) {
 		// the string codec hands back opaque ARGB; a frame is blended per channel, so it keeps just RGB
 		private static final Codec<Integer> RGB = ExtraCodecs.STRING_RGB_COLOR.xmap(argb -> argb & 0xFFFFFF, rgb -> rgb);
@@ -36,7 +40,7 @@ public record Animation(List<Frame> frames, int frametime, boolean interpolate, 
 		);
 
 		private static final Codec<Frame> FROM_HEX = RGB.xmap(
-				rgb -> new Frame(rgb, ModColor.deriveRamp(rgb, true), ModColor.deriveRamp(rgb, false)),
+				rgb -> new Frame(rgb, rgb, rgb),
 				Frame::rgb
 		);
 
@@ -46,8 +50,8 @@ public record Animation(List<Frame> frames, int frametime, boolean interpolate, 
 						RAMP.optionalFieldOf("ramp").forGetter(frame -> Optional.of(new Ramp(frame.rampDark(), frame.rampLight())))
 				).apply(instance, (rgb, ramp) -> new Frame(
 						rgb,
-						ramp.map(Ramp::rampDark).orElseGet(() -> ModColor.deriveRamp(rgb, true)),
-						ramp.map(Ramp::rampLight).orElseGet(() -> ModColor.deriveRamp(rgb, false))
+						ramp.map(Ramp::rampDark).orElse(rgb),
+						ramp.map(Ramp::rampLight).orElse(rgb)
 				))
 		);
 

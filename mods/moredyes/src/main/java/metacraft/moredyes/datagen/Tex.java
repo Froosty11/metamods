@@ -70,22 +70,53 @@ final class Tex {
 	/**
 	 * Map the source's luminance range onto a two-stop ramp, preserving alpha. Luminance is
 	 * normalised to the source's own min/max over visible pixels, so a texture keeps its full
-	 * contrast (wool knit, concrete grain) whatever its absolute brightness.
+	 * contrast (wool knit, concrete grain) whatever its absolute brightness. A ramp whose stops are
+	 * equal is a plain colour: see {@link #recolourWhere}.
 	 */
 	Tex recolour(int dark, int light) {
-		double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
+		return recolourWhere(p -> a(p) > 0, p -> true, dark, light);
+	}
+
+	/** {@link #recolour} for the wool only (the near-grey texels): a bed's wooden frame and legs keep vanilla's wood. */
+	Tex recolourWool(int dark, int light) {
+		java.util.function.IntPredicate wool = p -> a(p) > 0 && java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null)[1] < 0.25f;
+		return recolourWhere(wool, wool, dark, light);
+	}
+
+	/** Below 1 so a tinted texture's highlights (up to ~8% over its mean on wool) don't clip. */
+	private static final double TINT_HEADROOM = 0.9;
+
+	/**
+	 * Recolour the texels {@code write} accepts, measured over those {@code measure} accepts. With
+	 * {@code dark != light} the measured luminance range is stretched onto the ramp. With
+	 * {@code dark == light} (an animation keyframe without a ramp) each texel is that colour scaled by
+	 * its luminance over the measured mean: the source keeps its own, usually slight, contrast, the way
+	 * vanilla's dyed wool and concrete look, instead of being stretched to a full dark-to-light ramp.
+	 */
+	private Tex recolourWhere(java.util.function.IntPredicate measure, java.util.function.IntPredicate write, int dark, int light) {
+		double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE, sum = 0;
+		int n = 0;
 		for (int p : argb) {
-			if (a(p) > 0) {
+			if (measure.test(p)) {
 				double l = lum(p);
 				lo = Math.min(lo, l);
 				hi = Math.max(hi, l);
+				sum += l;
+				n++;
 			}
 		}
 		if (lo > hi) { lo = 0; hi = 255; }
 		double span = hi - lo == 0 ? 1.0 : hi - lo;
-		int[] out = new int[argb.length];
+		double mean = n == 0 || sum == 0 ? 1.0 : sum / n;
+		int[] out = argb.clone();
 		for (int i = 0; i < argb.length; i++) {
 			int p = argb[i];
+			if (!write.test(p)) continue;
+			if (dark == light) {
+				double f = TINT_HEADROOM * lum(p) / mean;
+				out[i] = pack(a(p), (int) Math.round(r(dark) * f), (int) Math.round(g(dark) * f), (int) Math.round(b(dark) * f));
+				continue;
+			}
 			double t = (lum(p) - lo) / span;
 			out[i] = pack(a(p),
 					(int) Math.round(r(dark) + (r(light) - r(dark)) * t),
@@ -131,25 +162,7 @@ final class Tex {
 			float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
 			return hsb[1] > 0.35f && (hsb[0] < 0.17f || hsb[0] > 0.95f);
 		};
-		double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
-		for (int p : argb) {
-			if (petal.test(p)) {
-				lo = Math.min(lo, lum(p));
-				hi = Math.max(hi, lum(p));
-			}
-		}
-		double span = hi - lo <= 0 ? 1.0 : hi - lo;
-		int[] out = argb.clone();
-		for (int i = 0; i < argb.length; i++) {
-			int p = argb[i];
-			if (!petal.test(p)) continue;
-			double t = (lum(p) - lo) / span;
-			out[i] = pack(a(p),
-					(int) Math.round(r(dark) + (r(light) - r(dark)) * t),
-					(int) Math.round(g(dark) + (g(light) - g(dark)) * t),
-					(int) Math.round(b(dark) + (b(light) - b(dark)) * t));
-		}
-		return new Tex(width, height, out);
+		return recolourWhere(petal, petal, dark, light);
 	}
 
 	/**

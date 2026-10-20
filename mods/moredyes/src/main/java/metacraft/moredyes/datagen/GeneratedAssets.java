@@ -604,7 +604,9 @@ public final class GeneratedAssets implements DataProvider {
 			int dark = color.rampDark(), light = color.rampLight();
 			String dye = MOD + ":" + cid + "_dye";
 
-			sources.forEach((dest, img) -> sprite("textures/" + dest.replace("{c}", cid) + ".png", color, img::recolour));
+			// beds: only the wool takes the colour; the wooden frame and legs stay vanilla's
+			sources.forEach((dest, img) -> sprite("textures/" + dest.replace("{c}", cid) + ".png", color,
+					dest.contains("_bed_") ? img::recolourWool : img::recolour));
 			// sheared body: sheep.png with the tinted undercoat on top. The hurt flashes are made from
 			// whichever wool and sheared body the sheep wears, drawn by hand or not.
 			String shearedPath = "textures/block/sheep/" + cid + "_body_sheared.png";
