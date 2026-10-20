@@ -55,6 +55,14 @@ it on vanilla clients (signs, collars, banners, the stairs and slabs under their
 nearest one by text colour reads wrong (Laserviolet's would be light gray, so it says `purple`) — and run `./gradlew runDatagen`. Everything
 else loops over the list: blocks, items, recipes, tags, banner patterns, tests, the showcase.
 
+A colour can drift instead of holding still: add `"animation": {"frametime": 150, "interpolate": true,
+"frames": ["#FF0000", ...]}` (see Rainbow). Each frame is a hex colour or `{"rgb": ..., "ramp": [dark, light]}`;
+datagen writes every texture of the colour as a strip with one frame per keyframe plus its `.png.mcmeta`,
+banner patterns do the same, and dyed leather, horse and wolf armour follows the same blend per player.
+Keep about 24 frames (vanilla blends linearly in RGB, so far-apart hues go muddy). `rgb` stays the
+colour for what cannot animate: fireworks and the map. The worn happy ghast harness and llama carpet
+are drawn from no atlas, so they hold one frame, and a canvas paints it as random pixels from its frames.
+
 What limits how many colours fit is Polymer's donor-state budget, and `Looks` decides once at
 startup, per family, whether the colour count fits the visible-donor pools ("donor" look: our
 model as chunk geometry) or the family switches to a shared invisible donor plus one item display

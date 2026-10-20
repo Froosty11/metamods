@@ -140,6 +140,19 @@ final class Tex {
 		return new Tex(width, height, out);
 	}
 
+	/** The frames of an animated sprite, one under the other (the layout of a {@code .png.mcmeta} animation strip). */
+	static Tex stack(java.util.List<Tex> frames) {
+		Tex first = frames.getFirst();
+		int[] out = new int[first.argb.length * frames.size()];
+		int at = 0;
+		for (Tex frame : frames) {
+			if (frame.width != first.width || frame.height != first.height) throw new IllegalArgumentException("size mismatch");
+			System.arraycopy(frame.argb, 0, out, at, frame.argb.length);
+			at += frame.argb.length;
+		}
+		return new Tex(first.width, first.height * frames.size(), out);
+	}
+
 	/** {@code over} alpha-composited on top of this (same size). */
 	Tex composite(Tex over) {
 		if (over.width != width || over.height != height) throw new IllegalArgumentException("size mismatch");

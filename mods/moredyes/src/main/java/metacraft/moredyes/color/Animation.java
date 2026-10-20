@@ -105,8 +105,18 @@ public record Animation(List<Frame> frames, int frametime, boolean interpolate) 
 		return colours;
 	}
 
-	/** The sprite's {@code .png.mcmeta}. */
+	/** The sprite's {@code .png.mcmeta}, for square frames. */
 	public String mcmeta() {
 		return "{\"animation\":{\"frametime\":" + frametime + ",\"interpolate\":" + interpolate + "}}";
+	}
+
+	/**
+	 * The sprite's {@code .png.mcmeta} for frames of this size. Vanilla assumes square frames
+	 * unless told otherwise, so a 64x32 sheep texture needs its size spelled out.
+	 */
+	public String mcmeta(int frameWidth, int frameHeight) {
+		if (frameWidth == frameHeight) return mcmeta();
+		return "{\"animation\":{\"width\":" + frameWidth + ",\"height\":" + frameHeight
+				+ ",\"frametime\":" + frametime + ",\"interpolate\":" + interpolate + "}}";
 	}
 }

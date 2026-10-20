@@ -108,8 +108,39 @@ import java.util.Map;
 public final class MoreDyesGameTests {
 	private static final BlockPos FLOOR = new BlockPos(0, 0, 0);
 
+	/** A static colour: the tests that say "a colour" mean one that holds still. */
 	private static ModColor first() {
-		return ModColors.all().getFirst();
+		return ModColors.all().stream().filter(c -> c.animation().isEmpty()).findFirst().orElseThrow();
+	}
+
+	/** The first colour that animates; the tests that need one fail if colors.json has none. */
+	private static ModColor animated() {
+		return ModColors.all().stream().filter(c -> c.animation().isPresent()).findFirst()
+				.orElseThrow(() -> new IllegalStateException("colors.json has no animated colour"));
+	}
+
+	private static byte[] resourceOrNull(String path) {
+		try (var in = MoreDyes.class.getResourceAsStream("/assets/moredyes/textures/" + path)) {
+			return in == null ? null : in.readAllBytes();
+		} catch (java.io.IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
+	}
+
+	private static String resource(String path) {
+		byte[] data = resourceOrNull(path);
+		if (data == null) throw new IllegalStateException("missing texture resource " + path);
+		return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+	}
+
+	private static java.awt.image.BufferedImage image(String path) {
+		byte[] data = resourceOrNull(path + ".png");
+		if (data == null) throw new IllegalStateException("missing texture " + path);
+		try {
+			return javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(data));
+		} catch (java.io.IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
 	}
 
 	private static Block block(Family family) {
@@ -1180,6 +1211,32 @@ public final class MoreDyesGameTests {
 		var a = Animation.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
 				"{\"frametime\":10,\"interpolate\":false,\"frames\":[\"#FF0000\",\"#0000FF\"]}")).getOrThrow();
 		helper.assertValueEqual(a.rgbAt(9), 0xFF0000, "still frame 0");
+		helper.succeed();
+	}
+
+	/** Every texture of an animated colour ships as a strip of frames with its mcmeta; static ones don't. */
+	@GameTest
+	public void animatedTexturesShipAsStrips(GameTestHelper helper) {
+		ModColor rainbow = animated();
+		int frames = rainbow.animation().orElseThrow().frames().size();
+		for (String p : List.of("block/{c}_wool", "block/{c}_concrete", "block/{c}_stained_glass", "block/{c}_bed_head_up",
+				"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_torchflower",
+				"entity/shulker/{c}", "item/{c}_dye")) {
+			java.awt.image.BufferedImage still = image(p.replace("{c}", first().id()));
+			java.awt.image.BufferedImage strip = image(p.replace("{c}", rainbow.id()));
+			helper.assertValueEqual(strip.getWidth(), still.getWidth(), p + " width");
+			helper.assertValueEqual(strip.getHeight(), still.getHeight() * frames, p + " height");
+			helper.assertTrue(resource(p.replace("{c}", rainbow.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
+			helper.assertTrue(resourceOrNull(p.replace("{c}", first().id()) + ".png.mcmeta") == null, p + " static has mcmeta");
+		}
+		// frames that aren't square have to say so, or vanilla cuts the strip into squares
+		String sheep = resource("block/sheep/" + rainbow.id() + "_wool.png.mcmeta");
+		helper.assertTrue(sheep.contains("\"width\":64") && sheep.contains("\"height\":32"), "sheep mcmeta frame size: " + sheep);
+		// equipment textures aren't atlas sprites: they stay one static frame even for an animated colour
+		for (String p : List.of("entity/equipment/llama_body/{c}", "entity/equipment/happy_ghast_body/{c}_harness")) {
+			helper.assertValueEqual(image(p.replace("{c}", rainbow.id())).getHeight(), image(p.replace("{c}", first().id())).getHeight(), p + " height");
+			helper.assertTrue(resourceOrNull(p.replace("{c}", rainbow.id()) + ".png.mcmeta") == null, p + " has mcmeta");
+		}
 		helper.succeed();
 	}
 }
