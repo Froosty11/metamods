@@ -50,7 +50,9 @@ public final class RgbClientTests implements FabricClientGameTest {
 			Subject.at("banner", 24.5, Y + 1.2, 2.5),
 			Subject.at("armour_stand", 30.5, Y + 1.2, 3),
 			Subject.at("llama_carpet", 36.5, Y + 0.9, 4),
-			Subject.at("ghast_harness", 44.5, Y + 3.5, 9)
+			Subject.at("ghast_harness", 44.5, Y + 3.5, 9),
+			// the whole row at once, from far enough back to fit all of it
+			new Subject("overview", 22.5, Y + 5, 6 - 24, 22.5, Y + 1.5, 6)
 	);
 
 	@Override
