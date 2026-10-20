@@ -1223,7 +1223,7 @@ public final class MoreDyesGameTests {
 	public void animationParsesAndBlends(GameTestHelper helper) {
 		var json = JsonParser.parseString("""
 				{"id":"t","name":"T","rgb":"#FF0000","animation":{"frametime":10,"interpolate":true,
-				 "frames":["#FF0000",{"rgb":"#0000FF","ramp":["#000040","#8080FF"]}]}}""");
+				"frames":["#FF0000",{"rgb":"#0000FF","ramp":["#000040","#8080FF"]}]}}""");
 		ModColor c = ModColor.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
 		Animation a = c.animation().orElseThrow();
 		helper.assertValueEqual(a.cycleTicks(), 20, "cycle");
