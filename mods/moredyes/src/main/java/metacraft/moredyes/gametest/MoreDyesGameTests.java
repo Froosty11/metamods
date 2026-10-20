@@ -402,7 +402,10 @@ public final class MoreDyesGameTests {
 	/** A PolyDecorations canvas takes our dyes, in their colour's nearest map colour (CanvasEntityMixin). */
 	@GameTest
 	public void canvasTakesOurDyes(GameTestHelper helper) {
-		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) Canvas.takesOurDyes(helper, first());
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.takesOurDyes(helper, first());
+			Canvas.paintsRandomKeyframes(helper, animated());
+		}
 		helper.succeed();
 	}
 
@@ -413,6 +416,19 @@ public final class MoreDyesGameTests {
 			helper.assertTrue(painted.isPresent(), "the canvas does not take " + color.name() + " dye");
 			helper.assertValueEqual(painted.get(), eu.pb4.mapcanvas.api.core.CanvasColor.from(color.mapColor(),
 					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
+		}
+
+		/** An animated dye paints a random colour from its keyframes' map colours every time. */
+		static void paintsRandomKeyframes(GameTestHelper helper, ModColor color) {
+			var allowed = color.animation().orElseThrow().mapColors().stream()
+					.map(m -> eu.pb4.mapcanvas.api.core.CanvasColor.from(m, net.minecraft.world.level.material.MapColor.Brightness.NORMAL)).toList();
+			var seen = new java.util.HashSet<eu.pb4.mapcanvas.api.core.CanvasColor>();
+			for (int i = 0; i < 200; i++) {
+				var painted = eu.pb4.polydecorations.entity.CanvasEntity.getColor(new ItemStack(ModContent.dye(color)));
+				helper.assertTrue(painted.isPresent() && allowed.contains(painted.get()), "painted " + painted + ", not one of " + allowed);
+				seen.add(painted.get());
+			}
+			helper.assertTrue(seen.size() >= 5, "only " + seen.size() + " distinct colours in 200 pixels");
 		}
 	}
 
