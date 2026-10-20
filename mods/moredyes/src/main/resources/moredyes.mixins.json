@@ -9,6 +9,7 @@
 		"CatAccessor",
 		"CauldronInteractionsMixin",
 		"CushionMixin",
+		"DyeRecipeMixin",
 		"FlintAndSteelItemMixin",
 		"LoomBannerViewMixin",
 		"LoomMenuMixin",

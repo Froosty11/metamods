@@ -17,6 +17,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
+import metacraft.moredyes.armor.AnimatedArmor;
 import metacraft.moredyes.color.Animation;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
@@ -24,6 +25,7 @@ import metacraft.moredyes.content.block.ClientStates;
 import metacraft.moredyes.content.block.ShapedBlocks;
 import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
+import metacraft.moredyes.recipe.DyeStacks;
 import metacraft.moredyes.sheep.SheepColors;
 import metacraft.moredyes.sheep.SheepOverlay;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -93,6 +95,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Server-side game tests (Fabric GameTest API, vanilla test framework underneath).
@@ -1256,6 +1259,63 @@ public final class MoreDyesGameTests {
 			helper.assertValueEqual(out.getRGB(x, 2), 0xFF00FF00, "bottom frame");
 			helper.assertValueEqual(out.getRGB(x, 3), 0xFF00FF00, "bottom frame");
 		}
+		helper.succeed();
+	}
+
+	private static int rgb(ItemStack stack) {
+		return stack.get(DataComponents.DYED_COLOR).rgb() & 0xFFFFFF;
+	}
+
+	/** Rainbow dye turns armour Rainbow whatever colour it had. */
+	@GameTest
+	public void rainbowDyeOverwritesArmour(GameTestHelper helper) {
+		ItemStack blue = new ItemStack(Items.LEATHER_CHESTPLATE);
+		blue.set(DataComponents.DYED_COLOR, new DyedItemColor(0x0000FF));
+		ItemStack out = craft(helper, grid(blue, new ItemStack(ModContent.dye(animated()))));
+		helper.assertValueEqual(rgb(out), animated().rgb() & 0xFFFFFF, "overwritten colour");
+		helper.assertValueEqual(AnimatedArmor.animatedColour(out), Optional.of(animated()), "marked");
+		helper.succeed();
+	}
+
+	/** Nothing else goes in the grid with Rainbow dye. */
+	@GameTest
+	public void rainbowDyeDoesNotMix(GameTestHelper helper) {
+		ItemStack rainbow = new ItemStack(ModContent.dye(animated()));
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), new ItemStack(Items.DYE.red()))).isEmpty(), "mixed with vanilla red");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), new ItemStack(ModContent.dye(first())))).isEmpty(), "mixed with ours");
+		helper.assertTrue(craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), rainbow.copy(), rainbow.copy())).isEmpty(), "two Rainbow dyes");
+		helper.succeed();
+	}
+
+	/** Dyeing Rainbow armour with ordinary dyes gives those dyes' colour alone, and ends the animation. */
+	@GameTest
+	public void normalDyeEndsTheRainbow(GameTestHelper helper) {
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_HELMET), new ItemStack(ModContent.dye(animated()))));
+		for (ItemStack dye : List.of(new ItemStack(Items.DYE.red()), new ItemStack(ModContent.dye(first())))) {
+			ItemStack out = craft(helper, grid(rb.copy(), dye));
+			helper.assertValueEqual(out.get(DataComponents.DYED_COLOR), DyeStacks.mix(null, List.of(DyeStacks.armorRgb(dye))), "plain colour from " + dye);
+			helper.assertTrue(AnimatedArmor.animatedColour(out).isEmpty(), "still animated after " + dye);
+			helper.assertFalse(out.has(AnimatedArmor.ANIMATED_DYE), "marker left behind after " + dye);
+		}
+		helper.succeed();
+	}
+
+	/** A marker that no longer matches the armour's colour, or names nothing animated, is just plain armour. */
+	@GameTest
+	public void staleMarkersArePlain(GameTestHelper helper) {
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_LEGGINGS), new ItemStack(ModContent.dye(animated()))));
+		ItemStack washed = rb.copy();
+		washed.remove(DataComponents.DYED_COLOR);
+		ItemStack unknown = rb.copy();
+		unknown.set(AnimatedArmor.ANIMATED_DYE, "no_such_colour");
+		ItemStack staticId = rb.copy();
+		staticId.set(AnimatedArmor.ANIMATED_DYE, first().id());
+		ItemStack recoloured = rb.copy();
+		recoloured.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		for (ItemStack s : List.of(washed, unknown, staticId, recoloured)) {
+			helper.assertTrue(AnimatedArmor.animatedColour(s).isEmpty(), "stale marker counted: " + s);
+		}
+		helper.assertTrue(AnimatedArmor.animatedColour(new ItemStack(Items.LEATHER_BOOTS)).isEmpty(), "unmarked armour counted");
 		helper.succeed();
 	}
 }

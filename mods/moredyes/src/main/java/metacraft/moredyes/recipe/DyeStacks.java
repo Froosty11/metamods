@@ -1,5 +1,6 @@
 package metacraft.moredyes.recipe;
 
+import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.content.item.ModDyeItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.ARGB;
@@ -9,6 +10,7 @@ import net.minecraft.world.item.component.DyedItemColor;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Reading a colour out of a dye stack, ours or vanilla's. Vanilla's dye recipes only understand the
@@ -28,6 +30,12 @@ public final class DyeStacks {
 
 	public static boolean isAnyDye(ItemStack stack) {
 		return isOurs(stack) || isVanilla(stack);
+	}
+
+	/** The animated colour of one of our dyes; empty for a vanilla dye or one that holds still. */
+	public static Optional<ModColor> animatedColour(ItemStack stack) {
+		if (stack.getItem() instanceof ModDyeItem dye && dye.color().animation().isPresent()) return Optional.of(dye.color());
+		return Optional.empty();
 	}
 
 	/** The RGB vanilla uses for leather and other {@code DYED_COLOR} items (texture-diffuse). */
