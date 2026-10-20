@@ -15,6 +15,7 @@
 		"LoomMenuMixin",
 		"MobMixin",
 		"RegistryLoadTaskMixin",
+		"ServerCommonPacketListenerImplMixin",
 		"SheepAccessor",
 		"SheepMixin",
 		"SignBlockEntityMixin",

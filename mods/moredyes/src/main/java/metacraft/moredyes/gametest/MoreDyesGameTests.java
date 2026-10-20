@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import metacraft.moredyes.armor.AnimatedArmor;
+import metacraft.moredyes.armor.PackClock;
 import metacraft.moredyes.color.Animation;
 import metacraft.moredyes.color.ModColor;
 import metacraft.moredyes.color.ModColors;
@@ -1317,5 +1318,75 @@ public final class MoreDyesGameTests {
 		}
 		helper.assertTrue(AnimatedArmor.animatedColour(new ItemStack(Items.LEATHER_BOOTS)).isEmpty(), "unmarked armour counted");
 		helper.succeed();
+	}
+
+	private static int clientRgb(GameTestHelper helper, ServerPlayer viewer, ItemStack stack) {
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(stack, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		return rgb(client);
+	}
+
+	private static boolean near(int a, int b) {
+		return Math.abs((a >> 16 & 0xFF) - (b >> 16 & 0xFF)) <= 3 && Math.abs((a >> 8 & 0xFF) - (b >> 8 & 0xFF)) <= 3
+				&& Math.abs((a & 0xFF) - (b & 0xFF)) <= 3;
+	}
+
+	private static String hex(int rgb) {
+		return String.format("#%06X", rgb);
+	}
+
+	/** What a viewer is sent for Rainbow armour follows the clock of their own pack load; the server's stack never changes. */
+	@GameTest
+	public void armourFollowsTheViewersClock(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), new ItemStack(ModContent.dye(animated()))));
+		Animation a = animated().animation().orElseThrow();
+		long now = System.currentTimeMillis();
+		PackClock.loaded(viewer.getUUID(), now - 75 * 50);          // mid-keyframe 0
+		int early = clientRgb(helper, viewer, rb);
+		PackClock.loaded(viewer.getUUID(), now - 1875 * 50);        // a later load replaces the earlier one; mid-keyframe 12
+		int late = clientRgb(helper, viewer, rb);
+		helper.assertTrue(near(early, a.rgbAt(75)) && near(late, a.rgbAt(1875)), "phases " + hex(early) + " " + hex(late));
+		helper.assertValueEqual(rgb(rb), animated().rgb() & 0xFFFFFF, "server stack untouched");
+		helper.succeed();
+	}
+
+	/** A viewer whose pack load was never seen (declined, or the packet has not come yet) is sent the first keyframe. */
+	@GameTest
+	public void viewerWithoutPackSeesTheFirstKeyframe(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		PackClock.forget(viewer.getUUID());
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), new ItemStack(ModContent.dye(animated()))));
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), animated().animation().orElseThrow().rgbAt(0), "no clock");
+		helper.succeed();
+	}
+
+	/** Armour that is no longer Rainbow (a stale marker) is sent as it is. */
+	@GameTest
+	public void staleMarkerIsSentAsItIs(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		PackClock.loaded(viewer.getUUID(), System.currentTimeMillis() - 1875 * 50);
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_BOOTS), new ItemStack(ModContent.dye(animated()))));
+		rb.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), 0x123456, "recoloured armour");
+		rb.set(AnimatedArmor.ANIMATED_DYE, "no_such_colour");
+		helper.assertValueEqual(clientRgb(helper, viewer, rb), 0x123456, "unknown colour");
+		helper.succeed();
+	}
+
+	/** Armour stands (and by the same route horses and wolves) are refreshed while they wear Rainbow, and not after. */
+	@GameTest
+	public void armourStandWearersComeAndGo(GameTestHelper helper) {
+		var stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(1, 2, 1));
+		ItemStack rb = craft(helper, grid(new ItemStack(Items.LEATHER_CHESTPLATE), new ItemStack(ModContent.dye(animated()))));
+		stand.setItemSlot(EquipmentSlot.CHEST, rb);
+		// EQUIPMENT_CHANGE fires from the entity's tick, not from setItemSlot: give it a couple of ticks
+		helper.runAfterDelay(2, () -> {
+			helper.assertTrue(AnimatedArmor.wearers().contains(stand), "stand not tracked");
+			stand.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+			helper.runAfterDelay(2, () -> {
+				helper.assertFalse(AnimatedArmor.wearers().contains(stand), "stand still tracked");
+				helper.succeed();
+			});
+		});
 	}
 }
