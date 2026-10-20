@@ -10,6 +10,7 @@ import metacraft.moredyes.content.Family;
 import metacraft.moredyes.content.ModContent;
 import metacraft.moredyes.sheep.SheepColors;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.util.Prediction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,8 +20,10 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.item.DyeColor;
@@ -60,7 +63,7 @@ public final class ModCommands {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				dispatcher.register(Commands.literal(MoreDyes.MOD_ID)
-						.requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+						.requires(PermissionPredicates.require(Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, "command"), PermissionLevel.GAMEMASTERS))
 						.then(Commands.literal("dye")
 								.then(Commands.argument("targets", EntityArgument.entities())
 										.then(Commands.argument("color", StringArgumentType.word())
