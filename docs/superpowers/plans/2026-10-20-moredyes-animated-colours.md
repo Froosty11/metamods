@@ -448,3 +448,26 @@ public void animatedTexturesShipAsStrips(GameTestHelper helper) {
       item, banner, harness, llama carpet). Those are findings for Edvin, per the spec: don't
       paper over them.
 - [ ] **Step 4: Commit** `moredyes: a client screenshot test watches Rainbow drift`
+
+### Task 8 (follow-up, after the cloud run): rename to RGB, RGB stripes on the harness and llama carpet
+
+Edvin, 2026-10-20: the colour is **RGB** (id `rgb`, name `"RGB"`), not Rainbow. The fade stays the
+same: 24 hues × 150 ticks, like RGB lighting. Equipment textures can't animate, so they get static
+red / green / blue stripes.
+
+- `colors.json`: rename the entry `rainbow` → `rgb`, `"Rainbow"` → `"RGB"`. Nothing has shipped,
+  so a rename is fine; the "never delete, mark retired" rule only starts once worlds exist. Update
+  the README paragraph and any comment or test message that says Rainbow. Tests find the colour
+  through `animated()`, not by id.
+- `Animation` gains an optional `"stripes"` list (hex colours). Default: 3 keyframes sampled
+  evenly from `frames`. The RGB entry sets `["#FF0000", "#00FF00", "#0000FF"]`.
+- In `GeneratedAssets.sprite`, for an animated colour under `textures/entity/equipment/`: recolour
+  in horizontal bands. Split the texture's rows into `stripes.size()` equal bands; each band uses
+  the stripe colour's derived ramp. A hand-drawn file at that path wins, and is allowed here
+  because it's static anyway.
+- Test: extend `animatedTexturesShipAsStrips`. The RGB harness and llama textures keep the static
+  height, have no mcmeta, and the top, middle and bottom bands differ in hue.
+- Check the look in the cloud client screenshot (llama + happy ghast). If texture-row bands read
+  badly on the model, band per model face instead, or hand-draw.
+- Before fast-forwarding onto PR #17, reword this branch's commit messages from Rainbow to RGB.
+  The branch isn't on the PR yet, so rewriting above be89e352 is fine.

@@ -1,5 +1,9 @@
 # More Dyes: animated colours (slow RGB fade)
 
+> **Update 2026-10-20 (Edvin):** the shipped colour is **RGB** (id `rgb`, name "RGB"), not
+> Rainbow; same 24-hue, 3-minute fade. The harness and llama carpet get static red/green/blue
+> stripes. Wherever this document says Rainbow, read RGB.
+
 Status: draft, 2026-10-20. Module `mods/moredyes` (repo is on Minecraft 26.3-rc-1 / Polymer
 0.18.0+26.3-rc-1; the module README still says 26.2).
 
