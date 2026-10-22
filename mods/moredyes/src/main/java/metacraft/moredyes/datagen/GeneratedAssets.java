@@ -131,11 +131,11 @@ public final class GeneratedAssets implements DataProvider {
 				"textures", obj("plant", t("{c}_flower"), "particle", t("{c}_flower")),
 				"elements", JsonParser.parseString("""
 						[{"from": [2.6, 4, 8], "to": [13.4, 16, 8], "shade": false,
-						  "rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
-						  "faces": {"north": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "south": {"uv": [0, 0, 16, 16], "texture": "#plant"}}},
-						 {"from": [8, 4, 2.6], "to": [8, 16, 13.4], "shade": false,
-						  "rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
-						  "faces": {"west": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "east": {"uv": [0, 0, 16, 16], "texture": "#plant"}}}]""")));
+							"rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+							"faces": {"north": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "south": {"uv": [0, 0, 16, 16], "texture": "#plant"}}},
+							{"from": [8, 4, 2.6], "to": [8, 16, 13.4], "shade": false,
+							"rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+							"faces": {"west": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "east": {"uv": [0, 0, 16, 16], "texture": "#plant"}}}]""")));
 		String[][] candles = {{"one_candle", "template_candle"}, {"two_candles", "template_two_candles"},
 				{"three_candles", "template_three_candles"}, {"four_candles", "template_four_candles"}};
 		for (String[] c : candles) {
