@@ -134,6 +134,13 @@ public class ResourcePackServer implements AutoCloseable {
 		if (!verified && !ResourcePackConfig.getConfig().allowManualDownloads()) {
 			success = false;
 		}
+		if (success) {
+			var served = ServePackCallback.EVENT.invoker().serve(pack, verified);
+			if (served.isPresent()) {
+				sendData(exchange, served.get());
+				return;
+			}
+		}
 		UUID packID = null;
 		try {
 			packID = UUID.fromString(pack);
@@ -167,18 +174,22 @@ public class ResourcePackServer implements AutoCloseable {
 			} catch (InterruptedException | ExecutionException e) {
 				throw new RuntimeException(e);
 			}
-			//https://stackoverflow.com/questions/3413036/http-response-caching
-			exchange.getResponseHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
-			exchange.getResponseHeaders().add("Pragma", "no-cache"); // HTTP 1.0.
-			exchange.getResponseHeaders().add("Expires", String.valueOf(0)); // Proxies.
-			exchange.sendResponseHeaders(200, data.length);
-			exchange.getResponseBody().write(data);
-			exchange.getResponseBody().flush();
-			exchange.getResponseBody().close();
+			sendData(exchange, data);
 
 		} else {
 			send403(exchange);
 		}
+	}
+
+	private static void sendData(HttpExchange exchange, byte[] data) throws IOException {
+		//https://stackoverflow.com/questions/3413036/http-response-caching
+		exchange.getResponseHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+		exchange.getResponseHeaders().add("Pragma", "no-cache"); // HTTP 1.0.
+		exchange.getResponseHeaders().add("Expires", String.valueOf(0)); // Proxies.
+		exchange.sendResponseHeaders(200, data.length);
+		exchange.getResponseBody().write(data);
+		exchange.getResponseBody().flush();
+		exchange.getResponseBody().close();
 	}
 
 	public record SSLSettings(
