@@ -54,8 +54,10 @@ public class JsonObjectMixin implements JanksonObjectExtension {
 		@Local(name = "effectiveDepth") int effectiveDepth // This is valid, not sure why IntelliJ is complaining.
 	) throws IOException {
 		for (var comment : tailComments) {
-			w.append("\t");
-			CommentSerializer.print(w, comment, effectiveDepth-1, grammar);
+			for (int i = 0; i < effectiveDepth+1; i++) {
+				w.append("\t");
+			}
+			CommentSerializer.print(w, comment, -1, grammar);
 		}
 	}
 }
