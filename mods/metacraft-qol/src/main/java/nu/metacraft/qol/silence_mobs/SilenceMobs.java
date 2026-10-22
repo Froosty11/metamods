@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.function.Function;
 
 /**
- * Silence mobs: the muffler toggles a mob silent and back and is never used up. A name tag named
+ * Silence mobs: the echo fork toggles a mob silent and back and is never used up. A name tag named
  * "silence me" silences the mob it's used on and "unsilence me" undoes it, for players used to the
  * datapack; case, spaces and underscores don't matter, and the tag is used up as naming would use
  * it. Either way the mob keeps whatever name it had. The Vanilla Tweaks datapack this replaces left every silenced mob
@@ -38,11 +38,11 @@ import java.util.function.Function;
 public final class SilenceMobs {
 
 
-	/** The muffler: right-click a mob to silence it, again to undo it. Never used up. */
-	public static final Item MUFFLER = register(
-			"muffler", MufflerItem::new,
+	/** The echo fork: right-click a mob to silence it, again to undo it. Never used up. */
+	public static final Item ECHO_FORK = register(
+			"echo_fork", EchoForkItem::new,
 			new Item.Properties().stacksTo(1).component(DataComponents.LORE, new ItemLore(List.of(
-					Component.translatableWithFallback("item.metacraft.muffler.lore", "Use on a mob to silence it, again to undo it")
+					Component.translatableWithFallback("item.metacraft.echo_fork.lore", "Use on a mob to silence it, again to undo it")
 							.withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GRAY))
 			)))
 	);
@@ -61,9 +61,9 @@ public final class SilenceMobs {
 				return InteractionResult.PASS;
 			}
 			var stack = player.getItemInHand(hand);
-			if (stack.getItem() instanceof MufflerItem) {
+			if (stack.getItem() instanceof EchoForkItem) {
 				// Vanilla offers the item a mob only after the mob's own right-click (a villager's
-				// trades, mounting a horse) passes, so the muffler goes first here.
+				// trades, mounting a horse) passes, so the echo fork goes first here.
 				return swing(serverPlayer, hand, stack, stack.interactLivingEntity(player, mob, hand));
 			}
 			if (!canSilence(mob)) {

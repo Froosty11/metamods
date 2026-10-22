@@ -486,6 +486,47 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * Dyeing a sign by right-clicking it, ours and vanilla's in turn: each dye wins over whatever the
+	 * sign was before, both ways. Our dye on a sign in its nearest vanilla colour (Cerise on pink),
+	 * and a vanilla dye on a sign in ours, including the vanilla colour standing in for ours.
+	 */
+	@GameTest
+	public void signsTakeEveryDyeByClick(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, Blocks.OAK_SIGN);
+		var sign = helper.getBlockEntity(pos, net.minecraft.world.level.block.entity.SignBlockEntity.class);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		var slot = sign.getSlotPlayerIsFacing(player);
+		sign.updateText(t -> t.asMutable().setLine(0, net.minecraft.network.chat.Component.literal("Spiken")).asImmutable(), slot);
+		java.util.function.Consumer<ItemStack> click = stack -> {
+			player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+			helper.useBlock(pos, player);
+		};
+		java.util.function.Supplier<String> seen = () -> {
+			var text = sign.getText(slot);
+			var c = text.getMessages(false).get(0).getStyle().getColor();
+			return text.getColor() + (c == null ? "" : String.format(" #%06X", c.getValue()));
+		};
+
+		for (ModColor color : ModColors.all()) {
+			DyeColor stand = SignColors.nearestDye(color);
+			String ours = stand + String.format(" #%06X", color.rgb() & 0xFFFFFF);
+			click.accept(new ItemStack(Items.DYE.pick(stand)));
+			helper.assertValueEqual(seen.get(), stand.toString(), "after vanilla " + stand);
+			click.accept(new ItemStack(ModContent.dye(color)));
+			helper.assertValueEqual(seen.get(), ours, "after " + color.name() + " on " + stand);
+			click.accept(new ItemStack(Items.DYE.pick(stand)));
+			helper.assertValueEqual(seen.get(), stand.toString(), "after vanilla " + stand + " on " + color.name());
+			click.accept(new ItemStack(ModContent.dye(color)));
+			click.accept(new ItemStack(Items.DYE.pick(DyeColor.BLUE)));
+			helper.assertValueEqual(seen.get(), DyeColor.BLUE.toString(), "after vanilla blue on " + color.name());
+		}
+		helper.succeed();
+	}
+
 	/** Our dye on a tamed wolf's collar: the nearest vanilla colour, and the dye is used. */
 	@GameTest
 	public void collarTakesTheNearestColour(GameTestHelper helper) {
@@ -503,23 +544,51 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
-	/** Our torchflower crafts into our dye, grows on grass and drops itself. */
+	/** Our flower crafts into our dye, grows on grass and drops itself. */
 	@GameTest
-	public void torchflowerMakesTheDye(GameTestHelper helper) {
-		ItemStack dye = craft(helper, grid(new ItemStack(ModContent.torchflower(first()))));
-		helper.assertTrue(dye.is(ModContent.dye(first())), "the torchflower made " + dye);
+	public void flowerMakesTheDye(GameTestHelper helper) {
+		ItemStack dye = craft(helper, grid(new ItemStack(ModContent.flower(first()))));
+		helper.assertTrue(dye.is(ModContent.dye(first())), "the flower made " + dye);
 		BlockPos pos = new BlockPos(2, 1, 2);
 		helper.setBlock(pos.below(), Blocks.GRASS_BLOCK);
-		Block flower = ((net.minecraft.world.item.BlockItem) ModContent.torchflower(first())).getBlock();
+		Block flower = ((net.minecraft.world.item.BlockItem) ModContent.flower(first())).getBlock();
 		helper.assertTrue(flower.defaultBlockState().canSurvive(helper.getLevel(), helper.absolutePos(pos)), "it cannot grow on grass");
 		helper.setBlock(pos, flower);
 		breakWithDrops(helper, pos);
-		helper.succeedWhen(() -> helper.assertItemEntityPresent(ModContent.torchflower(first()), pos, 2.0));
+		helper.succeedWhen(() -> helper.assertItemEntityPresent(ModContent.flower(first()), pos, 2.0));
 	}
 
-	/** A sniffer's digging table turns up our torchflowers too. */
+	/**
+	 * Our flower goes into an empty flower pot and comes back out, as vanilla's do; the client is
+	 * shown vanilla's empty pot (the display draws the flower), and a broken pot gives both back.
+	 */
 	@GameTest
-	public void sniffersDigUpOurTorchflowers(GameTestHelper helper) {
+	public void flowerGoesInAPot(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		Item flower = ModContent.flower(first());
+		helper.setBlock(pos, Blocks.FLOWER_POT);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(flower));
+		helper.useBlock(pos, player);
+		BlockState potted = helper.getBlockState(pos);
+		helper.assertTrue(potted.getBlock() instanceof metacraft.moredyes.content.block.ModFlower.Potted, "the pot holds " + potted);
+		helper.assertTrue(player.getMainHandItem().isEmpty(), "the flower was not used up");
+		helper.assertValueEqual(ModContent.clientState(potted), Blocks.FLOWER_POT.defaultBlockState(), "the client's block");
+		helper.useBlock(pos, player);
+		helper.assertBlockPresent(Blocks.FLOWER_POT, pos);
+		helper.assertTrue(player.getMainHandItem().is(flower), "taking the flower out gave " + player.getMainHandItem());
+		helper.setBlock(pos, potted);
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			helper.assertItemEntityPresent(Items.FLOWER_POT, pos, 2.0);
+			helper.assertItemEntityPresent(flower, pos, 2.0);
+		});
+	}
+
+	/** A sniffer's digging table turns up our flowers too. */
+	@GameTest
+	public void sniffersDigUpOurFlowers(GameTestHelper helper) {
 		var table = helper.getLevel().getServer().reloadableRegistries().getLootTable(net.minecraft.world.level.storage.loot.BuiltInLootTables.SNIFFER_DIGGING);
 		var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(helper.getLevel())
 				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, helper.absoluteVec(new net.minecraft.world.phys.Vec3(1, 1, 1)))
@@ -528,7 +597,7 @@ public final class MoreDyesGameTests {
 		java.util.Set<Item> found = new java.util.HashSet<>();
 		for (int i = 0; i < 400; i++) table.getRandomItems(params).forEach(stack -> found.add(stack.getItem()));
 		for (ModColor color : ModColors.all()) {
-			helper.assertTrue(found.contains(ModContent.torchflower(color)), "a sniffer never dug up " + color.name() + " torchflower: " + found);
+			helper.assertTrue(found.contains(ModContent.flower(color)), "a sniffer never dug up the " + color.flower() + ": " + found);
 		}
 		helper.assertTrue(found.contains(Items.TORCHFLOWER_SEEDS), "vanilla's finds are gone: " + found);
 		helper.succeed();
@@ -1324,13 +1393,13 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
-	/** Every texture of an animated colour ships as a strip of frames with its mcmeta; static ones don't. */
+	/** Every generated texture of an animated colour ships as a strip of frames with its mcmeta; static and hand-drawn ones don't. */
 	@GameTest
 	public void animatedTexturesShipAsStrips(GameTestHelper helper) {
 		ModColor rgb = animated();
 		int frames = rgb.animation().orElseThrow().frames().size();
 		for (String p : List.of("block/{c}_wool", "block/{c}_concrete", "block/{c}_stained_glass", "block/{c}_bed_head_up",
-				"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_torchflower",
+				"block/sheep/{c}_wool", "block/sheep/{c}_wool_hurt", "block/sheep/{c}_body_sheared", "block/{c}_terracotta",
 				"entity/shulker/{c}", "item/{c}_dye")) {
 			java.awt.image.BufferedImage still = image(p.replace("{c}", first().id()));
 			java.awt.image.BufferedImage strip = image(p.replace("{c}", rgb.id()));
@@ -1339,6 +1408,9 @@ public final class MoreDyesGameTests {
 			helper.assertTrue(resource(p.replace("{c}", rgb.id()) + ".png.mcmeta").contains("\"frametime\":150"), p + " mcmeta");
 			helper.assertTrue(resourceOrNull(p.replace("{c}", first().id()) + ".png.mcmeta") == null, p + " static has mcmeta");
 		}
+		// a hand-drawn texture holds still, animated colour or not: the RGBouquet
+		helper.assertValueEqual(image("block/" + rgb.id() + "_flower").getHeight(), 16, "the hand-drawn RGBouquet's height");
+		helper.assertTrue(resourceOrNull("block/" + rgb.id() + "_flower.png.mcmeta") == null, "the hand-drawn RGBouquet has mcmeta");
 		// frames that aren't square have to say so, or vanilla cuts the strip into squares
 		String sheep = resource("block/sheep/" + rgb.id() + "_wool.png.mcmeta");
 		helper.assertTrue(sheep.contains("\"width\":64") && sheep.contains("\"height\":32"), "sheep mcmeta frame size: " + sheep);

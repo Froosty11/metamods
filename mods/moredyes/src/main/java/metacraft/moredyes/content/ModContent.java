@@ -13,7 +13,7 @@ import metacraft.moredyes.color.ModColors;
 import metacraft.moredyes.content.block.ColoredBlocks;
 import metacraft.moredyes.content.block.ContainerBlocks;
 import metacraft.moredyes.content.block.GlassBlocks;
-import metacraft.moredyes.content.block.ModTorchflower;
+import metacraft.moredyes.content.block.ModFlower;
 import metacraft.moredyes.content.block.ShapedBlocks;
 import metacraft.moredyes.content.item.ColoredBlockItem;
 import metacraft.moredyes.content.item.ModBundleItem;
@@ -62,7 +62,7 @@ public final class ModContent {
 	private static final Map<ModColor, ModDyeItem> DYES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModBundleItem> BUNDLES = new LinkedHashMap<>();
 	private static final Map<ModColor, ModHarnessItem> HARNESSES = new LinkedHashMap<>();
-	private static final Map<ModColor, Item> TORCHFLOWERS = new LinkedHashMap<>();
+	private static final Map<ModColor, Item> FLOWERS = new LinkedHashMap<>();
 	private static final Map<ModColor, Item> CUSHIONS = new LinkedHashMap<>();
 	private static final Map<ModColor, Map<Family, Block>> BLOCKS = new LinkedHashMap<>();
 
@@ -93,12 +93,12 @@ public final class ModContent {
 		return CUSHIONS.get(color);
 	}
 
-	public static Item torchflower(ModColor color) {
-		return TORCHFLOWERS.get(color);
+	public static Item flower(ModColor color) {
+		return FLOWERS.get(color);
 	}
 
-	public static Collection<Item> torchflowers() {
-		return Collections.unmodifiableCollection(TORCHFLOWERS.values());
+	public static Collection<Item> flowers() {
+		return Collections.unmodifiableCollection(FLOWERS.values());
 	}
 
 	/**
@@ -117,7 +117,7 @@ public final class ModContent {
 		items.add(DYES.get(color));
 		items.add(BUNDLES.get(color));
 		items.add(HARNESSES.get(color));
-		items.add(TORCHFLOWERS.get(color));
+		items.add(FLOWERS.get(color));
 		items.add(CUSHIONS.get(color));
 		for (Family family : Family.values()) {
 			if (family.hasItem()) items.add(BLOCKS.get(color).get(family).asItem());
@@ -161,16 +161,21 @@ public final class ModContent {
 				.stacksTo(1).component(DataComponents.EQUIPPABLE, wornAs(Equippable.harness(DyeColor.WHITE), harnessId))
 				.setId(ResourceKey.create(Registries.ITEM, harnessId)), harnessId)));
 
-		// Torchflower: a sniffer's find, crafted into the dye.
-		Identifier flowerId = id(color.id() + "_torchflower");
+		// Flower: a sniffer's find, crafted into the dye; a torchflower but for its look.
+		Identifier flowerId = id(color.id() + "_flower");
 		requireAsset("items/" + flowerId.getPath() + ".json", flowerId);
-		Block flower = Registry.register(BuiltInRegistries.BLOCK, flowerId, new ModTorchflower(
+		Block flower = Registry.register(BuiltInRegistries.BLOCK, flowerId, new ModFlower(
 				BlockBehaviour.Properties.ofFullCopy(Blocks.TORCHFLOWER).mapColor(color.mapColor())
 						.setId(ResourceKey.create(Registries.BLOCK, flowerId)), flowerId));
 		collectDonorSounds(flower);
-		TORCHFLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
+		FLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
 				new Item.Properties().useBlockDescriptionPrefix().setId(ResourceKey.create(Registries.ITEM, flowerId)),
 				flowerId, Items.TORCHFLOWER)));
+		// and potted: an empty flower pot takes it once this is registered
+		Identifier pottedId = id("potted_" + flowerId.getPath());
+		requireAsset("items/" + pottedId.getPath() + ".json", pottedId);
+		collectDonorSounds(Registry.register(BuiltInRegistries.BLOCK, pottedId, new ModFlower.Potted(flower,
+				BlockBehaviour.Properties.ofFullCopy(Blocks.POTTED_TORCHFLOWER).setId(ResourceKey.create(Registries.BLOCK, pottedId)), pottedId)));
 
 		// Cushion: vanilla's white cushion item and entity, carrying our colour (see cushion.Cushions).
 		Identifier cushionId = id(color.id() + "_cushion");

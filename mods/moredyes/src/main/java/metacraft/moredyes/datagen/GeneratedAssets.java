@@ -125,7 +125,17 @@ public final class GeneratedAssets implements DataProvider {
 		MODELS.put("{c}_glazed_terracotta", obj("parent", "minecraft:block/template_glazed_terracotta",
 				"textures", obj("pattern", t("{c}_glazed_terracotta"))));
 		MODELS.put("{c}_carpet", obj("parent", "minecraft:block/carpet", "textures", obj("wool", t("{c}_wool"))));
-		MODELS.put("{c}_torchflower", obj("parent", "minecraft:block/cross", "textures", obj("cross", t("{c}_torchflower"))));
+		MODELS.put("{c}_flower", obj("parent", "minecraft:block/cross", "textures", obj("cross", t("{c}_flower"))));
+		// the plant half of vanilla's flower_pot_cross, drawn by an item display over vanilla's empty pot
+		MODELS.put("potted_{c}_flower", obj("ambientocclusion", false, "display", FIXED_HALF,
+				"textures", obj("plant", t("{c}_flower"), "particle", t("{c}_flower")),
+				"elements", JsonParser.parseString("""
+						[{"from": [2.6, 4, 8], "to": [13.4, 16, 8], "shade": false,
+							"rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+							"faces": {"north": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "south": {"uv": [0, 0, 16, 16], "texture": "#plant"}}},
+							{"from": [8, 4, 2.6], "to": [8, 16, 13.4], "shade": false,
+							"rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+							"faces": {"west": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "east": {"uv": [0, 0, 16, 16], "texture": "#plant"}}}]""")));
 		String[][] candles = {{"one_candle", "template_candle"}, {"two_candles", "template_two_candles"},
 				{"three_candles", "template_three_candles"}, {"four_candles", "template_four_candles"}};
 		for (String[] c : candles) {
@@ -162,7 +172,7 @@ public final class GeneratedAssets implements DataProvider {
 		ITEM_MODELS.put("{c}_stained_glass_pane", generated(t("{c}_stained_glass")));
 		ITEM_MODELS.put("{c}_bundle", generated(MOD + ":item/{c}_bundle"));
 		ITEM_MODELS.put("{c}_harness", generated(MOD + ":item/{c}_harness"));
-		ITEM_MODELS.put("{c}_torchflower", generated(t("{c}_torchflower")));
+		ITEM_MODELS.put("{c}_flower", generated(t("{c}_flower")));
 		ITEM_MODELS.put("{c}_cushion", generated(MOD + ":item/{c}_cushion"));
 		// vanilla's CushionModel: one 16×4×16 box, texture offset 0,0 on a 64×64 texture (4 px a unit here)
 		ITEM_MODELS.put("cushion/{c}", obj("textures", obj("c", t("cushion/{c}"), "particle", t("cushion/{c}")),
@@ -211,6 +221,7 @@ public final class GeneratedAssets implements DataProvider {
 		}
 		for (String name : paneModels().keySet()) DISPLAY_ITEM_DEFS.put(name, t(name));
 		DISPLAY_ITEM_DEFS.put("{c}_shulker_box_base", t("{c}_shulker_box_base"));
+		DISPLAY_ITEM_DEFS.put("potted_{c}_flower", t("potted_{c}_flower"));
 		DISPLAY_ITEM_DEFS.put("{c}_shulker_box_lid", t("{c}_shulker_box_lid"));
 	}
 
@@ -485,8 +496,8 @@ public final class GeneratedAssets implements DataProvider {
 		// transmute keeps the box's contents, like vanilla's shulker dye recipes
 		r.put(cid + "_shulker_box", obj("type", "minecraft:crafting_transmute", "category", "misc", "group", "shulker_box_dye",
 				"input", "#minecraft:shulker_boxes", "material", dye, "result", obj("id", m.apply("shulker_box"))));
-		r.put(cid + "_dye_from_torchflower", obj("type", "minecraft:crafting_shapeless", "group", cid + "_dye",
-				"ingredients", arr(MOD + ":" + cid + "_torchflower"), "result", obj("id", dye)));
+		r.put(cid + "_dye_from_flower", obj("type", "minecraft:crafting_shapeless", "group", cid + "_dye",
+				"ingredients", arr(MOD + ":" + cid + "_flower"), "result", obj("id", dye)));
 		r.put(cid + "_cushion", obj("type", "minecraft:crafting_shaped", "group", "cushion",
 				"pattern", arr("###"), "key", obj("#", m.apply("wool_slab")), "result", obj("id", MOD + ":" + cid + "_cushion")));
 		r.put("dye_" + cid + "_cushion", obj("type", "minecraft:crafting_transmute", "group", "cushion_dye",
@@ -635,16 +646,22 @@ public final class GeneratedAssets implements DataProvider {
 					JsonParser.parseString(bundleItemDef.replace("minecraft:item/white_bundle", MOD + ":item/" + cid + "_bundle")));
 			lang.put("item." + MOD + "." + cid + "_bundle", cname + " Bundle");
 			itemTags.get("bundles").add(MOD + ":" + cid + "_bundle");
-			// torchflower: dug up by sniffers, a dye of its colour
-			String flower = cid + "_torchflower";
+			// flower: dug up by sniffers, a dye of its colour; hand-drawn, or else a torchflower in the colour
+			String flower = cid + "_flower";
 			sprite("textures/block/" + flower + ".png", color, torchflower::recolourPetals);
 			json(assets.resolve("items/" + flower + ".json"), itemDef(MOD + ":item/" + flower));
-			lang.put("block." + MOD + "." + flower, cname + " Torchflower");
+			lang.put("block." + MOD + "." + flower, color.flower());
 			json(data.resolve(MOD + "/loot_table/blocks/" + flower + ".json"), lootTable("simple", MOD + ":" + flower));
 			for (String tag : List.of("small_flowers")) {
 				blockTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 				itemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 			}
+			// potted: breaks into the pot and the flower, as vanilla's do
+			lang.put("block." + MOD + ".potted_" + flower, "Potted " + color.flower());
+			JsonObject potted = lootTable("simple", "minecraft:flower_pot");
+			potted.getAsJsonArray("pools").addAll(lootTable("simple", MOD + ":" + flower).getAsJsonArray("pools"));
+			json(data.resolve(MOD + "/loot_table/blocks/potted_" + flower + ".json"), potted);
+			blockTags.computeIfAbsent("flower_pots", k -> new ArrayList<>()).add(MOD + ":potted_" + flower);
 			// cushion: vanilla's, carrying our colour
 			json(assets.resolve("items/" + cid + "_cushion.json"), itemDef(MOD + ":item/" + cid + "_cushion"));
 			lang.put("item." + MOD + "." + cid + "_cushion", cname + " Cushion");
@@ -747,7 +764,8 @@ public final class GeneratedAssets implements DataProvider {
 			png(path, tex);
 			return;
 		}
-		if (drawn(path)) throw new IllegalStateException("hand-drawn " + path + " can't serve animated colour " + color.id());
+		// a hand-drawn texture stands still, animated colour or not (the RGBouquet is red, green and blue)
+		if (drawn(path)) return;
 		var frames = animation.get().frames().stream().map(f -> make.apply(f.rampDark(), f.rampLight())).toList();
 		Tex strip = Tex.stack(frames);
 		byte[] png = strip.png();

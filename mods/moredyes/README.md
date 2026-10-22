@@ -23,7 +23,7 @@ in our colours (six of our wool over a stick: a white banner under our full-cove
 and firework stars mixed with vanilla dyes; happy ghast harnesses and llama carpet decor (vanilla's
 equippable on our own equipment asset); sign text in our exact colour (component colour on every
 line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
-nearest vanilla dye); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
+nearest vanilla dye; a vanilla dye takes our colour off the lines, so any dye recolours any sign); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
 tinting (our glass passes the beam untinted).
 
 ## Stairs and slabs
@@ -49,8 +49,8 @@ states.
 
 ## Adding a colour
 
-Add an entry to `src/main/resources/colors.json` — `id`, `name`, `rgb`; `ramp: [dark, light]` is
-optional (derived in CIELAB from `rgb` when absent), and so is `vanilla`, the vanilla dye shown for
+Add an entry to `src/main/resources/colors.json` — `id`, `name`, `rgb`; optional are `flower`, the
+name of the colour's flower ("<name> Flower" when absent), `ramp: [dark, light]` (derived in CIELAB from `rgb` when absent), and `vanilla`, the vanilla dye shown for
 it on vanilla clients (signs, collars, banners, the stairs and slabs under their display) when the
 nearest one by text colour reads wrong (Laserviolet's would be light gray, so it says `purple`) — and run `./gradlew runDatagen`. Everything
 else loops over the list: blocks, items, recipes, tags, banner patterns, tests, the showcase.
@@ -63,6 +63,7 @@ Keep about 24 frames (vanilla blends linearly in RGB, so far-apart hues go muddy
 colour for what cannot animate: fireworks and the map. The worn happy ghast harness and llama carpet
 are drawn from no atlas, so they hold one frame cut into horizontal bands of the animation's optional
 `"stripes"` colours (three keyframes sampled evenly when absent; RGB sets red, green, blue), and a canvas paints it as random pixels from its frames.
+A hand-drawn texture of an animated colour stands still (the RGBouquet).
 
 What limits how many colours fit is Polymer's donor-state budget, and `Looks` decides once at
 startup, per family, whether the colour count fits the visible-donor pools ("donor" look: our
@@ -116,8 +117,8 @@ that cannot serve even the chosen look still stops the server.
   decorates a shield. A cauldron washes patterns off down to the colour but not the
   colour itself (`CauldronInteractionsMixin`), as with a banner's own colour. To copy one, the blank
   is a plain *white* banner: vanilla only copies onto a banner with no layers.
-- Dyes come from flowers: a sniffer digs up Cerise and Laserviolet torchflowers beside vanilla's
-  torchflower seeds (`ModTorchflower`), and each crafts into its dye.
+- Dyes come from flowers: a sniffer digs up a Cerose, a Laser Violet or an RGBouquet beside vanilla's
+  torchflower seeds (`ModFlower`; colors.json's `flower` names it), and each crafts into its dye.
 
 ## Ground rules (short version)
 
@@ -183,7 +184,7 @@ metacraft.moredyes.MoreDyes         entrypoint: colours → content → resource
 metacraft.moredyes.color            ModColor record, colors.json loader
 metacraft.moredyes.content          Family enum, Looks, ModContent (registration, creative tab)
 metacraft.moredyes.content.block    ColoredBlocks, ShapedBlocks (stairs/slabs + display holder),
-                                    GlassBlocks, ContainerBlocks, ModTorchflower, ClientStates
+                                    GlassBlocks, ContainerBlocks, ModFlower, ClientStates
 metacraft.moredyes.content.item     ColoredBlockItem, ModDyeItem, ModBundleItem, ModCushionItem,
                                     ModHarnessItem
 metacraft.moredyes.sheep            SheepColors (attachment + events), SheepOverlay, SheepWoolRig
