@@ -1,0 +1,32 @@
+[
+	{
+		"id": "cerise",
+		"name": "Cerise",
+		"flower": "Cerose",
+		"rgb": "#EE2A7B",
+		"ramp": ["#8F0F44", "#FF7DB3"]
+	},
+	{
+		"id": "laserviolet",
+		"name": "Laserviolet",
+		"flower": "Laser Violet",
+		"rgb": "#CC99FF",
+		"ramp": ["#7A4FC2", "#EBDCFF"],
+		"vanilla": "purple"
+	},
+	{
+		"id": "rgb",
+		"name": "RGB",
+		"flower": "RGBouquet",
+		"rgb": "#FF4040",
+		"animation": {
+			"frametime": 150,
+			"interpolate": true,
+			"stripes": ["#FF3333", "#33FF33", "#3333FF"],
+			"frames": ["#FF3333", "#FF6633", "#FF9933", "#FFCC33", "#FFFF33", "#CCFF33",
+				"#99FF33", "#66FF33", "#33FF33", "#33FF66", "#33FF99", "#33FFCC",
+				"#33FFFF", "#33CCFF", "#3399FF", "#3366FF", "#3333FF", "#6633FF",
+				"#9933FF", "#CC33FF", "#FF33FF", "#FF33CC", "#FF3399", "#FF3366"]
+		}
+	}
+]
