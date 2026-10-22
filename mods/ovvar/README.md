@@ -840,6 +840,16 @@ caused it, and they are standing at a wardrobe or a stand, not in a fight), ever
 what their own pack plus the dye channels can show until they choose to `/ovvar reload` or rejoin,
 and reloading stays a thing you do when you want to.
 
+**With metacraft-resource-packs installed** (an optional dependency) the combinations are not put
+in the Polymer pack at all but in a small pack of their own (`ComboPack`: `pack.mcmeta` and the
+equipment definitions, built in memory), served by that mod's pack server through its
+`ServePackCallback` and sent to joining players with the other packs (`EarlyPackPacketsCallback`).
+Sewing then never changes the Polymer pack, so its hash, and the copy every client has cached,
+stays the same until the mods change; a push is a few kilobytes. Who gets pushed, and when, is
+exactly as above. Each build is kept under its SHA-1 and the last three stay downloadable, so a
+player pushed one still gets it if a newer build lands before their download starts. Without the
+mod, everything goes into the Polymer pack as before.
+
 ## Square pixels
 
 The armour model draws a texel wider than it is tall: the box is inflated (1 on the chest

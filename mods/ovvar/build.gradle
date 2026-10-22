@@ -22,6 +22,13 @@ addConfigDependency()
 addSGUIDependency()
 // Pockets: the ovve is a bundle whose capacity metacraft-bundles scales (metacraft:bundle_size_factor).
 addProjectDependency(":mods:metacraft-bundles")
+// With metacraft-resource-packs installed the patch combinations go into a small pack of their own
+// that it serves (pack/ComboPack). Never a `depends`: only compat/resource_packs names its types, behind
+// FabricLoader.isModLoaded. In the dev/test runtime so the game tests run that way.
+dependencies {
+	compileOnly project(path: ":mods:metacraft-resource-packs")
+	runtimeOnly project(path: ":mods:metacraft-resource-packs")
+}
 dependencies {
 	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")

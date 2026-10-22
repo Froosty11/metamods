@@ -11,6 +11,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.compat.danse.DanseHooks;
+import metacraft.ovvar.compat.resource_packs.ResourcePacksCompat;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.item.OvveItem;
 import metacraft.ovvar.content.item.OvveTopItem;
@@ -24,6 +25,7 @@ import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -38,9 +40,11 @@ import java.util.*;
 import org.jspecify.annotations.NonNull;
 import org.pcollections.TreePVector;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 /**
  * The combinations of patches the resource pack knows how to draw. Every combination ever
@@ -55,6 +59,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * the build is done), or when they ask with {@code /ovvar reload}. Everyone else keeps the pack
  * they have and sees what it holds plus the newest patches in the dye colour (see
  * {@link metacraft.ovvar.content.Looks#look}); whoever joins gets the current pack.
+ *
+ * With metacraft-resource-packs installed the combinations go into a small pack of their own
+ * ({@link ComboPack}) instead of the Polymer pack, so sewing leaves the big pack (and every
+ * client's cached copy of it) alone. Generations, claims and pushes work the same either way.
  */
 public final class Combos {
 	private Combos() {}
@@ -93,26 +101,24 @@ public final class Combos {
 			KNOWN.addAll(load(file(s)));
 			BUILT.clear();
 			generation = 0;
+			ComboPack.clear();
 			Ovvar.LOGGER.info("[ovvar] {} patch combination(s) known", KNOWN.size());
 		});
+		if (ComboPack.ACTIVE) {
+			ResourcePacksCompat.init();
+			// Polymer's startup build no longer holds the combinations; ours does, before anyone joins.
+			ServerLifecycleEvents.SERVER_STARTED.register(Combos::buildOwn);
+		}
 		ServerLifecycleEvents.SERVER_STOPPING.register(Combos::save);
 		PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(builder -> {
+			if (ComboPack.ACTIVE) return;
 			building = Set.copyOf(KNOWN);
 			int files = 0;
-			for (KeyedCombo key : building) {
-				Piece piece = key.piece();
-				Combo combo = key.combo();
-				List<Placement> placements = combo.placements();
-				for (Chapter chapter : Chapter.values()) {
-					for (boolean[] v : EquipmentJson.variants(chapter, piece)) {
-						builder.addStringData(EquipmentJson.packPath(chapter, piece, v[0], combo), EquipmentJson.json(chapter, piece, v[0], placements));
-						files++;
-					}
-				}
-			}
+			for (KeyedCombo key : building) files += files(key, builder::addStringData);
 			Ovvar.LOGGER.info("[ovvar] pack: {} combination(s), {} equipment file(s)", building.size(), files);
 		});
 		PolymerResourcePackUtils.RESOURCE_PACK_FINISHED_EVENT.register(result -> {
+			if (ComboPack.ACTIVE) return;
 			Set<KeyedCombo> snapshot = building;
 			server.execute(() -> built(snapshot));
 		});
@@ -192,6 +198,11 @@ public final class Combos {
 		if (dirty.compareAndSet(true, false)) save(s);
 		pushWhereNeeded(s);
 		if (now() < deadline.get() || generating) return;
+		if (ComboPack.ACTIVE) {
+			deadline.set(Long.MAX_VALUE);
+			if (!BUILT.getOrDefault(generation, Set.of()).containsAll(KNOWN)) buildOwn(s);
+			return;
+		}
 		if (PolymerResourcePackMod.alreadyGeneration) {
 			deadline.set(now() + 1_000);   // someone else's build; ours follows
 			return;
@@ -202,6 +213,23 @@ public final class Combos {
 		Ovvar.LOGGER.info("[ovvar] rebuilding the resource pack for {} new combination(s)",
 				KNOWN.size() - BUILT.getOrDefault(generation, Set.of()).size());
 		PolymerResourcePackMod.generateAndCall(s, false, message -> Ovvar.LOGGER.info("[ovvar] {}", message.getString()), result -> {});
+	}
+
+	/** Builds {@link ComboPack} off the server thread; a new generation when it is done. */
+	private static void buildOwn(MinecraftServer s) {
+		Set<KeyedCombo> snapshot = Set.copyOf(KNOWN);
+		building = snapshot;
+		generating = true;
+		CompletableFuture.supplyAsync(() -> ComboPack.build(snapshot), Util.backgroundExecutor()).whenComplete((version, error) -> s.execute(() -> {
+			if (error != null) {
+				generating = false;
+				Ovvar.LOGGER.error("[ovvar] could not build the combination pack", error);
+				return;
+			}
+			ComboPack.publish(version);
+			Ovvar.LOGGER.info("[ovvar] combination pack {}: {} combination(s), {} bytes", version.sha1(), snapshot.size(), version.zip().length);
+			built(snapshot);
+		}));
 	}
 
 	/** A build finished (server thread): a new generation; players who asked for its combinations get it. */
@@ -241,8 +269,17 @@ public final class Combos {
 		}
 	}
 
-	/** The same push Polymer's {@code /polymer generate-pack reload} does, for one player. */
+	/** The same push Polymer's {@code /polymer generate-pack reload} does, for one player (or just ours, with {@link ComboPack}). */
 	private static void push(ServerPlayer player) {
+		if (ComboPack.ACTIVE) {
+			ComboPack.Version version = ComboPack.current();
+			if (version == null) return;
+			player.connection.send(ResourcePacksCompat.push(version));
+			PUSHED.put(player.getUUID(), generation);
+			LAST_PUSH.put(player.getUUID(), now());
+			Ovvar.LOGGER.info("[ovvar] sent combination pack generation {} to {}", generation, player.getName().getString());
+			return;
+		}
 		var provider = ResourcePackDataProvider.getActive();
 		var context = player.connection.getPacketContext();
 		if (!provider.isReady(context)) return;
@@ -302,6 +339,18 @@ public final class Combos {
 		for (ServerPlayer viewer : PlayerLookup.tracking(wearer)) {
 			viewer.connection.send(new ClientboundSetEquipmentPacket(wearer.getId(), slots));
 		}
+	}
+
+	/** The equipment definitions of one combination (every chapter and rolled-down variant) as pack path and JSON; how many. */
+	static int files(KeyedCombo key, BiConsumer<String, String> out) {
+		int files = 0;
+		for (Chapter chapter : Chapter.values()) {
+			for (boolean[] v : EquipmentJson.variants(chapter, key.piece())) {
+				out.accept(EquipmentJson.packPath(chapter, key.piece(), v[0], key.combo()), EquipmentJson.json(chapter, key.piece(), v[0], key.combo().placements()));
+				files++;
+			}
+		}
+		return files;
 	}
 
 	// ---- keys
