@@ -195,14 +195,17 @@ public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationA
 		return allowManualDownloads;
 	}
 
+	/** Where the resource pack server is reached, without a trailing '/'. */
+	public String getBaseUrl() {
+		String protocol = sslSettings.isPresent() ? "https" : "http";
+		return protocol + "://" + getServerAddress() + ":" + getPort();
+	}
+
 	public Optional<ClientboundResourcePackPushPacket> createEnablePacket(UUID uuid) {
-		return getResourcePack(uuid).map(entry -> {
-			String protocol = sslSettings.isPresent() ? "https" : "http";
-			return new ClientboundResourcePackPushPacket(
-					uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
-					entry.getHash().toString(), required, prompt
-			);
-		});
+		return getResourcePack(uuid).map(entry -> new ClientboundResourcePackPushPacket(
+				uuid, getBaseUrl() + "/" + uuid.toString(),
+				entry.getHash().toString(), required, prompt
+		));
 	}
 
 	public ResourcePackConfig withPack(UUID uuid, ResourcePack pack) {
