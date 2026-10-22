@@ -24,6 +24,7 @@
 			"metacraft.ovvar.gametest.DanseLayersTests",
 			"metacraft.ovvar.gametest.DanseForkTests",
 			"metacraft.ovvar.gametest.OvvarGameTests",
+			"metacraft.ovvar.gametest.ComboPackTests",
 			"metacraft.ovvar.gametest.FrackTests",
 			"metacraft.ovvar.gametest.WardrobeTests",
 			"metacraft.ovvar.gametest.BlockbenchManifestTests"
@@ -48,5 +49,8 @@
 		"sgui": "*",
 		"metacraft-bundles": "*",
 		"booklet": "*"
+	},
+	"suggests": {
+		"metacraft-resource-packs": "*"
 	}
 }
