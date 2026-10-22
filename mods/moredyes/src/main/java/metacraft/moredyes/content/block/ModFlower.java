@@ -15,14 +15,14 @@ import net.minecraft.world.level.storage.loot.entries.LootItem;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A torchflower in one of our colours: what a sniffer digs up beside vanilla's torchflower seeds and
- * pitcher pods, and what our dye is crafted from. Vanilla's torchflower in every way but its look,
- * which is the torchflower's flame recoloured (a cross model on a Polymer plant state).
+ * A colour's flower (Cerose, Laser Violet, RGBouquet; colors.json names it): what a sniffer digs up
+ * beside vanilla's torchflower seeds and pitcher pods, and what our dye is crafted from. Vanilla's
+ * torchflower in every way but its look, which is hand-drawn (a cross model on a Polymer plant state).
  */
-public final class ModTorchflower extends FlowerBlock implements PolymerTexturedBlock {
+public final class ModFlower extends FlowerBlock implements PolymerTexturedBlock {
 	private final BlockState client;
 
-	public ModTorchflower(Properties properties, Identifier id) {
+	public ModFlower(Properties properties, Identifier id) {
 		super(MobEffects.NIGHT_VISION, 5.0F, properties);
 		this.client = ClientStates.request(id.toString(), BlockModelType.PLANT,
 				PolymerBlockModel.of(Identifier.fromNamespaceAndPath(id.getNamespace(), "block/" + id.getPath())));
@@ -37,7 +37,7 @@ public final class ModTorchflower extends FlowerBlock implements PolymerTextured
 	public static void addToSnifferDigging() {
 		LootTableEvents.MODIFY.register((key, table, source, registries) -> {
 			if (!key.equals(BuiltInLootTables.SNIFFER_DIGGING)) return;
-			table.modifyPools(pool -> ModContent.torchflowers().forEach(item -> pool.add(LootItem.lootTableItem(item))));
+			table.modifyPools(pool -> ModContent.flowers().forEach(item -> pool.add(LootItem.lootTableItem(item))));
 		});
 	}
 }

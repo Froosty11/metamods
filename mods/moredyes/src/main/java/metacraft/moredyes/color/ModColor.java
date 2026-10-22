@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
  *
  * @param id		registry-safe id, e.g. {@code cerise}; used as the prefix of every block/item id
  * @param name	  display name, e.g. {@code Cerise}
+ * @param flower	the name of its flower, the one a sniffer digs up, e.g. {@code Cerose}; by default
+ *				  "{@code <name>} Flower"
  * @param rgb	   the colour itself, {@code 0xRRGGBB}; used wherever vanilla renders an arbitrary
  *				  RGB (dyed leather, fireworks, display-entity tints)
  * @param rampDark  darkest stop of the texture ramp (the texture script uses it, we keep it for
@@ -31,7 +33,7 @@ import java.util.regex.Pattern;
  * @param animation keyframes it drifts through, if it is not a single colour; {@code rgb} is still
  *				  what anything that cannot animate (fireworks, the map) uses
  */
-public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor, Optional<DyeColor> vanilla, Optional<Animation> animation) {
+public record ModColor(String id, String name, String flower, int rgb, int rampDark, int rampLight, MapColor mapColor, Optional<DyeColor> vanilla, Optional<Animation> animation) {
 
 	private static final Pattern ID = Pattern.compile("[a-z0-9_]+");
 
@@ -41,6 +43,7 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 							id -> ID.matcher(id).matches() ? DataResult.success(id) : DataResult.error(() -> "id '" + id + "' must match [a-z0-9_]+")
 					).forGetter(ModColor::id),
 					Codec.STRING.fieldOf("name").forGetter(ModColor::name),
+					Codec.STRING.optionalFieldOf("flower").forGetter(colour -> Optional.of(colour.flower())),
 					ExtraCodecs.STRING_RGB_COLOR.fieldOf("rgb").forGetter(ModColor::rgb),
 					Ramp.CODEC.optionalFieldOf("ramp").forGetter(colour -> Optional.of(new Ramp(colour.rampDark(), colour.rampLight()))),
 					DyeColor.CODEC.optionalFieldOf("vanilla").forGetter(ModColor::vanilla),
@@ -57,17 +60,17 @@ public record ModColor(String id, String name, int rgb, int rampDark, int rampLi
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp, Optional<DyeColor> vanilla, Optional<Animation> animation) {
+	public static ModColor of(String id, String name, Optional<String> flower, int rgb, Optional<Ramp> ramp, Optional<DyeColor> vanilla, Optional<Animation> animation) {
 		return of(
-				id, name, rgb,
+				id, name, flower.orElse(name + " Flower"), rgb,
 				ramp.map(Ramp::rampDark).orElseGet(() -> deriveRamp(rgb, true)),
 				ramp.map(Ramp::rampLight).orElseGet(() -> deriveRamp(rgb, false)),
 				vanilla, animation
 		);
 	}
 
-	public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight, Optional<DyeColor> vanilla, Optional<Animation> animation) {
-		return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb), vanilla, animation);
+	public static ModColor of(String id, String name, String flower, int rgb, int rampDark, int rampLight, Optional<DyeColor> vanilla, Optional<Animation> animation) {
+		return new ModColor(id, name, flower, rgb, rampDark, rampLight, nearestMapColor(rgb), vanilla, animation);
 	}
 
 	/** {@code 0xAARRGGBB} with full alpha, the form most vanilla colour APIs take. */
