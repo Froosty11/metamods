@@ -1,7 +1,7 @@
 {
 	"type": "minecraft:function",
-	"environment": "metacraft:default",
-	"function": "metacraft:silence_mobs/muffler_client_item_is_not_a_block",
+	"environment": "metacraft:qol_silence_mobs_off",
+	"function": "metacraft:silence_mobs/off_echo_fork_does_nothing",
 	"max_ticks": 20,
 	"required": true,
 	"setup_ticks": 1,

@@ -14,7 +14,6 @@ import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
 import nu.metacraft.qol.silence_mobs.SilenceMobs;
@@ -30,8 +29,8 @@ public class QolDatagen implements DataGeneratorEntrypoint {
 			Registries.RECIPE, Qol.getID("void_anchor")
 	);
 
-	public static final ResourceKey<Recipe<?>> MUFFLER_RECIPE = ResourceKey.create(
-			Registries.RECIPE, Qol.getID("muffler")
+	public static final ResourceKey<Recipe<?>> ECHO_FORK_RECIPE = ResourceKey.create(
+			Registries.RECIPE, Qol.getID("echo_fork")
 	);
 
 	@Override
@@ -87,12 +86,16 @@ public class QolDatagen implements DataGeneratorEntrypoint {
 							.pattern("CCC")
 							.unlockedBy("has_crying_obsidian", has(Items.CRYING_OBSIDIAN))
 							.save(output, VOID_ANCHOR_RECIPE);
-					shapeless(RecipeCategory.TOOLS, SilenceMobs.MUFFLER)
-							.requires(ItemTags.WOOL)
-							.requires(Items.AMETHYST_SHARD)
-							.requires(Items.STRING)
-							.unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
-							.save(output, MUFFLER_RECIPE);
+					// a tuning fork: sculk prongs on an echo shard, an iron handle
+					shaped(RecipeCategory.TOOLS, SilenceMobs.ECHO_FORK)
+							.define('S', Items.SCULK)
+							.define('E', Items.ECHO_SHARD)
+							.define('I', Items.IRON_INGOT)
+							.pattern("S S")
+							.pattern(" E ")
+							.pattern(" I ")
+							.unlockedBy("has_echo_shard", has(Items.ECHO_SHARD))
+							.save(output, ECHO_FORK_RECIPE);
 				}
 			};
 		}
