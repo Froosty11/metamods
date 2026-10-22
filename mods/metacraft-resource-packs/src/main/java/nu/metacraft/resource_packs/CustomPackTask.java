@@ -64,8 +64,10 @@ public class CustomPackTask implements ConfigurationTask {
 		if (!addedPacks.isEmpty()) {
 			((ConnectionExtension) connection).metacraft$updateAddedPacks(packs -> packs.plusAll(addedPacks));
 		}
-		return Stream.concat(globals, Stream.concat(nonGlobals, addedPacks.stream())).map(
+		var packets = Stream.concat(globals, Stream.concat(nonGlobals, addedPacks.stream())).map(
 			config::createEnablePacket
-		).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
+		).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toCollection(HashSet::new));
+		EarlyPackPacketsCallback.EVENT.invoker().addPackets(server, gameProfile, packets::add);
+		return packets;
 	}
 }
