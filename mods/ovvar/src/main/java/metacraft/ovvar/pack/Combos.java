@@ -356,7 +356,7 @@ public final class Combos {
 	public record Combo(List<Placement> placements) {
 
 		public static final Codec<Combo> KEY_CODEC = Codec.STRING.comapFlatMap(
-				key -> Arrays.stream(key.split("-")).map(placement -> Placement.CODEC.parse(JavaOps.INSTANCE, placement)).reduce(
+				key -> placementKeys(key).stream().map(placement -> Placement.CODEC.parse(JavaOps.INSTANCE, placement)).reduce(
 						DataResult.success(TreePVector.<Placement>empty()),
 						(lhs, rhs) -> lhs.flatMap(l -> rhs.map(l::plus)),
 						(lhs, rhs) -> lhs.flatMap(l -> rhs.map(l::plusAll))
@@ -366,6 +366,20 @@ public final class Combos {
 
 		public String key() {
 			return String.join("-", placements.stream().sorted().map(Placement::key).toList());
+		}
+
+		/**
+		 * A key split back into its {@code spot.patch} keys. Patch ids may hold a '-' themselves
+		 * (tmeit-marshal) but never a '.', and spot ids neither, so a piece without a '.' is the
+		 * rest of the patch id before it.
+		 */
+		static List<String> placementKeys(String key) {
+			List<String> out = new ArrayList<>();
+			for (String part : key.split("-")) {
+				if (!out.isEmpty() && part.indexOf('.') < 0) out.set(out.size() - 1, out.getLast() + "-" + part);
+				else out.add(part);
+			}
+			return out;
 		}
 
 		public boolean isEmpty() {
