@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.network.chat.Component;
 import se.metacraft.config.comments.ops.OpsWithComments;
 import se.metacraft.config.comments.ops.WrappingRecordBuilderWithComments;
+import se.metacraft.config.extensions.JanksonObjectExtension;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -302,14 +303,27 @@ public class JanksonOps implements OpsWithComments<JsonElement> {
 	public DataResult<JsonElement> metacraft$withComments(JsonElement value, Map<JsonElement, Component> comments) {
 		if (value instanceof JsonObject object) {
 			List<JsonElement> missed = new ArrayList<>();
+			Map<String, String> hiddenComments = new HashMap<>();
 			var newCopy = copy(object);
 			for (var comment : comments.entrySet()) {
 				if (comment.getKey() instanceof JsonPrimitive p && p.getValue() instanceof String s) {
-					newCopy.setComment(s, comment.getValue().getString());
+					if (newCopy.containsKey(s)) {
+						newCopy.setComment(s, comment.getValue().getString());
+					} else {
+						hiddenComments.put(s, comment.getValue().getString());
+					}
 				} else {
 					missed.add(comment.getKey());
 				}
 			}
+			for (var comment : hiddenComments.entrySet()) {
+				if (comment.getValue().isBlank()) continue;
+				((JanksonObjectExtension) newCopy).metacraft$addTailComment(comment.getValue());
+				((JanksonObjectExtension) newCopy).metacraft$addTailComment(
+					"\"" + comment.getKey() + "\":"
+				);
+			}
+
 			if (missed.isEmpty()) {
 				return DataResult.success(newCopy);
 			}
