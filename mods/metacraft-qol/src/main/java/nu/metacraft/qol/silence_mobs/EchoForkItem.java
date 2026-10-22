@@ -10,13 +10,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * The muffler: right-click a mob to silence it, again to undo it. Never used up. A vanilla client
- * sees a brick wearing the muffler's model: not a block item, so using it on a block places no
+ * The echo fork: right-click a mob to silence it, again to undo it. Never used up. A vanilla client
+ * sees a brick wearing the echo fork's model: not a block item, so using it on a block places no
  * ghost block on the client.
  */
-public class MufflerItem extends SimplePolymerItem {
+public class EchoForkItem extends SimplePolymerItem {
 
-	public MufflerItem(Properties properties) {
+	public EchoForkItem(Properties properties) {
 		super(properties, Items.BRICK, true);
 	}
 

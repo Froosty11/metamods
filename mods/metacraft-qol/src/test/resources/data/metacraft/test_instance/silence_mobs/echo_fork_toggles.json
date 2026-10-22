@@ -1,7 +1,7 @@
 {
 	"type": "minecraft:function",
 	"environment": "metacraft:default",
-	"function": "metacraft:silence_mobs/muffler_toggles",
+	"function": "metacraft:silence_mobs/echo_fork_toggles",
 	"max_ticks": 20,
 	"required": true,
 	"setup_ticks": 1,

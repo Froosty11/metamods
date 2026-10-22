@@ -9,6 +9,6 @@
 	"block.metacraft.void_anchor.disabled": "Void anchors are turned off on this server",
 	"qol.metacraft.silence_mobs.silenced": "Silenced",
 	"qol.metacraft.silence_mobs.unsilenced": "Unsilenced",
-	"item.metacraft.muffler": "Muffler",
-	"item.metacraft.muffler.lore": "Use on a mob to silence it, again to undo it"
+	"item.metacraft.echo_fork": "Echo Fork",
+	"item.metacraft.echo_fork.lore": "Use on a mob to silence it, again to undo it"
 }
