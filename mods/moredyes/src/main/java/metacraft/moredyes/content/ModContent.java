@@ -171,6 +171,11 @@ public final class ModContent {
 		FLOWERS.put(color, Registry.register(BuiltInRegistries.ITEM, flowerId, new ColoredBlockItem(flower,
 				new Item.Properties().useBlockDescriptionPrefix().setId(ResourceKey.create(Registries.ITEM, flowerId)),
 				flowerId, Items.TORCHFLOWER)));
+		// and potted: an empty flower pot takes it once this is registered
+		Identifier pottedId = id("potted_" + flowerId.getPath());
+		requireAsset("items/" + pottedId.getPath() + ".json", pottedId);
+		collectDonorSounds(Registry.register(BuiltInRegistries.BLOCK, pottedId, new ModFlower.Potted(flower,
+				BlockBehaviour.Properties.ofFullCopy(Blocks.POTTED_TORCHFLOWER).setId(ResourceKey.create(Registries.BLOCK, pottedId)), pottedId)));
 
 		// Cushion: vanilla's white cushion item and entity, carrying our colour (see cushion.Cushions).
 		Identifier cushionId = id(color.id() + "_cushion");

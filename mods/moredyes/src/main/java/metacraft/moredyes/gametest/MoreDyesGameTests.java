@@ -517,6 +517,34 @@ public final class MoreDyesGameTests {
 		helper.succeedWhen(() -> helper.assertItemEntityPresent(ModContent.flower(first()), pos, 2.0));
 	}
 
+	/**
+	 * Our flower goes into an empty flower pot and comes back out, as vanilla's do; the client is
+	 * shown vanilla's empty pot (the display draws the flower), and a broken pot gives both back.
+	 */
+	@GameTest
+	public void flowerGoesInAPot(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		Item flower = ModContent.flower(first());
+		helper.setBlock(pos, Blocks.FLOWER_POT);
+		Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+		player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(flower));
+		helper.useBlock(pos, player);
+		BlockState potted = helper.getBlockState(pos);
+		helper.assertTrue(potted.getBlock() instanceof metacraft.moredyes.content.block.ModFlower.Potted, "the pot holds " + potted);
+		helper.assertTrue(player.getMainHandItem().isEmpty(), "the flower was not used up");
+		helper.assertValueEqual(ModContent.clientState(potted), Blocks.FLOWER_POT.defaultBlockState(), "the client's block");
+		helper.useBlock(pos, player);
+		helper.assertBlockPresent(Blocks.FLOWER_POT, pos);
+		helper.assertTrue(player.getMainHandItem().is(flower), "taking the flower out gave " + player.getMainHandItem());
+		helper.setBlock(pos, potted);
+		breakWithDrops(helper, pos);
+		helper.succeedWhen(() -> {
+			helper.assertItemEntityPresent(Items.FLOWER_POT, pos, 2.0);
+			helper.assertItemEntityPresent(flower, pos, 2.0);
+		});
+	}
+
 	/** A sniffer's digging table turns up our flowers too. */
 	@GameTest
 	public void sniffersDigUpOurFlowers(GameTestHelper helper) {

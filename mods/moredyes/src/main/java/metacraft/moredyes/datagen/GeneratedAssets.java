@@ -126,6 +126,16 @@ public final class GeneratedAssets implements DataProvider {
 				"textures", obj("pattern", t("{c}_glazed_terracotta"))));
 		MODELS.put("{c}_carpet", obj("parent", "minecraft:block/carpet", "textures", obj("wool", t("{c}_wool"))));
 		MODELS.put("{c}_flower", obj("parent", "minecraft:block/cross", "textures", obj("cross", t("{c}_flower"))));
+		// the plant half of vanilla's flower_pot_cross, drawn by an item display over vanilla's empty pot
+		MODELS.put("potted_{c}_flower", obj("ambientocclusion", false, "display", FIXED_HALF,
+				"textures", obj("plant", t("{c}_flower"), "particle", t("{c}_flower")),
+				"elements", JsonParser.parseString("""
+						[{"from": [2.6, 4, 8], "to": [13.4, 16, 8], "shade": false,
+						  "rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+						  "faces": {"north": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "south": {"uv": [0, 0, 16, 16], "texture": "#plant"}}},
+						 {"from": [8, 4, 2.6], "to": [8, 16, 13.4], "shade": false,
+						  "rotation": {"origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true},
+						  "faces": {"west": {"uv": [0, 0, 16, 16], "texture": "#plant"}, "east": {"uv": [0, 0, 16, 16], "texture": "#plant"}}}]""")));
 		String[][] candles = {{"one_candle", "template_candle"}, {"two_candles", "template_two_candles"},
 				{"three_candles", "template_three_candles"}, {"four_candles", "template_four_candles"}};
 		for (String[] c : candles) {
@@ -211,6 +221,7 @@ public final class GeneratedAssets implements DataProvider {
 		}
 		for (String name : paneModels().keySet()) DISPLAY_ITEM_DEFS.put(name, t(name));
 		DISPLAY_ITEM_DEFS.put("{c}_shulker_box_base", t("{c}_shulker_box_base"));
+		DISPLAY_ITEM_DEFS.put("potted_{c}_flower", t("potted_{c}_flower"));
 		DISPLAY_ITEM_DEFS.put("{c}_shulker_box_lid", t("{c}_shulker_box_lid"));
 	}
 
@@ -645,6 +656,12 @@ public final class GeneratedAssets implements DataProvider {
 				blockTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 				itemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(MOD + ":" + flower);
 			}
+			// potted: breaks into the pot and the flower, as vanilla's do
+			lang.put("block." + MOD + ".potted_" + flower, "Potted " + color.flower());
+			JsonObject potted = lootTable("simple", "minecraft:flower_pot");
+			potted.getAsJsonArray("pools").addAll(lootTable("simple", MOD + ":" + flower).getAsJsonArray("pools"));
+			json(data.resolve(MOD + "/loot_table/blocks/potted_" + flower + ".json"), potted);
+			blockTags.computeIfAbsent("flower_pots", k -> new ArrayList<>()).add(MOD + ":potted_" + flower);
 			// cushion: vanilla's, carrying our colour
 			json(assets.resolve("items/" + cid + "_cushion.json"), itemDef(MOD + ":item/" + cid + "_cushion"));
 			lang.put("item." + MOD + "." + cid + "_cushion", cname + " Cushion");
