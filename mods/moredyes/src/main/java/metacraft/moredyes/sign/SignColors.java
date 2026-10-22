@@ -16,7 +16,8 @@ import java.util.Comparator;
  * components, and a component's colour is any RGB, which a vanilla client draws as it is. So a
  * sign dyed with our dye keeps vanilla's colour slot on the nearest vanilla dye (glow ink's outline
  * uses it) and carries our colour on every line. Editing a sign replaces its lines with plain text;
- * {@link #keep} paints the new lines the colour the old ones had.
+ * {@link #keep} paints the new lines the colour the old ones had. A vanilla dye takes our colour off
+ * the lines ({@link #unpaint}) before it sets its own.
  */
 public final class SignColors {
 	private SignColors() {}
@@ -29,6 +30,23 @@ public final class SignColors {
 
 	private static java.util.List<Component> paint(java.util.List<Component> lines, ModColor color) {
 		return lines.stream().map(line -> (Component) line.copy().withStyle(s -> s.withColor(TextColor.fromRgb(color.rgb() & 0xFFFFFF)))).toList();
+	}
+
+	/**
+	 * Every line in one of our colours back to plain text, which shows the sign's own colour: what a
+	 * vanilla dye needs first, since it only sets that colour and our lines would hide it.
+	 */
+	public static SignText unpaint(SignText text) {
+		return new SignText(unpaint(text.getMessages(false)), unpaint(text.getMessages(true)), text.getColor(), text.hasGlowingText());
+	}
+
+	private static java.util.List<Component> unpaint(java.util.List<Component> lines) {
+		return lines.stream().map(line -> isOurs(line.getStyle().getColor())
+				? (Component) line.copy().withStyle(s -> s.withColor((TextColor) null)) : line).toList();
+	}
+
+	private static boolean isOurs(@Nullable TextColor c) {
+		return c != null && ModColors.all().stream().anyMatch(color -> (color.rgb() & 0xFFFFFF) == c.getValue());
 	}
 
 	/** Our colour, if the sign's lines are in one. */

@@ -23,7 +23,7 @@ in our colours (six of our wool over a stick: a white banner under our full-cove
 and firework stars mixed with vanilla dyes; happy ghast harnesses and llama carpet decor (vanilla's
 equippable on our own equipment asset); sign text in our exact colour (component colour on every
 line, kept when the sign is edited; the sign's own colour, which glow ink's outline uses, is the
-nearest vanilla dye); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
+nearest vanilla dye; a vanilla dye takes our colour off the lines, so any dye recolours any sign); wolf and cat collars in the nearest vanilla colour. Not supported: beacon-beam
 tinting (our glass passes the beam untinted).
 
 ## Stairs and slabs

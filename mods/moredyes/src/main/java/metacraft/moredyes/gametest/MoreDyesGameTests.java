@@ -486,6 +486,47 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * Dyeing a sign by right-clicking it, ours and vanilla's in turn: each dye wins over whatever the
+	 * sign was before, both ways. Our dye on a sign in its nearest vanilla colour (Cerise on pink),
+	 * and a vanilla dye on a sign in ours, including the vanilla colour standing in for ours.
+	 */
+	@GameTest
+	public void signsTakeEveryDyeByClick(GameTestHelper helper) {
+		floor(helper);
+		BlockPos pos = new BlockPos(2, 1, 2);
+		helper.setBlock(pos, Blocks.OAK_SIGN);
+		var sign = helper.getBlockEntity(pos, net.minecraft.world.level.block.entity.SignBlockEntity.class);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		var slot = sign.getSlotPlayerIsFacing(player);
+		sign.updateText(t -> t.asMutable().setLine(0, net.minecraft.network.chat.Component.literal("Spiken")).asImmutable(), slot);
+		java.util.function.Consumer<ItemStack> click = stack -> {
+			player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+			helper.useBlock(pos, player);
+		};
+		java.util.function.Supplier<String> seen = () -> {
+			var text = sign.getText(slot);
+			var c = text.getMessages(false).get(0).getStyle().getColor();
+			return text.getColor() + (c == null ? "" : String.format(" #%06X", c.getValue()));
+		};
+
+		for (ModColor color : ModColors.all()) {
+			DyeColor stand = SignColors.nearestDye(color);
+			String ours = stand + String.format(" #%06X", color.rgb() & 0xFFFFFF);
+			click.accept(new ItemStack(Items.DYE.pick(stand)));
+			helper.assertValueEqual(seen.get(), stand.toString(), "after vanilla " + stand);
+			click.accept(new ItemStack(ModContent.dye(color)));
+			helper.assertValueEqual(seen.get(), ours, "after " + color.name() + " on " + stand);
+			click.accept(new ItemStack(Items.DYE.pick(stand)));
+			helper.assertValueEqual(seen.get(), stand.toString(), "after vanilla " + stand + " on " + color.name());
+			click.accept(new ItemStack(ModContent.dye(color)));
+			click.accept(new ItemStack(Items.DYE.pick(DyeColor.BLUE)));
+			helper.assertValueEqual(seen.get(), DyeColor.BLUE.toString(), "after vanilla blue on " + color.name());
+		}
+		helper.succeed();
+	}
+
 	/** Our dye on a tamed wolf's collar: the nearest vanilla colour, and the dye is used. */
 	@GameTest
 	public void collarTakesTheNearestColour(GameTestHelper helper) {
