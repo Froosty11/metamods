@@ -154,15 +154,21 @@ public class ResourcePackServer implements AutoCloseable {
 
 			var p = packID;
 			try {
-				var file = mc.submit(() -> ResourcePackConfig.getConfig().getResourcePack(p)
-						.filter(packEntry -> verified || packEntry.allowManualDownloads())
-						.map(ResourcePackConfig.ResourcePack::getFile)
-				).get();
-				if (file.isEmpty()) {
+				var file = mc.submit(() -> {
+					var packEntry = ResourcePackConfig.getConfig().getResourcePack(p);
+					if (packEntry.isEmpty()) {
+						return null;
+					}
+					if (!verified && !packEntry.get().allowManualDownloads()) {
+						return null;
+					}
+					return packEntry.get().getFile();
+				}).get();
+				if (file == null) {
 					send403(exchange);
 					return;
 				}
-				try (var stream = new BufferedInputStream(new FileInputStream(file.get().toFile()))) {
+				try (var stream = new BufferedInputStream(new FileInputStream(file.toFile()))) {
 					data = stream.readAllBytes();
 				}
 			} catch (InterruptedException | ExecutionException e) {
