@@ -62,7 +62,7 @@ public final class ComboPackTests {
 		helper.succeed();
 	}
 
-	/** The newest build downloads from the pack server at the address a player is pushed, byte for byte. */
+	/** The newest build downloads from the pack server at the address a player is pushed, byte for byte; a pack it does not have is refused. */
 	@GameTest(maxTicks = 200)
 	public void theCombinationPackDownloadsFromThePackServer(GameTestHelper helper) {
 		assertThat(ComboPack.ACTIVE, "metacraft-resource-packs is not in the test runtime");
@@ -72,21 +72,28 @@ public final class ComboPackTests {
 				.thenWaitUntil(() -> assertThat(ComboPack.current() != null, "no combination pack built yet"))
 				.thenExecute(() -> {
 					pushed.add(ComboPack.current());
-					// What a client sends; the pack server refuses anything else.
-					HttpRequest request = HttpRequest.newBuilder(URI.create(ResourcePacksCompat.push(pushed.getFirst()).url()))
-							.header("User-Agent", "Minecraft Java/26.3")
-							.header("X-Minecraft-Username", "Tester")
-							.header("X-Minecraft-UUID", UndashedUuid.toString(UUID.randomUUID()))
-							.build();
-					download.add(HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()));
+					String url = ResourcePacksCompat.push(pushed.getFirst()).url();
+					download.add(get(url));
+					download.add(get(url.substring(0, url.lastIndexOf('/', url.lastIndexOf('/') - 1)) + "/" + UUID.randomUUID()));
 				})
-				.thenWaitUntil(() -> assertThat(download.getFirst().isDone(), "still downloading"))
+				.thenWaitUntil(() -> assertThat(download.stream().allMatch(CompletableFuture::isDone), "still downloading"))
 				.thenExecute(() -> {
 					HttpResponse<byte[]> response = download.getFirst().join();
 					assertThat(response.statusCode() == 200, "the pack server answered " + response.statusCode());
 					assertThat(Arrays.equals(response.body(), pushed.getFirst().zip()), "the download is not the pack that was pushed");
+					assertThat(download.getLast().join().statusCode() == 403, "a pack the server does not have answered " + download.getLast().join().statusCode());
 				})
 				.thenSucceed();
+	}
+
+	/** A GET the way a client sends it; the pack server refuses anything else. */
+	private static CompletableFuture<HttpResponse<byte[]>> get(String url) {
+		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+				.header("User-Agent", "Minecraft Java/26.3")
+				.header("X-Minecraft-Username", "Tester")
+				.header("X-Minecraft-UUID", UndashedUuid.toString(UUID.randomUUID()))
+				.build();
+		return HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
 	}
 
 	/** {@code n} placements of tmeit-marshal (a hyphenated id) on the top. */
