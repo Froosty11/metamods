@@ -5,6 +5,9 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import org.spongepowered.asm.mixin.Unique;
+import se.metacraft.config.mixin.TranslatableContentsAccessor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,10 +70,31 @@ public class WrappingRecordBuilderWithComments<T> implements RecordBuilderWithCo
 		return update(builder.mapError(onError));
 	}
 
+	@Unique
+	private static void fix(Component message) {
+		if (message.getContents() instanceof TranslatableContents translatable) {
+			var translatableAccessor = (TranslatableContentsAccessor) translatable;
+			if (translatableAccessor.getDecomposedParts().size() == 1) {
+				var string = translatableAccessor.getDecomposedParts().getFirst().getString();
+				if (string.equals(translatable.getFallback()) || string.equals(translatable.getKey())) {
+					translatableAccessor.setDecomposedWith(null);
+					translatableAccessor.callDecompose();
+				}
+			}
+			for (Object arg : translatable.getArgs()) {
+				if (arg instanceof Component c) {
+					fix(c);
+				}
+			}
+		}
+		message.getSiblings().forEach(WrappingRecordBuilderWithComments::fix);
+	}
+
 	@Override
 	public DataResult<T> build(T prefix) {
 		var result = builder.build(prefix);
 		if (ops() instanceof OpsWithComments<T> c) {
+			comments.values().forEach(WrappingRecordBuilderWithComments::fix);
 			return result.flatMap(v -> c.metacraft$withComments(v, this.comments));
 		}
 		return result;
