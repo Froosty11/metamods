@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs everything after pass 1: pass 2, final, verify, render, screenshots.
-set -uo pipefail
+set -euo pipefail
+export JAVA_HOME=/opt/jdk25
 cd "$(dirname "$0")/.."
 W=$PWD/work
 until grep -q "seedscan job pass1 done" $W/pass1.log; do sleep 10; done
