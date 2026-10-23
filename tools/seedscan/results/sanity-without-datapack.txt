@@ -1,0 +1,13 @@
+datapack list: [There are 4 data pack(s) enabled: [vanilla (built-in)], [fabric-convention-tags-v2 (Fabric mod)], [lithostitched (Fabric mod)], [tectonic:tectonic (built-in: Tectonic)], There are no more data packs available]
+biomes with a lantern feature: 56
+seed 1: mean surface biome run length 154 blocks, mean temperature/humidity band run length 284 blocks
+seed 2: mean surface biome run length 170 blocks, mean temperature/humidity band run length 269 blocks
+seed 3: mean surface biome run length 177 blocks, mean temperature/humidity band run length 271 blocks
+/locate biome desert: [Could not find a biome of type "minecraft:desert" within a reasonable distance]
+/locate biome cherry_grove: [The nearest minecraft:cherry_grove is at [352, 100, -1088] (1143 blocks away)]
+/locate biome badlands: [Could not find a biome of type "minecraft:badlands" within a reasonable distance]
+/locate biome mangrove_swamp: [The nearest minecraft:mangrove_swamp is at [2624, 100, -2624] (3710 blocks away)]
+/locate biome pale_garden: [The nearest minecraft:pale_garden is at [1504, 164, -640] (1635 blocks away)]
+/locate biome jagged_peaks: [The nearest minecraft:jagged_peaks is at [-192, 100, 1248] (1262 blocks away)]
+/locate biome lush_caves: [The nearest minecraft:lush_caves is at [-512, -28, 1024] (1152 blocks away)]
+/locate biome deep_dark: [The nearest minecraft:deep_dark is at [448, -28, 960] (1067 blocks away)]

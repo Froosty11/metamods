@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "seedscan",
+  "version": "${version}",
+  "name": "Seed scanner",
+  "description": "Scores world seeds for METAcraft using the real (Tectonic) world generation.",
+  "license": "Apache-2.0",
+  "environment": "*",
+  "entrypoints": { "main": ["nu.metacraft.seedscan.SeedScan"] },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "~26.3", "fabric-api": "*" }
+}
