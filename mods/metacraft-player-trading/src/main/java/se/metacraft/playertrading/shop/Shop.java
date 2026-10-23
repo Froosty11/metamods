@@ -41,12 +41,12 @@ public record Shop(
 					ShopSlotRanges.CODEC, ResourceKey.codec(Registries.PREDICATE),
 					OrderedPMap.empty()
 				)
-			).fieldOf("conditions").forGetter(Shop::conditions)
+			).optionalFieldOf("conditions", SlotMap.empty()).forGetter(Shop::conditions)
 		).apply(instance, Shop::new)
 	);
 
 	public static Shop create(ShopType shopType) {
-		return new Shop(shopType, TreePVector.empty(), SlotMap.of(OrderedPMap.empty()));
+		return new Shop(shopType, TreePVector.empty(), SlotMap.empty());
 	}
 
 	public Shop withShopType(ShopType shopType) {
