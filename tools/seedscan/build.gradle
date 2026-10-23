@@ -31,3 +31,9 @@ processResources {
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') { expand 'version': project.version }
 }
+
+// Screenshots: ./gradlew runClient -Dseedscan.shots=<file> -Dseedscan.shotsOut=<dir> (under xvfb-run).
+tasks.named('runClient') {
+    jvmArgs '-Dfabric.client.gametest', '-Dseedscan.noSrgb=true', '-Xmx6G'
+    systemProperties System.getProperties().findAll { it.key.toString().startsWith('seedscan.') }
+}
