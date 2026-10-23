@@ -38,7 +38,6 @@ ovvar
 metacraft-booklet
 metacraft-kultur
 moredyes
-metacraft-config-gui
 
 #edvin forks
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.7/danse-2.6.0-metacraft.7%2B26.3.jar sha256:e5da4a3768dbba924042b9aba297ad2f150429598697c15c925500a4f3b06ba7
