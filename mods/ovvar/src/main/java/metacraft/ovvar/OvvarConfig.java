@@ -39,7 +39,7 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 
 	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, () -> new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT)
-	).withPath(FabricLoader.getInstance().getConfigDir().resolve(Ovvar.MOD_ID + ".json")).build(Ovvar.MOD_ID);
+	).build(Ovvar.MOD_ID);
 
 
 	public static OvvarConfig get() {
