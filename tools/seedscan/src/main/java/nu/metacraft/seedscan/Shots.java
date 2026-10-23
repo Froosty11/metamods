@@ -74,9 +74,14 @@ public class Shots implements FabricClientGameTest {
                     sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f %.1f %.1f",
                         shot.x(), shot.y(), shot.z(), shot.yaw(), shot.pitch()));
                     context.waitTicks(20);
-                    sp.getConnection().waitForChunksRender(true, 20 * 60 * 30);
-                    context.waitTicks(100);
-                    sp.getConnection().waitForChunksRender(true, 20 * 60 * 10);
+                    // waitForChunksRender never completes on llvmpipe here, so wait for the chunk data and then
+                    // give the renderer a fixed time to build the meshes.
+                    try {
+                        sp.getConnection().waitForChunksDownload(20 * 60 * 5);
+                    } catch (AssertionError e) {
+                        SeedScan.LOG.warn("shot {} {}: chunks still downloading", seed, shot.name());
+                    }
+                    context.waitTicks(Integer.getInteger("seedscan.renderTicks", 1200));
                     context.takeScreenshot(TestScreenshotOptions.of(seed + "_" + shot.name()).withSize(1920, 1080)
                         .disableCounterPrefix().withDestinationDir(outDir));
                     SeedScan.LOG.info("shot {} {} taken", seed, shot.name());

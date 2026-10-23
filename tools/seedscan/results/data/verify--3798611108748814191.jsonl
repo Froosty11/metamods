@@ -1,0 +1,41 @@
+{"seed":-3798611108748814191,"x":-5504,"z":1280,"datapacks":"There are 5 data pack(s) enabled: [vanilla (built-in)], [fabric-convention-tags-v2 (Fabric mod)], [lithostitched (Fabric mod)], [tectonic:tectonic (built-in: Tectonic)], [file/Metacraft (world)] There are no more data packs available"}
+{"kind":"structure","what":"#minecraft:village","pos":[-6128,544],"chebyshev":736,"text":"The nearest #minecraft:village (minecraft:village_savanna) is at [-6128, ~, 544] (964 blocks away)"}
+{"kind":"structure","what":"minecraft:trial_chambers","pos":[-5984,1168],"chebyshev":480,"text":"The nearest minecraft:trial_chambers is at [-5984, ~, 1168] (492 blocks away)"}
+{"kind":"structure","what":"minecraft:ancient_city","pos":[-5744,1344],"chebyshev":240,"text":"The nearest minecraft:ancient_city is at [-5744, ~, 1344] (248 blocks away)"}
+{"kind":"structure","what":"minecraft:stronghold","pos":[-5312,1776],"chebyshev":496,"text":"The nearest minecraft:stronghold is at [-5312, ~, 1776] (531 blocks away)"}
+{"kind":"structure","what":"minecraft:mansion","pos":[-5632,1760],"chebyshev":480,"text":"The nearest minecraft:mansion is at [-5632, ~, 1760] (496 blocks away)"}
+{"kind":"structure","what":"minecraft:monument","pos":[-6592,2256],"chebyshev":1088,"text":"The nearest minecraft:monument is at [-6592, ~, 2256] (1461 blocks away)"}
+{"kind":"structure","what":"minecraft:desert_pyramid","pos":[-8160,-1408],"chebyshev":2688,"text":"The nearest minecraft:desert_pyramid is at [-8160, ~, -1408] (3778 blocks away)"}
+{"kind":"structure","what":"minecraft:jungle_pyramid","pos":[-6128,1776],"chebyshev":624,"text":"The nearest minecraft:jungle_pyramid is at [-6128, ~, 1776] (797 blocks away)"}
+{"kind":"structure","what":"minecraft:pillager_outpost","pos":[-5120,1536],"chebyshev":384,"text":"The nearest minecraft:pillager_outpost is at [-5120, ~, 1536] (461 blocks away)"}
+{"kind":"structure","what":"minecraft:trail_ruins","pos":[-5824,1664],"chebyshev":384,"text":"The nearest minecraft:trail_ruins is at [-5824, ~, 1664] (499 blocks away)"}
+{"kind":"structure","what":"minecraft:swamp_hut","pos":[-12432,-14144],"chebyshev":15424,"text":"The nearest minecraft:swamp_hut is at [-12432, ~, -14144] (16908 blocks away)"}
+{"kind":"structure","what":"minecraft:igloo","pos":[-2480,1232],"chebyshev":3024,"text":"The nearest minecraft:igloo is at [-2480, ~, 1232] (3024 blocks away)"}
+{"kind":"biome","what":"minecraft:plains","pos":[-5088,1024],"chebyshev":416,"text":"The nearest minecraft:plains is at [-5088, 64, 1024] (488 blocks away)"}
+{"kind":"biome","what":"minecraft:forest","pos":[-5504,1280],"chebyshev":0,"text":"The nearest minecraft:forest is at [-5504, 64, 1280] (0 blocks away)"}
+{"kind":"biome","what":"minecraft:birch_forest","pos":[-5568,1344],"chebyshev":64,"text":"The nearest minecraft:birch_forest is at [-5568, 64, 1344] (90 blocks away)"}
+{"kind":"biome","what":"minecraft:taiga","pos":[-640,3552],"chebyshev":4864,"text":"The nearest minecraft:taiga is at [-640, 64, 3552] (5368 blocks away)"}
+{"kind":"biome","what":"minecraft:dark_forest","pos":[-5696,1664],"chebyshev":384,"text":"The nearest minecraft:dark_forest is at [-5696, 128, 1664] (434 blocks away)"}
+{"kind":"biome","what":"minecraft:jungle","pos":[-5760,1536],"chebyshev":256,"text":"The nearest minecraft:jungle is at [-5760, 64, 1536] (362 blocks away)"}
+{"kind":"biome","what":"minecraft:bamboo_jungle","pos":[-5856,1632],"chebyshev":352,"text":"The nearest minecraft:bamboo_jungle is at [-5856, 64, 1632] (497 blocks away)"}
+{"kind":"biome","what":"minecraft:savanna","pos":[-6112,672],"chebyshev":608,"text":"The nearest minecraft:savanna is at [-6112, 64, 672] (859 blocks away)"}
+{"kind":"biome","what":"minecraft:mangrove_swamp","pos":[-7968,-1280],"chebyshev":2560,"text":"The nearest minecraft:mangrove_swamp is at [-7968, 64, -1280] (3553 blocks away)"}
+{"kind":"biome","what":"minecraft:cherry_grove","pos":[-5248,1024],"chebyshev":256,"text":"The nearest minecraft:cherry_grove is at [-5248, 64, 1024] (362 blocks away)"}
+{"kind":"biome","what":"minecraft:pale_garden","pos":[-5664,1632],"chebyshev":352,"text":"The nearest minecraft:pale_garden is at [-5664, 64, 1632] (386 blocks away)"}
+{"kind":"biome","what":"minecraft:desert","pos":[-6688,96],"chebyshev":1184,"text":"The nearest minecraft:desert is at [-6688, 64, 96] (1674 blocks away)"}
+{"kind":"biome","what":"minecraft:badlands","pos":[-6848,-672],"chebyshev":1952,"text":"The nearest minecraft:badlands is at [-6848, 64, -672] (2369 blocks away)"}
+{"kind":"biome","what":"minecraft:eroded_badlands","pos":[-5568,-1344],"chebyshev":2624,"text":"The nearest minecraft:eroded_badlands is at [-5568, 64, -1344] (2624 blocks away)"}
+{"kind":"biome","what":"minecraft:wooded_badlands","pos":[-6944,-544],"chebyshev":1824,"text":"The nearest minecraft:wooded_badlands is at [-6944, 64, -544] (2323 blocks away)"}
+{"kind":"biome","what":"minecraft:snowy_plains","pos":null,"chebyshev":null,"text":"Could not find a biome of type \"minecraft:snowy_plains\" within a reasonable distance"}
+{"kind":"biome","what":"minecraft:ice_spikes","pos":null,"chebyshev":null,"text":"Could not find a biome of type \"minecraft:ice_spikes\" within a reasonable distance"}
+{"kind":"biome","what":"minecraft:snowy_taiga","pos":null,"chebyshev":null,"text":"Could not find a biome of type \"minecraft:snowy_taiga\" within a reasonable distance"}
+{"kind":"biome","what":"minecraft:swamp","pos":null,"chebyshev":null,"text":"Could not find a biome of type \"minecraft:swamp\" within a reasonable distance"}
+{"kind":"biome","what":"minecraft:ocean","pos":[-4032,3680],"chebyshev":2400,"text":"The nearest minecraft:ocean is at [-4032, 64, 3680] (2815 blocks away)"}
+{"kind":"biome","what":"minecraft:jagged_peaks","pos":[-5600,1504],"chebyshev":224,"text":"The nearest minecraft:jagged_peaks is at [-5600, 64, 1504] (243 blocks away)"}
+{"kind":"biome","what":"minecraft:frozen_peaks","pos":[-5664,1472],"chebyshev":192,"text":"The nearest minecraft:frozen_peaks is at [-5664, 64, 1472] (249 blocks away)"}
+{"kind":"biome","what":"minecraft:stony_peaks","pos":[-5600,1184],"chebyshev":96,"text":"The nearest minecraft:stony_peaks is at [-5600, 64, 1184] (135 blocks away)"}
+{"kind":"biome","what":"minecraft:meadow","pos":[-5472,1312],"chebyshev":32,"text":"The nearest minecraft:meadow is at [-5472, 64, 1312] (45 blocks away)"}
+{"kind":"biome","what":"minecraft:mushroom_fields","pos":[-7200,4960],"chebyshev":3680,"text":"The nearest minecraft:mushroom_fields is at [-7200, 64, 4960] (4052 blocks away)"}
+{"kind":"biome","what":"minecraft:lush_caves","pos":[-5696,1504],"chebyshev":224,"text":"The nearest minecraft:lush_caves is at [-5696, 128, 1504] (301 blocks away)"}
+{"kind":"biome","what":"minecraft:deep_dark","pos":[-5504,1280],"chebyshev":0,"text":"The nearest minecraft:deep_dark is at [-5504, 0, 1280] (64 blocks away)"}
+{"kind":"biome","what":"minecraft:dripstone_caves","pos":[-5440,1280],"chebyshev":64,"text":"The nearest minecraft:dripstone_caves is at [-5440, 64, 1280] (64 blocks away)"}
