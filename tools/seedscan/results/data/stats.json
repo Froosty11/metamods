@@ -1,0 +1,12 @@
+{
+  "pass1_seeds": 12000, "pass1_centres": 2209, "pass1_minutes": 45, "pass2_candidates": 260,
+  "penalties": {},
+  "why": {
+    "-2490713400371329797": "Stronghold 240 blocks from the centre (inside the start), plus a village, an ancient city, trail ruins and a jungle temple, all inside the start. 9 wood types reachable except mangrove, plus lush caves, deep dark and dripstone under the start. The only snow is on the peaks. Desert (~2340) and badlands (~2500) lie outside stage 3.",
+    "-3798611108748814191": "Stronghold (496) and woodland mansion (480) inside the start, plus an ancient city, trial chambers, an outpost and trail ruins nearby. Every wood type except mangrove (2560) within stage 2, and 0% ocean. Desert and badlands are 1200–1800 blocks out; no snowy plains, only snowy peaks.",
+    "1555912076825267547": "Best climate spread: badlands and eroded badlands (gold) in the start, desert at 640, plus savanna, jungle, bamboo, cherry, pale garden and three kinds of peaks, all within the start. Village 256, ancient city 368 and trial chambers in the start. Weak spots: the stronghold is ~1900 blocks out, and there is no mangrove or snowy plains nearby.",
+    "4127421199368335624": "Everything packed close: village, ancient city, trial chambers, jungle temple, outpost and trail ruins within 330 blocks, stronghold at 384, and the most valley ground of the finalists (28% of stage 2). Badlands at ~1250, desert at ~900; no mangrove.",
+    "2459899889739035294": "Trial chambers at 144 and stronghold at 320 (start), a village at 336, and desert at ~930. Meadow and forest at the centre. No swamp within locate range, and mangrove is far."
+  },
+  "sanity": ["`/datapack list` shows `file/Metacraft (world)` after `tectonic:tectonic`", "0 biomes carry the river-lantern feature (56 without the pack)", "temperature/humidity patches ~1.8-2x wider than Tectonic defaults (mean band run 500 vs 275 blocks), i.e. 2/3 of Tectonic Large Biomes (noise scale 0.09 vs 0.06)"]
+}
