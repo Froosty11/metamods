@@ -40,6 +40,7 @@ public class SeedScan implements ModInitializer {
                 case "pass1" -> Pass1.run(gen, out);
                 case "pass2" -> Pass2.run(gen, out);
                 case "verify" -> Verify.run(gen, out);
+                case "pregen" -> Pregen.run(gen, out);
                 default -> LOG.error("unknown job {}", job);
             }
             LOG.info("seedscan job {} done", job);

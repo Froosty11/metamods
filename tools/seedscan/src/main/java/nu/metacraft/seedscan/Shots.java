@@ -52,7 +52,7 @@ public class Shots implements FabricClientGameTest {
             client.options.renderDistance().set(12);
             client.options.simulationDistance().set(5);
             client.options.fov().set(70);
-            client.options.cloudStatus().set(CloudStatus.FANCY);
+            client.options.cloudStatus().set(CloudStatus.OFF);
         });
         for (var entry : byWorld.entrySet()) {
             String seed = seeds.get(entry.getKey());
