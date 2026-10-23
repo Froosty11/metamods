@@ -6,6 +6,8 @@ Searched **12000 seeds** (pass 1: biomes on a 64-block grid, 2209 candidate cent
 
 Border stages: **start** = 1000 wide, **stage 2** = 1500 wide (+250 gold blocks), **stage 3** = 2000 wide (+500 gold blocks). "In stage 2" below means newly reachable in stage 2 (not already in the start).
 
+**Chosen:** seed `-2490713400371329797` (#1), border centre and spawn -4160, -1600 (spawn y 151). Running on Edvin Private 2 since 2026-10-23; `/locate` there matches the table below.
+
 ## Top 10
 
 | # | seed | border centre (spawn) | score | ocean in start | biomes/wood: start | + stage 2 | + stage 3 | structures: start | + stage 2 | + stage 3 | nearest stronghold | valleys (stage 2) |
@@ -350,7 +352,7 @@ Terrain types in stage 2: lowland, hills, plateau, peaks.
    - Lithostitched 2.0.4: https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar (sha256 `b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466`)
    - Leave `config/tectonic.json` at its defaults (let Tectonic write it).
 2. Before the first start, copy [`datapack/Metacraft`](../datapack/Metacraft) to `world/datapacks/Metacraft` and set `level-seed=<seed>` in `server.properties`.
-3. Start the server and check `/datapack list` shows `[file/Metacraft (world)]` after `[tectonic:tectonic (built-in: Tectonic)]`.
+3. Start the server and check `/datapack list` shows `[file/Metacraft (world)]` after `[tectonic:tectonic (built-in: Tectonic)]`. With more mods (the full METAcraft set) a fresh world can put Tectonic last instead. Fix: `/datapack disable "file/Metacraft"`, `/datapack enable "file/Metacraft" last`, stop, then delete everything in `world/` except `level.dat`, `data/minecraft/world_gen_settings.dat` and `datapacks/`, and start again.
 4. Border and spawn: `/worldborder center <x> <z>`, `/worldborder set 1000`, `/setworldspawn <x> <y> <z>`.
 
 **Datapack note:** the `flat_terrain_skew.json` from the brief (`{"type": "minecraft:constant", "argument": 0.0}`) does not load in 26.3: the constant density function's field is now called `value`. The pack here uses `{ "type": "minecraft:constant", "value": 0.0 }`, which is what was meant. Everything else is exactly as given.
