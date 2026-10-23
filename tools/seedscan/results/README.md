@@ -6,7 +6,7 @@ Searched **12000 seeds** (pass 1: biomes on a 64-block grid, 2209 candidate cent
 
 Border stages: **start** = 1000 wide, **stage 2** = 1500 wide (+250 gold blocks), **stage 3** = 2000 wide (+500 gold blocks). "In stage 2" below means newly reachable in stage 2 (not already in the start).
 
-**Chosen:** seed `1555912076825267547` (#3), border centre and spawn -5184, -4032 (spawn y 168). Running on Edvin Private 2 since 2026-10-23; `/locate` there matches the table below. Picked over #1 because #3 has no stronghold in the start or stage 2, and #1's mountains felt bare up close (#1's world is kept on the server as `world-seed1`).
+**Chosen:** seed `1555912076825267547` (#3), border centre and spawn -5184, -4032 (spawn y 168). Running on Edvin Private 2 since 2026-10-23; `/locate` there matches the table below. Picked over #1 because #3 has no stronghold in the start or stage 2, and #1's mountains felt bare up close (#1's world is kept on the server as `world-seed1`). Since then the pack also gives warm mountains (stony peaks) snow caps and mixed rock, and the server runs Tectonic with `snow_start_offset` 32; see the datapack note below. Neither changes biomes, terrain shape or structures, so the rankings still hold.
 
 ## Top 10
 
@@ -350,7 +350,7 @@ Terrain types in stage 2: lowland, hills, plateau, peaks.
    - Fabric API 0.161.0+26.3
    - Tectonic 3.0.31: https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar (sha256 `33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046`)
    - Lithostitched 2.0.4: https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar (sha256 `b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466`)
-   - Leave `config/tectonic.json` at its defaults (let Tectonic write it).
+   - Leave `config/tectonic.json` at its defaults (let Tectonic write it). The S6 server then lowers `general.snow_start_offset` from 128 to 32 (snow on cool biomes from about y 150-190 instead of above 250); it only moves snow, not terrain.
 2. Before the first start, copy [`datapack/Metacraft`](../datapack/Metacraft) to `world/datapacks/Metacraft` and set `level-seed=<seed>` in `server.properties`.
 3. Start the server and check `/datapack list` shows `[file/Metacraft (world)]` after `[tectonic:tectonic (built-in: Tectonic)]`. With more mods (the full METAcraft set) a fresh world can put Tectonic last instead. Fix: `/datapack disable "file/Metacraft"`, `/datapack enable "file/Metacraft" last`, stop, then delete everything in `world/` except `level.dat`, `data/minecraft/world_gen_settings.dat` and `datapacks/`, and start again.
 4. Border and spawn: `/worldborder center <x> <z>`, `/worldborder set 1000`, `/setworldspawn <x> <y> <z>`.
@@ -359,3 +359,4 @@ Terrain types in stage 2: lowland, hills, plateau, peaks.
 
 Sanity check of the pack (seed 1): `/datapack list` shows `file/Metacraft (world)` after `tectonic:tectonic`; 0 biomes carry the river-lantern feature (56 without the pack); temperature/humidity patches ~1.8-2x wider than Tectonic defaults (mean band run 500 vs 275 blocks), i.e. 2/3 of Tectonic Large Biomes (noise scale 0.09 vs 0.06)
 
+**Snowier mountains (added after the search):** [`data/minecraft/worldgen/material_rule/overworld/biome_surface/stony_peaks.json`](../datapack/Metacraft/data/minecraft/worldgen/material_rule/overworld/biome_surface/stony_peaks.json) replaces vanilla's stony peaks surface (stone plus thin calcite streaks) with snow on gentle ground above y 250 and patchy snow from y 225, gravel patches on gentle ground below, and andesite, granite, diorite and calcite patches on the rock; steep faces stay rock, as on Tectonic's jagged peaks. Sampled on seed #3's start area: stony peak tops went from 90% stone to 37% snow, 23% stone, 16% andesite, 7% granite, 6% calcite, 5% gravel, 3% diorite.
