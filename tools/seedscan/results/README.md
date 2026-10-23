@@ -6,7 +6,7 @@ Searched **12000 seeds** (pass 1: biomes on a 64-block grid, 2209 candidate cent
 
 Border stages: **start** = 1000 wide, **stage 2** = 1500 wide (+250 gold blocks), **stage 3** = 2000 wide (+500 gold blocks). "In stage 2" below means newly reachable in stage 2 (not already in the start).
 
-**Chosen:** seed `-2490713400371329797` (#1), border centre and spawn -4160, -1600 (spawn y 151). Running on Edvin Private 2 since 2026-10-23; `/locate` there matches the table below.
+**Chosen:** seed `1555912076825267547` (#3), border centre and spawn -5184, -4032 (spawn y 168). Running on Edvin Private 2 since 2026-10-23; `/locate` there matches the table below. Picked over #1 because #3 has no stronghold in the start or stage 2, and #1's mountains felt bare up close (#1's world is kept on the server as `world-seed1`).
 
 ## Top 10
 
