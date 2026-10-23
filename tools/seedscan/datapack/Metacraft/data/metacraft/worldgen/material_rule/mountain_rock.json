@@ -1,0 +1,200 @@
+{
+  "type": "minecraft:sequence",
+  "sequence": [
+    {
+      "type": "minecraft:condition",
+      "if_true": {
+        "type": "lithostitched:sample_density",
+        "function": "metacraft:rock/temperature",
+        "range": {
+          "min_inclusive": -1000.0,
+          "max_inclusive": -0.05
+        },
+        "prefill": false
+      },
+      "then_run": {
+        "type": "minecraft:sequence",
+        "sequence": [
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_a",
+              "range": {
+                "min_inclusive": 0.28,
+                "max_inclusive": 1000.0
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:calcite"
+            }
+          },
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_a",
+              "range": {
+                "min_inclusive": -1000.0,
+                "max_inclusive": -0.28
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:diorite"
+            }
+          },
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_b",
+              "range": {
+                "min_inclusive": 0.22,
+                "max_inclusive": 1000.0
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:andesite"
+            }
+          },
+          {
+            "type": "minecraft:block",
+            "result_state": "minecraft:stone"
+          }
+        ]
+      }
+    },
+    {
+      "type": "minecraft:condition",
+      "if_true": {
+        "type": "lithostitched:sample_density",
+        "function": "metacraft:rock/temperature",
+        "range": {
+          "min_inclusive": -1000.0,
+          "max_inclusive": 0.32
+        },
+        "prefill": false
+      },
+      "then_run": {
+        "type": "minecraft:sequence",
+        "sequence": [
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_a",
+              "range": {
+                "min_inclusive": 0.28,
+                "max_inclusive": 1000.0
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:andesite"
+            }
+          },
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_b",
+              "range": {
+                "min_inclusive": 0.3,
+                "max_inclusive": 1000.0
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:calcite"
+            }
+          },
+          {
+            "type": "minecraft:condition",
+            "if_true": {
+              "type": "lithostitched:sample_density",
+              "function": "metacraft:rock/strata_a",
+              "range": {
+                "min_inclusive": -1000.0,
+                "max_inclusive": -0.32
+              },
+              "prefill": false
+            },
+            "then_run": {
+              "type": "minecraft:block",
+              "result_state": "minecraft:diorite"
+            }
+          },
+          {
+            "type": "minecraft:block",
+            "result_state": "minecraft:stone"
+          }
+        ]
+      }
+    },
+    {
+      "type": "minecraft:sequence",
+      "sequence": [
+        {
+          "type": "minecraft:condition",
+          "if_true": {
+            "type": "lithostitched:sample_density",
+            "function": "metacraft:rock/strata_a",
+            "range": {
+              "min_inclusive": 0.22,
+              "max_inclusive": 1000.0
+            },
+            "prefill": false
+          },
+          "then_run": {
+            "type": "minecraft:block",
+            "result_state": "minecraft:granite"
+          }
+        },
+        {
+          "type": "minecraft:condition",
+          "if_true": {
+            "type": "lithostitched:sample_density",
+            "function": "metacraft:rock/strata_b",
+            "range": {
+              "min_inclusive": 0.3,
+              "max_inclusive": 1000.0
+            },
+            "prefill": false
+          },
+          "then_run": {
+            "type": "minecraft:block",
+            "result_state": "minecraft:andesite"
+          }
+        },
+        {
+          "type": "minecraft:condition",
+          "if_true": {
+            "type": "lithostitched:sample_density",
+            "function": "metacraft:rock/strata_a",
+            "range": {
+              "min_inclusive": -1000.0,
+              "max_inclusive": -0.35
+            },
+            "prefill": false
+          },
+          "then_run": {
+            "type": "minecraft:block",
+            "result_state": "minecraft:granite"
+          }
+        },
+        {
+          "type": "minecraft:block",
+          "result_state": "minecraft:stone"
+        }
+      ]
+    }
+  ]
+}

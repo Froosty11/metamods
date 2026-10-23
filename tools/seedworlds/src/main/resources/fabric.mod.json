@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "seedworlds",
+  "version": "${version}",
+  "name": "Seed worlds",
+  "description": "Extra worlds on the top seedscan seeds, to compare them side by side on one server.",
+  "license": "Apache-2.0",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.seedworlds.SeedWorlds"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "fabric-api": "*",
+    "fantasy": "*"
+  }
+}
