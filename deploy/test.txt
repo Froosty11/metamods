@@ -34,3 +34,4 @@ metacraft-mob-modifiers
 metacraft-player-trading
 ovvar
 portal-opening
+nether-rifts
