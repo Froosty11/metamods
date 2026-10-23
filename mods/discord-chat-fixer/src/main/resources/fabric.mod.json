@@ -22,7 +22,7 @@
 		]
 	},
 	"mixins": [
-	  "discord-chat-fixer.mixins.json"
+		"discord-chat-fixer.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",

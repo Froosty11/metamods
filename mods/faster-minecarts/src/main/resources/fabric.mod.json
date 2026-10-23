@@ -1,40 +1,40 @@
 {
-  "schemaVersion": 1,
-  "id": "faster-minecarts",
-  "version": "${version}",
+	"schemaVersion": 1,
+	"id": "faster-minecarts",
+	"version": "${version}",
 
-  "name": "Faster Minecarts",
-  "description": "Make Minecarts great again.",
-  "authors": [
-    "Acuadragon100"
-  ],
-  "contributors": [],
-  "contact": {
-    "sources": "${git_repo}",
-    "homepage": "${website}",
-    "issues": "${issues}"
-  },
+	"name": "Faster Minecarts",
+	"description": "Make Minecarts great again.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
 
-  "license": "Apache-2.0",
-  "icon": "assets/faster_minecarts/icon.png",
+	"license": "Apache-2.0",
+	"icon": "assets/faster_minecarts/icon.png",
 
-  "environment": "*",
-  "entrypoints": {
-    "main": [
-      "nu.metacraft.faster_minecarts.FasterMinecarts"
-    ]
-  },
-  "mixins": [
-    "fasterminecarts.mixins.json"
-  ],
-  "depends": {
-    "fabricloader": ">=${loader_version}",
-    "fabric-api": "*",
-    "minecraft": "~${minecraft_version}",
-    "metacraft-lib": "*",
-    "metacraft-config": "*"
-  },
-  "suggests": {
-    "another-mod": "*"
-  }
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.faster_minecarts.FasterMinecarts"
+		]
+	},
+	"mixins": [
+		"fasterminecarts.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*",
+		"metacraft-config": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
 }

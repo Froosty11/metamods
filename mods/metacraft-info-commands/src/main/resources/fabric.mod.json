@@ -1,40 +1,40 @@
 {
-  "schemaVersion": 1,
-  "id": "metacraft-info-commands",
-  "version": "${version}",
+	"schemaVersion": 1,
+	"id": "metacraft-info-commands",
+	"version": "${version}",
 
-  "name": "METAcraft info commands",
-  "description": "A mod that allows the creation of custom information commands from a config file.",
-  "authors": [
-    "Acuadragon100"
-  ],
-  "contributors": [
-    "Hampfh"
-  ],
-  "contact": {
-    "sources": "${git_repo}",
-    "homepage": "${website}",
-    "issues": "${issues}"
-  },
+	"name": "METAcraft info commands",
+	"description": "A mod that allows the creation of custom information commands from a config file.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [
+		"Hampfh"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
 
-  "license": "Apache-2.0",
-  "icon": "assets/metacraft/icon.png",
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
 
-  "environment": "*",
-  "entrypoints": {
-    "main": [
-      "nu.metacraft.info_commands.Info"
-    ]
-  },
-  "mixins": [
-    "metacraft-info-commands.mixins.json"
-  ],
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.info_commands.Info"
+		]
+	},
+	"mixins": [
+		"metacraft-info-commands.mixins.json"
+	],
 
-  "depends": {
-    "fabricloader": ">=${loader_version}",
-    "minecraft": "~${minecraft_version}",
-    "fabric-api": "*",
-    "metacraft-lib": "*",
-    "metacraft-config": "*"
-  }
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric-api": "*",
+		"metacraft-lib": "*",
+		"metacraft-config": "*"
+	}
 }

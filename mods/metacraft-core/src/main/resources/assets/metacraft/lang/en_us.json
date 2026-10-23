@@ -1,12 +1,12 @@
 {
-    "item.metacraft.wrench": "Wrench",
-    "item.metacraft.wrench.block.on": "The block is now movable by pistons",
-    "item.metacraft.wrench.block.off": "The block is no longer movable by pistons",
-    "item.metacraft.wrench.player.on": "All block entities you place will now be movable by pistons",
-    "item.metacraft.wrench.player.off": "All block entities you place will no longer be movable by pistons",
-    "item.metacraft.wrench.tooltip": "Default: %s",
-    "item.metacraft.wrench.tooltip.on": "Movable",
-    "item.metacraft.wrench.tooltip.off": "Not Movable",
-    "message.metacraft.gamerule.firework_boosting_disabled": "Firework boosting is disabled on this server",
-    "block.metacraft.portal_padding": "Portal Padding"
+	"item.metacraft.wrench": "Wrench",
+	"item.metacraft.wrench.block.on": "The block is now movable by pistons",
+	"item.metacraft.wrench.block.off": "The block is no longer movable by pistons",
+	"item.metacraft.wrench.player.on": "All block entities you place will now be movable by pistons",
+	"item.metacraft.wrench.player.off": "All block entities you place will no longer be movable by pistons",
+	"item.metacraft.wrench.tooltip": "Default: %s",
+	"item.metacraft.wrench.tooltip.on": "Movable",
+	"item.metacraft.wrench.tooltip.off": "Not Movable",
+	"message.metacraft.gamerule.firework_boosting_disabled": "Firework boosting is disabled on this server",
+	"block.metacraft.portal_padding": "Portal Padding"
 }

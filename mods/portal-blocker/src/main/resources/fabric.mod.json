@@ -23,7 +23,7 @@
 		]
 	},
 	"mixins": [
-	  "portal-blocker.mixins.json"
+		"portal-blocker.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
