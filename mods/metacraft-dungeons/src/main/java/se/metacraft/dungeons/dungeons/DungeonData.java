@@ -37,6 +37,7 @@ import se.metacraft.core.portal.FixedPortalTarget;
 import se.metacraft.core.util.TeleportPredicate;
 import se.metacraft.dungeons.METAcraftDungeons;
 import se.metacraft.dungeons.Tags;
+import se.metacraft.dungeons.compat.BlueMapCompat;
 import se.metacraft.dungeons.compat.SquaremapCompat;
 import se.metacraft.dungeons.environment_attributes.DungeonAttributes;
 import se.metacraft.lib.util.SavedDataTypeCache;
@@ -215,6 +216,9 @@ public class DungeonData extends SavedData {
 	private void fixSquaremap() {
 		IsLoaded.SQUAREMAP.ifLoaded(() -> { //Squaremap causes lag spikes so bad the server crashes, but not if we disable the renderer.
 			SquaremapCompat.disableRenderer(world.dimension());
+		});
+		IsLoaded.BLUEMAP.ifLoaded(() -> {
+			BlueMapCompat.disableRenderer(world.dimension());
 		});
 	}
 
