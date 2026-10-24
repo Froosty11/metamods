@@ -11,8 +11,9 @@ import java.util.Set;
 
 /**
  * Where the patches nobody can craft come from: structure chests. The chapters' own patches (IT,
- * Data, ITK, and IN made from IT) are crafted — {@code data/ovvar/recipe} — an event's own
- * ({@link #EXCLUSIVE}) come only from the event, and every other patch in the catalogue may turn up, one at a time, in a vanilla structure's chest or a Structory one.
+ * Data, ITK, and IN made from IT) are crafted — {@code data/ovvar/recipe} — the given ones
+ * ({@link #EXCLUSIVE}) come only from whoever hands them out, and every other patch in the
+ * catalogue may turn up, one at a time, in a vanilla structure's chest or a Structory one.
  *
  * <p>Added to the tables as they load rather than shipped as copies of them, so a datapack or
  * another mod that changes a chest's loot keeps its change, and Structory's tables only get a pool
@@ -24,8 +25,11 @@ public final class PatchLoot {
 	/** The patches with a recipe; keep in step with {@code data/ovvar/recipe/patch_<id>.json}. */
 	public static final Set<String> CRAFTED = Set.of("it", "data", "itk", "in");
 
-	/** The patches only an event hands out: never crafted, never in a chest. */
-	public static final Set<String> EXCLUSIVE = Set.of("rivals");
+	/**
+	 * The patches that are given, never found: the Rivals event's own, and TMEIT Marshal, which is
+	 * for TMEIT's marshals. No recipe and no chest.
+	 */
+	public static final Set<String> EXCLUSIVE = Set.of("rivals", "tmeit-marshal");
 
 	/** How likely a chest is to hold a patch; which one is even odds among {@link #looted}. */
 	public static final float CHANCE = 0.05f;

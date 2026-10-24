@@ -68,7 +68,7 @@ public final class PatchAcquiringTests {
 		helper.succeed();
 	}
 
-	/** A dungeon chest turns up the uncraftable patches now and then, and never a crafted or an event's one. */
+	/** A dungeon chest turns up the uncraftable patches now and then, and never a crafted or an exclusive one. */
 	@GameTest
 	public void structureChestsHoldTheOtherPatches(GameTestHelper helper) {
 		LootTable table = helper.getLevel().getServer().reloadableRegistries().getLootTable(BuiltInLootTables.SIMPLE_DUNGEON);
@@ -83,8 +83,10 @@ public final class PatchAcquiringTests {
 		}
 		helper.assertTrue(found.size() > 1, "4000 dungeon chests held only these patches: " + found);
 		for (String id : PatchLoot.CRAFTED) helper.assertFalse(found.contains(id), "a dungeon chest held the craftable " + id);
-		for (String id : PatchLoot.EXCLUSIVE) helper.assertFalse(found.contains(id), "a dungeon chest held the event's " + id);
-		helper.assertFalse(PatchLoot.looted().stream().anyMatch(patch -> patch.id().equals("rivals")), "Rivals '26 is loot");
+		for (String id : PatchLoot.EXCLUSIVE) helper.assertFalse(found.contains(id), "a dungeon chest held the exclusive " + id);
+		for (String id : List.of("rivals", "tmeit-marshal")) {
+			helper.assertFalse(PatchLoot.looted().stream().anyMatch(patch -> patch.id().equals(id)), id + " is loot");
+		}
 		helper.succeed();
 	}
 
