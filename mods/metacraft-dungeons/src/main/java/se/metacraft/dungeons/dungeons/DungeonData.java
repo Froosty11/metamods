@@ -78,7 +78,7 @@ public class DungeonData extends SavedData {
 						Codec.INT.fieldOf("time_since_reset").forGetter(d -> d.timeSinceReset),
 						EntranceEntry.LIST_CODEC.fieldOf("external_entrances").forGetter(d -> d.externalEntrances),
 						ExtraCodecs.INSTANT_ISO8601.optionalFieldOf("next_reset").forGetter(d -> d.nextReset)
-				).apply(instance, DungeonData.create(world)::load)
+				).apply(instance, Loader.prepare(world)::load)
 		);
 	}
 
@@ -121,26 +121,33 @@ public class DungeonData extends SavedData {
 		return new DungeonData(world);
 	}
 
-	private DungeonData load(
+	public record Loader(ServerLevel world) {
+
+		static Loader prepare(ServerLevel level) {
+			return new Loader(level);
+		}
+
+		DungeonData load(
 			long index, boolean clearing, boolean resetting, int timeSinceReset,
 			Set<EntranceEntry> externalEntrances, Optional<Instant> nextReset
-	) {
-		this.index = index;
-		this.clearing = clearing;
-		this.resetting = resetting;
-		this.timeSinceReset = timeSinceReset;
-		this.externalEntrances.addAll(externalEntrances);
-		this.nextReset = nextReset;
+		) {
+			var data = create(world);
+			data.index = index;
+			data.clearing = clearing;
+			data.resetting = resetting;
+			data.timeSinceReset = timeSinceReset;
+			data.externalEntrances.addAll(externalEntrances);
+			data.nextReset = nextReset;
 
-		if (!this.resetting) {
-			this.clearing = false;
-			this.timeSinceReset = 0;
+			if (!data.resetting) {
+				data.clearing = false;
+				data.timeSinceReset = 0;
+			}
+			if (data.clearing) {
+				data.clearingRestarted = true;
+			}
+			return data;
 		}
-		if (this.clearing) {
-			clearingRestarted = true;
-		}
-
-		return this;
 	}
 
 	private void copyFromPrevious(DungeonData data) {
