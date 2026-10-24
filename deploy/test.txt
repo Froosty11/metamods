@@ -43,3 +43,5 @@ metacraft-qol
 #edvin forks
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.7/danse-2.6.0-metacraft.7%2B26.3.jar sha256:e5da4a3768dbba924042b9aba297ad2f150429598697c15c925500a4f3b06ba7
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
+# Patbox's recipe viewer (/polydex); the booklet's Recipes page points to it
+external polydex https://cdn.modrinth.com/data/m5NB7FJE/versions/hUejnkI9/polydex-1.11.0%2B26.3-rc-1.jar sha256:73065baf2493f24b44893b0c34ea658c0cb0100f11fc12e75629c44e179592cf
