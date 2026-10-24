@@ -121,6 +121,16 @@ goes on the wearer's left leg, which is the leg at the viewer's left from behind
 so each of the three paths that draw a seat has to mirror its half back — the pack's `_l` texture
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
+
+**Getting patches.** The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+on its four sides makes IT (Laserviolet), Data (Cerise) or ITK (lime), and IT with a bottle of
+experience makes IN. Laserviolet and Cerise are More Dyes' (`moredyes`), so IT's and Data's
+recipes load only beside it (`fabric:load_conditions`). Every other patch turns up in structure
+chests (`PatchLoot`): vanilla's `chests/*` tables but the spawn bonus chest, and all of
+Structory's when it is installed, each get a pool with a 5 % chance of one patch, even odds among
+them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
+another mod's changes to a chest stay. A new patch is loot unless it is added to
+`PatchLoot.CRAFTED` with a recipe.
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
