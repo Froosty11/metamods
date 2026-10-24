@@ -62,12 +62,13 @@ public final class PatchAcquiringTests {
 	}
 
 	@GameTest
-	public void everyCraftedPatchIsInTheCatalogue(GameTestHelper helper) {
-		for (String id : PatchLoot.CRAFTED) helper.assertTrue(Patches.get(id) != null, "no patch '" + id + "'");
+	public void everyCraftedAndExclusivePatchIsInTheCatalogue(GameTestHelper helper) {
+		for (String id : PatchLoot.CRAFTED) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
+		for (String id : PatchLoot.EXCLUSIVE) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
 		helper.succeed();
 	}
 
-	/** A dungeon chest turns up the uncraftable patches now and then, and never a crafted one. */
+	/** A dungeon chest turns up the uncraftable patches now and then, and never a crafted or an event's one. */
 	@GameTest
 	public void structureChestsHoldTheOtherPatches(GameTestHelper helper) {
 		LootTable table = helper.getLevel().getServer().reloadableRegistries().getLootTable(BuiltInLootTables.SIMPLE_DUNGEON);
@@ -82,6 +83,8 @@ public final class PatchAcquiringTests {
 		}
 		helper.assertTrue(found.size() > 1, "4000 dungeon chests held only these patches: " + found);
 		for (String id : PatchLoot.CRAFTED) helper.assertFalse(found.contains(id), "a dungeon chest held the craftable " + id);
+		for (String id : PatchLoot.EXCLUSIVE) helper.assertFalse(found.contains(id), "a dungeon chest held the event's " + id);
+		helper.assertFalse(PatchLoot.looted().stream().anyMatch(patch -> patch.id().equals("rivals")), "Rivals '26 is loot");
 		helper.succeed();
 	}
 

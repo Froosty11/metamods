@@ -11,8 +11,8 @@ import java.util.Set;
 
 /**
  * Where the patches nobody can craft come from: structure chests. The chapters' own patches (IT,
- * Data, ITK, and IN made from IT) are crafted — {@code data/ovvar/recipe} — and every other patch
- * in the catalogue may turn up, one at a time, in a vanilla structure's chest or a Structory one.
+ * Data, ITK, and IN made from IT) are crafted — {@code data/ovvar/recipe} — an event's own
+ * ({@link #EXCLUSIVE}) come only from the event, and every other patch in the catalogue may turn up, one at a time, in a vanilla structure's chest or a Structory one.
  *
  * <p>Added to the tables as they load rather than shipped as copies of them, so a datapack or
  * another mod that changes a chest's loot keeps its change, and Structory's tables only get a pool
@@ -23,6 +23,9 @@ public final class PatchLoot {
 
 	/** The patches with a recipe; keep in step with {@code data/ovvar/recipe/patch_<id>.json}. */
 	public static final Set<String> CRAFTED = Set.of("it", "data", "itk", "in");
+
+	/** The patches only an event hands out: never crafted, never in a chest. */
+	public static final Set<String> EXCLUSIVE = Set.of("rivals");
 
 	/** How likely a chest is to hold a patch; which one is even odds among {@link #looted}. */
 	public static final float CHANCE = 0.05f;
@@ -41,9 +44,9 @@ public final class PatchLoot {
 		});
 	}
 
-	/** Every patch in the catalogue but the crafted ones. */
+	/** Every patch in the catalogue but the crafted and the exclusive ones. */
 	public static List<Patches.Patch> looted() {
-		return Patches.all().stream().filter(patch -> !CRAFTED.contains(patch.id())).toList();
+		return Patches.all().stream().filter(patch -> !CRAFTED.contains(patch.id()) && !EXCLUSIVE.contains(patch.id())).toList();
 	}
 
 	/** Vanilla's structure chests, and all of Structory's tables (every one of them fills a chest or a barrel). */
