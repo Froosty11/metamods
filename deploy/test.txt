@@ -66,9 +66,7 @@ external distanthorizons https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9
 external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/SX74rxzP/bluemap-5.29-fabric.jar sha256:47aade220d75e307342176ca4abc83493a55276f2084835e7ca6880c640c0430
 external tectonic https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar sha256:33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046
 external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/pZgI6b2t/lithostitched-2.0.6-fabric-26.3.jar sha256:31c5fff53420a2af5aa231a7620af089054456d9a0cfc763e571332e0253872b
-external structory https://cdn.modrinth.com/data/aKCwCJlY/versions/GjOkOVW4/Structory_26.3_v1.3.18%2B26.3.jar sha256:27f8a13e26c241448e4a5a821db2c2b017942d0103e01d099347c040144200a3
 
-external geophilic https://cdn.modrinth.com/data/hl5OLM95/versions/5kFV8CEz/Geophilic%20v3.7.mod.jar sha256:9e6a98b438e078f2e4f5b79f71bfc715a730369f8cf42fd287c6e43c7441cfae
 external amplified_nether https://cdn.modrinth.com/data/wXiGiyGX/versions/IYaFP7y8/Amplified_Nether_26.3_v1.3.0%2B26.3.jar sha256:0d35127fcd4efa5f3030ac3a5fe0b7f238c00d6b7b567f5c99e09c3c357afd37
 external adaptiveview https://cdn.modrinth.com/data/xZvyOrQr/versions/3QGoy50k/adaptiveview-2.4.4%2B26.2.jar sha256:62365e6b741a59c2dd0d58a58de05e33187ffc7ef38f6395bf6e94e1d5c460a2
 external styledchat https://cdn.modrinth.com/data/doqSKB0e/versions/HQ91YnMY/styled-chat-2.14.0%2B26.3.jar sha256:34721ffb8c54c9bb44d5e62139065f58cc0b81825d7b833b594b7790ee281c8c
