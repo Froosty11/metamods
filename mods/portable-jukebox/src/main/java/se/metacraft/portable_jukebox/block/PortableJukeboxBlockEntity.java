@@ -13,6 +13,7 @@ import net.minecraft.world.ticks.ContainerSingleItem;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
 import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 public class PortableJukeboxBlockEntity extends BlockEntity implements ContainerSingleItem.BlockContainerSingleItem {
 
@@ -57,7 +58,9 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 
 	@Override
 	public ItemStack getTheItem() {
-		return jukebox.getOrDefault(Components.PORTABLE_JUKEBOX, ItemStack.EMPTY);
+		return jukebox.getOrDefault(
+			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY
+		).getItem();
 	}
 
 	@Override
@@ -75,8 +78,13 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 
 	@Override
 	public void setTheItem(ItemStack stack) {
-		var prev = stack.isEmpty() ? this.jukebox.remove(Components.PORTABLE_JUKEBOX) : this.jukebox.set(Components.PORTABLE_JUKEBOX, stack);
-		PortableJukeboxItem.updateStackChange(EntityRef.fromBlock(this), prev, jukebox);
+		var prev = this.jukebox.update(
+			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY,
+			jukebox -> jukebox.withItem(stack)
+		);
+		PortableJukeboxItem.updateStackChange(
+			EntityRef.fromBlock(this), prev != null ? prev.getItem() : ItemStack.EMPTY, jukebox
+		);
 	}
 
 	@Override

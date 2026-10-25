@@ -11,6 +11,7 @@
 		"BundleContentsMutableMixin",
 		"BundleItemMixin",
 		"CompoundContainerAccessor",
+		"ContainerComponentManipulatorsMixin",
 		"EntityMixin",
 		"FlowingFluidMixin",
 		"HopperBlockEntityMixin",

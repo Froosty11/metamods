@@ -19,6 +19,7 @@ import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
+import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 import java.util.Optional;
 
@@ -63,12 +64,12 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 	public void onDestroyed(ItemEntity entity) {
 		super.onDestroyed(entity);
 		Optional.ofNullable(entity.getItem().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
-			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc);
+			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc.getItem());
 		});
 	}
 
 	public static Optional<ItemStack> getDiscFromJukebox(ItemInstance stack) {
-		return Optional.ofNullable(stack.get(Components.PORTABLE_JUKEBOX));
+		return stack.getOrDefault(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY).getNonEmptyItem();
 	}
 
 	public static Optional<Holder<JukeboxSong>> getSongFromJukebox(ItemInstance stack) {

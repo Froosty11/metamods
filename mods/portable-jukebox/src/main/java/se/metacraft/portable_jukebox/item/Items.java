@@ -10,12 +10,15 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
+import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 public class Items {
 
 	public static final Item PORTABLE_JUKEBOX = register(
-			"portable_jukebox", PortableJukeboxItem::new,
-			new Item.Properties().stacksTo(1).useBlockDescriptionPrefix()
+			"portable_jukebox", se.metacraft.portable_jukebox.item.PortableJukeboxItem::new,
+			new Item.Properties().stacksTo(1).useBlockDescriptionPrefix().component(
+				Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY
+			)
 	);
 
 	public static void init() {

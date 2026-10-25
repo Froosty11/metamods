@@ -4,6 +4,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 public class PortableJukeboxInventory implements Container {
 
@@ -16,11 +17,14 @@ public class PortableJukeboxInventory implements Container {
 	}
 
 	private ItemStack getStack() {
-		return portableJukebox.getOrDefault(Components.PORTABLE_JUKEBOX, ItemStack.EMPTY);
+		return portableJukebox.getOrDefault(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY).getItem();
 	}
 
 	private ItemStack remove() {
-		return portableJukebox.remove(Components.PORTABLE_JUKEBOX);
+		var prev = portableJukebox.update(
+			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY, jukebox -> jukebox.withItem(ItemStack.EMPTY)
+		);
+		return prev != null ? prev.getItem() : ItemStack.EMPTY;
 	}
 
 	@Override
@@ -55,7 +59,7 @@ public class PortableJukeboxInventory implements Container {
 	@Override
 	public void setItem(int slot, ItemStack stack) {
 		if (!stack.isEmpty()) {
-			portableJukebox.set(Components.PORTABLE_JUKEBOX, stack);
+			portableJukebox.update(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY, jukebox -> jukebox.withItem(stack));
 		} else {
 			remove();
 		}
