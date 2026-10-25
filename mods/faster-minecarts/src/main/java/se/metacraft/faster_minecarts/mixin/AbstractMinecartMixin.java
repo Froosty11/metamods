@@ -14,6 +14,8 @@ import net.minecraft.world.entity.vehicle.minecart.OldMinecartBehavior;
 import net.minecraft.world.entity.vehicle.VehicleEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
@@ -53,14 +55,27 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 	@Shadow @Final @Mutable
 	private MinecartBehavior behavior;
 
+	@Shadow public abstract BlockPos getCurrentBlockPosOrRailBelow();
+
 	@Unique
 	private Optional<ItemStack> minecartItem = Optional.empty();
 
 	@Unique
 	private BlockPos currentRailPosOverride;
 
+	@Unique
+	private BlockState currentRailState;
+
 	public AbstractMinecartMixin(EntityType<?> entityType, Level world) {
 		super(entityType, world);
+	}
+
+	@Inject(
+		method = "<init>(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;)V",
+		at = @At(value = "RETURN")
+	)
+	public void initializeRailState(EntityType<?> type, Level level, CallbackInfo ci) {
+		currentRailState = Blocks.AIR.defaultBlockState();
 	}
 
 	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
@@ -96,6 +111,11 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 		if (!clazz.isInstance(behavior)) {
 			this.behavior = controllerCreator.get();
 		}
+	}
+
+	@Inject(method = "tick", at = @At("RETURN"))
+	public void cacheRailState(CallbackInfo ci) {
+		this.currentRailState = level().getBlockState(this.getCurrentBlockPosOrRailBelow());
 	}
 
 	@Unique
@@ -242,5 +262,10 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 		this.minecartItem = stack;
 		updateController();
 		updateTag();
+	}
+
+	@Override
+	public BlockState fasterMinecarts$getCurrentRailState() {
+		return currentRailState;
 	}
 }

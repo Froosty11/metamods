@@ -66,8 +66,7 @@ public abstract class ServerEntityMixin {
 	public boolean simulateLegacyCartMovement(Object controller, Operation<Boolean> original, @Local AbstractMinecart minecart) {
 		if (controller == null) {
 			sendDirtyEntityData();
-			var railPos = minecart.getCurrentBlockPosOrRailBelow();
-			var railState = entity.level().getBlockState(railPos);
+			var railState = ((MinecartExtensions) minecart).fasterMinecarts$getCurrentRailState();
 			float yaw = this.entity.getYRot();
 			float pitch = this.entity.getXRot();
 			var data = (MinecartExtensions) minecart;

@@ -5,6 +5,7 @@ import java.util.OptionalDouble;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 public interface MinecartExtensions {
@@ -28,6 +29,8 @@ public interface MinecartExtensions {
 	OptionalDouble fasterMinecarts$getAcceleration();
 	OptionalDouble fasterMinecarts$getMaxSpeed();
 	OptionalDouble fasterMinecarts$getMaxSpeedUnderwater();
+
+	BlockState fasterMinecarts$getCurrentRailState();
 
 	Optional<ItemStack> fasterMinecarts$getMinecartItem();
 	void fasterMinecarts$setMinecartItem(Optional<ItemStack> stack);
