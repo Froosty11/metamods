@@ -48,20 +48,20 @@ external polydecorations https://github.com/Froosty11/PolyDecorations/releases/d
 external confnportal https://github.com/METAcraft-KTH/Configurable-Nether-Portals-Mod/releases/download/1.1.1-26.3/confnportal-1.1.1.jar sha256:4faf4835523092454ee1b4f86b14eeca1e18e0c99e579b8a1b39a0f06006cb36
 
 # Season 6 server mods, the same pins as Edvin Private 2 (deploy/edvin2.txt on Froosty11/metamods)
-external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/G0fTdl8M/polymer-bundled-0.18.4%2B26.3.jar sha256:66ae7528b57278fa2f0ffe2c4a94842af13350176d948532be67c9d25f05947f
-external c2me https://cdn.modrinth.com/data/VSNURh3q/versions/FXjQDzq7/c2me-fabric-mc26.3-0.4.2-alpha.0.89.jar sha256:ee506e6bc68b03e8b2ef5548da8f7d09cede707e796a458e4e03a7e2107837b8
+external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/3fDXSiRx/polymer-bundled-0.18.5%2B26.3.jar sha256:fc78cc7e77e0f61e5c4c02e4339ada9ad88fd387d1bc85deb0fc4a76ba1849a2
+external c2me https://cdn.modrinth.com/data/VSNURh3q/versions/gKKkuSYc/c2me-fabric-mc26.3-0.4.2-alpha.0.106.jar sha256:41b49a6276d477ca45b4398457a658e72063dab2251e20fd73faa89279efc288
 external lithium https://cdn.modrinth.com/data/gvQqBUqZ/versions/xS0Q8LSi/lithium-fabric-0.26.2%2Bmc26.3.jar sha256:0be5b17ef9f6e9244cd07b24b227553a73aec0cf93158cf28099f3094c167f1b
 external ferritecore https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar sha256:213966c72ed967acc7392beb28a866fba301ff56b9976c2e7801c2db7de6bf22
 external krypton https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar sha256:0b4a648b9c2f048247f849712aff58b2bac5b27b60c0072bb6bf493ad8b79fef
 external scalablelux https://cdn.modrinth.com/data/Ps1zyz6x/versions/g4eqNSKd/ScalableLux-fabric-mc26.3-0.3.0-alpha.0.6-all.jar sha256:e9137a04fdefca4fd1f4740ab3dc6194b5ea7c15456c6691376b910053853a29
 external alternate-current https://cdn.modrinth.com/data/r0v8vy1s/versions/nSBWPz6x/alternate-current-mc26.3-1.9.0.jar sha256:5cef09f286936bbac1cbf173d11ce4b9dbe6278cee8bd8a347a87a2782c45d41
 external structure_layout_optimizer https://cdn.modrinth.com/data/ayPU0OHc/versions/crWm7jXS/structure_layout_optimizer-1.1.4%2B26.3-fabric.jar sha256:8c0386e9cdff2b049666ac8e076af87d56b4c6ce08b027783ef438a599876aee
-external resourcefulconfig https://cdn.modrinth.com/data/M1953qlQ/versions/IFB0XCI9/ResourcefulConfig-6.0.1.jar sha256:c5c20513fa5c832dac49fa3db104486195d0dea938313da5eb4a655d2f334ef9
+external resourcefulconfig https://cdn.modrinth.com/data/M1953qlQ/versions/t3odHyFJ/ResourcefulConfig-6.0.2.jar sha256:88ee9fe629e0dfe77306907634e6e8ada164a1a20ff1e2f03968421ea68777d1
 external spark https://cdn.modrinth.com/data/l6YH9Als/versions/e3hsPc1o/spark-1.10.187-fabric.jar sha256:3fc00663caa542b1e78333730609b4eb2568326628e3666a3938ad58cbc9acc6
 external distanthorizons https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9A/DistantHorizons-3.3.4-26.3-fabric-neoforge.jar sha256:ba3e5c85a765a109219831df99b99ef5cfcdee05b2dfa6796116993bd48d3947
-external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/bbzcTCOs/bluemap-5.28-fabric.jar sha256:efb07ce31212a9d2d5464a9feab75eb3496ca38cc49f893062d39d0b3c87fbfa
+external bluemap https://cdn.modrinth.com/data/swbUV1cr/versions/SX74rxzP/bluemap-5.29-fabric.jar sha256:47aade220d75e307342176ca4abc83493a55276f2084835e7ca6880c640c0430
 external tectonic https://cdn.modrinth.com/data/lWDHr9jE/versions/j2jmkU85/tectonic-3.0.31-fabric-26.3.jar sha256:33a534a71c5d81ad4b4327570481355c1356e55febbe8c21cc92ffa15a303046
-external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/FhKHD2LJ/lithostitched-2.0.4-fabric-26.3.jar sha256:b1cd7ca605a9e5cdfb43b60970885002c88b2cab132259e65d7294d36bdf3466
+external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/pZgI6b2t/lithostitched-2.0.6-fabric-26.3.jar sha256:31c5fff53420a2af5aa231a7620af089054456d9a0cfc763e571332e0253872b
 external structory https://cdn.modrinth.com/data/aKCwCJlY/versions/GjOkOVW4/Structory_26.3_v1.3.18%2B26.3.jar sha256:27f8a13e26c241448e4a5a821db2c2b017942d0103e01d099347c040144200a3
 
 external geophilic https://cdn.modrinth.com/data/hl5OLM95/versions/5kFV8CEz/Geophilic%20v3.7.mod.jar sha256:9e6a98b438e078f2e4f5b79f71bfc715a730369f8cf42fd287c6e43c7441cfae
@@ -78,6 +78,7 @@ external recipecooldown https://cdn.modrinth.com/data/7LEWYKTV/versions/v7KRefAi
 external servux https://cdn.modrinth.com/data/zQhsx8KF/versions/azA4UG3T/servux-fabric-26.3-0.12.2.jar sha256:ef7d39903ccd75550776bb58bb1ec2689fedc6a6a30205dc7f6246e63a993f97
 external leavesbegone https://cdn.modrinth.com/data/AVq17PqV/versions/Ttuy044k/leavesbegone-v26.3.0-mc26.3.x%2Bfabric.jar sha256:4d84b84527e0a1761bf95f449d381e60d8f0958adde3a3b56503039a27dbaace
 external appleskin https://cdn.modrinth.com/data/EsAfCjCV/versions/PHjDtQay/appleskin-fabric-mc26.3-3.0.10.jar sha256:cb05087c39f0d860611aa1fae7cf63560214d1b71378a7c903c18dc370b5c3ce
+external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fabric-api-0.165.0%2B26.3.jar sha256:18442e2ad466d6ef41c37dbb4cb68495e6ca6658b1f1ee9be76143d155ef2c88
 
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
 external filament https://cdn.modrinth.com/data/yANxwqSX/versions/66G6ixmY/filament-1.8.5-hotfix.1%2B26.3.jar sha256:ab85427044d9c4036988fe652de364861ec445151d3ad9e03a1750f64a1cfea0
@@ -89,13 +90,13 @@ external fabric-language-kotlin https://cdn.modrinth.com/data/Ha28R6CL/versions/
 external fabrictailor https://cdn.modrinth.com/data/g8w1NapE/versions/UfZLJmX7/fabrictailor-2.11.0.jar sha256:d80d0378491df4e3a8c94198a6f1acf53c33967d8a92bd06a8c1f19dff06cf0c
 # Simple Voice Chat on the game port over UDP (config/voicechat/voicechat-server.properties port=-1), and
 # its sculk sensor addon
-external voicechat https://cdn.modrinth.com/data/9eGKb6K1/versions/OLnMVWXy/voicechat-fabric-2.6.24%2B26.3.jar sha256:97074fa1d094a22f17d5ac11282176965a45137950b66627d3813618810c3d00
+external voicechat https://cdn.modrinth.com/data/9eGKb6K1/versions/cZm965sW/voicechat-fabric-2.6.26%2B26.3.jar sha256:d3644597c6d9e6c578ca239815d9c7966c7c463155d1073b05ca8d4af8cdedd0
 external vcinteraction https://cdn.modrinth.com/data/qsSP2ZZ0/versions/AuH4GjYn/vcinteraction-fabric-1.0.8%2B26.3.jar sha256:291595897a9a1445aa3500daeb51ccbaff296ebcc408773294622a0bea393ad7
-external worldedit https://cdn.modrinth.com/data/1u6JkXh5/versions/E7sbeRFx/worldedit-mod-7.4.6-beta-02.jar sha256:4bf170e934a73bbc0bc60a4169517a45be2ee83a0883132a96dd5975e1dc06af
+external worldedit https://cdn.modrinth.com/data/1u6JkXh5/versions/ByRNkO83/worldedit-mod-7.4.6.jar sha256:24f2338ac9d5e7205f15cdb4a118924c5d9cbd48ab0cabf8ba36b07b7d64c22b
 external vanish https://cdn.modrinth.com/data/UL4bJFDY/versions/KgeCcJWw/vanish-1.6.16%2B26.3.jar sha256:e518a65aa629935d4e0e4f90829835c17783f04d7e11ec7a8c2e65a0e69f5484
 external carpet https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-carpet-26.3%2Bv260915.jar sha256:7c40b93e807ed914064176898037117097446c6cc76e6a80a856c8bf7f7659f9
 external nochatreports https://cdn.modrinth.com/data/qQyHxfxd/versions/6g96avt2/NoChatReports-FABRIC-26.3-v2.21.0.jar sha256:d346391bea7991ba5d5eb3c8308a414bfc6734d6d220bece84e76966c834b5bf
-external antixray https://cdn.modrinth.com/data/sml2FMaA/versions/8CvHIf1r/antixray-fabric-1.4.16%2B26.3.jar sha256:20171e2b2ada25505b9b1c2370192470c074423678974679548ccf27fa205521
+external antixray https://cdn.modrinth.com/data/sml2FMaA/versions/AU5FnTTj/antixray-fabric-1.4.17%2B26.3.jar sha256:96f1148b7b680993c566a5c9157c6d2b5a8ad031c53b28257605e3dc295751f2
 external luckperms https://cdn.modrinth.com/data/Vebnzrzj/versions/DzQPkkXY/LuckPerms-Fabric-5.5.85.jar sha256:18598fcb95a83f6723d8bc68a905500ed5ecac92e9909ce1f25409cdebe2df49
 # Patbox's Universal Graves: a grave holds your items where you died (config/universal-graves/config.json
 # by hand: no death compass, no grave for lava or void deaths so those lose everything)
