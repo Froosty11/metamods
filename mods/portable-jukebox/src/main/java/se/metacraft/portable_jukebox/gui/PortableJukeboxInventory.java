@@ -44,8 +44,9 @@ public class PortableJukeboxInventory implements Container {
 
 	@Override
 	public ItemStack removeItem(int slot, int amount) {
-		var stack = getStack().split(amount);
-		if (getStack().isEmpty()) {
+		var innerStack = getStack();
+		var stack = innerStack.split(amount);
+		if (innerStack.isEmpty()) {
 			remove();
 		}
 		return stack.isEmpty() ? ItemStack.EMPTY : stack;
