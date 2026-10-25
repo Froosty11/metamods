@@ -48,8 +48,8 @@ external polydecorations https://github.com/Froosty11/PolyDecorations/releases/d
 external confnportal https://github.com/METAcraft-KTH/Configurable-Nether-Portals-Mod/releases/download/1.1.1-26.3/confnportal-1.1.1.jar sha256:4faf4835523092454ee1b4f86b14eeca1e18e0c99e579b8a1b39a0f06006cb36
 
 # Julle's forks
-external easyarmorstands-polymer https://github.com/ripSquid/EasyArmorStands-polymer/releases/download/latest/EasyArmorStands-Polymer-0.1.0.jar sha256:sha256:67cae25f6f6aeeaf60e94b5256bc049a4d5bf14f3db6ec15fa89624bcc7b970e
-external headindex https://github.com/ripSquid/HeadIndex/releases/download/v0.1/headindex-0.1.jar sha256:sha256:595ac6bc6cc0c8149c83a848ad0a80b287b75a595a244ecdd6d88515f859429f
+external easyarmorstands-polymer https://github.com/ripSquid/EasyArmorStands-polymer/releases/download/latest/EasyArmorStands-Polymer-0.1.0.jar sha256:67cae25f6f6aeeaf60e94b5256bc049a4d5bf14f3db6ec15fa89624bcc7b970e
+external headindex https://github.com/ripSquid/HeadIndex/releases/download/v0.1/headindex-0.1.jar sha256:595ac6bc6cc0c8149c83a848ad0a80b287b75a595a244ecdd6d88515f859429f
 
 # Season 6 server mods, the same pins as Edvin Private 2 (deploy/edvin2.txt on Froosty11/metamods)
 external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/3fDXSiRx/polymer-bundled-0.18.5%2B26.3.jar sha256:fc78cc7e77e0f61e5c4c02e4339ada9ad88fd387d1bc85deb0fc4a76ba1849a2
