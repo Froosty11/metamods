@@ -5,6 +5,16 @@ addSGUIDependency()
 
 setupRunDatagen("portable-jukebox")
 
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "portable-jukebox"
+		enableGameTests = true // Default is true
+		enableClientGameTests = true // Default is true
+		eula = true // By setting this to true, you agree to the Minecraft EULA.
+	}
+}
+
 dependencies {
 	implementation("maven.modrinth:lithium:$lithium_version-fabric")
 	compileOnly("maven.modrinth:ledger:$ledger_version")

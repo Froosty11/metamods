@@ -22,6 +22,9 @@
 		],
 		"fabric-datagen": [
 			"se.metacraft.portable_jukebox.PortableJukeboxDatagen"
+		],
+		"fabric-gametest": [
+			"se.metacraft.portable_jukebox.gametest.DataFixTest"
 		]
 	},
 	"mixins": [

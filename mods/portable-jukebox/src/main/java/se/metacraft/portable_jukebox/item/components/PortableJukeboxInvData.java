@@ -1,6 +1,8 @@
 package se.metacraft.portable_jukebox.item.components;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
@@ -16,9 +18,16 @@ public record PortableJukeboxInvData(Optional<ItemStackTemplate> item) implement
 
 	public static final PortableJukeboxInvData EMPTY = new PortableJukeboxInvData(Optional.empty());
 
-	public static final Codec<PortableJukeboxInvData> CODEC = Codec.withAlternative(
-		ItemStackTemplate.CODEC.optionalFieldOf("item").codec(), ItemStackTemplate.CODEC.xmap(Optional::of, Optional::get)
-	).xmap(PortableJukeboxInvData::new, PortableJukeboxInvData::item);
+	public static final Codec<PortableJukeboxInvData> CODEC = Codec.either(
+		ItemStackTemplate.CODEC.xmap(
+			stack -> new PortableJukeboxInvData(Optional.of(stack)),
+			inv -> inv.item.orElseThrow()
+		),
+		MapCodec.unitCodec(EMPTY)
+	).xmap(
+		either -> either.map(l -> l, r -> r),
+		inv -> inv.item().map(i -> Either.<PortableJukeboxInvData, PortableJukeboxInvData>left(inv)).orElse(Either.right(EMPTY))
+	);
 
 	@Override
 	public @NonNull Stream<ItemStack> itemCopies() {
