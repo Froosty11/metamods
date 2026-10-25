@@ -19,6 +19,9 @@
 	"entrypoints": {
 		"main": [
 			"se.metacraft.portable_jukebox.PortableJukebox"
+		],
+		"fabric-datagen": [
+			"se.metacraft.portable_jukebox.PortableJukeboxDatagen"
 		]
 	},
 	"mixins": [

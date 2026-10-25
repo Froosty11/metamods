@@ -3,6 +3,8 @@ version = project.portable_jukebox_version
 addPolymerDependency()
 addSGUIDependency()
 
+setupRunDatagen("portable-jukebox")
+
 dependencies {
 	implementation("maven.modrinth:lithium:$lithium_version-fabric")
 	compileOnly("maven.modrinth:ledger:$ledger_version")
