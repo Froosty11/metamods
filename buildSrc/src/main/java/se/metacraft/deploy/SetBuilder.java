@@ -88,7 +88,7 @@ public final class SetBuilder {
 
 	static String fileNameOf(URI url) {
 		String path = url.getPath() == null ? "" : url.getPath();
-		String name = path.substring(path.lastIndexOf('/') + 1);
+		String name = path.substring(path.lastIndexOf('/') + 1).replace(" ", "_");
 		if (!name.endsWith(".jar")) {
 			throw new DeployException(url + " does not end in a .jar file name");
 		}
