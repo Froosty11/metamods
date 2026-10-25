@@ -230,11 +230,11 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		}
 
 		long currentTime = System.currentTimeMillis() + connection.latency();
-		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
+		if (this.music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
 			playMusic(false, true, musicStartTime + musicLengthMillis - connection.latency());
 		}
 
-		if (music != null) {
+		if (this.music != null) {
 			disableVanillaMusic();
 		}
 	}
