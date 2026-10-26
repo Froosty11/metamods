@@ -41,7 +41,7 @@ public final class PatchItem extends Item implements PolymerItem {
 
 	/**
 	 * What {@link ModComponents#FLAT} carries for a piece: which of the patch's PNGs it is cut from
-	 * ({@link Patches#artFor} — a shoulder shows a different one than a chest cell) and the piece's
+	 * ({@link Patches#artFor} — the big back cell shows a different one than a chest cell) and the piece's
 	 * own corners within it.
 	 */
 	public static String flatKey(Patches.Art art, PatchPieces.Piece piece, boolean ghost) {

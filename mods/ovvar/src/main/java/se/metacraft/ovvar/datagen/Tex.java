@@ -38,7 +38,7 @@ public final class Tex {
 
 	/**
 	 * One of the mod's own art files, by the name under {@code art/ovvar} it is kept as ({@code
-	 * "patches/itk_8x8"}, no extension) — which is what {@link Patches.Art}
+	 * "patches/itk_16x16"}, no extension) — which is what {@link Patches.Art}
 	 * answers, so datagen, the paper doll and the game tests all read a patch's art through one
 	 * call and cannot disagree about which PNG a place shows.
 	 */

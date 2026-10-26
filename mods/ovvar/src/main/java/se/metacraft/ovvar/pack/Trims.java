@@ -21,7 +21,7 @@ import net.minecraft.resources.Identifier;
  *	   must leave it alone — so there is no {@code side} for {@code ovvar.glsl} to hide it on the
  *	   other limb by, and no mirroring correction either. A trim for a cell on one arm or one leg
  *	   would be drawn on <em>both</em> of them, one of the two mirrored. The body is one box, so a
- *	   body cell has no other limb to leak onto; every limb cell has, the shoulders included.
+ *	   body cell has no other limb to leak onto; every limb cell has.
  * </ul>
  * The one material is a colour permutation of a key palette (every colour any patch uses) onto itself.
  */
@@ -32,7 +32,7 @@ public final class Trims {
 
 	/**
 	 * Can this placement be worn as the top's trim? Chest and back cells only — the body's own box —
-	 * any patch that fits the cell. Not a limb cell, shoulders included: vanilla draws a trim on
+	 * any patch that fits the cell. Not a limb cell: vanilla draws a trim on
 	 * both limbs and nothing of ours can stop it (see above).
 	 */
 	public static boolean fits(Placement p) {

@@ -36,7 +36,7 @@ If the manifest is not there the plugin says so and names the command to run.
   `[a-z0-9_]+` and unique; ordinary art is an even 6–16 px each way (12×12 is the usual), a seat
   patch is 16 wide and 8–12 tall. A blank patch draws nothing and says so in the panel until you
   have painted on it.
-- **Add size…** draws a patch again at 8×8, 12×12 or 16×16 — for when the automatic shrink gets
+- **Add size…** draws a patch again at 12×12 or 16×16 — for when the automatic shrink gets
   an outline or a letter wrong. It starts you from the shrink's own answer.
 - Paint in Blockbench's Paint mode. The ovve redraws on every finished stroke.
 - **Export to repo** writes every art you drew or changed to

@@ -17,7 +17,7 @@ Patches are items, one per design: <citem 'ovvar:patch_itk'>, <citem 'ovvar:patc
 <bold>Given.</bold> <citem 'ovvar:patch_rivals'> comes only from the Rivals event, and <citem 'ovvar:patch_tmeit-marshal'> only to TMEIT's marshals: nobody crafts or finds those two. A patch you are given goes into your <bold>stash</bold> with a flourish and a line in chat, and waits there until you take it out.
 
 ### Header: Where they go
-### Image: metacraft:beside/ovvar/back A patch goes on any cell of the ovve you can see: the chest and back, the outer, front and back of the sleeves and legs, and the top of each shoulder.<nl2>Not on the collar, the belt, the hands or the cuffs.
+### Image: metacraft:beside/ovvar/back A patch goes on any cell of the ovve you can see: the chest and back, and the outer, front and back of the sleeves and legs.<nl2>Not on the collar, the belt, the hands or the cuffs.
 
 Bigger patches hang over their cell onto the cloth around it.
 

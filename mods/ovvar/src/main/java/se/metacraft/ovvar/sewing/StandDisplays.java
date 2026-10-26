@@ -47,11 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * overhang sticks out past the corner. Later-sewn patches sit a hair further out, so
  * they overlap the earlier; the patch being aimed at lies on top of all, washed out, until it is
  * sewn — the whole preview, so the pack has no trim channel to carry.
- *
- * A shoulder's sprite lies flat on the arm box's own top face ({@link StandAim#cell} gives that
- * plane, whose normal is world up on an unposed stand), the whole art as it is: a top face has no
- * neighbouring face in the layout to bend an overhang onto, so the sewn patch is clipped to the
- * face and the sprite simply sticks out past its edges.
  */
 public final class StandDisplays {
 	private StandDisplays() {}
@@ -240,12 +235,9 @@ public final class StandDisplays {
 		int w = element.art.width(), h = element.art.height(), n = PatchPieces.faceTexels(spot);
 		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
 		// The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
-		// Measured down the face the cell is on: the box's side rows, or — for a shoulder — its top
-		// face, which is four rows, not twelve.
-		int rowStart = spot.top() ? Spot.TOP_ROW : Spot.FACE_ROW, rows = spot.top() ? Spot.TOP_ROWS : Spot.FACE_ROWS;
 		double cellX = (PatchPieces.columnInFace(spot) + spot.artPx() / 2.0 - n) * a,
-				cellY = ((spot.v - rowStart) * Spot.ART_DETAIL + spot.artPxHeight() / 2.0 - rows * Spot.ART_DETAIL / 2.0) * a;
-		double halfFace = (n + 2 * inflate) / 2, halfTop = (rows + 2 * inflate) / 2;
+				cellY = ((spot.v - Spot.FACE_ROW) * Spot.ART_DETAIL + spot.artPxHeight() / 2.0 - Spot.FACE_ROWS * Spot.ART_DETAIL / 2.0) * a;
+		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
 		Vec3 centre, n2, u2, r2;
 		switch (piece.where()) {
 			case RIGHT -> {
@@ -260,7 +252,7 @@ public final class StandDisplays {
 			}
 			case TOP -> {
 				Vec3 corner = at.centre().add(up.scale((halfTop + cellY) / 16));
-				n2 = up; u2 = normal.scale(-1); r2 = right;   // over the shoulder, "up" turns inward across the top
+				n2 = up; u2 = normal.scale(-1); r2 = right;   // over the top edge, "up" turns inward across the top
 				centre = corner.add(normal.scale(((h / 2.0 - piece.y1()) * a - piece.start()) / 16));
 			}
 			default -> {

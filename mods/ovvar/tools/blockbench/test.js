@@ -25,11 +25,11 @@ test('the built plugin exposes its namespace', () => {
 });
 
 test('png round-trips a committed 8-bit RGBA file', () => {
-  const p = path.join(CHECKOUT, 'mods/ovvar/src/main/resources/art/ovvar/patches/itk_8x8.png');
+  const p = path.join(CHECKOUT, 'mods/ovvar/src/main/resources/art/ovvar/patches/itk.png');
   const im = io.decode(io.read(p));
-  assert.strictEqual(im.w, 8);
-  assert.strictEqual(im.h, 8);
-  assert.strictEqual(im.data.length, 8 * 8 * 4);
+  assert.strictEqual(im.w, 12);
+  assert.strictEqual(im.h, 12);
+  assert.strictEqual(im.data.length, 12 * 12 * 4);
   const again = io.decode(io.encode(im));
   assert.strictEqual(again.w, im.w);
   assert.strictEqual(again.h, im.h);
@@ -145,7 +145,7 @@ test('png decodes a grayscale (colour type 0) image', () => {
 });
 
 test('png decode throws on a truncated file instead of returning garbage', () => {
-  const full = io.read(path.join(CHECKOUT, 'mods/ovvar/src/main/resources/art/ovvar/patches/itk_8x8.png'));
+  const full = io.read(path.join(CHECKOUT, 'mods/ovvar/src/main/resources/art/ovvar/patches/itk.png'));
   const truncated = full.subarray(0, 40);
   assert.throws(() => io.decode(truncated));
 });
@@ -221,7 +221,8 @@ test('every committed placement texture is placed() + artFor()', () => {
       }
     }
   }
-  assert.strictEqual(checked, 466, 'expected 466 placement textures, walked ' + checked);
+  // 31 cells x 28 plain patches, and the seat's 2 patches a leg at a time.
+  assert.strictEqual(checked, 872, 'expected 872 placement textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
 
@@ -246,7 +247,8 @@ test('every committed trim texture is placedWrapped()', () => {
       checked++;
     }
   }
-  assert.strictEqual(checked, 98, 'expected 98 trim textures, walked ' + checked);
+  // The 7 body cells x 28 plain patches.
+  assert.strictEqual(checked, 196, 'expected 196 trim textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
 
@@ -264,9 +266,9 @@ test('downscale reproduces every generated art PNG', () => {
       assert.deepStrictEqual(OVVAR.tex.diff(want, got, []), [], art.file + ' (from ' + art.source + ')');
     }
   }
-  // `it` ships a 12x12 default and a 16x16 drawing, so only its 8x8 is scaled; `in_gold` is drawn
-  // at 16x16 alone, so both its smaller sizes are. Everything else is drawn at every size it shows.
-  assert.deepStrictEqual(generated.sort(), ['patches/in_gold_12x12.png', 'patches/in_gold_8x8.png', 'patches/it_8x8.png']);
+  // `in_gold` is drawn at 16x16 alone, so its 12x12 (what an ordinary cell shows) is scaled.
+  // Everything else is drawn at every size it shows.
+  assert.deepStrictEqual(generated.sort(), ['patches/in_gold_12x12.png']);
 });
 
 test('downscale votes by area, breaks ties to the rarer colour, and keeps the source palette', () => {
@@ -485,7 +487,7 @@ test('a patch with nothing painted on it says so, rather than blaming the cell',
   // the catalogue, and every cell it could go on would otherwise report "lands entirely off".
   const blank = {file: 'patches/blank_probe.png', w: 12, h: 12, default: true, generated: false};
   const patch = {id: 'blank_probe', name: 'Blank probe', seat: false, w: 12, h: 12,
-    arts: [blank], fits: {over: blank.file, clipped: blank.file, filled: blank.file}};
+    arts: [blank], fits: {over: blank.file, filled: blank.file}};
   m.patches.push(patch);
   m.patchById[patch.id] = patch;
   m.artByFile[blank.file] = blank;
@@ -535,25 +537,21 @@ test('a BODY placement reaches both textures and a limb one only its own', () =>
   assert.strictEqual(changed(base.B, sleeve.B), 0, 'the right sleeve patch reached B');
 });
 
-test('a side cell is composed through the squeeze and a top-face cell flat', () => {
+test('a cell is composed through the squeeze, not laid on flat', () => {
   const ctx = context();
   const m = ctx.m;
   const t = OVVAR.tex;
   const W = m.texture[0], H = m.texture[1];
   const patch = m.patchById.itk;
-  // A side cell (the back) bends round the box's corners, so its art is baked through
-  // placedWrapped; a top-face cell (a shoulder) is not on the strip's perimeter and stays flat.
-  const cases = [['back_big', OVVAR.compose.placedWrapped], ['shoulder_r', OVVAR.compose.placed]];
-  for (const [id, placer] of cases) {
-    const cell = m.cellById[id];
-    const drawn = OVVAR.compose.placementArt(ctx, cell, patch, cell.side);
-    const want = t.blit(ctx.base('data', 'top', false), placer(m, cell, drawn.art, drawn.x), 0, 0, W, H, 0, 0);
-    const got = OVVAR.compose.composePiece(ctx, 'top',
-      {chapter: 'data', nercabbad: false, placements: [{cell: id, patch: 'itk'}]}).A;
-    assert.deepStrictEqual(t.diff(want, got, []), [], id);
-    // ... and the other placer would have given a different picture, so this pins the choice.
-    const other = (placer === OVVAR.compose.placed ? OVVAR.compose.placedWrapped : OVVAR.compose.placed)(m, cell, drawn.art, drawn.x);
-    assert.ok(other === null || t.diff(t.blit(ctx.base('data', 'top', false), other, 0, 0, W, H, 0, 0), got, []).length > 0,
-      id + ': the two placers agree, so this test proves nothing');
-  }
+  // A cell (the back) bends round the box's corners, so its art is baked through placedWrapped.
+  const cell = m.cellById.back_big;
+  const drawn = OVVAR.compose.placementArt(ctx, cell, patch, cell.side);
+  const want = t.blit(ctx.base('data', 'top', false), OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x), 0, 0, W, H, 0, 0);
+  const got = OVVAR.compose.composePiece(ctx, 'top',
+    {chapter: 'data', nercabbad: false, placements: [{cell: 'back_big', patch: 'itk'}]}).A;
+  assert.deepStrictEqual(t.diff(want, got, []), [], 'back_big');
+  // ... and laying it on flat would have given a different picture, so this pins the choice.
+  const flat = OVVAR.compose.placed(m, cell, drawn.art, drawn.x);
+  assert.ok(t.diff(t.blit(ctx.base('data', 'top', false), flat, 0, 0, W, H, 0, 0), got, []).length > 0,
+    'back_big: flat and squeezed agree, so this test proves nothing');
 });
