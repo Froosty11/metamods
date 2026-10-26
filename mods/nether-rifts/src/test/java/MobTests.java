@@ -23,8 +23,10 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.RiftItems;
+import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.raid.RiftMobs;
 import se.metacraft.nether_rifts.raid.Slot;
 import se.metacraft.nether_rifts.rift.RiftBlocks;
@@ -32,6 +34,26 @@ import se.metacraft.core.item.METAcraftCreativeTab;
 import se.metacraft.core.item.SpawnEggsCreativeTab;
 
 public class MobTests {
+
+	/** What a roster that still gives its ghasts and support a crossbow rider, or its support a strider, would say; the defaults no longer do. */
+	static final String RIDDEN_GHAST = "{id:\"minecraft:ghast\",IgnoreYCheck:1b,Passengers:[{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:crossbow\",count:1}}}]}";
+	static final String RIDDEN_STRIDER = "{id:\"minecraft:strider\",attributes:[{id:\"minecraft:movement_speed\",base:0.25d}],"
+			+ "Passengers:[{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:crossbow\",count:1}}}]}";
+
+	/** A mob of this entity NBT, enlisted in the rift in the slot's role as if its roster entry had said so: for what only a configured roster brings. */
+	static List<net.minecraft.world.entity.Entity> spawnConfigured(net.minecraft.gametest.framework.GameTestHelper ctx, UUID rift, Slot slot, String snbt, BlockPos pos) {
+		var spawned = new ArrayList<net.minecraft.world.entity.Entity>();
+		try {
+			se.metacraft.portalopening.raid.MobEntry.EntityEntry.fromData(net.minecraft.nbt.TagParser.parseCompoundFully(snbt))
+					.spawnMobFromNBT(ctx.getLevel(), pos, entity -> {
+						RiftMobs.enlist(entity, rift, slot);
+						spawned.add(entity);
+					});
+		} catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+			throw new AssertionError("bad test entity " + snbt, e);
+		}
+		return spawned;
+	}
 
 	static void registerTests() {
 		NetherRiftsTests.register("mobs/rules_applied", ctx -> {
@@ -56,10 +78,10 @@ public class MobTests {
 		});
 		NetherRiftsTests.register("mobs/rift_strider_stays_warm", ctx -> {
 			// Off lava in the overworld a strider goes cold and slows; a rift's doesn't, walks faster than one, and its
-			// crossbow piglin steers it.
+			// crossbow piglin steers it. The defaults bring no striders now: this one is a configured roster's.
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
-				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.SUPPORT, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO);
+				var spawned = spawnConfigured(ctx, FormingTests.riftIn(ctx).id(), Slot.SUPPORT, RIDDEN_STRIDER, ctx.absolutePos(new BlockPos(10, 1, 12)));
 				var strider = (net.minecraft.world.entity.monster.Strider) spawned.stream()
 						.filter(e -> e instanceof net.minecraft.world.entity.monster.Strider).findFirst()
 						.orElseThrow(() -> new AssertionError("no strider in " + spawned));
@@ -76,24 +98,142 @@ public class MobTests {
 				});
 			});
 		});
-		NetherRiftsTests.register("mobs/general_is_big_and_tough", ctx -> {
+		NetherRiftsTests.register("mobs/support_rides_hoglins", ctx -> {
+			// The default support slot is a hoglin with a rider: a spear piglin, who steers it, or a Piglin Drummer, who only
+			// drums while the hoglin goes its own way. No striders.
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
-				var general = (net.minecraft.world.entity.LivingEntity) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
-						ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
-				ctx.assertTrue(general.getMaxHealth() == 300 && general.getHealth() == 300, "the General has " + general.getHealth() + " / " + general.getMaxHealth());
-				ctx.assertTrue(general.getScale() == 1.5f, "the General is at scale " + general.getScale());
-				ctx.assertTrue(general.getArmorValue() == 16, "the General has armour " + general.getArmorValue());
+				var rift = FormingTests.riftIn(ctx);
+				var mounts = new ArrayList<Hoglin>();
+				for (int i = 0; i < 24; i++) {
+					var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.SUPPORT, ctx.absolutePos(new BlockPos(6 + i % 12, 1, 8 + i / 12 * 8)), Vec3.ZERO);
+					ctx.assertTrue(spawned.size() == 2, "the support slot brought " + spawned);
+					ctx.assertFalse(spawned.stream().anyMatch(e -> e instanceof net.minecraft.world.entity.monster.Strider), "a strider came: " + spawned);
+					var hoglin = spawned.stream().filter(e -> e instanceof Hoglin).map(e -> (Hoglin) e).findFirst().orElseThrow(() -> new AssertionError("no hoglin in " + spawned));
+					ctx.assertTrue(hoglin.getPassengers().size() == 1, "the hoglin has riders " + hoglin.getPassengers());
+					var rider = hoglin.getPassengers().getFirst();
+					ctx.assertTrue(RiftMobs.isRiftMob(hoglin) && RiftMobs.isRiftMob(rider), "the rift's rules aren't on " + spawned);
+					if (rider instanceof WarDrummer) {
+						ctx.assertTrue(hoglin.getControllingPassenger() == null, "the Drummer steers its hoglin");
+					} else {
+						ctx.assertTrue(rider instanceof Piglin p && !p.isBaby() && p.getMainHandItem().is(Items.GOLDEN_SPEAR), "the rider is " + rider);
+						ctx.assertTrue(hoglin.getControllingPassenger() == rider, "the spear piglin doesn't steer its hoglin: " + hoglin.getControllingPassenger());
+					}
+					mounts.add(hoglin);
+				}
+				ctx.assertTrue(mounts.stream().anyMatch(h -> h.getFirstPassenger() instanceof WarDrummer), "24 picks and no Drummer");
+				ctx.assertTrue(mounts.stream().anyMatch(h -> h.getFirstPassenger() instanceof Piglin), "24 picks and no spear piglin");
+				// and still ridden a while on
+				ctx.runAfterDelay(20, () -> {
+					for (var hoglin : mounts) {
+						ctx.assertTrue(hoglin.isAlive() && hoglin.getPassengers().size() == 1 && hoglin.getFirstPassenger().getVehicle() == hoglin,
+								"the rider got off: " + hoglin.getPassengers());
+						// both kinds sit as low as an adult piglin on a hoglin: the hoglin's passenger point less the seat
+						var rider = hoglin.getFirstPassenger();
+						ctx.assertTrue(rider.getVehicleAttachmentPoint(hoglin).distanceTo(WarDrummer.HOGLIN_SEAT) < 1e-3,
+								"the " + rider.getType().toShortString() + "'s seat is " + rider.getVehicleAttachmentPoint(hoglin));
+						double sitsAt = rider.getY() - hoglin.getY();
+						ctx.assertTrue(Math.abs(sitsAt - 0.79375) < 0.05, "the " + rider.getType().toShortString() + " sits " + sitsAt + " above its hoglin");
+					}
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/spear_piglin_rides_at_player", ctx -> {
+			// A spear piglin on a hoglin keeps its seat and its target, and the pair closes on a player.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var player = StageTests.player(ctx);
+				var spot = ctx.absolutePos(new BlockPos(18, 1, 12));
+				player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+				var from = ctx.absolutePos(new BlockPos(8, 1, 12));
+				var spawned = spawnConfigured(ctx, FormingTests.riftIn(ctx).id(), Slot.SUPPORT,
+						"{id:\"minecraft:hoglin\",Passengers:[{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:golden_spear\",count:1}}}]}", from);
+				var hoglin = (Hoglin) spawned.stream().filter(e -> e instanceof Hoglin).findFirst().orElseThrow();
+				var rider = (Piglin) hoglin.getFirstPassenger();
+				double before = hoglin.distanceTo(player);
+				ctx.runAfterDelay(60, () -> {
+					ctx.assertTrue(hoglin.isAlive() && rider.isAlive(), "one of the pair died");
+					ctx.assertTrue(rider.getVehicle() == hoglin, "the spear piglin got off its hoglin");
+					ctx.assertTrue(hoglin.distanceTo(player) < before - 2, "the pair went from " + before + " to " + hoglin.distanceTo(player) + " blocks of the player");
+					ctx.assertTrue(rider.getTarget() == player || rider.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).isPresent(),
+							"the spear piglin has no target: " + rider.getTarget());
+					StageTests.remove(ctx, player);
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/heavy_ghast_has_no_rider", ctx -> {
+			// The default heavy slot is a ghast on its own; a chained ghast replaces it in a large raid's late waves.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(12, 6, 12)), Vec3.ZERO);
+				ctx.assertTrue(spawned.size() == 1 && spawned.getFirst() instanceof Ghast ghast && ghast.getPassengers().isEmpty(),
+						"the heavy slot brought " + spawned);
+				ctx.assertTrue(RiftMobs.isRiftMob(spawned.getFirst()), "the ghast isn't the rift's");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();
 			});
 		});
-		NetherRiftsTests.register("mobs/rift_ghast_rider_glides_down", ctx -> {
-			// A rift ghast fires at players above and below it (IgnoreYCheck), and when it dies its piglin glides down.
+		NetherRiftsTests.register("mobs/general_is_big_and_tough", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
-				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(12, 6, 12)), Vec3.ZERO);
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
+						ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				ctx.assertTrue(spawned instanceof PiglinGeneral, "the Captain's slot spawned " + spawned);
+				var general = (PiglinGeneral) spawned;
+				ctx.assertTrue(general.getMaxHealth() == 300 && general.getHealth() == 300, "the General has " + general.getHealth() + " / " + general.getMaxHealth());
+				ctx.assertTrue(general.getArmorValue() == 16, "the General has armour " + general.getArmorValue());
+				ctx.assertTrue(Math.abs(general.getBbHeight() - 3.3f) < 0.05f, "the General is " + general.getBbHeight() + " tall");
+				ctx.assertTrue(general.isImmuneToZombification(), "the General can turn zombie");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/general_never_turns_zombie", ctx -> {
+			// A General of no rift (spawn egg, /summon) stays himself in the overworld, where a piglin turns zombie after 300 ticks.
+			// penned in, so he can't walk after a neighbouring test's player out of the room
+			for (int dx = -2; dx <= 2; dx++) {
+				for (int dz = -2; dz <= 2; dz++) {
+					if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
+						for (int y = 1; y <= 4; y++) {
+							ctx.setBlock(new BlockPos(12 + dx, y, 12 + dz), Blocks.BARRIER);
+						}
+					}
+				}
+			}
+			var general = RiftEntities.PIGLIN_GENERAL.create(ctx.getLevel(), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE);
+			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
+			general.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			general.finalizeSpawn(ctx.getLevel(), ctx.getLevel().getCurrentDifficultyAt(at), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE, null);
+			// no player of this test is near him: a monster with only far players (other tests', over 128 blocks off) despawns
+			general.setPersistenceRequired();
+			ctx.getLevel().addFreshEntity(general);
+			ctx.assertFalse(RiftMobs.isRiftMob(general), "a summoned General belongs to a rift: the test proves nothing");
+			ctx.assertTrue(general.isImmuneToZombification(), "a summoned General can turn zombie");
+			ctx.runAtTickTime(330, () -> {
+				ctx.assertTrue(ctx.getEntities(EntityTypes.ZOMBIFIED_PIGLIN).isEmpty(), "the summoned General turned zombie");
+				ctx.assertTrue(general.isAlive() && !general.isRemoved(), "the summoned General is gone: " + general.getRemovalReason()
+						+ ", health " + general.getHealth() + ", difficulty " + ctx.getLevel().getDifficulty() + ", at " + general.blockPosition().toShortString());
+				ctx.killAllEntities();
+				for (var pos : BlockPos.betweenClosed(new BlockPos(10, 1, 10), new BlockPos(14, 4, 14))) {
+					ctx.setBlock(pos, Blocks.AIR);
+				}
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/rift_ghast_rider_glides_down", ctx -> {
+			// A rift ghast fires at players above and below it (IgnoreYCheck), and when it dies its piglin glides down.
+			// The default ghast has no rider: this one is a configured roster's.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = spawnConfigured(ctx, FormingTests.riftIn(ctx).id(), Slot.HEAVY, RIDDEN_GHAST, ctx.absolutePos(new BlockPos(12, 6, 12)));
 				var ghast = (Ghast) spawned.stream().filter(e -> e instanceof Ghast).findFirst().orElseThrow(() -> new AssertionError("no ghast in " + spawned));
 				var rider = (Piglin) spawned.stream().filter(e -> e instanceof Piglin).findFirst().orElseThrow(() -> new AssertionError("no rider in " + spawned));
 				var saved = net.minecraft.world.level.storage.TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING, ctx.getLevel().registryAccess());
@@ -107,11 +247,11 @@ public class MobTests {
 			});
 		});
 		NetherRiftsTests.register("mobs/no_boat_traps", ctx -> {
-			// A rift mob won't stay in a boat (PreventEnterVehicle); a strider's rider still rides it.
+			// A rift mob won't stay in a boat (PreventEnterVehicle); a strider's rider (a configured roster's) still rides it.
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
 				var piglin = (Piglin) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
-				var strider = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.SUPPORT, ctx.absolutePos(new BlockPos(14, 1, 12)), Vec3.ZERO).stream()
+				var strider = spawnConfigured(ctx, FormingTests.riftIn(ctx).id(), Slot.SUPPORT, RIDDEN_STRIDER, ctx.absolutePos(new BlockPos(14, 1, 12))).stream()
 						.filter(e -> e instanceof net.minecraft.world.entity.monster.Strider).findFirst().orElseThrow();
 				var boat = ctx.spawn(EntityTypes.OAK_BOAT, new BlockPos(10, 1, 10));
 				ctx.assertTrue(piglin.startRiding(boat, true, false), "the piglin couldn't be put in the boat");
@@ -190,7 +330,8 @@ public class MobTests {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
 				var rift = FormingTests.riftIn(ctx);
-				var spawned = RiftMobs.spawn(ctx.getLevel(), rift.id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(12, 6, 12)), Vec3.ZERO);
+				// a configured roster's ridden ghast: the defaults' has no rider
+				var spawned = spawnConfigured(ctx, rift.id(), Slot.HEAVY, RIDDEN_GHAST, ctx.absolutePos(new BlockPos(12, 6, 12)));
 				var ghast = (Ghast) spawned.stream().filter(e -> e instanceof Ghast).findFirst().orElseThrow();
 				ctx.assertTrue(ghast.getFirstPassenger() instanceof Piglin, "the rift ghast has no piglin rider");
 				ctx.assertTrue(ghast.getControllingPassenger() == null, "the rider steers the rift ghast");
@@ -205,7 +346,8 @@ public class MobTests {
 		});
 		NetherRiftsTests.register("mobs/spawn_eggs", ctx -> {
 			for (var egg : List.of(new Object[] {RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftEntities.WAR_DRUMMER},
-					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER})) {
+					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER},
+					new Object[] {RiftItems.PIGLIN_GENERAL_SPAWN_EGG, RiftEntities.PIGLIN_GENERAL})) {
 				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
 				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
 				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
@@ -228,11 +370,12 @@ public class MobTests {
 				} catch (IOException e) {
 					throw new UncheckedIOException(e);
 				}
-				for (var type : List.of(RiftEntities.WAR_DRUMMER, RiftEntities.WAR_GHAST, RiftEntities.GHAST_BOMBARDIER, RiftEntities.MAGMA_BOMB)) {
+				for (var type : List.of(RiftEntities.WAR_DRUMMER, RiftEntities.WAR_GHAST, RiftEntities.GHAST_BOMBARDIER, RiftEntities.MAGMA_BOMB, RiftEntities.PIGLIN_GENERAL)) {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
-				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
+				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG,
+						RiftItems.PIGLIN_GENERAL_SPAWN_EGG)) {
 					ctx.assertTrue(names.has(item.getDescriptionId()), lang + " doesn't name " + item.getDescriptionId());
 				}
 			}
@@ -335,6 +478,91 @@ public class MobTests {
 				ctx.assertTrue(piglin[0].isAlive(), "the rift piglin died");
 				// the check above runs every tick, including after the cleanup kills the hoglins
 				done[0] = true;
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/rift_mobs_spare_each_other", ctx -> {
+			// A rift's mobs can't hurt each other, so none turns on another: a crossbow piglin's blow on its rift's hoglin,
+			// and the hoglin's back, do nothing.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				var hoglin = (Hoglin) spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\"}", ctx.absolutePos(new BlockPos(14, 1, 12))).getFirst();
+				var sources = level.damageSources();
+				ctx.assertFalse(hoglin.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow hurt its rift's hoglin");
+				ctx.assertFalse(piglin.hurtServer(level, sources.mobAttack(hoglin), 4), "the hoglin's blow hurt its rift's piglin");
+				ctx.assertTrue(hoglin.getHealth() == hoglin.getMaxHealth(), "the hoglin is at " + hoglin.getHealth());
+				ctx.assertTrue(piglin.getHealth() == piglin.getMaxHealth(), "the piglin is at " + piglin.getHealth());
+				ctx.assertTrue(hoglin.getLastHurtByMob() == null && piglin.getLastHurtByMob() == null, "one of them counts the other as its attacker");
+				ctx.runAfterDelay(40, () -> {
+					ctx.assertTrue(hoglin.getTarget() != piglin && !hoglin.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, piglin),
+							"the hoglin turned on the piglin");
+					ctx.assertTrue(piglin.getTarget() != hoglin && !piglin.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, hoglin),
+							"the piglin turned on the hoglin");
+					ctx.assertFalse(piglin.getBrain().isMemoryValue(MemoryModuleType.AVOID_TARGET, hoglin), "the piglin is fleeing the hoglin");
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/rift_bolt_flies_through_own_side", ctx -> {
+			// A rift piglin's bolt, shot through its rift's hoglin at a player behind it, flies through the hoglin and hits the player.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var player = StageTests.player(ctx);
+				DrummerTests.ready(player);
+				var spot = ctx.absolutePos(new BlockPos(12, 1, 20));
+				player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(12, 1, 9)), Vec3.ZERO).getFirst();
+				piglin.setNoAi(true);
+				// still, so it stays in the bolt's way and goes for nobody
+				var hoglin = (Hoglin) spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\",NoAI:1b}", ctx.absolutePos(new BlockPos(12, 1, 15))).getFirst();
+				var bolt = new net.minecraft.world.entity.projectile.arrow.Arrow(level, piglin, new ItemStack(Items.ARROW), null);
+				var from = ctx.absolutePos(new BlockPos(12, 1, 11));
+				bolt.setPos(from.getX() + 0.5, from.getY() + 0.9, from.getZ() + 0.5);
+				bolt.shoot(0, 0, 1, 3.0f, 0f);
+				level.addFreshEntity(bolt);
+				ctx.runAfterDelay(10, () -> {
+					try {
+						ctx.assertTrue(hoglin.getHealth() == hoglin.getMaxHealth(), "the bolt hurt its rift's hoglin: " + hoglin.getHealth());
+						var source = player.getLastDamageSource();
+						ctx.assertTrue(source != null && source.getDirectEntity() == bolt, "the bolt didn't hit the player: it is at " + bolt.position()
+								+ "; the player was last hurt by " + (source == null ? null : source.getDirectEntity()));
+					} finally {
+						StageTests.remove(ctx, player);
+						ctx.killAllEntities();
+						FormingTests.cleanUp(ctx);
+					}
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/other_rift_still_hurts", ctx -> {
+			// Sparing is within one rift: a rift piglin's blow still hurts the nether's own hoglin and another rift's.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				piglin.setNoAi(true);
+				var stranger = ctx.spawn(EntityTypes.HOGLIN, new BlockPos(14, 1, 10));
+				stranger.setNoAi(true);
+				var other = spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\",NoAI:1b}", ctx.absolutePos(new BlockPos(14, 1, 14))).getFirst();
+				// another rift's: tagged once in the level, as a rift that doesn't exist would keep it out at load
+				other.setAttached(RiftMobs.RIFT, UUID.randomUUID());
+				var sources = level.damageSources();
+				ctx.assertTrue(stranger.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow didn't hurt a hoglin of no rift");
+				ctx.assertTrue(stranger.getHealth() < stranger.getMaxHealth(), "the hoglin of no rift is at full health");
+				var otherHoglin = (Hoglin) other;
+				ctx.assertTrue(otherHoglin.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow didn't hurt another rift's hoglin");
+				ctx.assertTrue(otherHoglin.getHealth() < otherHoglin.getMaxHealth(), "another rift's hoglin is at full health");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();

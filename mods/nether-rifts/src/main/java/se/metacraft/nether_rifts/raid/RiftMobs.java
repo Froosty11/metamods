@@ -9,6 +9,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -29,6 +30,8 @@ import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mixin.HoglinAccessor;
 import se.metacraft.nether_rifts.mixin.MobAccessor;
 import se.metacraft.nether_rifts.mob.GhastBombardier;
+import se.metacraft.nether_rifts.mob.GhastPart;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.rift.RiftData;
@@ -46,9 +49,6 @@ public final class RiftMobs {
 	public static final AttachmentType<UUID> RIFT = AttachmentRegistry.create(
 			NetherRifts.getID("rift"), builder -> builder.persistent(UUIDUtil.CODEC)
 	);
-
-	/** Entity tag on the Rift Captain's root mob; tags are saved with the mob, so its boss bar survives a restart. */
-	public static final String CAPTAIN_TAG = "nether_rifts.captain";
 
 	private RiftMobs() {}
 
@@ -83,6 +83,30 @@ public final class RiftMobs {
 
 	public static boolean isRiftMob(@Nullable Entity entity) {
 		return entity != null && entity.hasAttached(RIFT);
+	}
+
+	/** The rift an entity fights for: its own, or a Chained Ghast's deck's or crew member's, its ghast's (they aren't tagged). */
+	public static Optional<UUID> sideOf(@Nullable Entity entity) {
+		if (entity instanceof GhastPart part) {
+			entity = part.ghast();
+		}
+		return entity == null ? Optional.empty() : riftOf(entity);
+	}
+
+	/** Both fight for the same rift; false when either is of none. */
+	public static boolean sameRift(@Nullable Entity a, @Nullable Entity b) {
+		var side = sideOf(a);
+		return side.isPresent() && side.equals(sideOf(b));
+	}
+
+	/**
+	 * A hit on the victim from its own side, which never lands: a rift's mobs never hurt each other. The attacker is the
+	 * source's (a projectile's owner); only with none left (a shooter gone) its fireball or bomb, marked with its rift.
+	 * A rift ghast's fireball a player hit back is the player's, so it still hurts the ghast.
+	 */
+	public static boolean spares(Entity victim, DamageSource source) {
+		var attacker = source.getEntity() != null ? source.getEntity() : source.getDirectEntity();
+		return sameRift(victim, attacker);
 	}
 
 	/**
@@ -127,9 +151,6 @@ public final class RiftMobs {
 		entity.setAttached(RIFT, rift);
 		// nobody traps a raid's mobs in a boat or a minecart
 		((EntityExtensions) entity).metacraft_lib$setPreventEnterVehicle(true);
-		if (slot == Slot.CAPTAIN && entity.getVehicle() == null) {
-			entity.addTag(CAPTAIN_TAG);
-		}
 		if (entity instanceof Mob mob) {
 			mob.setPersistenceRequired();
 			mob.setCanPickUpLoot(false);
@@ -149,7 +170,7 @@ public final class RiftMobs {
 	}
 
 	/**
-	 * The drummer, the Bombardier (piglins both, so they are checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
+	 * The drummer, the Bombardier, the General (piglins all, so they are checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
 	 * (a summoned one gets the same from its own table, {@code entities/war_ghast}); ghasts, hoglins and striders
 	 * keep their own.
 	 */
@@ -164,8 +185,11 @@ public final class RiftMobs {
 		if (mob instanceof GhastBombardier) {
 			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/trooper")));
 		}
+		if (mob instanceof PiglinGeneral) {
+			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/captain")));
+		}
 		if (mob instanceof PiglinBrute) {
-			role = slot == Slot.CAPTAIN ? "captain" : "elite";
+			role = "elite";
 		} else if (mob instanceof AbstractPiglin) {
 			role = slot == Slot.LEADER ? "leader" : "trooper";
 		} else {

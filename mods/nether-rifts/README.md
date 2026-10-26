@@ -39,12 +39,37 @@ and in it the bomb's shadow darkening as it comes down (`warn_shadow`); the bomb
 or loot on the ground. When a chained ghast dies, the crew left on it jump off where they stood, with the health they had left, and glide
 down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword in his gloved right hand, then stops every 4 seconds to put the sword away and lob
-a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General, in a large raid's
-last wave (a brute half again as big, with 300 health and armour 16), gets its own red boss bar. A rift's striders keep
-the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
-crossbow piglins steer them. A rift's ghasts fire at players above and below them, not only level with them, and
-their piglins glide down when they die. Rift mobs can't be trapped in boats or minecarts (both through
-metacraft-mob-modifiers). Winning closes the rift and turns its obsidian frame to crying obsidian.
+a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General (a mob of
+his own, by Millia: 3.3 blocks tall with a mace and a war flag on his back, 300 health, armour 16 and full knockback resistance, and he never
+despawns for being far from players: `mobs.general`) is off until a wave lists `captain`, when he comes as the Captain of
+that wave, and gets its own red boss bar. A player who kills him gets a blaze rod, 4 to 8 quartz and, a quarter of the
+time, a piglin banner pattern (his loot isn't settled yet; he drops no head). He fights one move at a time, each told
+before it lands. He walks slowly after the nearest player and, when one is within 4 blocks in front of him, swings his
+mace: he twists back and, about 0.9 seconds after he starts, hits every player within 4.5 blocks and a 120 degree arc in
+front of him for 10 damage and a hard shove, so stepping back or round behind him dodges it. Every 12 seconds (6, if
+something hit him with a projectile in the last 3) and with a player within 10 blocks, he crouches with his arms out for
+a second, a rising wind telling it, and then spins for 3 to 5 seconds, drifting after his target a little faster than he walks.
+Each turn of the spin (about every half second) hurts every player within 3.5 blocks of his centre for 6 damage and throws
+them outward, which takes in anyone swording him from the edge of his box. Any projectile that reaches him while he spins
+(arrows, snowballs, eggs, fireballs, wind charges, potions) is turned round at its shooter's eyes at the speed it came,
+and counts as his, so it hurts the shooter; with no shooter left in the level it flies back the way it came, and a
+trident, a fishing hook and an ender pearl stay their thrower's. After a spin he stands dizzy for 3 seconds, not moving,
+turning or attacking, and takes half again as much damage. The first time his health falls below two thirds and below a
+third he roars (a hit across both queues two, played back to back), standing still for two seconds, and halfway through
+his rift sends his guard through it: half of the large tier's last wave's ranged, melee and elite mobs (rounded down,
+but at least one crossbow piglin and one melee mob), a Piglin Grenadier on foot and a Piglin Drummer riding a hoglin (the
+hoglin steers and charges, and the Drummer drums and gives its beats from the saddle), no ghasts or striders. They belong to
+the raid, so they count toward the wave and must die for it to be won, and each comes at one of the players who have hurt
+him, in turn, or at the player nearest him if none of those is still taking part (none has hurt him, or they've left);
+creative players are passed over. A General with no rift (summoned, or his rift gone) fights the
+nearest player and his roars call nobody. A rift's ghasts come riderless and
+fire at players above and below them, not only level with them. Its support slot brings hoglins ridden by a spear piglin,
+who steers, or by a Piglin Drummer, who only drums. (For a configured roster that gives them riders or striders: a ghast's
+riders glide down when it dies, a rift's striders keep the nether's heat, with no cold or slowing off lava and no harm from
+rain, and a piglin on one steers it.) Rift mobs can't be trapped in boats or minecarts (both through
+metacraft-mob-modifiers). A rift's mobs never hurt each other, and their shots fly through their own side (what the
+General turns back is his, so it flies through his raid's mobs too). Winning closes the rift and turns its obsidian
+frame to crying obsidian.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles
@@ -65,28 +90,46 @@ into the pack (seen working in Complementary Reimagined and Unbound, BSL and Bli
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the Piglin Drummer and the chained ghast's bombing (ranges,
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing), and how often
-and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
+and how far the Grenadier throws on foot. `mobs.general` sets the Piglin General's health, armour, toughness and walking
+speed; the mace swing (`swing_damage`, `swing_reach`, `swing_arc`, `swing_start_range`, `swing_cooldown`); the spin
+(`spin_damage`, `spin_radius`, `spin_min_ticks` and `spin_max_ticks`, `spin_cooldown`, `spin_early_cooldown` after being
+shot and the `spin_early_window` that counts, `spin_range`, and `spin_speed`, how fast he drifts); `dizzy_ticks` and
+`dizzy_damage_taken`; and the roars (`roar_at`, the shares of his health he roars below, `guard_fraction` of the last large
+wave, `guard_grenadiers` and `guard_drummers`). Its `waves` section lists each tier's waves (`small`, `medium`, `large`; 1 to 20
+each), a wave being how many of each slot it brings (`ranged`, `melee`, `heavy`, `support`, `elite`, `leader`, `captain`,
+and the General's guard's `grenadier` and `mounted_drummer`, a Drummer on a hoglin, which `roster` also sets; a slot left
+out counts 0); a tier left out keeps the vanilla table. Each player taking part past the first adds a quarter more
+troopers (ranged and melee) to a wave, up to twice as many (`trooper_scaling_per_player`, `trooper_scaling_cap`); heavy,
+support and elite mobs grow the same way only from the fifth player on (`elite_scaling_from`, `elite_scaling_per_player`,
+`elite_scaling_cap`), so a large raid's later waves bring more Chained Ghasts too. The Piglin General is off by default: add `captain: 1` to a large
+wave (the last) to bring him in. `tiers.medium_max: 441` holds back large rifts.
+`/rifts reload` takes the new `waves` from the next wave; if it shortens a running raid's list, the raid ends with victory
+after its current wave. The General's move numbers in `mobs.general` apply at once, his health, armour and speed to
+Generals that come after. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
 
 To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
 animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin
 Grenadier with his gloved sword and two held mid-throw (the bomb in his fist, then let go), a vanilla piglin in iron,
-and behind them a Chained Ghast per animation (idle, shoot, dive, climb, drop_bomb; each looping it, kit and diamond
+behind them a Piglin General per animation but his death (idle, walk, attack, spin_windup, spin, dizzy, roar; each
+looping it, with none of his fight) and a Piglin Drummer beating on a hoglin's back, and behind those a Chained Ghast per animation (idle, shoot, dive, climb, drop_bomb; each looping it, kit and diamond
 armour), each named. They stand still and silent, can't be hurt and never despawn. `/rifts showcase clear`
 takes them away; a new `/rifts showcase` replaces the last.
 
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and
 metacraft-lib's fail in a fresh checkout until its data is generated, so run
-`./gradlew :mods:metacraft-lib:runDatagen` once first. Or skip the dependencies' tests:
+`./gradlew :mods:metacraft-lib:runDatagen` once first. The game test server also won't start until portable-jukebox's
+data is generated (the drummers' loot names its `piglin_drop` table), so run `./gradlew :mods:portable-jukebox:runDatagen`
+once too. Or skip the dependencies' tests:
 
 ```
-./gradlew :mods:nether-rifts:test -x :mods:portal-blocker:test -x :mods:portal-opening:test -x :mods:simple-custom-features:test -x :mods:metacraft-zones:test -x :mods:metacraft-core:test -x :mods:metacraft-config:test -x :mods:metacraft-lib:test
+./gradlew :mods:nether-rifts:test -x :mods:portal-blocker:test -x :mods:portal-opening:test -x :mods:simple-custom-features:test -x :mods:metacraft-zones:test -x :mods:metacraft-core:test -x :mods:metacraft-config:test -x :mods:metacraft-lib:test -x :mods:portable-jukebox:test
 ```
 
 Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
 
-The mob models in `src/main/resources/model/nether_rifts/`, the Piglin Drummer and the Chained Ghast with its crew,
-and the Grenadier's goggles and glove, are by Millia, brought in by re-runnable imports that
-fit them to how BIL (or the item model format) plays them. The Chained Ghast's, goggles' and glove's source files are in
+The mob models in `src/main/resources/model/nether_rifts/`, the Piglin Drummer, the Chained Ghast with its crew,
+the Piglin General, and the Grenadier's goggles and glove, are by Millia, brought in by re-runnable imports that
+fit them to how BIL (or the item model format) plays them. The Chained Ghast's, Piglin General's, goggles' and glove's source files are in
 `blockbench/delivered/` (`blockbench/README.md`). `python3 tools/import_drummer.py <artist's .bbmodel>` does the Piglin Drummer: adds
 the gear markers and the armour pieces (vanilla's piglin armour cubes, in the bones they cover), and writes the
 armour's item models for each vanilla material (`assets/nether_rifts/{models/item,items}/war_drummer/armour/`) with an
@@ -97,6 +140,10 @@ Chained Ghast: takes the texture PNG, puts the ghast's body on the entity's box 
 layers, the goggles and the bomb pile into their parts, adds the markers the crew jump off at (the artist marks where
 the gear goes), the spear piglin's armour (`…/war_ghast/armour/`), and gives each animation idle's tracks for the
 bones it doesn't move (BIL plays one animation at a time, over every bone); both share `tools/piglin_armour.py`.
+`python3 -I tools/import_general.py blockbench/delivered/piglin_general.bbmodel src/main/resources/model/nether_rifts/piglin_general.bbmodel`
+does the Piglin General: scales the geometry 1.5x (`PiglinGeneral.MODEL_SCALE`), drops the artist's reference pose, gives
+each animation idle's first pose for the bones it doesn't key, and splits the root's 0 to 360 degree turns in `spin` and
+`dizzy` into quarter turns (BIL's quaternions read a full turn as none).
 `tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. What clients hit on a BIL
 mob or a crew member is an invisible piglin (a ghast for the Chained Ghast) as tall as its box (`HitStandIn`), so the
 crosshair shows its attack indicator as over a vanilla mob; the interaction BIL would have them hit goes to them zero wide. The Grenadier on foot has

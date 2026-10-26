@@ -32,23 +32,46 @@ import java.util.function.Supplier;
 /** Every nether-rifts game test, on one test server (registries freeze after the first init). */
 public class NetherRiftsTests {
 
-	/** FAST names blocks, so the registries must be bootstrapped before this class's other statics run. */
+	/** The registries must be bootstrapped before {@link #init} writes the roster file with the roster's codec. */
 	static {
 		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
-	/** Short timers and ranges, so raids finish inside a test and neighbouring tests' players don't take part. */
-	public static final NetherRiftsConfig FAST = new NetherRiftsConfig(
-			NetherRiftsConfig.Tiers.DEFAULT,
-			new NetherRiftsConfig.Timers(40, 20, 100, 60),
-			new NetherRiftsConfig.Ranges(10, 10, 16),
-			100, 0.25, 2.0,
-			NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
-			NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.DEFAULT.mobs()
-	);
+	/**
+	 * Short timers and ranges, so raids finish inside a test and neighbouring tests' players don't take part. Set once
+	 * the mods are initialised, before any test registers: building the config's codec checks the default roster's
+	 * entity ids (metacraft-config), so the config class mustn't load before the mod's entities are registered.
+	 */
+	public static NetherRiftsConfig FAST;
+
+	private static NetherRiftsConfig fast() {
+		return new NetherRiftsConfig(
+				NetherRiftsConfig.Tiers.DEFAULT,
+				new NetherRiftsConfig.Timers(40, 20, 100, 60),
+				new NetherRiftsConfig.Ranges(10, 10, 16),
+				100, 0.25, 2.0, 4, 0.25, 2.0,
+				NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
+				NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.Waves.DEFAULT, NetherRiftsConfig.DEFAULT.mobs()
+		);
+	}
 
 	private static boolean initialised = false;
+
+	/** The config as the mod loaded it in its own init, from {@link #writeRosterAtInit}'s file. */
+	private static NetherRiftsConfig loadedAtInit;
+
+	/**
+	 * A config file of only a roster, with the Piglin General in the elite slot: one of the mod's own mobs where the
+	 * default is a vanilla one, so it's seen whether the entry survives the config's load during the mod's init.
+	 * Written with the roster's codec alone, which leaves the config class unloaded.
+	 */
+	private static void writeRosterAtInit() {
+		var roster = Roster.CODEC.encodeStart(JsonOps.INSTANCE, java.util.Map.of(Slot.ELITE, Roster.DEFAULT.get(Slot.CAPTAIN))).getOrThrow();
+		var json = new com.google.gson.JsonObject();
+		json.add("roster", roster);
+		writeConfigFile(json.toString());
+	}
 
 	@BeforeAll
 	public static synchronized void init() {
@@ -57,8 +80,11 @@ public class NetherRiftsTests {
 		}
 		initialised = true;
 		writeScfPortal();
+		// written, not loaded: the mod's init loads it
+		writeRosterAtInit();
 		TestHelper.init(
 				() -> {
+					FAST = fast();
 					registerTestCommands();
 					ModeTests.registerTests();
 					ShapeTests.registerTests();
@@ -76,13 +102,16 @@ public class NetherRiftsTests {
 					GhastFlightTests.registerTests();
 					GhastTacticsTests.registerTests();
 					ShowcaseTests.registerTests();
-					CaptainTests.registerTests();
 					HeldItemsTests.registerTests();
 					ArmourTests.registerTests();
+					GeneralTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new, PortableJukebox::new
 		);
+		loadedAtInit = NetherRiftsConfig.getInstance();
+		// the tests start from the defaults; each one's environment sets its own
+		writeConfig(NetherRiftsConfig.DEFAULT);
 	}
 
 	public static void register(String path, Consumer<GameTestHelper> test) {
@@ -109,14 +138,20 @@ public class NetherRiftsTests {
 	}
 
 	public static void writeConfig(NetherRiftsConfig config) {
-		var json = NetherRiftsConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow();
+		writeConfigFile(NetherRiftsConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow().toString());
+		NetherRiftsConfig.reload();
+	}
+
+	/** Rewrites the real config file, without reloading it. */
+	private static void writeConfigFile(String json) {
+		// the config class's path, without loading the class (see FAST)
+		var path = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve(NetherRifts.MODID + ".json5");
 		try {
-			Files.createDirectories(NetherRiftsConfig.PATH.getParent());
-			Files.writeString(NetherRiftsConfig.PATH, json.toString());
+			Files.createDirectories(path.getParent());
+			Files.writeString(path, json);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
-		NetherRiftsConfig.reload();
 	}
 
 	/** {@code riftstest <preset>}: rewrites the real config file and reloads it. Test environments call it. */
@@ -127,32 +162,34 @@ public class NetherRiftsTests {
 						.then(preset("default", () -> NetherRiftsConfig.DEFAULT))
 						.then(preset("cap_one", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), 1, FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.mobs()
+								FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+								FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("scf", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(), FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(),
-								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.mobs()
+								FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+								FAST.frameCollapse(), java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("roster_partial", () -> {
 							var roster = new java.util.HashMap<>(Roster.DEFAULT);
 							roster.remove(Slot.HEAVY);
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
-									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), roster, FAST.mobs());
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+									FAST.frameCollapse(), FAST.scfNetherPortalTypes(), roster, FAST.waves(), FAST.mobs());
 						}))
 						.then(preset("drummer_short", () -> {
 							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
 							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength(),
 									d.shockDamage(), d.naturalChance());
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
-									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), FAST.roster(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+									FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier(), FAST.mobs().general()));
 						}))
 						.then(preset("drummer_natural", () -> naturalChance(1)))
 						.then(preset("drummer_never", () -> naturalChance(0)))
 						.then(preset("crossbow_never", () -> crossbowEvery(0)))
 						.then(preset("tactics_fast", NetherRiftsTests::tacticsFast))
+						.then(preset("captain_on", NetherRiftsTests::captainOn))
 		));
 	}
 
@@ -163,7 +200,24 @@ public class NetherRiftsTests {
 		var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), d.buffRange(), d.buffTicks(), d.shockRange(),
 				d.shockStrength(), d.shockDamage(), chance);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier(), c.mobs().general()));
+	}
+
+	/** FAST, with the Piglin General in the last large wave. */
+	static NetherRiftsConfig captainOn() {
+		var large = new java.util.ArrayList<>(FAST.waves().large());
+		var last = new java.util.HashMap<>(large.getLast());
+		last.put(Slot.CAPTAIN, 1);
+		large.set(large.size() - 1, last);
+		return withWaves(FAST, new NetherRiftsConfig.Waves(FAST.waves().small(), FAST.waves().medium(), large));
+	}
+
+	/** The config with these waves instead. */
+	static NetherRiftsConfig withWaves(NetherRiftsConfig c, NetherRiftsConfig.Waves waves) {
+		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), waves, c.mobs());
 	}
 
 	/** The Chained Ghast's tactics turned quicker (shorter cooldowns and rests, 3 bombs a run), so a test sees a few rounds. */
@@ -174,7 +228,8 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = NetherRiftsConfig.BombardierTuning.DEFAULT.withTactics(RUN_COOLDOWN_FAST, TACTICS_FAST);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier, c.mobs().general()));
 	}
 
 	/** The defaults, with the Chained Ghast's crossbow piglin shooting this often. */
@@ -183,7 +238,8 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = b.withCrew(new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(), b.crew().hitboxHeight()));
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier, c.mobs().general()));
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> preset(String name, Supplier<NetherRiftsConfig> config) {
@@ -191,6 +247,16 @@ public class NetherRiftsTests {
 			writeConfig(config.get());
 			return 1;
 		});
+	}
+
+	/** A roster naming the mod's own mobs loads with them, though the config loads in the mod's init. */
+	@Test
+	public void rosterOfOwnMobsLoadsAtInit() {
+		var ids = loadedAtInit.rosterEntry(Slot.ELITE).mobs().unwrap().stream()
+				.map(weighted -> weighted.value().data().getStringOr("id", ""))
+				.toList();
+		org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("nether_rifts:piglin_general"), ids,
+				"the elite slot as the mod's init loaded it");
 	}
 
 	@Test

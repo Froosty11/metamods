@@ -18,11 +18,14 @@ import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.raid.Roster;
 import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.rift.Tier;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.util.CommentCodec;
 import se.metacraft.portalopening.raid.MobEntry;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,8 +34,9 @@ import java.util.Optional;
 public record NetherRiftsConfig(
 		Tiers tiers, Timers timers, Ranges ranges, int activeRaidCap,
 		double trooperScalingPerPlayer, double trooperScalingCap,
+		int eliteScalingFrom, double eliteScalingPerPlayer, double eliteScalingCap,
 		Map<Block, Block> frameCollapse, List<Identifier> scfNetherPortalTypes,
-		Map<Slot, MobEntry> roster, Mobs mobs
+		Map<Slot, MobEntry> roster, Waves waves, Mobs mobs
 ) {
 
 	public record Tiers(int smallMax, int mediumMax) {
@@ -334,8 +338,203 @@ public record NetherRiftsConfig(
 		}
 	}
 
-	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier) {
-		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT);
+	/**
+	 * Each tier's waves, in order: how many of each slot a wave brings (a slot left out brings none). The defaults are
+	 * vanilla 26.3's raid table, the same first waves for every tier, with a leader from wave 2. No captain: the General
+	 * comes only where a wave lists him.
+	 */
+	public record Waves(List<Map<Slot, Integer>> small, List<Map<Slot, Integer>> medium, List<Map<Slot, Integer>> large) {
+		/** At most this many waves a tier. */
+		public static final int MAX_WAVES = 20;
+
+		/** Vanilla's rows, wave 1 first: ranged, melee, heavy, support, elite. */
+		private static final int[][] VANILLA = {
+				{4, 0, 0, 0, 0}, {3, 2, 0, 0, 0}, {3, 0, 1, 0, 0}, {4, 1, 0, 3, 0}, {4, 4, 1, 0, 1}, {4, 2, 0, 0, 1}, {2, 5, 2, 1, 2}
+		};
+		private static final Slot[] ROW = {Slot.RANGED, Slot.MELEE, Slot.HEAVY, Slot.SUPPORT, Slot.ELITE};
+
+		public static final Waves DEFAULT = new Waves(vanilla(3), vanilla(5), vanilla(7));
+
+		private static List<Map<Slot, Integer>> vanilla(int waves) {
+			var list = new ArrayList<Map<Slot, Integer>>();
+			for (int wave = 1; wave <= waves; wave++) {
+				var counts = new EnumMap<Slot, Integer>(Slot.class);
+				for (int i = 0; i < ROW.length; i++) {
+					if (VANILLA[wave - 1][i] > 0) {
+						counts.put(ROW[i], VANILLA[wave - 1][i]);
+					}
+				}
+				if (wave >= 2) {
+					counts.put(Slot.LEADER, 1);
+				}
+				list.add(counts);
+			}
+			return List.copyOf(list);
+		}
+
+		private static Codec<List<Map<Slot, Integer>>> tier(String name) {
+			return Codec.unboundedMap(Slot.CODEC, Codec.intRange(0, 100)).listOf().validate(list -> list.isEmpty() || list.size() > MAX_WAVES
+					? DataResult.error(() -> "waves: " + name + " must have 1 to " + MAX_WAVES + " waves, not " + list.size())
+					: DataResult.success(list));
+		}
+
+		public static final Codec<Waves> CODEC = RecordCodecBuilder.create(i -> i.group(
+				Sections.section("small", tier("small"), DEFAULT.small()).forGetter(Waves::small),
+				Sections.section("medium", tier("medium"), DEFAULT.medium()).forGetter(Waves::medium),
+				Sections.section("large", tier("large"), DEFAULT.large()).forGetter(Waves::large)
+		).apply(i, Waves::new));
+
+		public List<Map<Slot, Integer>> of(Tier tier) {
+			return switch (tier) {
+				case SMALL -> small;
+				case MEDIUM -> medium;
+				case LARGE -> large;
+			};
+		}
+	}
+
+	/**
+	 * The Piglin General, the Captain: his stats, and his moves one at a time (a mace swing, a spin that ends dizzy, and a
+	 * roar for reinforcements). Ticks (20 a second), blocks and degrees. Each move's keys sit flat in the general section
+	 * ({@code swing_...}, {@code spin_...}): its own record only because a codec takes at most 16 fields.
+	 */
+	public record GeneralTuning(double health, double armour, double toughness, double speed, Swing swing, Spin spin,
+			int dizzyTicks, double dizzyDamageTaken, Roar roar) {
+
+		/** The mace swing, his melee: a wide arc in front of him. */
+		public record Swing(float damage, double reach, double arc, double startRange, int cooldown) {
+			public static final Swing DEFAULT = new Swing(10, 4.5, 120, 4, 20);
+			public static final MapCodec<Swing> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("swing_damage", Codec.floatRange(0, 100), DEFAULT.damage()),
+							"The swing's damage to each player it reaches (2 = one heart)."
+					).forGetter(Swing::damage),
+					CommentCodec.comment(
+							Sections.section("swing_reach", Codec.doubleRange(0, 16), DEFAULT.reach()),
+							"It reaches players this many blocks from him."
+					).forGetter(Swing::reach),
+					CommentCodec.comment(
+							Sections.section("swing_arc", Codec.doubleRange(0, 360), DEFAULT.arc()),
+							"The arc in front of him it sweeps, in degrees."
+					).forGetter(Swing::arc),
+					CommentCodec.comment(
+							Sections.section("swing_start_range", Codec.doubleRange(0, 16), DEFAULT.startRange()),
+							"He swings at a target this many blocks off or closer."
+					).forGetter(Swing::startRange),
+					CommentCodec.comment(
+							Sections.section("swing_cooldown", Codec.intRange(0, 1200), DEFAULT.cooldown()),
+							"Ticks from the end of a swing till the next can start."
+					).forGetter(Swing::cooldown)
+			).apply(i, Swing::new));
+		}
+
+		/** The spin: a whirlwind that hurts players round him, turns projectiles back, and leaves him dizzy. */
+		public record Spin(float damage, double radius, int minTicks, int maxTicks, int cooldown, int earlyCooldown, int earlyWindow,
+				double range, double speed) {
+			public static final Spin DEFAULT = new Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.33);
+			public static final MapCodec<Spin> MAP_CODEC = RecordCodecBuilder.<Spin>mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("spin_damage", Codec.floatRange(0, 100), DEFAULT.damage()),
+							"Each turn of the spin hurts every player within spin_radius this much (2 = one heart)."
+					).forGetter(Spin::damage),
+					CommentCodec.comment(
+							Sections.section("spin_radius", Codec.doubleRange(0, 16), DEFAULT.radius()),
+							"The spin reaches players this many blocks from his centre."
+					).forGetter(Spin::radius),
+					CommentCodec.comment(
+							Sections.section("spin_min_ticks", Codec.intRange(1, 1200), DEFAULT.minTicks()),
+							"A spin lasts at least this many ticks (after its windup)."
+					).forGetter(Spin::minTicks),
+					CommentCodec.comment(
+							Sections.section("spin_max_ticks", Codec.intRange(1, 1200), DEFAULT.maxTicks()),
+							"And at most this many."
+					).forGetter(Spin::maxTicks),
+					CommentCodec.comment(
+							Sections.section("spin_cooldown", Codec.intRange(0, 72_000), DEFAULT.cooldown()),
+							"Ticks from the end of a spin till the next can start."
+					).forGetter(Spin::cooldown),
+					CommentCodec.comment(
+							Sections.section("spin_early_cooldown", Codec.intRange(0, 72_000), DEFAULT.earlyCooldown()),
+							"Shot at, he may spin again this soon instead."
+					).forGetter(Spin::earlyCooldown),
+					CommentCodec.comment(
+							Sections.section("spin_early_window", Codec.intRange(0, 1200), DEFAULT.earlyWindow()),
+							"Shot at means a projectile hit him within this many ticks."
+					).forGetter(Spin::earlyWindow),
+					CommentCodec.comment(
+							Sections.section("spin_range", Codec.doubleRange(0, 64), DEFAULT.range()),
+							"He spins at a target this many blocks off or closer."
+					).forGetter(Spin::range),
+					CommentCodec.comment(
+							Sections.section("spin_speed", Codec.doubleRange(0, 1), DEFAULT.speed()),
+							"How fast he drifts toward his target while spinning, as a walking speed like speed. Pace goes with its square: 0.33 against a speed of 0.3 is about 1.2 times his walk (4.8 blocks a second against 4)."
+					).forGetter(Spin::speed)
+			).apply(i, Spin::new)).validate(Spin::check);
+
+			private static DataResult<Spin> check(Spin spin) {
+				return spin.minTicks() <= spin.maxTicks()
+						? DataResult.success(spin)
+						: DataResult.error(() -> "general: spin_min_ticks (" + spin.minTicks() + ") must not be above spin_max_ticks (" + spin.maxTicks() + ")");
+			}
+		}
+
+		/** The roar: at each health threshold he stops and calls in a guard of the rift's mobs. */
+		public record Roar(List<Double> at, double guardFraction, int guardGrenadiers, int guardDrummers) {
+			public static final Roar DEFAULT = new Roar(List.of(0.6667, 0.3333), 0.5, 1, 1);
+			public static final MapCodec<Roar> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("roar_at", Codec.doubleRange(0, 1).listOf(), DEFAULT.at()),
+							"He roars once as his health first drops below each of these shares of his maximum."
+					).forGetter(Roar::at),
+					CommentCodec.comment(
+							Sections.section("guard_fraction", Codec.doubleRange(0, 1), DEFAULT.guardFraction()),
+							"A roar calls in his guard: this share of the large tier's last wave's ranged, melee and elite (at least one ranged and one melee)."
+					).forGetter(Roar::guardFraction),
+					CommentCodec.comment(
+							Sections.section("guard_grenadiers", Codec.intRange(0, 10), DEFAULT.guardGrenadiers()),
+							"And this many Piglin Grenadiers on foot."
+					).forGetter(Roar::guardGrenadiers),
+					CommentCodec.comment(
+							Sections.section("guard_drummers", Codec.intRange(0, 10), DEFAULT.guardDrummers()),
+							"And this many Piglin Drummers."
+					).forGetter(Roar::guardDrummers)
+			).apply(i, Roar::new));
+		}
+
+		public static final GeneralTuning DEFAULT = new GeneralTuning(300, 16, 6, 0.3, Swing.DEFAULT, Spin.DEFAULT, 60, 1.5, Roar.DEFAULT);
+		public static final Codec<GeneralTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("health", Codec.doubleRange(1, 1024), DEFAULT.health()),
+						"His health (a wither has 300)."
+				).forGetter(GeneralTuning::health),
+				CommentCodec.comment(
+						Sections.section("armour", Codec.doubleRange(0, 30), DEFAULT.armour()),
+						"His armour (a diamond set is 20)."
+				).forGetter(GeneralTuning::armour),
+				CommentCodec.comment(
+						Sections.section("toughness", Codec.doubleRange(0, 20), DEFAULT.toughness()),
+						"His armour toughness (a diamond set is 8)."
+				).forGetter(GeneralTuning::toughness),
+				CommentCodec.comment(
+						Sections.section("speed", Codec.doubleRange(0, 1), DEFAULT.speed()),
+						"His walking speed (a piglin brute's is 0.35)."
+				).forGetter(GeneralTuning::speed),
+				Swing.MAP_CODEC.forGetter(GeneralTuning::swing),
+				Spin.MAP_CODEC.forGetter(GeneralTuning::spin),
+				CommentCodec.comment(
+						Sections.section("dizzy_ticks", Codec.intRange(0, 1200), DEFAULT.dizzyTicks()),
+						"After a spin he stands dizzy this many ticks: he doesn't move, turn or attack."
+				).forGetter(GeneralTuning::dizzyTicks),
+				CommentCodec.comment(
+						Sections.section("dizzy_damage_taken", Codec.doubleRange(0, 10), DEFAULT.dizzyDamageTaken()),
+						"Dizzy, he takes this many times the damage (1.5: half again as much)."
+				).forGetter(GeneralTuning::dizzyDamageTaken),
+				Roar.MAP_CODEC.forGetter(GeneralTuning::roar)
+		).apply(i, GeneralTuning::new));
+	}
+
+	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier, GeneralTuning general) {
+		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT, GeneralTuning.DEFAULT);
 		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("drummer", DrummerTuning.CODEC, DrummerTuning.DEFAULT),
@@ -344,13 +543,17 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
 						"Chained ghasts, crewed by a Piglin Drummer, a Piglin Grenadier and two piglins, in Large waves 5 and later; the Grenadier's bombs, from the deck and by hand."
-				).forGetter(Mobs::bombardier)
+				).forGetter(Mobs::bombardier),
+				CommentCodec.comment(
+						Sections.section("general", GeneralTuning.CODEC, GeneralTuning.DEFAULT),
+						"The Piglin General, the Captain (off by default: see waves): his stats, his mace swing, his spin and the dizzy after it, and his roars."
+				).forGetter(Mobs::general)
 		).apply(i, Mobs::new));
 	}
 
 	public static final NetherRiftsConfig DEFAULT = new NetherRiftsConfig(
-			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0,
-			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Mobs.DEFAULT
+			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0, 4, 0.25, 2.0,
+			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Waves.DEFAULT, Mobs.DEFAULT
 	);
 
 	private static final Codec<Map<Block, Block>> BLOCK_MAP = Codec.unboundedMap(
@@ -360,7 +563,7 @@ public record NetherRiftsConfig(
 	public static final MapCodec<NetherRiftsConfig> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 			CommentCodec.comment(
 					Sections.section("tiers", Tiers.CODEC, Tiers.DEFAULT),
-					"Rift blocks up to small_max make a small raid (3 waves), up to medium_max a medium one (5), more a large one (7)."
+					"Rift blocks up to small_max make a small raid, up to medium_max a medium one, more a large one; how many waves each has comes from waves."
 			).forGetter(NetherRiftsConfig::tiers),
 			CommentCodec.comment(
 					Sections.section("timers", Timers.CODEC, Timers.DEFAULT),
@@ -383,6 +586,18 @@ public record NetherRiftsConfig(
 					"Troopers never grow past this many times the vanilla count."
 			).forGetter(NetherRiftsConfig::trooperScalingCap),
 			CommentCodec.comment(
+					Codec.intRange(0, 100).optionalFieldOf("elite_scaling_from", 4),
+					"Heavy, support and elite mobs grow only with more players than this."
+			).forGetter(NetherRiftsConfig::eliteScalingFrom),
+			CommentCodec.comment(
+					Codec.doubleRange(0, 10).optionalFieldOf("elite_scaling_per_player", 0.25),
+					"Each player past elite_scaling_from adds this share of heavy, support and elite mobs to a wave."
+			).forGetter(NetherRiftsConfig::eliteScalingPerPlayer),
+			CommentCodec.comment(
+					Codec.doubleRange(1, 10).optionalFieldOf("elite_scaling_cap", 2.0),
+					"Heavy, support and elite mobs never grow past this many times the wave's count."
+			).forGetter(NetherRiftsConfig::eliteScalingCap),
+			CommentCodec.comment(
 					BLOCK_MAP.optionalFieldOf("frame_collapse", Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN)),
 					"What each frame block becomes when its rift closes. Unlisted blocks become air; crying-obsidian rifts always leave air."
 			).forGetter(NetherRiftsConfig::frameCollapse),
@@ -395,8 +610,12 @@ public record NetherRiftsConfig(
 					"What each wave slot spawns: portal-opening mob entries (weighted entity NBT)."
 			).forGetter(NetherRiftsConfig::roster),
 			CommentCodec.comment(
+					Sections.section("waves", Waves.CODEC, Waves.DEFAULT),
+					"Each tier's waves, in order: how many of each slot a wave brings (unlisted slots: 0). Players past the first add troopers (ranged, melee) as trooper_scaling_* says, and players past elite_scaling_from add heavy, support and elite as elite_scaling_* says; Large waves 5+ send chained ghasts for heavy. The Piglin General is off: add captain: 1 to a large wave (the last) to bring him in."
+			).forGetter(NetherRiftsConfig::waves),
+			CommentCodec.comment(
 					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),
-					"Tuning for the Piglin Drummer and the Piglin Grenadier. Any value left out keeps its default."
+					"Tuning for the Piglin Drummer, the Piglin Grenadier and the Piglin General. Any value left out keeps its default."
 			).forGetter(NetherRiftsConfig::mobs)
 	).apply(i, NetherRiftsConfig::new));
 
@@ -404,6 +623,11 @@ public record NetherRiftsConfig(
 	public MobEntry rosterEntry(Slot slot) {
 		var entry = roster.get(slot);
 		return entry != null ? entry : Roster.DEFAULT.get(slot);
+	}
+
+	/** How many waves a tier's raid has. */
+	public int waveCount(Tier tier) {
+		return waves.of(tier).size();
 	}
 
 	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(NetherRifts.MODID + ".json5");

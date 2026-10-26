@@ -17,7 +17,9 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.ChunkPos;
@@ -33,6 +35,7 @@ import se.metacraft.nether_rifts.NetherRifts;
 import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.RiftMessages;
 import se.metacraft.nether_rifts.mob.BurningPatches;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.rift.Rift;
@@ -42,6 +45,7 @@ import se.metacraft.nether_rifts.rift.Tier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -91,34 +95,8 @@ public final class RiftRaid {
 		if (level.getGameTime() % 20 == 0) {
 			tether(level, rift, alive, config.ranges().tether());
 		}
-		updateCaptainBar(level, rift, alive, players);
 		bar.setProgress(rift.waveSize == 0 ? 0f : Mth.clamp(alive.size() / (float) rift.waveSize, 0f, 1f));
 		advanceIfCleared(level, rift, data, alive, () -> surroundingsLoaded(level, rift, config.ranges().tether()));
-	}
-
-	/** The Captain's own red bar, shown to the participants while the tagged Captain lives. */
-	private static void updateCaptainBar(ServerLevel level, Rift rift, List<LivingEntity> alive, List<ServerPlayer> players) {
-		var captain = alive.stream().filter(e -> e.entityTags().contains(RiftMobs.CAPTAIN_TAG)).findFirst();
-		var bar = rift.captainBar();
-		if (captain.isEmpty()) {
-			if (bar != null) {
-				bar.removeAllPlayers();
-				rift.setCaptainBar(null);
-			}
-			return;
-		}
-		if (bar == null) {
-			bar = new ServerBossEvent(Mth.createInsecureUUID(RandomSource.create()), captain.get().getDisplayName(),
-					BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
-			rift.setCaptainBar(bar);
-		}
-		bar.setProgress(Mth.clamp(captain.get().getHealth() / captain.get().getMaxHealth(), 0f, 1f));
-		for (var shown : List.copyOf(bar.getPlayers())) {
-			if (!players.contains(shown)) {
-				bar.removePlayer(shown);
-			}
-		}
-		players.forEach(bar::addPlayer);
 	}
 
 	/**
@@ -138,7 +116,7 @@ public final class RiftRaid {
 			return;
 		}
 		rift.clearedTicks = 0;
-		if (rift.wave() >= rift.tier().waves()) {
+		if (rift.wave() >= NetherRiftsConfig.getInstance().waveCount(rift.tier())) {
 			victory(level, rift, data);
 		} else {
 			startWave(level, rift, rift.wave() + 1);
@@ -148,7 +126,7 @@ public final class RiftRaid {
 	public static void startWave(ServerLevel level, Rift rift, int wave) {
 		var config = NetherRiftsConfig.getInstance();
 		int players = Math.max(1, participants(level, rift).size());
-		var counts = WaveTable.counts(rift.tier(), wave, players, level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
+		var counts = WaveTable.counts(config, rift.tier(), wave, players, level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
 		int spawned = 0;
 		for (var entry : counts.entrySet()) {
 			var spawnSlot = entry.getKey() == Slot.HEAVY && rift.tier() == Tier.LARGE && wave >= 5 ? Slot.BOMBARDIER : entry.getKey();
@@ -161,8 +139,60 @@ public final class RiftRaid {
 		bossBar(rift).setProgress(1f);
 	}
 
+	/** The General's guard's troops: these slots of the large tier's last wave, a share of each. */
+	private static final List<Slot> GUARD_TROOPS = List.of(Slot.RANGED, Slot.MELEE, Slot.ELITE);
+
+	/**
+	 * The Piglin General's roar: his guard comes through the rift as a wave's mobs do, and joins the wave (its size grows
+	 * by them, so the bar stays within full and empty). His guard is {@code guard_fraction} of the large tier's last
+	 * wave's ranged, melee and elite as it would come for the players taking part now (rounded down; at least one ranged
+	 * and one melee), with {@code guard_grenadiers} Grenadiers and {@code guard_drummers} Drummers on hoglins. Each
+	 * comes at one of the players who hurt him, in turn ({@link PiglinGeneral#attackers}, those still taking part), or
+	 * with none of them about at the participant nearest him; with no participant, at nobody. Creative players are
+	 * passed over (they count toward the guard's size, as toward a wave's). Returns every entity
+	 * spawned (mounts and their riders).
+	 */
+	public static List<Entity> spawnGuard(ServerLevel level, Rift rift, PiglinGeneral general) {
+		var config = NetherRiftsConfig.getInstance();
+		var roar = general.tuning().roar();
+		var players = participants(level, rift);
+		var wave = WaveTable.counts(config, Tier.LARGE, config.waveCount(Tier.LARGE), Math.max(1, players.size()),
+				level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
+		var guard = new EnumMap<Slot, Integer>(Slot.class);
+		for (var slot : GUARD_TROOPS) {
+			int count = (int) Math.floor(wave.get(slot) * roar.guardFraction());
+			guard.put(slot, slot.trooper() ? Math.max(1, count) : count);
+		}
+		guard.put(Slot.GRENADIER, roar.guardGrenadiers());
+		guard.put(Slot.MOUNTED_DRUMMER, roar.guardDrummers());
+		var spawned = new ArrayList<Entity>();
+		var roots = new ArrayList<Mob>();
+		guard.forEach((slot, count) -> {
+			for (int i = 0; i < count; i++) {
+				var one = spawnOne(level, rift, slot);
+				if (!one.isEmpty() && one.getFirst().getRootVehicle() instanceof Mob root) {
+					roots.add(root);
+				}
+				spawned.addAll(one);
+			}
+		});
+		rift.waveSize += spawned.size();
+		// players logged off or gone elsewhere aren't found, or aren't taking part; creative players are no mob's to fight
+		var fightable = players.stream().filter(EntitySelector.NO_CREATIVE_OR_SPECTATOR).toList();
+		List<? extends LivingEntity> foes = general.attackers().stream().map(level::getPlayerByUUID).filter(fightable::contains).toList();
+		if (foes.isEmpty()) {
+			foes = fightable.stream().min(Comparator.comparingDouble(general::distanceToSqr)).stream().toList();
+		}
+		for (int i = 0; i < roots.size() && !foes.isEmpty(); i++) {
+			PiglinGeneral.provoke(roots.get(i), foes.get(i % foes.size()));
+		}
+		return spawned;
+	}
+
 	private static Component waveName(Rift rift) {
-		return Component.literal("Rift Raid: Wave " + rift.wave() + "/" + rift.tier().waves());
+		int count = NetherRiftsConfig.getInstance().waveCount(rift.tier());
+		// a reload may have shortened the list under a running raid
+		return Component.literal("Rift Raid: Wave " + Math.min(rift.wave(), count) + "/" + count);
 	}
 
 	/**
@@ -361,10 +391,6 @@ public final class RiftRaid {
 		}
 		if (rift.bossBar() != null) {
 			rift.bossBar().removeAllPlayers();
-		}
-		if (rift.captainBar() != null) {
-			rift.captainBar().removeAllPlayers();
-			rift.setCaptainBar(null);
 		}
 		rift.destroyVisual();
 		data.remove(rift);
