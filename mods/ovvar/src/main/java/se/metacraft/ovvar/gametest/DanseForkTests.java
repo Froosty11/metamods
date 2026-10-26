@@ -91,6 +91,28 @@ public final class DanseForkTests {
 		helper.succeed();
 	}
 
+	/**
+	 * The gestures players can pick are upstream's and Millia's finished ones, nothing else: a test
+	 * blueprint (once {@code joint_wrong}, the vanilla rig coming apart) must not ship as a gesture.
+	 */
+	@GameTest
+	public void onlyFinishedGesturesAreBuiltIn(GameTestHelper helper) {
+		if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("danse")) { helper.succeed(); return; }
+		var expected = java.util.Set.of(
+				// upstream Danse
+				"wave", "zombie", "bits", "facepalm", "fold", "fall", "helicopter", "handstand", "grow", "dab", "ascend",
+				// Millia's, emotes.ajblueprint
+				"fortnite", "hopak", "floss", "clap", "defeat", "amogus", "rote_pferd");
+		var actual = java.util.Set.copyOf(de.tomalbrc.danse.registry.PlayerModelRegistry.getAnimations());
+		if (!actual.equals(expected)) {
+			var extra = new java.util.TreeSet<>(actual); extra.removeAll(expected);
+			var missing = new java.util.TreeSet<>(expected); missing.removeAll(actual);
+			helper.fail("built-in gestures: extra " + extra + ", missing " + missing);
+			return;
+		}
+		helper.succeed();
+	}
+
 	private static Field awaitingField() throws NoSuchFieldException {
 		Field f = ServerGamePacketListenerImpl.class.getDeclaredField("awaitingPositionFromClient");
 		f.setAccessible(true);
