@@ -154,8 +154,73 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				if (!Arrays.equals(served, bundled)) throw new AssertionError(url + " served " + served.length + " bytes, not the " + bundled.length + "-byte patcher");
 				server.runCommand("execute as Tester run ovvar shaders");
 				ctx.waitTicks(20);   // the reply reaches the client before it leaves
+
+				// Instant patches: sewn after the client loaded its pack and on mannequins, which never
+				// claim a pack push, so whatever these show rides in the dye colour. Each ovve is worn
+				// twice, one facing the camera and one turned away (east of the scene above, 6 blocks
+				// apart). A: ITK on the chest (its 12x12), Data on a back-top cell, Cerise (design 22) on
+				// the left sleeve; Rivals on the seat and IT on the left leg. B: ITK on the big back cell
+				// (its 16x16) with Playboy Pikachu (design 23) on a back-top cell over it, and Starkt
+				// (design 24, past what the dye colour names; a sleeve, so no trim either) on the left
+				// sleeve, where it must not show until the pack has it.
+				List<Placement> sewnA = List.of(
+						new Placement(Spot.FRONT_TOP_LEFT, Patches.get("itk")),
+						new Placement(Spot.BACK_TOP_RIGHT, Patches.get("data")),
+						new Placement(Spot.SLEEVE_FRONT_TOP_L, Patches.get("cerise")),
+						new Placement(Spot.SEAT, Patches.get("rivals")),
+						new Placement(Spot.LEG_FRONT_TOP_L, Patches.get("it")));
+				List<Placement> sewnB = List.of(
+						new Placement(Spot.BACK_BIG, Patches.get("itk")),
+						new Placement(Spot.BACK_TOP_LEFT, Patches.get("playboy-pikachu")),
+						new Placement(Spot.SLEEVE_FRONT_TOP_L, Patches.get("starkt")));
+				server.runOnServer(mc -> {
+					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
+					instantMannequin(level, 6.5, 180, sewnA);
+					instantMannequin(level, 12.5, 0, sewnA);
+					instantMannequin(level, 18.5, 180, sewnB);
+					instantMannequin(level, 24.5, 0, sewnB);
+				});
+				conn.waitForClientboundPackets();
+				ctx.runOnClient(client -> client.level.entitiesForRendering().forEach(e -> {
+					if (e instanceof Mannequin m && m.getX() > 3) {
+						System.out.println("[ovvar-clienttest] instant mannequin at x " + m.getX()
+								+ ": chest dye=" + m.getItemBySlot(EquipmentSlot.CHEST).get(DataComponents.DYED_COLOR)
+								+ " legs dye=" + m.getItemBySlot(EquipmentSlot.LEGS).get(DataComponents.DYED_COLOR));
+					}
+				}));
+				BufferedImage aFront = instantShot(ctx, server, conn, "instant_a_front", "tp Tester 6.5 -60 0.5 0 0");
+				assertPresent(aFront, Region.subjectBox(aFront), "itk (green) on the instant chest", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
+				instantShot(ctx, server, conn, "instant_a_back", "tp Tester 12.5 -60 0.5 0 0");
+				instantShot(ctx, server, conn, "instant_b_front", "tp Tester 18.5 -60 0.5 0 0");
+				BufferedImage bBack = instantShot(ctx, server, conn, "instant_b_back", "tp Tester 24.5 -60 0.5 0 0");
+				assertPresent(bBack, Region.subjectBox(bBack), "itk (green) on the instant big back cell", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
+				// From straight above A: the arms' top faces carry no cell, so they show plain cloth.
+				server.runCommand("gamemode spectator Tester");
+				instantShot(ctx, server, conn, "instant_a_above", "tp Tester 6.5 -57.2 3.5 0 90");
 			}
 		}
+	}
+
+	/** A Data ovve with these placements, top up and its top in the chest slot, worn by a mannequin at (x, -60, 3.5). */
+	private static void instantMannequin(ServerLevel level, double x, float yaw, List<Placement> sewn) {
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		OvveItem.setTopUp(ovve, true);
+		Looks.setSewn(ovve, SpotPlacements.fromList(sewn).getOrThrow());
+		Mannequin m = new Mannequin(EntityTypes.MANNEQUIN, level);
+		m.setPos(x, -60, 3.5);
+		m.setYRot(yaw); m.setYBodyRot(yaw); m.setYHeadRot(yaw);
+		m.setItemSlot(EquipmentSlot.LEGS, ovve);
+		ItemStack top = new ItemStack(ModContent.top(Chapter.DATA));
+		top.set(ModComponents.PATCHES, ovve.get(ModComponents.PATCHES));
+		m.setItemSlot(EquipmentSlot.CHEST, top);
+		level.addFreshEntity(m);
+	}
+
+	private static BufferedImage instantShot(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn, String name, String tp) {
+		server.runCommand(tp);
+		conn.waitForClientboundPackets();
+		ctx.waitTicks(40);
+		return read(ctx.takeScreenshot(TestScreenshotOptions.of(name).withSize(1920, 1080)));
 	}
 
 	private static byte[] bundledPatcher() {

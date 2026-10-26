@@ -9,7 +9,7 @@ import java.util.List;
  * How a patch's art is cut up when it is shown as flat display entities on an armour stand
  * ({@link StandDisplays}): the columns that fall past the corner of the
  * cell's face go on the neighbouring face, the rows above the top of the part go on its top face
- * (a patch lapping over the shoulder), each as its own sprite. The cut is where the box's corner
+ * (a patch lapping over the top of a sleeve), each as its own sprite. The cut is where the box's corner
  * is, with the art at the fabric's square pixel ({@link Spot#pixel}) centred on the face's texels
  * the way the shader draws it — a column whose centre is past the corner goes round it.
  *
@@ -41,12 +41,7 @@ public final class PatchPieces {
 		}
 	}
 
-	/**
-	 * The visual offset of a cell's first column within its face, in art pixels from the face's left
-	 * edge as seen. A cell on the box's top face is the whole of that face, and the top face is the
-	 * strip's second block of four columns — the same columns as the front face — so the same
-	 * arithmetic gives it 0.
-	 */
+	/** The visual offset of a cell's first column within its face, in art pixels from the face's left edge as seen. */
 	public static int columnInFace(Spot spot) {
 		int faceStart = Spot.stripStart(spot) + faceStartLocal(spot), n = faceTexels(spot);
 		int fromStart = (spot.u - faceStart) * Spot.ART_DETAIL;
@@ -69,10 +64,6 @@ public final class PatchPieces {
 		int w = art.width(), h = art.height();
 		// Flat: the whole art as one sprite on the cell's face (the seat's across both legs, on the seam).
 		if (!BEND_ROUND_CORNERS) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
-		// A cell on the box's top face (the shoulders) is never cut: the four edges of a top face have
-		// no neighbouring face in the layout to continue onto, so the sewn patch is clipped to the face
-		// (GeneratedAssets.placed) and the sprite is the whole art lying flat on it, as it is.
-		if (spot.top()) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
 		if (spot == Spot.SEAT) {
 			// Half on each leg's back face; the halves are cut at the legs' inner corner, which the art never crosses.
 			return List.of(new Piece(Where.FACE, 0, w / 2, 0, h, 0), new Piece(Where.FACE, w / 2, w, 0, h, 0));

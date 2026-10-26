@@ -150,7 +150,7 @@ public final class GeneratedAssets implements DataProvider {
 			item(name, icon(arts.get(Patches.iconArt(patch))));
 			// Flat pieces for the stand displays: the art 1:1 in the sprite's centre, one model per
 			// piece any cell cuts it into (the whole art included) — of the art that cell shows, so
-			// a shoulder's sprite is the variant that fits it, like everything else drawn there.
+			// the big back cell's sprite is the variant that fills it, like everything else drawn there.
 			record Flat(Patches.Art art, PatchPieces.Piece piece) {}
 			Map<String, Flat> pieces = new LinkedHashMap<>();
 			for (Spot spot : Spot.values()) {
@@ -198,9 +198,8 @@ public final class GeneratedAssets implements DataProvider {
 		for (Spot spot : Spot.values()) {
 			for (Patches.Patch patch : Patches.all()) {
 				if (!patch.fits(spot)) continue;
-				// The art this cell shows, which need not be the catalogue's own size: a cell the art
-				// is clipped to takes a variant that fits it whole, a cell as big as art may get takes
-				// the largest one (Patches.artFor).
+				// The art this cell shows, which need not be the catalogue's own size: a cell as big as
+				// art may get takes the largest one (Patches.artFor).
 				Patches.Art variant = Patches.artFor(patch, spot);
 				Tex art = arts.get(variant);
 				String dir = "textures/entity/equipment/" + spot.piece.layer + "/";
@@ -301,6 +300,7 @@ public final class GeneratedAssets implements DataProvider {
 			List<Spot> cells = Spot.cells(target.piece);
 			require(cells.size() <= TABLE_SIZE, "the preview tables hold " + TABLE_SIZE + " cells, not " + cells.size());
 			require(Looks.INSTANT_DESIGNS <= FIT_SLOTS, "the design table holds " + FIT_SLOTS + " designs per fit, not " + Looks.INSTANT_DESIGNS);
+			require(Patches.Fit.values().length * FIT_SLOTS <= TABLE_SIZE, "the design tables hold " + TABLE_SIZE / FIT_SLOTS + " fits, not " + Patches.Fit.values().length);
 			Tex tex = Tex.blank(W, H).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
 			for (Patches.Patch patch : Patches.all()) {
 				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;
@@ -323,9 +323,6 @@ public final class GeneratedAssets implements DataProvider {
 				tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
 				// A cell is not one size any more (Spot.BACK_BIG is two cells each way, the seat two
 				// wide), and the shader centres the art in it, so the size travels beside it.
-				// The cell's v is also how the shader tells a top-face cell (the shoulders) from a
-				// side one: a row above Spot.FACE_ROW is the box's top face, where there is no
-				// squeeze round the box and the art is clipped to the face.
 				// B is Spot.layer: cells overlap (the big back cell under the two back-top ones) and
 				// the ranked set in the dye colour has no order of its own, so the shader draws the
 				// highest layer of the cells a fragment falls in. The pack stacks its layers in the
@@ -580,12 +577,7 @@ public final class GeneratedAssets implements DataProvider {
 	private static Tex marked(Tex tex, Piece piece) {
 		require(tex.width == W && tex.height == H, "a garment texture is " + tex.width + "×" + tex.height + ", not " + W + "×" + H);
 		require(tex.get(MARKER_X, MARKER_Y) == 0 && tex.get(LAYER_X, MARKER_Y) == 0, "a garment texture draws on the marker texels");
-		for (int i = 0; i < DEBUG.length; i++) {
-			require(tex.get(DEBUG_X + i, MARKER_Y) == 0, "a garment texture draws on the debug palette texels");
-		}
-		Tex out = tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
-		for (int i = 0; i < DEBUG.length; i++) out = out.with(DEBUG_X + i, MARKER_Y, DEBUG[i]);
-		return out;
+		return tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
 	}
 
 	/**
@@ -593,30 +585,11 @@ public final class GeneratedAssets implements DataProvider {
 	 * vertically), clipped to the part's side rows — a big patch hangs over its neighbours, never
 	 * off its part. The part's strip is a loop round the box, so what hangs off either end of it
 	 * comes round to the other end (past the outer face of a limb lies its back face).
-	 *
-	 * <p>A cell on the box's <b>top</b> face (the shoulders) is the other case: that face's four
-	 * edges have no neighbour in the layout to continue onto — the strip is a loop round the box's
-	 * sides, not over the top of it — so art bigger than the cell is <b>clipped</b> to the face,
-	 * both ways, and nothing of it is drawn anywhere else. (Bending it over the four edges, the way
-	 * a side cell's overhang bends round the corners, is a later version's job.)
 	 */
 	private static Tex placed(Spot spot, Tex art, int x) {
 		int y = spot.v * D + (spot.pxHeight() - art.height) / 2;   // centred in the cell, whatever size the cell is
 		Tex out = Tex.blank(W, H);
 		boolean any = false;
-		if (spot.top()) {
-			int x0 = spot.u * D, x1 = x0 + spot.px(), y0 = Spot.TOP_ROW * D, y1 = Spot.FACE_ROW * D;
-			for (int ax = 0; ax < art.width; ax++) {
-				int column = x + ax;
-				if (column < x0 || column >= x1) continue;
-				for (int row = Math.max(y, y0); row < Math.min(y + art.height, y1); row++) {
-					int p = art.get(ax, row - y);
-					if (p != 0) { out = out.with(column, row, p); any = true; }
-				}
-			}
-			require(any, "patch art lands entirely off the " + spot.id() + " cell's face");
-			return out;
-		}
 		int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
 		require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
 		for (int ax = 0; ax < art.width; ax++) {
@@ -636,8 +609,7 @@ public final class GeneratedAssets implements DataProvider {
 	 * — each column of the part's side rows shows the art column the shader would sample there.
 	 *
 	 * <p>Only body cells are ever asked for ({@link Trims#fits}), so this is only ever the body's
-	 * side rows; a cell on a box's top face would have nothing to bake (the top face is not on the
-	 * strip's perimeter, so the shader draws it texel for texel) but cannot be a trim anyway.
+	 * side rows.
 	 */
 	private static Tex placedWrapped(Spot spot, Tex art, int x) {
 		Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
@@ -665,20 +637,10 @@ public final class GeneratedAssets implements DataProvider {
 
 	// ---- the texel contract with ovvar.glsl
 
-	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip (or {@value Spot#TOP_FACE}, the box's top face); preview: G = cells in the half, B = instant designs. Base textures have none (0). */
+	/** Left of the marker: R = kind; sided: G = side, B = the face of its strip; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
 	public static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
 	/** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
 	public static final int LAYER_X = W - 3;
-	/**
-	 * Three to six left of the marker: the palette the {@code OVVAR_DEBUG_TOP_FACE_*} switches paint
-	 * a box's top faces from — mirrored, unmirrored, no cell matched, a cell matched. A dev switch in
-	 * the shader needs somewhere to get a colour, and a coordinate is all a program of ours can
-	 * return; every texture of ours carries them. They are in the layout's unused top-right corner
-	 * (skin x 56–64), which no box and no mirror strip touches, and inside the library cell the
-	 * preview texture reserves for the marker row.
-	 */
-	public static final int DEBUG_X = W - 7;
-	public static final int[] DEBUG = {0xFFFF0000, 0xFF0000FF, 0xFFFF00FF, 0xFF00FF00};
 	/** Always transparent in a patch texture: what the shader draws where there is nothing. */
 	public static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
 	/**
@@ -697,21 +659,20 @@ public final class GeneratedAssets implements DataProvider {
 	 * }{@value #FIT_SLOTS}: a patch may ship art at several sizes and which of them is drawn is the
 	 * cell's to decide ({@link Patches.Fit}), so the design tables hold a row per (design, fit) and
 	 * the shader reads the one the cell it is drawing asks for. {@value #FIT_SLOTS} slots per fit is
-	 * two of the {@value #TABLE_COLUMNS} columns each, which is what makes the tables three columns
-	 * of skin texels wide.
+	 * two of the columns each, and there are two fits, so the tables are {@value #TABLE_COLUMNS}
+	 * columns wide — which the cell table, a half's cells, fits in as well.
+	 * {@code OVVAR_TABLE_COLUMNS} in ovvar.glsl is this number.
 	 */
-	private static final int CELL_TABLE_X = 40 * D, TABLE_COLUMNS = 3 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
+	private static final int FIT_SLOTS = 32;
+	private static final int CELL_TABLE_X = 40 * D, TABLE_COLUMNS = 2 * FIT_SLOTS / 16, TABLE_SIZE = 16 * TABLE_COLUMNS;
 	/** Beside the cell table: the cell's own size, since {@link Spot#BACK_BIG} is not {@value Spot#PX} square. */
 	private static final int CELL_SIZE_TABLE_X = CELL_TABLE_X + TABLE_COLUMNS;
 	private static final int PATCH_TABLE_X = CELL_SIZE_TABLE_X + TABLE_COLUMNS;
 	private static final int PATCH_SIZE_TABLE_X = PATCH_TABLE_X + TABLE_COLUMNS;
-	/** Design slots per {@link Patches.Fit} in the design tables: two of their columns. */
-	private static final int FIT_SLOTS = 32;
 	/**
-	 * Preview library: the head rows (skin texels 0..64 × 0..16), minus the tables (40..52 on the
-	 * rows they occupy) and the corner holding the marker row and the debug palette
-	 * (60..64 × 12..16). An art takes a block of its own size in skin texels, one per art a design
-	 * can be drawn as.
+	 * Preview library: the head rows (skin texels 0..64 × 0..16), minus the tables (40..44 on the
+	 * rows they occupy) and the corner holding the marker row (60..64 × 12..16). An art takes a
+	 * block of its own size in skin texels, one per art a design can be drawn as.
 	 *
 	 * <p>Packed by the texel, not by a 4-texel cell: a 12×12 art is 6×6 texels, and rounding that
 	 * up to a cell block cost it 8×8 -- 44% of the head rows went on rounding alone. Nothing
@@ -725,7 +686,7 @@ public final class GeneratedAssets implements DataProvider {
 		return (px + D - 1) / D;
 	}
 	private static final int LIBRARY_W = 64, LIBRARY_H = 16;
-	/** The corner the marker row and the debug palette sit in, reserved whole. */
+	/** The corner the marker row sits in, reserved whole. */
 	private static final int LIBRARY_KEEP_X = LIBRARY_W - Spot.SIZE, LIBRARY_KEEP_Y = LIBRARY_H - Spot.SIZE;
 
 	private static boolean libraryFree(int x, int y) {

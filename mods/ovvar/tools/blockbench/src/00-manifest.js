@@ -3,7 +3,7 @@
 // plugin: nothing of ours lands on window, and onunload has nothing global to clean up.
 var OVVAR = {};
 
-OVVAR.VERSION = 2;
+OVVAR.VERSION = 3;
 
 // ---- PNG, by hand
 //

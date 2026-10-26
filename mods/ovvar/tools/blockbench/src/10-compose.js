@@ -249,10 +249,8 @@ OVVAR.compose.baked = function (m, art) {
 
 /**
  * GeneratedAssets.placed: the art (at texture resolution: see `baked`) on a garment texture at
- * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
- * strip -- past the outer face of a limb lies its back face. A cell on a box's top face (the
- * shoulders) is clipped to the face both ways instead, since the top face has no neighbour in
- * the layout to continue onto.
+ * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side
+ * rows and wrapped round the part's strip -- past the outer face of a limb lies its back face.
  *
  * Returns null instead of throwing when the art lands entirely off the cell -- datagen's
  * `require` is a build failure there, but a plugin has a panel to warn in and a model to keep
@@ -263,18 +261,6 @@ OVVAR.compose.placed = function (m, cell, art, x) {
   var y = cell.v * D + Math.trunc((cell.h * D - art.h) / 2);
   var out = OVVAR.tex.blank(W, H);
   var any = false, ax, row, p;
-  if (cell.top) {
-    var x0 = cell.u * D, x1 = x0 + cell.w * D, y0 = m.topRow * D, y1 = m.faceRow * D;
-    for (ax = 0; ax < art.w; ax++) {
-      var column = x + ax;
-      if (column < x0 || column >= x1) continue;
-      for (row = Math.max(y, y0); row < Math.min(y + art.h, y1); row++) {
-        p = OVVAR.tex.get(art, ax, row - y);
-        if (p !== 0) { OVVAR.tex.set(out, column, row, p); any = true; }
-      }
-    }
-    return any ? out : null;
-  }
   var stripStart = cell.stripStart * D, stripWidth = cell.stripWidth * D;
   if (art.w > stripWidth) throw new Error('patch art is wider than the ' + cell.id + " cell's part");
   for (ax = 0; ax < art.w; ax++) {
@@ -544,13 +530,11 @@ OVVAR.compose.stacked = function (m, placements) {
  * A: the cloth, plus every BODY and RIGHT placement. B: the cloth with the mirror strip copied
  * down, plus every LEFT placement. The seat is one patch cut in half, `_r` on A and `_l` on B.
  *
- * A side cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat:
- * the game does the squeeze in the shader, Blockbench has no shader, and this is what makes art
- * bend round the chest's and the sleeve's corners the way it does in game. A top-face cell (the
- * shoulders) is never squeezed -- the top face is not on the strip's perimeter -- so it stays
- * `placed`. Mirroring a limb's art and then wrapping is the same as wrapping and then mirroring,
- * because the squeeze is symmetric about the anchor face's centre and a limb cell is that whole
- * face.
+ * A cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat: the game
+ * does the squeeze in the shader, Blockbench has no shader, and this is what makes art bend round
+ * the chest's and the sleeve's corners the way it does in game. Mirroring a limb's art and then
+ * wrapping is the same as wrapping and then mirroring, because the squeeze is symmetric about the
+ * anchor face's centre and a limb cell is that whole face.
  */
 OVVAR.compose.composePiece = function (ctx, piece, design) {
   var m = ctx.m;
@@ -581,9 +565,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     for (var s = 0; s < sides.length; s++) {
       var side = sides[s];
       var drawn = OVVAR.compose.placementArt(ctx, cell, patch, side);
-      var tex = cell.top
-        ? OVVAR.compose.placed(m, cell, drawn.art, drawn.x)
-        : OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
+      var tex = OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
       if (tex === null) {
         ctx.warnings.push(patch.name + ' lands entirely off ' + cell.label + '; not drawn');
         continue;

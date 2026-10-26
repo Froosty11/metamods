@@ -67,7 +67,6 @@ public final class BlockbenchManifestTests {
 			check(wrong, spot.id(), "w", c.get("w").getAsInt(), spot.width);
 			check(wrong, spot.id(), "h", c.get("h").getAsInt(), spot.height);
 			check(wrong, spot.id(), "side", c.get("side").getAsString(), spot.side.name().toLowerCase(Locale.ROOT));
-			check(wrong, spot.id(), "top", c.get("top").getAsBoolean(), spot.top());
 			check(wrong, spot.id(), "face", c.get("face").getAsInt(), Spot.face(spot));
 			check(wrong, spot.id(), "layer", c.get("layer").getAsInt(), spot.layer());
 			check(wrong, spot.id(), "stripStart", c.get("stripStart").getAsInt(), Spot.stripStart(spot));
@@ -190,9 +189,6 @@ public final class BlockbenchManifestTests {
 		check(wrong, "manifest", "artPx", m.get("artPx").getAsInt(), Spot.ART_PX);
 		check(wrong, "manifest", "faceRow", m.get("faceRow").getAsInt(), Spot.FACE_ROW);
 		check(wrong, "manifest", "faceRows", m.get("faceRows").getAsInt(), Spot.FACE_ROWS);
-		check(wrong, "manifest", "topRow", m.get("topRow").getAsInt(), Spot.TOP_ROW);
-		check(wrong, "manifest", "topRows", m.get("topRows").getAsInt(), Spot.TOP_ROWS);
-		check(wrong, "manifest", "topFace", m.get("topFace").getAsInt(), Spot.TOP_FACE);
 		check(wrong, "manifest", "mirrorShift", m.get("mirrorShift").getAsInt(), Spot.MIRROR_SHIFT);
 		check(wrong, "manifest", "cellSize", m.get("cellSize").getAsInt(), Spot.SIZE);
 		check(wrong, "manifest", "bigCell", m.get("bigCell").getAsInt(), Spot.BIG);
@@ -225,12 +221,9 @@ public final class BlockbenchManifestTests {
 		ints(wrong, "skinBoxes.waist", boxes.getAsJsonArray("waist"), GeneratedAssets.WAIST);
 		check(wrong, "skinBoxes", "count", boxes.size(), 11);
 
-		// The debug palette first, then the layer, kind and marker texels, then the blank one: the
-		// order the manifest writes them in, which is left to right along the marker row.
+		// The layer, kind and marker texels, then the blank one: the order the manifest writes them
+		// in, which is left to right along the marker row.
 		List<int[]> texels = new ArrayList<>();
-		for (int i = 0; i < GeneratedAssets.DEBUG.length; i++) {
-			texels.add(new int[]{GeneratedAssets.DEBUG_X + i, GeneratedAssets.MARKER_Y});
-		}
 		texels.add(new int[]{GeneratedAssets.LAYER_X, GeneratedAssets.MARKER_Y});
 		texels.add(new int[]{GeneratedAssets.MARKER_KIND_X, GeneratedAssets.MARKER_Y});
 		texels.add(new int[]{GeneratedAssets.MARKER_X, GeneratedAssets.MARKER_Y});

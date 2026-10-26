@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  *
  * <p><b>Per-size art.</b> A patch may ship more than one PNG: the default above, plus any number of
  * {@code <id>_<w>x<h>.png} beside it — art drawn again at a size that suits a particular place,
- * which is cheaper than any amount of scaling or clipping. They are found by file name (nothing to
+ * which is cheaper than any amount of scaling. They are found by file name (nothing to
  * declare: the catalogue entry stays one line), and every path that draws a patch asks
  * {@link #artFor} which of them a place shows, so the item icon, the pack's placement textures, the
  * instant channel's library, the paper doll, the preview glyphs and a stand's sprites can never
@@ -69,10 +69,10 @@ public final class Patches {
 
 	/**
 	 * The sizes generated from a {@link #MAX_ART} px art when the patch ships no drawing of its own
-	 * at them: the two a {@link Fit} can ask for below {@link #MAX_ART} — {@link #OVER_MAX} square
-	 * for an ordinary cell and {@link Spot#ART_PX} square for a cell the art is clipped to.
+	 * at them: the one a {@link Fit} can ask for below {@link #MAX_ART}, {@link #OVER_MAX} square
+	 * for an ordinary cell.
 	 */
-	public static final List<Integer> GENERATED_SIZES = List.of(OVER_MAX, Spot.ART_PX);
+	public static final List<Integer> GENERATED_SIZES = List.of(OVER_MAX);
 
 	/**
 	 * One PNG of a patch's art: the default ({@code art/ovvar/patches/<id>.png}, the size the
@@ -179,10 +179,6 @@ public final class Patches {
 	 *	   ordinary cell's neighbours whole, so there it shows the largest art that fits
 	 *	   {@link #OVER_MAX} instead (a seat patch, again, is drawn to the seat's rules and is left
 	 *	   alone).
-	 *   <li>{@link #CLIPPED}: a cell the art is cut to, which is a box's <em>top</em> face (the
-	 *	   shoulders): its four edges have no neighbouring face in the layout to continue onto. The
-	 *	   art must fit the cell, so a patch with a cell-sized variant lands there whole instead of
-	 *	   losing its edges.
 	 *   <li>{@link #FILLED}: a cell as big as art is allowed to get ({@link #MAX_ART} square — the
 	 *	   big back cell), which is meant to be filled rather than to have a smaller patch floating
 	 *	   in the middle of it.
@@ -192,11 +188,10 @@ public final class Patches {
 	 * {@code OVVAR_FIT_*} in {@code ovvar.glsl} is them (a game test holds the two together).
 	 */
 	public enum Fit {
-		OVER, CLIPPED, FILLED;
+		OVER, FILLED;
 
 		/** What the cell {@code spot} asks of the art drawn on it. */
 		public static Fit of(Spot spot) {
-			if (spot.top()) return CLIPPED;
 			if (spot.side != Spot.Side.SEAT && (spot.px() > Spot.PX || spot.pxHeight() > Spot.PX)) return FILLED;
 			return OVER;
 		}
@@ -284,13 +279,13 @@ public final class Patches {
 			// The set Ainrave drew. The display names are placeholders; the ids are not, since a stored
 			// design names its patches by id. New entries go last, for the reason given above.
 			new Patch("in", "IN", 12, 12).by("Ainrave"),
-			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"),   // drawn only at 16x16: the 12 and the 8 are scaled from it
+			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"),   // drawn only at 16x16: the 12 is scaled from it
 			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Ainrave"),
 			new Patch("nyckeln0x1", "Nyckeln 0x1", 12, 12).by("Ainrave"),
 			new Patch("nyckeln0x2", "Nyckeln 0x2", 12, 12).by("Ainrave"),
-			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"),   // drawn 12x8 on a 12x12 canvas; also 8x6 and 16x10
-			// Måns's set, each drawn at 12, 8 and 16 so nothing is generated for them; Spiken, Släggan and the
-			// ticket got their 8 and 16 in the same batch. Display names are placeholders until somebody says
+			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"),   // drawn 12x8 on a 12x12 canvas; also 16x10
+			// Måns's set, each drawn at 12 and 16 so nothing is generated for them; Spiken, Släggan and the
+			// ticket got their 16 in the same batch. Display names are placeholders until somebody says
 			// otherwise; the ids are not. New entries go last, for the reason given above.
 			new Patch("jgs", "JGS", 12, 12),
 			new Patch("tmeit", "TMEIT", 12, 12),
@@ -427,16 +422,14 @@ public final class Patches {
 	/**
 	 * Which of a patch's arts a cell shows: the largest that fits what the cell asks for
 	 * ({@link Fit}), and the default when none of them does — which is exactly today's behaviour
-	 * for a patch that has only the one art, and for one whose variants are all too big for a
-	 * face the art is clipped to.
+	 * for a patch that has only the one art.
 	 *
-	 * <p>So a 12×12 patch with an 8×8 and a 16×16 variant lands on a shoulder as the 8×8 (whole,
-	 * not clipped), on the big back cell as the 16×16 (filling it), on an ordinary chest cell as
-	 * the 12×12 it was drawn as (hanging over its neighbours, by design) and in the inventory as
-	 * the 16×16 (unscaled). A patch drawn 16×16 in the catalogue instead — nothing smaller drawn,
-	 * so the 12×12 and the 8×8 are both generated — lands on an ordinary chest cell as the 12×12
-	 * rather than blanketing the cells round it. Every path asks this, so none of them can draw a
-	 * different one.
+	 * <p>So a 12×12 patch with a 16×16 variant lands on the big back cell as the 16×16 (filling
+	 * it), on an ordinary chest cell as the 12×12 it was drawn as (hanging over its neighbours, by
+	 * design) and in the inventory as the 16×16 (unscaled). A patch drawn 16×16 in the catalogue
+	 * instead — nothing smaller drawn, so the 12×12 is generated — lands on an ordinary chest cell
+	 * as the 12×12 rather than blanketing the cells round it. Every path asks this, so none of them
+	 * can draw a different one.
 	 */
 	public static Art artFor(Patch patch, Spot spot) {
 		return artFor(patch, Fit.of(spot));
@@ -449,7 +442,6 @@ public final class Patches {
 			// that laps no further than OVER_MAX over its cell is as drawn; art bigger than that was
 			// drawn to fill the big back cell, so an ordinary cell takes the largest one that laps.
 			case OVER -> patch.seat() || patch.art().fitsIn(OVER_MAX, OVER_MAX) ? patch.art() : largestIn(patch, OVER_MAX, OVER_MAX);
-			case CLIPPED -> largestIn(patch, Spot.ART_PX, Spot.ART_PX);
 			case FILLED -> largestIn(patch, MAX_ART, MAX_ART);
 		};
 	}

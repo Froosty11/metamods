@@ -3,7 +3,7 @@
 // plugin: nothing of ours lands on window, and onunload has nothing global to clean up.
 var OVVAR = {};
 
-OVVAR.VERSION = 2;
+OVVAR.VERSION = 3;
 
 // ---- PNG, by hand
 //
@@ -505,10 +505,8 @@ OVVAR.compose.baked = function (m, art) {
 
 /**
  * GeneratedAssets.placed: the art (at texture resolution: see `baked`) on a garment texture at
- * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
- * strip -- past the outer face of a limb lies its back face. A cell on a box's top face (the
- * shoulders) is clipped to the face both ways instead, since the top face has no neighbour in
- * the layout to continue onto.
+ * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side
+ * rows and wrapped round the part's strip -- past the outer face of a limb lies its back face.
  *
  * Returns null instead of throwing when the art lands entirely off the cell -- datagen's
  * `require` is a build failure there, but a plugin has a panel to warn in and a model to keep
@@ -519,18 +517,6 @@ OVVAR.compose.placed = function (m, cell, art, x) {
   var y = cell.v * D + Math.trunc((cell.h * D - art.h) / 2);
   var out = OVVAR.tex.blank(W, H);
   var any = false, ax, row, p;
-  if (cell.top) {
-    var x0 = cell.u * D, x1 = x0 + cell.w * D, y0 = m.topRow * D, y1 = m.faceRow * D;
-    for (ax = 0; ax < art.w; ax++) {
-      var column = x + ax;
-      if (column < x0 || column >= x1) continue;
-      for (row = Math.max(y, y0); row < Math.min(y + art.h, y1); row++) {
-        p = OVVAR.tex.get(art, ax, row - y);
-        if (p !== 0) { OVVAR.tex.set(out, column, row, p); any = true; }
-      }
-    }
-    return any ? out : null;
-  }
   var stripStart = cell.stripStart * D, stripWidth = cell.stripWidth * D;
   if (art.w > stripWidth) throw new Error('patch art is wider than the ' + cell.id + " cell's part");
   for (ax = 0; ax < art.w; ax++) {
@@ -800,17 +786,19 @@ OVVAR.compose.stacked = function (m, placements) {
  * A: the cloth, plus every BODY and RIGHT placement. B: the cloth with the mirror strip copied
  * down, plus every LEFT placement. The seat is one patch cut in half, `_r` on A and `_l` on B.
  *
- * A side cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat:
- * the game does the squeeze in the shader, Blockbench has no shader, and this is what makes art
- * bend round the chest's and the sleeve's corners the way it does in game. A top-face cell (the
- * shoulders) is never squeezed -- the top face is not on the strip's perimeter -- so it stays
- * `placed`. Mirroring a limb's art and then wrapping is the same as wrapping and then mirroring,
- * because the squeeze is symmetric about the anchor face's centre and a limb cell is that whole
- * face.
+ * A cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat: the game
+ * does the squeeze in the shader, Blockbench has no shader, and this is what makes art bend round
+ * the chest's and the sleeve's corners the way it does in game. Mirroring a limb's art and then
+ * wrapping is the same as wrapping and then mirroring, because the squeeze is symmetric about the
+ * anchor face's centre and a limb cell is that whole face.
  */
 OVVAR.compose.composePiece = function (ctx, piece, design) {
   var m = ctx.m;
-  var base = ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
+  var chapter = m.chapterById[design.chapter];
+  // A chest-slot chapter (the Media frack) is all top: its legs are drawn with nothing, and a
+  // placement on a leg cell has nowhere to go.
+  var legless = piece === 'bottom' && !OVVAR.compose.hasPiece(chapter, piece);
+  var base = legless ? OVVAR.tex.blank(m.texture[0], m.texture[1]) : ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
   var A = OVVAR.tex.copy(base);
   var B = OVVAR.compose.mirrorStrip(m, piece, base);
   var placements = OVVAR.compose.stacked(m, design.placements || []);
@@ -819,6 +807,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     var cell = m.cellById[p.cell], patch = m.patchById[p.patch];
     if (!cell || !patch) { ctx.warnings.push('unknown placement ' + p.cell + '/' + p.patch); continue; }
     if (cell.piece !== piece) continue;
+    if (legless) { ctx.warnings.push(chapter.name + ' has no legs: ' + cell.label + ' is not drawn'); continue; }
     if (!patch.seat !== !(cell.id === 'seat')) { ctx.warnings.push(patch.name + ' does not fit ' + cell.label); continue; }
     // Nothing painted on it yet is the ordinary state of a patch just invented, and it is a
     // different thing from art that missed its cell. Said once for the whole patch, before the
@@ -832,9 +821,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     for (var s = 0; s < sides.length; s++) {
       var side = sides[s];
       var drawn = OVVAR.compose.placementArt(ctx, cell, patch, side);
-      var tex = cell.top
-        ? OVVAR.compose.placed(m, cell, drawn.art, drawn.x)
-        : OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
+      var tex = OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
       if (tex === null) {
         ctx.warnings.push(patch.name + ' lands entirely off ' + cell.label + '; not drawn');
         continue;
@@ -846,6 +833,11 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     }
   }
   return {A: A, B: B};
+};
+
+/** Chapter.pieces: does the garment have this half? An ovve has both; a frack (chest slot) only the top. */
+OVVAR.compose.hasPiece = function (chapter, piece) {
+  return piece === 'top' || !chapter || chapter.slot !== 'chest';
 };
 
 /** Both halves, both sides: what the four textures of the project are set to. */
@@ -1444,11 +1436,12 @@ OVVAR.panel.register = function () {
   return OVVAR.state.panel;
 };
 
-/** Which cells a patch may go on, grouped by part, in the enum's own order. */
-OVVAR.panel.cellOptions = function (m, patch) {
+/** Which cells a patch may go on, grouped by part, in the enum's own order — the chapter's halves only (a frack has no legs). */
+OVVAR.panel.cellOptions = function (m, patch, chapter) {
   var out = {};
   m.cells.forEach(function (cell) {
     if (!patch.seat !== !(cell.id === 'seat')) return;
+    if (!OVVAR.compose.hasPiece(chapter, cell.piece)) return;
     out[cell.id] = (cell.piece === 'top' ? 'Top — ' : 'Bottom — ') + cell.label;
   });
   return out;
@@ -1463,7 +1456,7 @@ OVVAR.panel.sew = function () {
   // patch may go there. Blockbench's select input re-reads a function-valued `options` every time
   // the menu is opened, so the list is a function rather than something onFormChange rewrites --
   // a replaced options object would never reach the input that was built with the old one.
-  var options = function () { return OVVAR.panel.cellOptions(m, chosen); };
+  var options = function () { return OVVAR.panel.cellOptions(m, chosen, m.chapterById[s.design.chapter]); };
   new Dialog('ovvar_sew', {
     title: 'Sew a patch on',
     form: {
@@ -1536,7 +1529,7 @@ OVVAR.panel.newPatch = function () {
         id: asked.id, name: asked.name, seat: asked.seat, w: w, h: h,
         artist: asked.artist || null,
         arts: [{file: file, w: w, h: h, 'default': true, generated: false, source: null}],
-        fits: {over: file, clipped: file, filled: file}
+        fits: {over: file, filled: file}
       };
       m.patches.push(entry);
       m.patchById[entry.id] = entry;
@@ -1587,7 +1580,6 @@ OVVAR.panel.addSize = function () {
   var patches = {};
   m.patches.forEach(function (p) { if (!p.seat) patches[p.id] = p.name; });
   var sizes = {};
-  sizes[m.artPx] = m.artPx + ' × ' + m.artPx + ' (a shoulder)';
   sizes[m.overMax] = m.overMax + ' × ' + m.overMax + ' (an ordinary cell)';
   sizes[m.maxArt] = m.maxArt + ' × ' + m.maxArt + ' (the big back cell)';
   new Dialog('ovvar_add_size', {
@@ -1648,7 +1640,6 @@ OVVAR.panel.refit = function (m, patch) {
   var own = patch.arts.filter(function (a) { return a['default']; })[0];
   patch.fits = {
     over: (patch.seat || (own.w <= m.overMax && own.h <= m.overMax)) ? own.file : largestIn(m.overMax, m.overMax),
-    clipped: largestIn(m.artPx, m.artPx),
     filled: largestIn(m.maxArt, m.maxArt)
   };
 };

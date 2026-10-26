@@ -9,18 +9,17 @@
 //	  limb's strips; on those fragments the shader samples one strip up, where the left-side art
 //	  lives.
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
-//	  2 left limb) on one face of its strip (B: 0..3, or 4 — Spot.TOP_FACE — for the box's top
-//	  face, which is not on the strip: the shoulders). Fragments of the other limb read the
+//	  2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
 //	  blank texel.
 //   2  the preview texture: every instant design's art in a library (head rows), a cell table at
-//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall; 3·D columns
-//	  further right: the cell's own width and height, since a cell is not one size — the big back
-//	  cell is two cells each way and the seat two wide; its B is Spot.layer, which of two
-//	  overlapping cells is drawn on top; a v above the side rows means the cell is
-//	  on the box's TOP face, the shoulders) and a design
-//	  table 3·D columns further right again (design + fit·OVVAR_FIT_SLOTS → library x, y, cells;
-//	  3·D columns further right: art width, height — a row per art the design can be drawn as,
-//	  since a patch may ship its art at several sizes); G = cells in the half, B = designs. The garment's dye
+//	  x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall;
+//	  OVVAR_TABLE_COLUMNS columns further right: the cell's own width and height, since a cell is
+//	  not one size — the big back cell is two cells each way and the seat two wide; its B is
+//	  Spot.layer, which of two overlapping cells is drawn on top) and a design table
+//	  OVVAR_TABLE_COLUMNS further right again (design + fit·OVVAR_FIT_SLOTS → library x, y, cells;
+//	  OVVAR_TABLE_COLUMNS further right: art width, height — a row per art the design can be
+//	  drawn as, since a patch may ship its art at several sizes); G = cells in the half,
+//	  B = designs. The garment's dye
 //	  colour carries up to three placements as the rank of their set among all sets of
 //	  (cell × designs + design) states, after all smaller sets (0 = none) — packed as three
 //	  base-255 digits, each byte one more than its digit, so no byte is ever 0. Everything else
@@ -40,27 +39,24 @@ const float OVVAR_D = 4.0;
 const float OVVAR_ART_SCALE = 2.0;
 const vec2 OVVAR_TEX = vec2(64.0, 32.0) * OVVAR_D;
 const float OVVAR_CELL = 4.0 * OVVAR_D;   // the default cell; a cell's own size comes from the cell table
-// The first of the box SIDE rows (Spot.FACE_ROW): above it are the boxes' top and bottom faces,
-// where the shoulder cells are, and where nothing is squeezed round the box.
+// The first of the box SIDE rows (Spot.FACE_ROW), where every cell is: above it are the boxes' top
+// and bottom faces, which carry no cells and where nothing is squeezed round the box.
 const float OVVAR_SIDE_ROW = 20.0;
-// Spot.TOP_FACE: what a placement's kind texel carries in B when its cell is on the box's top face.
-const float OVVAR_TOP_FACE = 4.0;
 // The preview texture's four tables (GeneratedAssets: CELL_TABLE_X and the three beside it), each
 // OVVAR_TABLE_COLUMNS texel columns wide and 16 rows tall, read at (base + floor(i/16), mod(i,16)):
-// the cell table, the cells' own sizes, the design table, the arts' sizes.
+// the cell table, the cells' own sizes, the design table, the arts' sizes. GeneratedAssets'
+// TABLE_COLUMNS: two fits of OVVAR_FIT_SLOTS rows, two columns each.
 const float OVVAR_TABLE_X = 40.0 * OVVAR_D;
-const float OVVAR_TABLE_COLUMNS = 3.0 * OVVAR_D;
+const float OVVAR_TABLE_COLUMNS = 4.0;
 // A design's row in the two design tables is design + fit * OVVAR_FIT_SLOTS: a patch may ship its
 // art at several sizes and which of them a cell shows is the cell's to decide (Patches.Fit), so the
 // tables hold a row per (design, fit) and this is the fit of the cell being drawn. The numbers are
 // Patches.Fit's own ordinals, which a game test holds these to:
 //   OVER (0)     the artist's own size, hanging over the cell if it is bigger - every ordinary cell,
-//   CLIPPED (1)  a cell the art is cut to, which is a box's top face (the shoulders),
-//   FILLED (2)   a cell as big as art may get (the big back cell), meant to be filled.
+//   FILLED (1)   a cell as big as art may get (the big back cell), meant to be filled.
 const float OVVAR_FIT_SLOTS = 32.0;
 const float OVVAR_FIT_OVER = 0.0;
-const float OVVAR_FIT_CLIPPED = 1.0;
-const float OVVAR_FIT_FILLED = 2.0;
+const float OVVAR_FIT_FILLED = 1.0;
 const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
 const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
 
@@ -70,90 +66,18 @@ vec4 ovvar_read(float x, float y) {
 
 // Which sign of texture-over-geometry handedness the mirrored limbs have. Fixed by how the game
 // builds its vertex data (the same on every platform); calibrated once against a known garment.
-// This is the calibration for a box's four SIDE faces, which until the shoulders arrived were the
-// only faces anything of ours was drawn on.
+// It holds for a box's top and bottom faces as well as its four sides: on the top face v runs
+// across the box, from its back edge to its front, instead of down it, but u runs the wearer's
+// right to left the same way the front face's does (the box's top-front edge is one line in the
+// texture, and the two faces run along it the same way), so u ^ v against the outward normal has
+// the same sign there as on a side face.
 const bool OVVAR_MIRROR_SENSE = true;
-
-// Does a box's TOP (and BOTTOM) face unwrap with the same texture-over-geometry handedness as its
-// four sides, so that OVVAR_MIRROR_SENSE's answer means the same thing there? Yes — worked out, and
-// then settled by the playtest.
-//
-// The unwrap. On a side face the texture's u runs around the box and its v runs DOWN it (+y in
-// model space, the model being drawn y-flipped). On the top face v runs ACROSS the box instead,
-// from its back edge to its front (-z): that is what puts the top face's last row against the front
-// face's first row, which is how the vanilla box unwrap lays the two out, how the skins are drawn,
-// and what the game shows (a shoulder patch reads with the art's top towards the wearer's back).
-// So only u's direction is in question, and the handedness follows from it — take u ^ v against the
-// outward normal:
-//
-//   front face  u = +x, v = +y, n = -z:  (+x) ^ (+y) = +z, dot(-z) < 0
-//   top face	u = +x, v = -z, n = -y:  (+x) ^ (-z) = +y, dot(-y) < 0   -- same as a side face
-//   top face	u = -x, v = -z, n = -y:  (-x) ^ (-z) = -y, dot(-y) > 0   -- opposite
-//
-// The playtest picked between them: taking the answer as INVERTED on the top rows put each
-// shoulder's art on the other shoulder, so it is not inverted — u = +x, the top face's u running
-// the wearer's right to left, the same way the front face's does. Which is also what the edge they
-// share demands: the box's top-front edge is one line in the texture, and the two faces must run
-// along it the same way.
-//
-// Why the earlier playtest (one shoulder drawing, the other bare) says nothing about this: both
-// arms' top faces are the very same texels, so `mirrored` is the only thing that can tell them
-// apart, and under EITHER sense exactly one of the two shoulder cells is selected per arm — every
-// setting predicts both shoulders drawing, one patch each. A bare shoulder is not a state this
-// constant can produce; that session's client had not been pushed a pack holding the new cells
-// ("you already have the latest pack"), so its cell table was the one from before they existed.
-//
-// If a shoulder patch ever comes out on the other shoulder than it was sewn on, this is the one
-// line to flip.
-const bool OVVAR_TOP_FACE_SAME_SENSE = true;
 
 // Which half of a seat patch's art the unmirrored (the wearer's right) leg wears: Spot.seatColumn's
 // RIGHT value, which a game test holds this to. Seat art is drawn as seen from behind, where the
 // wearer's right leg is on the viewer's right, so the right leg takes the art's RIGHT half (column
 // 1) and the mirrored left leg the other one.
 const float OVVAR_SEAT_COLUMN_RIGHT = 1.0;
-
-// ---- dev only: see what the shader makes of the boxes' top faces (where the shoulders are)
-//
-// All off in everything shipped, and a game test holds them off. With one on, a fragment of a limb
-// box's top or bottom face is painted instead of drawn. THREE SEPARATE SWITCHES, because the first
-// playtest of them could not tell which of the two paintings mattered:
-//
-//   OVVAR_DEBUG_TOP_FACE_SIDES  the BASE GARMENT layer, which covers every such fragment whatever
-//							   is sewn, paints instead of sampling the cloth:
-//								 RED   the mirror test calls this fragment mirrored (the left limb),
-//								 BLUE  it calls it unmirrored (the right);
-//   OVVAR_DEBUG_TOP_FACE_MISS   the PREVIEW layer paints MAGENTA where no cell of the instant
-//							   design matched the fragment;
-//   OVVAR_DEBUG_TOP_FACE_HIT	the PREVIEW layer paints GREEN where a cell DID match — instead of
-//							   the art, so a green face says the shader got all the way to the
-//							   library and drew, whatever the result looks like.
-//
-// OVVAR_DEBUG_TOP_FACES turns on all three (what the first playtest ran).
-//
-// **The experiment to run now: only OVVAR_DEBUG_TOP_FACE_HIT.** Nothing else about the frame
-// changes — the base garment still draws its own cloth — so:
-//
-//   BOTH arms' top faces GREEN  the preview path reaches the library on both arms in an otherwise
-//	   normal build, so the patch was being drawn all along and whatever hides one shoulder is
-//	   later than this shader: draw order, the layer stack, or the pack the client is holding;
-//   one green arm, one bare	 the preview path really does reach a cell on only one arm, and
-//	   since it reaches both when SIDES paints as well, the base garment layer's own top-face
-//	   branch is implicated and that is the thing to change;
-//   neither green			   no cell matched at all (turn MISS on too: magenta says the same
-//	   fragments got as far as the cell table).
-//
-// The colours are opaque texels datagen writes into every texture of ours, in the marker row left
-// of the layer texel (see GeneratedAssets: DEBUG_X), so painting is just a coordinate like any
-// other and no program needs a new output.
-const bool OVVAR_DEBUG_TOP_FACES = false;
-const bool OVVAR_DEBUG_TOP_FACE_SIDES = false;
-const bool OVVAR_DEBUG_TOP_FACE_MISS = false;
-const bool OVVAR_DEBUG_TOP_FACE_HIT = false;
-const vec2 OVVAR_DEBUG_MIRRORED = (vec2(OVVAR_TEX.x - 7.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
-const vec2 OVVAR_DEBUG_UNMIRRORED = (vec2(OVVAR_TEX.x - 6.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
-const vec2 OVVAR_DEBUG_NO_CELL = (vec2(OVVAR_TEX.x - 5.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
-const vec2 OVVAR_DEBUG_CELL_HIT = (vec2(OVVAR_TEX.x - 4.0, OVVAR_TEX.y * 0.5 - 1.0) + 0.5) / OVVAR_TEX;
 
 bool ovvar_marked() {
 	return all(equal(ovvar_read(OVVAR_MARKER.x, OVVAR_MARKER.y), vec4(255.0, 0.0, 255.0, 2.0)));
@@ -332,35 +256,27 @@ vec2 ovvar_uv(vec2 uv) {
 	bool limb = t.y >= 16.0 * OVVAR_D && (t.x < 16.0 * OVVAR_D || (t.x >= 40.0 * OVVAR_D && t.x < 56.0 * OVVAR_D));
 	bool sides = t.y >= OVVAR_SIDE_ROW * OVVAR_D;   // the box sides, not the top and bottom faces
 	// Is this fragment on a limb the model draws mirrored? The handedness of the texture over the
-	// geometry says so, read with the sense of the kind of face the fragment is on: a box's top and
-	// bottom faces need not unwrap the way its sides do (see OVVAR_TOP_FACE_SAME_SENSE), and if they
-	// did not the same answer would mean the opposite thing. Every path below — the base garment's mirror strip, a
-	// placement's "hide it on the other limb", and the preview's cell sides — reads this one bool,
-	// so the two arms' top faces are told apart exactly once.
-	bool mirrored = limb && ((sides || OVVAR_TOP_FACE_SAME_SENSE) ? ovvar_handed : !ovvar_handed);
+	// geometry says so (see OVVAR_MIRROR_SENSE). Every path below — the base garment's mirror strip,
+	// a placement's "hide it on the other limb", and the preview's cell sides — reads this one bool,
+	// so the arms are told apart exactly once.
+	bool mirrored = limb && ovvar_handed;
 	float inflate = ovvar_inflate();
 	float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
-	bool inFace = !sides || (ay >= OVVAR_SIDE_ROW * OVVAR_D && ay < 32.0 * OVVAR_D);
+	// On the side rows a patch is drawn on, after the squeeze in y: every cell is there, so a top or
+	// bottom face of a box — and a squeezed row past the ends of the side rows — shows no patch.
+	bool inFace = sides && ay >= OVVAR_SIDE_ROW * OVVAR_D && ay < 32.0 * OVVAR_D;
 
 	if (kind.r > 0.5 && kind.r < 1.5) {
 		// Placement: hide it on the limb it is not for; continuous round the box from its face
 		// (the kind texel's B), nothing in the slack.
 		if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
-		// A cell on the box's TOP face (the shoulders): datagen has drawn the art on the top rows
-		// and clipped it to that face, which is not on the strip's perimeter — so there is no
-		// squeeze to do, the texel is taken as it lies, and the side rows carry none of it.
-		if (kind.b > OVVAR_TOP_FACE - 0.5) return sides ? OVVAR_BLANK : uv;
 		if (!inFace) return OVVAR_BLANK;
-		float a = sides ? ovvar_squeezed_anchored(t.x, inflate, kind.b) : t.x;
+		float a = ovvar_squeezed_anchored(t.x, inflate, kind.b);
 		if (a < 0.0) return OVVAR_BLANK;
 		return vec2(a, ay) / OVVAR_TEX;
 	}
 
 	if (kind.r < 0.5) {
-		// Dev only: paint a limb box's top (or bottom) face by what the mirror test makes of it.
-		if ((OVVAR_DEBUG_TOP_FACES || OVVAR_DEBUG_TOP_FACE_SIDES) && limb && !sides) {
-			return mirrored ? OVVAR_DEBUG_MIRRORED : OVVAR_DEBUG_UNMIRRORED;
-		}
 		// Base garment: per-face centred, the margin filled by the face's edge column (and row);
 		// the mirrored limb reads the strip above.
 		float aEdge = t.x;
@@ -418,24 +334,16 @@ vec2 ovvar_uv(vec2 uv) {
 		else { if (!limb) continue; column = mirrored ? 1.0 - OVVAR_SEAT_COLUMN_RIGHT : OVVAR_SEAT_COLUMN_RIGHT; flip = mirrored; }
 		// The art, centred on its cell (a seat patch: one cell per leg), looked up on the side
 		// rows through the mapping a placement of its face gets — continuous round the box, so
-		// a big patch bends round the corners here just as it will once the pack has it. A cell on
-		// the box's top face is the exception: no mapping, and clipped rather than bent (below).
+		// a big patch bends round the corners here just as it will once the pack has it.
 		// The cell's own size: OVVAR_CELL for nearly all of them, twice that each way for the big
 		// back cell, and two cells wide for the seat — half of which is one leg's. The art's height
 		// is the art's own either way, so a seat patch taller than the seat's row hangs over it just
 		// as a big patch hangs over a plain cell.
 		float cw = cz.r, ch = cz.g;
-		// Which kind of face the cell is on, off its own row: above the side rows is the box's TOP
-		// face (the shoulders). A top cell is drawn on the top rows and nowhere else, and a side
-		// cell on the side rows and nowhere else.
-		bool onTop = ce.g < OVVAR_SIDE_ROW * OVVAR_D;
-		if (onTop == sides) continue;
-		// Which of the design's arts this cell shows (Patches.Fit, above): the art is clipped to a top
-		// face, so a cell-sized one goes there whole; a cell bigger than a cell -- the big back one,
-		// never the seat, whose two cells wear one patch drawn to their own size -- is filled; anything
-		// else takes the artist's own size and lets it hang over.
-		float fit = onTop ? OVVAR_FIT_CLIPPED
-				: (side < 2.5 && (cw > OVVAR_CELL || ch > OVVAR_CELL) ? OVVAR_FIT_FILLED : OVVAR_FIT_OVER);
+		// Which of the design's arts this cell shows (Patches.Fit, above): a cell bigger than a cell --
+		// the big back one, never the seat, whose two cells wear one patch drawn to their own size --
+		// is filled; anything else takes the artist's own size and lets it hang over.
+		float fit = (side < 2.5 && (cw > OVVAR_CELL || ch > OVVAR_CELL)) ? OVVAR_FIT_FILLED : OVVAR_FIT_OVER;
 		float slot = design + fit * OVVAR_FIT_SLOTS;
 		vec4 pe = ovvar_read(OVVAR_TABLE_X + 2.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // library x, y, cells
 		vec4 sz = ovvar_read(OVVAR_TABLE_X + 3.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // art width, height
@@ -443,21 +351,10 @@ vec2 ovvar_uv(vec2 uv) {
 		// art is, and any other art is its own size scaled up from the art pixels the table holds.
 		float w = side > 2.5 ? cw * 0.5 : sz.r * OVVAR_ART_SCALE, h = sz.g * OVVAR_ART_SCALE;
 		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
-		float a = t.x;
-		if (sides) {
-			a = ovvar_squeezed_anchored(t.x, inflate, ovvar_face_of(body, ce.r / OVVAR_D - stripStart));
-			if (a < 0.0) continue;
-		}
+		float a = ovvar_squeezed_anchored(t.x, inflate, ovvar_face_of(body, ce.r / OVVAR_D - stripStart));
+		if (a < 0.0) continue;
 		vec2 local = vec2(a, ay) - origin;
-		if (!onTop) {
-			if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
-		} else {
-			// Clipped to the top face, both ways: a top face's four edges have no neighbouring face
-			// in the layout to continue onto, so art bigger than the cell is simply cut off at them
-			// rather than bent round — the same as the pack path (GeneratedAssets.placed).
-			vec2 inCell = vec2(a, ay) - ce.rg;
-			if (inCell.x < 0.0 || inCell.x >= cw || inCell.y < 0.0 || inCell.y >= ch) continue;
-		}
+		if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
 		if (local.x < 0.0 || local.x >= w || local.y < 0.0 || local.y >= h) continue;
 		if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
 		if (cz.b <= drawnLayer) continue;   // a cell higher in the stack has this fragment already
@@ -475,17 +372,7 @@ vec2 ovvar_uv(vec2 uv) {
 		// indexed by one, and a coordinate exactly on the boundary is the neighbour's to round to.
 		drawn = (at + 0.5) / OVVAR_TEX;
 	}
-	if (drawnLayer >= 0.0) {
-		// Dev only: this fragment matched a cell and is about to be drawn from the library — say so
-		// in one colour, whatever the art turns out to look like.
-		if ((OVVAR_DEBUG_TOP_FACES || OVVAR_DEBUG_TOP_FACE_HIT) && limb && !sides) return OVVAR_DEBUG_CELL_HIT;
-		return drawn;
-	}
-	// Dev only: a limb box's top face that matched no cell of the design. A shoulder that is sewn
-	// and comes out magenta is one whose fragments got past the mirror test and then missed the
-	// cell's own window.
-	if ((OVVAR_DEBUG_TOP_FACES || OVVAR_DEBUG_TOP_FACE_MISS) && limb && !sides) return OVVAR_DEBUG_NO_CELL;
-	return OVVAR_BLANK;
+	return drawnLayer >= 0.0 ? drawn : OVVAR_BLANK;
 }
 
 // The vertex colour to shade with: on a patch texture of ours the dye colour is data, not paint,

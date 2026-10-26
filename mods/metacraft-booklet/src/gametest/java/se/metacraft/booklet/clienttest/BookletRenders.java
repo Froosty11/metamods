@@ -339,7 +339,6 @@ public final class BookletRenders implements FabricClientGameTest {
 				new Placement(Spot.FRONT_LOW_RIGHT, Patches.get("data")),
 				new Placement(Spot.SLEEVE_OUT_TOP_L, Patches.get("spiken")),
 				new Placement(Spot.SLEEVE_OUT_TOP_R, Patches.get("slaggan")),
-				new Placement(Spot.SHOULDER_R, Patches.get("itk")),
 				new Placement(Spot.LEG_OUT_TOP_R, Patches.get("tmeit")),
 				new Placement(Spot.LEG_OUT_TOP_L, Patches.get("jgs"))));
 		mannequin(level, 20, Chapter.DATA, front, 45);

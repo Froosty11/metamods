@@ -56,8 +56,6 @@ public final class WardrobeSheet {
 				new Placement(Spot.FRONT_LOW_RIGHT, nyckeln),
 				new Placement(Spot.SLEEVE_FRONT_TOP_R, nyckeln),
 				new Placement(Spot.SLEEVE_OUT_MID_R, itk),
-				new Placement(Spot.SHOULDER_R, nyckeln),
-				new Placement(Spot.SHOULDER_L, itk),
 				// The back's three cells at once, which is what overlapping patches look like: the big
 				// one under, the two top cells over it (Spot.layer).
 				new Placement(Spot.BACK_BIG, itk),
@@ -117,12 +115,10 @@ public final class WardrobeSheet {
 		// cell at screen scale (4 skin px, so 12 px) would mean a face crop is picking up art that
 		// wrapped round a corner onto the face next to it.
 		for (Placement placement : sewn) {
-			for (Angle angle : WardrobePreview.anglesOf(placement.spot())) {
-				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement, angle);
-				if (glyph != null) {
-					System.out.println("  " + placement.key() + " (" + angle + "): "
-							+ glyph.width() + "x" + glyph.height() + " at (" + glyph.x() + "," + glyph.top() + ")");
-				}
+			WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(placement);
+			if (glyph != null) {
+				System.out.println("  " + placement.key() + " (" + WardrobePreview.angleOf(placement.spot()) + "): "
+						+ glyph.width() + "x" + glyph.height() + " at (" + glyph.x() + "," + glyph.top() + ")");
 			}
 		}
 	}
@@ -144,20 +140,18 @@ public final class WardrobeSheet {
 				// The PNG this cell shows, which need not be the catalogue's own size (Patches.artFor).
 				Patches.Art chosen = Patches.artFor(patch, spot);
 				Tex art = Tex.art(chosen);
-				for (Angle angle : WardrobePreview.anglesOf(spot)) {
-					WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch), angle);
-					if (glyph == null) continue;
-					// Against the art this cell can show: an oversize patch's hang-over is wrapped round the
-					// box by datagen and drawn on the face next door, so it is no part of this cell's picture.
-					java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, chosen, art, angle));
-					java.util.List<Integer> got = chromas(glyph.art().get());
-					// To within a level of quantisation: shading multiplies the channels and rounds, and a
-					// sleeve is shaded twice over, which can carry a ratio over a bucket boundary.
-					java.util.List<Integer> missing = new java.util.ArrayList<>(want.stream().filter(c -> !near(got, c)).toList());
-					java.util.List<Integer> extra = new java.util.ArrayList<>(got.stream().filter(c -> !near(want, c)).toList());
-					if (!missing.isEmpty() || !extra.isEmpty()) {
-						System.out.println("  BAD " + spot.id() + " (" + angle + ") missing " + missing + " extra " + extra);
-					}
+				WardrobeFont.Glyph glyph = WardrobePreview.patchGlyph(new Placement(spot, patch));
+				if (glyph == null) continue;
+				// Against the art this cell can show: an oversize patch's hang-over is wrapped round the
+				// box by datagen and drawn on the face next door, so it is no part of this cell's picture.
+				java.util.List<Integer> want = chromas(WardrobePreview.shownArt(spot, chosen, art));
+				java.util.List<Integer> got = chromas(glyph.art().get());
+				// To within a level of quantisation: shading multiplies the channels and rounds, and a
+				// sleeve is shaded twice over, which can carry a ratio over a bucket boundary.
+				java.util.List<Integer> missing = new java.util.ArrayList<>(want.stream().filter(c -> !near(got, c)).toList());
+				java.util.List<Integer> extra = new java.util.ArrayList<>(got.stream().filter(c -> !near(want, c)).toList());
+				if (!missing.isEmpty() || !extra.isEmpty()) {
+					System.out.println("  BAD " + spot.id() + " missing " + missing + " extra " + extra);
 				}
 			}
 		}

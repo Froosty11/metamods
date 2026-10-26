@@ -43,7 +43,6 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 /**
  * {@code ./gradlew runGametest}. The aiming tests hold the sewing aim to the forward mapping:
@@ -58,17 +57,12 @@ public final class OvvarGameTests {
 
 	@GameTest
 	public void aimEveryCellAtRest(GameTestHelper helper) {
-		aimEveryCell(helper, 0, REST, REST, REST, REST, spot -> true);
+		aimEveryCell(helper, 0, REST, REST, REST, REST);
 	}
 
-	/**
-	 * Posed, the shoulders are left out: rotating an arm 60° about z swings the top of its box into
-	 * the torso, so there is no line of sight to the shoulder's own face to test. At rest (above)
-	 * they are aimed at like every other cell.
-	 */
 	@GameTest
 	public void aimEveryCellPosedAndTurned(GameTestHelper helper) {
-		aimEveryCell(helper, 137, ARMS_OUT_R, ARMS_OUT_L, LEGS_APART_R, LEGS_APART_L, spot -> !spot.top());
+		aimEveryCell(helper, 137, ARMS_OUT_R, ARMS_OUT_L, LEGS_APART_R, LEGS_APART_L);
 	}
 
 	@GameTest
@@ -89,44 +83,6 @@ public final class OvvarGameTests {
 	}
 
 	/**
-	 * A shoulder is a cell on the arm box's TOP face: its plane faces straight up on an unposed
-	 * stand, looking down at it from above resolves the cell (and not the sleeve's front face, which
-	 * shares the arm strip's columns), and the sprite a sewn patch gets lies flat on that plane.
-	 */
-	@GameTest(maxTicks = 120)
-	public void aShoulderLiesOnTheArmsTopFace(GameTestHelper helper) {
-		ArmorStand stand = stand(helper, 0, REST, REST, REST, REST);
-		for (Spot spot : List.of(Spot.SHOULDER_R, Spot.SHOULDER_L)) {
-			StandAim.CellPoint at = StandAim.cell(stand, spot);
-			if (at.normal().y < 0.999) helper.fail(spot.id() + "'s plane faces " + at.normal() + ", wanted straight up");
-			if (Math.abs(at.up().y) > 1e-3) helper.fail(spot.id() + "'s art runs " + at.up() + " up, which is not flat on the top face");
-			// Above every side cell of the same arm: the top face is the top of the box.
-			Spot sleeve = spot.side == Spot.Side.RIGHT ? Spot.SLEEVE_FRONT_TOP_R : Spot.SLEEVE_FRONT_TOP_L;
-			if (at.centre().y <= StandAim.cell(stand, sleeve).centre().y) {
-				helper.fail(spot.id() + " is not above " + sleeve.id() + " on the stand");
-			}
-			// Looking straight down at it from above.
-			StandAim.Hit hit = StandAim.aim(at.centre().add(0, 0.3, 0), new Vec3(0, -1, 0), stand, false, 6);
-			if (hit == null || hit.spot() != spot) helper.fail("looking down at " + spot.id() + " hit " + (hit == null ? "nothing" : hit.spot()));
-		}
-		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
-		Placement placement = new Placement(Spot.SHOULDER_R, Patches.get("itk"));
-		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(placement)).getOrThrow());
-		OvveItem.setTopUp(ovve, true);   // the top's patches only show while the top is up
-		stand.setItemSlot(EquipmentSlot.LEGS, ovve);
-		helper.runAfterDelay(5, () -> {
-			List<StandDisplays.Sprite> sprites = StandDisplays.sprites(stand);
-			if (sprites.isEmpty()) helper.fail("no sprite for a patch sewn on the shoulder");
-			for (StandDisplays.Sprite sprite : sprites) {
-				Vec3 cell = StandAim.cell(stand, sprite.placement().spot()).centre();
-				double off = sprite.pos().distanceTo(cell);
-				if (off > 0.03) helper.fail(sprite.placement().key() + " sprite is " + String.format("%.3f", off) + " blocks off its cell");
-			}
-			helper.succeed();
-		});
-	}
-
-	/**
 	 * Right-clicking a stand's <b>chest</b> with an empty hand takes the whole ovve off, into the
 	 * hand, and leaves no companion top behind.
 	 *
@@ -143,7 +99,7 @@ public final class OvvarGameTests {
 	public void clickingAStandsChestTakesTheWholeOvveOff(GameTestHelper helper) {
 		ArmorStand stand = stand(helper, 0, REST, REST, REST, REST);
 		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
-		Placement placement = new Placement(Spot.SHOULDER_R, Patches.get("itk"));
+		Placement placement = new Placement(Spot.SLEEVE_OUT_TOP_R, Patches.get("itk"));
 		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(placement)).getOrThrow());
 		OvveItem.setTopUp(ovve, true);
 		stand.setItemSlot(EquipmentSlot.LEGS, ovve);
@@ -165,7 +121,7 @@ public final class OvvarGameTests {
 			}
 			ItemStack held = player.getMainHandItem();
 			if (!(held.getItem() instanceof OvveItem)) helper.fail("the player is holding " + held + ", not the ovve");
-			else if (!placement.equals(Looks.at(held, Spot.SHOULDER_R))) helper.fail("the ovve they got has lost its patch: " + Looks.sewn(held));
+			else if (!placement.equals(Looks.at(held, Spot.SLEEVE_OUT_TOP_R))) helper.fail("the ovve they got has lost its patch: " + Looks.sewn(held));
 
 			// And a leg: our handler leaves it to vanilla, whose swap hands the ovve over as before.
 			ArmorStand other = stand(helper, 0, REST, REST, REST, REST);
@@ -398,13 +354,12 @@ public final class OvvarGameTests {
 	}
 
 	private static void aimEveryCell(
-		GameTestHelper helper, float yaw, Rotations rightArm, Rotations leftArm, Rotations rightLeg, Rotations leftLeg,
-		Predicate<Spot> reachable
+		GameTestHelper helper, float yaw, Rotations rightArm, Rotations leftArm, Rotations rightLeg, Rotations leftLeg
 	) {
 		ArmorStand stand = stand(helper, yaw, rightArm, leftArm, rightLeg, leftLeg);
 		List<String> wrong = new ArrayList<>();
 		for (Spot spot : Spot.values()) {
-			if (spot == Spot.SEAT || !reachable.test(spot)) continue;
+			if (spot == Spot.SEAT) continue;
 			StandAim.CellPoint cell = StandAim.cell(stand, spot);
 			Vec3 eye = cell.centre().add(cell.normal().scale(0.3));   // close in: nothing else in the way
 			StandAim.Hit hit = StandAim.aim(eye, cell.normal().scale(-1), stand, false, 6);

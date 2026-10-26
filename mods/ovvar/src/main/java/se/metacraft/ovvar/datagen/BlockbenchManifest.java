@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BlockbenchManifest implements DataProvider {
 	/** Bumped when the schema changes in a way an older plugin could not read; the plugin refuses a newer one. */
-	public static final int VERSION = 2;
+	public static final int VERSION = 3;
 	/** Under {@code src/main/generated}, beside {@code ovvar/outlines.json}; on the classpath at runtime. */
 	public static final String DIR = Ovvar.MOD_ID + "/blockbench/";
 	public static final String RESOURCE = "/" + DIR + "manifest.json";
@@ -104,9 +104,6 @@ public final class BlockbenchManifest implements DataProvider {
 		m.addProperty("artPx", Spot.ART_PX);
 		m.addProperty("faceRow", Spot.FACE_ROW);
 		m.addProperty("faceRows", Spot.FACE_ROWS);
-		m.addProperty("topRow", Spot.TOP_ROW);
-		m.addProperty("topRows", Spot.TOP_ROWS);
-		m.addProperty("topFace", Spot.TOP_FACE);
 		m.addProperty("mirrorShift", Spot.MIRROR_SHIFT);
 		m.addProperty("cellSize", Spot.SIZE);
 		m.addProperty("bigCell", Spot.BIG);
@@ -137,16 +134,12 @@ public final class BlockbenchManifest implements DataProvider {
 
 	/**
 	 * The texels every garment and placement texture carries for {@code ovvar.glsl} — the marker,
-	 * its kind, the layer's inflation, the debug palette, and the texel the shader promises is
-	 * always clear. The plugin composes the cloth, not the shader's contract, so its goldens are
+	 * its kind, the layer's inflation, and the texel the shader promises is always clear. The plugin composes the cloth, not the shader's contract, so its goldens are
 	 * compared everywhere <em>but</em> here; writing the list out means a texel moved in
 	 * {@link GeneratedAssets} moves in the plugin's tests too.
 	 */
 	private static JsonArray markerTexels() {
 		JsonArray out = new JsonArray();
-		for (int i = 0; i < GeneratedAssets.DEBUG.length; i++) {
-			out.add(ints(GeneratedAssets.DEBUG_X + i, GeneratedAssets.MARKER_Y));
-		}
 		out.add(ints(GeneratedAssets.LAYER_X, GeneratedAssets.MARKER_Y));
 		out.add(ints(GeneratedAssets.MARKER_KIND_X, GeneratedAssets.MARKER_Y));
 		out.add(ints(GeneratedAssets.MARKER_X, GeneratedAssets.MARKER_Y));
@@ -212,7 +205,6 @@ public final class BlockbenchManifest implements DataProvider {
 			c.addProperty("w", spot.width);
 			c.addProperty("h", spot.height);
 			c.addProperty("side", spot.side.name().toLowerCase(Locale.ROOT));
-			c.addProperty("top", spot.top());
 			c.addProperty("face", Spot.face(spot));
 			c.addProperty("layer", spot.layer());
 			c.addProperty("stripStart", Spot.stripStart(spot));

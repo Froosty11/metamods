@@ -26,44 +26,22 @@ chapter uses.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
-belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it, and one
-on each shoulder. Nearly every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`);
-the shoulders are on the arm boxes' *top* faces, rows 16–20 (`Spot.TOP_ROW`). Which rows each part
-uses came out of the playtest:
-
-```
-      ___________
-     /  SHOULDER \         the arm box seen from above: the whole 4×4 top face
-     \___________/         is the cell, and its front edge is the top of the sleeve
-     |           |
-     |  sleeve   |
-```
+belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it. Every
+cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`). Which rows each part uses came
+out of the playtest:
 
 | part | faces | cell rows (`v`) |
 | --- | --- | --- |
 | body, chest | front (8 wide) | 21, 26 — row 20 is the collar, row 31 the belt |
 | body, back | back (8 wide) | 21 (`BACK_TOP_LEFT`/`_RIGHT`) *or* 22 (`BACK_BIG`, the whole face) |
 | sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
-| shoulders | the arm box's **top** face | 16–20, the whole face (`SHOULDER_R`/`_L`) |
 | legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
 | seat | both legs' back faces | 22, following `LEG_BACK_TOP`; a tall seat patch hangs a texel over it each way |
 
-The **shoulders** (`SHOULDER_R`, `SHOULDER_L`) are the one pair of cells not on the boxes' side
-rows: each is the whole of an arm box's top face, the arm strip's u 44..48 on rows 16–20, and any
-plain patch goes on it, centred. `Spot.top()` is the test — read off the row — and it decides three
-things everywhere a cell is drawn: no squeeze round the box (a top face is not on the strip's
-perimeter, so there is no slack to take up), the rows the cell is measured down from
-(`Spot.TOP_ROW`, not `FACE_ROW`), and — the one thing a shoulder does differently from every other
-cell — that **art bigger than the cell is clipped to the face, not bent round it.** A top face's
-four edges have no neighbouring face in the layout to continue onto (the strip is a loop round the
-box's *sides*, not over the top of it), so a 12×12 patch on a shoulder keeps its middle 8×8 and the
-rest is simply cut off, in the pack path, in the dye colour and on a stand alike — unless the patch
-has art at a size that fits the face, which is what the per-size variants are for (ITK's 8×8 is
-drawn, IT's is scaled down from its 16×16; see "art at more than one size"). Bending it over
-the four edges, the way a side cell's overhang bends round the corners, is a later version's job.
-`Spot.face()` answers `TOP_FACE` (4) for them rather than one of the four side faces, which is what
-datagen puts in the placement texture's kind texel and what `ovvar.glsl` reads back. The left arm's
-top face is mirrored in u like every other left-limb face.
+No cell is on a box's top face. There were shoulder cells for a while, one on each arm box's 4×4
+top face, and a patch looked bad there, so they went, with everything that existed only for them:
+the clipped fit, the 8×8 art sizes, the foreshortened caps on the paper doll and the top-face paths
+in the shader. No server had any sewn, so nothing was migrated.
 
 A cell is 4×4 texels except where the entry in `Spot` says otherwise (`Spot.width`/`height`), and
 there are two that do. The **seat** is two cells wide, one tall, across the back of both legs — but
@@ -95,20 +73,19 @@ has no answer all three paths could give. Sew the seat or the legs' back cells, 
 Cells come and go, and players' items and stored wardrobe rows name them by id, so
 `SpotPlacements.CODEC` drops a placement naming a cell or a patch this build has not got — with a
 log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
-and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
+and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived, `SHOULDER_R` and `SHOULDER_L` what went
+later.)
 
 The catalogue (`Patches.java`) holds ITK, METAcraft Rivals '26, IT and Data, then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Ainrave's IN, IN (gold), the three
 Nyckeln keys and KomMN, then Måns's JGS, TMEIT and TMEIT Marshal, Ainrave's Data pack, and last
 Millia's Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew (each also at 16×16). ITK, IT, Data, Spiken, Släggan,
 the Maid dress, the ticket and Måns's three are 12×12 and hang over their neighbours (except on the big back
-cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
-ITK, the art that shipped before the 12×12), so it lands whole on a shoulder instead of losing its
-edges, and `itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big
-back cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
-drawn — see "art at more than one size" below; Spiken, Släggan, JGS, TMEIT and TMEIT Marshal each ship
-an 8×8 and a 16×16 beside their 12×12 — Ticket to my heart among them, now Måns's 12×12 redraw in
-place of Cactooz's 9×6 original;
+cell). Most are also drawn at 16×16, which fills the big back cell and is the patch's own inventory
+icon at 1:1 — see "art at more than one size" below: ITK ships `itk_16x16.png`, IT `it_16x16.png`
+(PolymITer's 16×16 IT sprite), and Spiken, Släggan, JGS, TMEIT, TMEIT Marshal, IN, the three Nyckeln
+keys and Millia's six each a 16×16 beside their 12×12 — Ticket to my heart among them, now Måns's
+12×12 redraw in place of Cactooz's 9×6 original; KomMN is 12×8 with a 16×10;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
 seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Ainrave's Nyckeln 0x2, is gone from the
@@ -151,8 +128,7 @@ vanilla's to swap, and a session stand still refuses everything but sewing. (A f
 chest slot's item, so there vanilla's swap already hands it over and the click is left alone.) While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
-is taken off and worn. A shoulder's sprite lies flat on the arm box's own top face, which faces
-straight up on an unposed stand. A big patch lies flat on its cell's face, the overhang sticking out past
+is taken off and worn. A big patch lies flat on its cell's face, the overhang sticking out past
 the corner (`PatchPieces` can instead cut it at the corners and lay each piece on the face it
 hangs over, so it bends round the box on the stand too; that is off for now,
 `BEND_ROUND_CORNERS`, until the pieces line up with the armour on posed stands); datagen makes
@@ -316,24 +292,13 @@ trouser leg below, which is where that side's cells are.
 garment, and one small glyph per (patch, cell) draws that patch exactly where it lands on the doll —
 cropped to its own art, so the glyph is a dozen pixels square, and placed by space advances and its
 own ascent. The title stacks the bare ovve and then one glyph per sewn placement, so a design is
-composed at the moment the screen opens. A cell sits on exactly one face of one box, and a *side*
-face is seen from exactly one of the four angles, so that is **6 × 4 = 24 bare glyphs plus one per
-(patch, cell the doll can show, angle that draws it) — fixed**, however much anybody sews: nothing
+composed at the moment the screen opens. A cell sits on exactly one face of one box, and a face is
+seen from exactly one of the four angles (`WardrobePreview.angleOf`), so that is **6 × 4 = 24 bare
+glyphs plus one per (patch, cell the doll can show) — fixed**, however much anybody sews: nothing
 is regenerated and no pack is pushed when a patch goes
 on. (v2 keyed the art by patch combination instead, which grew with every design, spent a glyph
 budget and needed a pack build and a loading screen each time somebody sewed something.) `Combos` is
 therefore back to what it was before v2, doing equipment definitions and nothing else.
-
-A **shoulder** is the exception, being on a box's top face: no side of the figure looks down on it,
-so the front and the back views each draw it **foreshortened** — the face's four texel rows averaged
-in pairs into two, a 6 px cap sitting on the top of the sleeve column. Nothing else on the figure
-moves: it is already exactly the panel's height (a face for the top, a face for the trousers), so
-the cap takes the sleeve's own top rows rather than room of its own. It is the same face seen from
-two opposite sides, so the back view's cap is the front view's turned through 180°, and the shoulder
-is the one kind of cell with a glyph on two angles (`WardrobePreview.anglesOf`; `angleOf` names the
-front one, which is the single picture of the cell that callers wanting one get, and where its
-tooltip is quoted from). It is hoverable on both views, each at the slot that view really draws it
-in — which is the sleeve's own slot, the cap sitting on the sleeve's columns.
 
 The cells you cannot see from an angle simply have no glyph there. The wearer's left limbs are the
 mirror images the armour model draws — and a left cell's art is pre-mirrored in its own texture to
@@ -362,18 +327,15 @@ The preview's sixteen slots therefore carry no icon at all: **on every angle**, 
 each placement the angle on show draws — the picture shows through and all that is left of the slot
 is its "\<patch\> on \<spot\>" tooltip. Turn the figure and the tooltips turn with it: a patch sewn
 on the back is hoverable on the back view and its front slot is empty, because a cell is on one face
-of one box and a side face is seen from one of the four sides (a shoulder, on a box's top face, is
-hoverable from the front and from behind).
+of one box and a face is seen from one of the four sides.
 `./gradlew :mods:ovvar:wardrobeSheet` composites the whole screen, and all four angles side by side,
 to a PNG (`WardrobeSheet`, a dev tool) so the doll can be looked at without starting a client, and
 `-PsheetState=audit` prints every cell's glyph against the art it is meant to be showing. "The art",
 for a patch bigger than its cell, is only the part of it that lands on the cell's own face: datagen
 wraps what hangs over round the box, so those columns are drawn on the face next door and the cell's
 glyph is right not to have them. `WardrobePreview.shownArt` is that window — and, for the seat, the
-two legs' halves in the order the back view puts the legs; for a shoulder, the rows of the art
-averaged in the same pairs the cap averages, since those averages are the colours the doll really
-draws — and both the audit and the `wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare
-against it, for every angle that draws the cell.
+two legs' halves in the order the back view puts the legs — and both the audit and the
+`wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare against it.
 
 **`/ovvar look [player]`** opens the same screen read-only on somebody else's ovve: their chapters as
 tabs (the ones they have a design for — their inventory is none of our business and may not be
@@ -404,8 +366,7 @@ show the cell. The panel is exactly the 4×4 block of 18 px slot cells at rows 1
 slot is the one holding that rectangle's centre, and the tooltip cannot drift from the picture the
 way a hand-kept table could (the front view's slots are the ones the old table gave, and a game
 test pins them). `previewSlot(spot)` is the front overload, for the callers that only ever mean the
-front. A shoulder's cap is over its sleeve's columns, so the two share a slot on the front view and
-the shoulder has one on the back view too. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
+front. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
 last placement drawn to a slot wins its tooltip — a design with only one cell per slot (the common
 case) always shows correctly.
 Row 5's "finish" (col 4) is the old `StashGui`'s "Finish sewing" button, shown only while a stash
@@ -555,11 +516,8 @@ pack host to join it with a plain vanilla client). Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. The
 game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
 with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
-sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping (the
-shoulders are left out of the posed run: an arm rotated 60° about z swings the top of its box into
-the torso, so there is no line of sight to its top face); that a shoulder's plane faces straight up,
-that looking down at one resolves the shoulder and not the sleeve's front face beneath it, and that
-its sprite lies on that plane; that an empty-handed click on a stand's chest takes the whole ovve off
+sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; that an
+empty-handed click on a stand's chest takes the whole ovve off
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
 swap; and
 the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
@@ -573,10 +531,8 @@ change neither the store nor the ovve, the owner's own still work, `rebind` and 
 what they say. It also runs the wardrobe screen: that
 nothing the background draws overlaps a slot's icon, the title's glyphs and spaces, the tab row and
 its highlight, the empty-state notices, the four angles and that every visible cell has a glyph of
-its own per angle that draws it, that a placement is drawn by that glyph on the angle that shows it
-and by nothing on the angles that do not, that a shoulder patch is clipped to the arm's top face and
-drawn nowhere else on the texture (the left arm's mirrored), that its cap on the doll is the
-foreshortened top face over the sleeve's own columns, the rotation buttons, the title's length and the stats readout's place, what each mode
+its own on the one angle that draws it, that a placement is drawn by that glyph on the angle that
+shows it and by nothing on the angles that do not, the rotation buttons, the title's length and the stats readout's place, what each mode
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
 read-only and driven by the other player's design.
 
@@ -603,8 +559,8 @@ layout at four times it (`Spot.DETAIL`), the art scaled up ×2 as datagen bakes 
 dividing by the same ratio (`OVVAR_ART_SCALE`) when it reads the library — so art stays the size it
 always was on the cloth, and the texture's head rows hold four times the library they did. A big patch rides in the dye
 colour like any other (the shader bends it round the corners from its own cell's face, as the
-pack will — except on a shoulder, where it is clipped to the top face instead). Then `runDatagen`.
-The first 21
+pack will). Then `runDatagen`.
+The first 23
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
 through the pack; the preview library is the head rows of the texture (64×16 skin texels less the tables and
 the marker corner, packed by the texel, an art at its own size) and datagen fails loudly when that runs out.
@@ -612,24 +568,24 @@ the marker corner, packed by the texel, an art at its own size) and datagen fail
 ### Art at more than one size
 
 A patch may ship its art at another size as well: `<id>_<w>x<h>.png` beside its own PNG, so ITK is
-`itk.png` (12×12, the size its catalogue line declares), `itk_8x8.png` (Kexana's original 8×8 ITK,
-which is what the patch was before the 12×12 was drawn) and `itk_16x16.png`, and IT is `it.png`
+`itk.png` (12×12, the size its catalogue line declares) and `itk_16x16.png`, and IT is `it.png`
 (Cactooz's 12×12) and `it_16x16.png` (PolymITer's own 16×16 sprite). Nothing is declared — the
 catalogue entry stays one line and datagen finds the variants by file name (even sizes up to 16×16;
 a seat patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
 underscore but is not a size this build can ask for fails datagen, so a misspelt name is not
 silently never drawn.
 
-**The smaller sizes of a 16×16 are scaled down when nobody has drawn them.** A patch that has art
-at 16×16 — as its catalogue size or as a variant — also gets the sizes a cell can ask for below
-that, 12×12 and 8×8, scaled down from it; a drawing of that size always wins, and a seat patch
-never gets any (its width is the two cells', so a narrower one has nowhere to sit). So the artist's
-workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.** IT's 8×8 is
-and IN (gold)'s 12×12 and 8×8 are the generated arts in today's catalogue — ITK, IN and the three
-Nyckeln keys are drawn at all three sizes, so they generate nothing.
+**The smaller size of a 16×16 is scaled down when nobody has drawn it.** A patch that has art at
+16×16 — as its catalogue size or as a variant — also gets the size a cell can ask for below that,
+12×12 (`Patches.GENERATED_SIZES`), scaled down from it; a drawing of that size always wins, and a
+seat patch never gets one (its width is the two cells', so a narrower one has nowhere to sit). So
+the artist's workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.**
+IN (gold)'s 12×12 is the one generated art in today's catalogue — every other patch with a 16×16 is
+drawn at 12×12 as well, so it generates nothing. (There were 8×8s too, drawn and generated, while
+the shoulders asked for them; nothing asks for one now, so they went with the shoulders.)
 
 Nothing is written to the source tree: the generated `Patches.Art` carries the art it is scaled
-from, is named like a variant (`patches/it_8x8`, which is what datagen calls the textures and models
+from, is named like a variant (`patches/in_gold_12x12`, which is what datagen calls the textures and models
 it writes for it) and has no classpath resource of its own — ask `Tex.art(art)` for the pixels and
 it either reads the PNG or scales the source. The scaling is `Tex.downscaled`: an area-weighted
 majority vote, so each output pixel takes whichever colour covers most of the source rectangle it
@@ -637,8 +593,8 @@ stands for and the result uses **no colour the source did not** — which the tr
 key palette is built from every opaque colour of every patch art) and pixel art wants anyway. An
 even split goes to the colour that is rarer in the whole art, which is what keeps an outline, an eye
 or a letter stroke alive: the background always has the votes. It was picked by trying the
-candidates against the sizes the artists had already drawn both of, and its 12 and 8 px ITK are
-pinned texel for texel in the game tests.
+candidates against the sizes the artists had already drawn both of, and its 12 px ITK is pinned
+texel for texel in the game tests.
 
 Which art a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
 fits what the cell asks for, and the catalogue's own art when none of them does — which is exactly
@@ -646,16 +602,15 @@ what a patch with a single art gets everywhere. What a cell asks for is `Patches
 
 | fit | the cells | what it shows |
 | --- | --- | --- |
-| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges, IT as the 8×8 scaled from its 16×16 |
 | `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch has — IT and ITK both fill the back at 16×16 |
 | `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch — unless that art is over 12×12 (`Patches.OVER_MAX`, a cell and a half), which was drawn to fill the big back cell and would blanket an ordinary cell's neighbours, and then it is the largest art that fits 12×12 instead |
 
 **The fall-back is the old behaviour, exactly.** A cell that finds nothing it can use takes the
 catalogue's art and does with it what it did before variants existed: the item icon scales the
 catalogue's art to fill 16 px and centres it, and an ordinary cell hangs the art over its
-neighbours. Every non-seat patch in today's catalogue is 12×12 or smaller by its catalogue line, so
-the `OVER` rule above never fires for any of them, and every patch but ITK and IT is drawn on every
-cell exactly as it always was.
+neighbours. IN (gold) is the one non-seat patch in today's catalogue over 12×12 by its catalogue
+line, so it is the one the `OVER` rule above fires for; a patch with only the one art is drawn on
+every cell exactly as it always was.
 
 Everything that draws a patch goes through the same call: the pack's placement textures, the instant
 channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one
@@ -665,9 +620,10 @@ the catalogue's own art whatever the cell will pick.
 The instant path cannot ask the question — the dye colour carries a cell and a design, not a
 choice — so the preview texture's design tables hold a row per (design, fit), the library holds
 every art a design can be drawn as, and the shader reads the row for the fit of the cell it is
-drawing (`OVVAR_FIT_*`, the same three-line rule as `Fit.of`). That is what widened the tables to
-three skin texels each; `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs` reads them back through
-the shader's own constants.
+drawing (`OVVAR_FIT_*`, the same rule as `Fit.of`: filled for a cell bigger than a cell, never the
+seat, over for everything else). Each fit is 32 rows of a table, two of its columns, so the tables
+are four columns wide (`OVVAR_TABLE_COLUMNS`); `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs`
+reads them back through the shader's own constants.
 
 ## Blockbench plugin
 
@@ -702,22 +658,21 @@ when one of them is on the chest or the back (the trim, below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
-no byte is 0; on the top 21 cells × 21 designs, C(441,3) ≈ 14M states under 255³, and a game test
+no byte is 0; on the top 19 cells × 23 designs, C(437,3) ≈ 13.8M states under 255³, and a game test
 holds every half under the 448 states the shader's float binomials are exact to —
-`Looks.INSTANT_STATES`). **Cells and designs share those 448.** The two shoulder cells took the top
-half to 21, so the designs came down from 22 to 21 to stay inside it; the cap test now holds the
-designs to the most that fits as well as the states to the cap, so neither number can be raised on
-its own. The cost is that the 22nd and later entries in the catalogue can no longer ride in the dye
-colour — a patch sewn from one of them waits for the pack to catch up (seconds; and the top's trim
-channel still carries one of them at once). The catalogue is ten long, so nothing in it is affected
-today. The preview texture holds the art of the first 21
-designs — any size, in a block of library cells — plus cell and design tables (a cell's row
-carries its own size beside its position, since a cell is not one size any more, and its row says
-which kind of face it is on: a v above the side rows is a box's top face, where the shader does not
-squeeze and clips the art to the cell); the pack's entity core shader
+`Looks.INSTANT_STATES`). **Cells and designs share those 448.** The top half, with 19 cells, is
+the one that binds: 19 × 23 = 437 fits and 19 × 24 = 456 would not, so `Looks.INSTANT_DESIGNS` is
+23, and the cap test holds the designs to the most that fits as well as the states to the cap, so
+neither number can be raised on its own (a cell added to the top costs designs). The cost is that
+the 24th and later entries in the catalogue cannot ride in the dye colour — a patch sewn from one of
+them waits for the pack to catch up (seconds; and the top's trim channel still carries one of them
+at once). The catalogue is thirty long, so that is Starkt and Millia's six today. The preview
+texture holds the art of the first 23 designs — any size, in a block of library cells — plus cell
+and design tables (a cell's row carries its own size beside its position, since a cell is not one
+size any more); the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
-past the first 21 in the catalogue only go through the pack. The tooltip's "Dyed" line is
+past the first 23 in the catalogue only go through the pack. The tooltip's "Dyed" line is
 hidden.
 
 The top has a fourth instant slot: the armour trim. The client draws a trim as one more layer
@@ -733,10 +688,7 @@ means two things: the squeeze to square pixels has to be baked in texel by texel
 costs about a column in sixteen on the body's faces but two in eight on a sleeve; and, the binding
 one, there is no `side` for the shader to hide it on the other limb by, so a trim for a cell on one
 arm would be drawn on *both* arms, one of the two mirrored. The body is one box and has no other
-limb to leak onto. A shoulder is therefore out of the channel too, even though a box's top face
-is the one place the squeeze would cost nothing (it is not on the strip's perimeter) — a shoulder
-patch reaches a viewer through the dye colour and then through the pack's own layer
-(`patch/shoulder_r/<patch>.png`), like any cell on a limb. Trims are material-tinted, so the palette is the identity and the
+limb to leak onto. Trims are material-tinted, so the palette is the identity and the
 art comes out as it is; the tooltip's trim line is hidden with the dye line. Everything else is sampled
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
@@ -849,7 +801,7 @@ complete for whoever joins next.
 the moment somebody's design outgrows the dye channels — the people looking at a wearer are the
 ones whose clients draw it, and until they reload they see only the instant part of it. It was
 tried, and it is wrong: a loading screen in the middle of play, for a garment somebody else sewed,
-costs far more than a shoulder patch that turns up a minute late. So the wearer gets the push (they
+costs far more than a patch that turns up a minute late. So the wearer gets the push (they
 caused it, and they are standing at a wardrobe or a stand, not in a fight), everybody else sees
 what their own pack plus the dye channels can show until they choose to `/ovvar reload` or rejoin,
 and reloading stays a thing you do when you want to.
@@ -884,45 +836,20 @@ of the marker: R = 2·inflate).
 
 ## Asymmetric sleeves and legs
 
-**Seeing what the shader makes of a top face.** Three dev switches in `ovvar.glsl`, all off and
-`theTopFaceDebugPaintShipsOff` holding them off, paint a limb box's top face instead of drawing it:
-
-| switch | layer | what it paints |
-| --- | --- | --- |
-| `OVVAR_DEBUG_TOP_FACE_SIDES` | base garment | **red** where the mirror test calls the fragment mirrored, **blue** where it does not |
-| `OVVAR_DEBUG_TOP_FACE_MISS` | preview | **magenta** where no cell of the instant design matched the fragment |
-| `OVVAR_DEBUG_TOP_FACE_HIT` | preview | **green** where a cell *did* match — instead of the art, so the colour says the shader got all the way to the library |
-
-(`OVVAR_DEBUG_TOP_FACES` turns on all three.) They are separate because a run with all three on
-cannot say which of the paintings changed the picture: `..._HIT` alone leaves the frame otherwise
-normal, so two green shoulders mean the shader is drawing both and anything still missing is later
-than this shader, while one green shoulder means the preview path really does reach a cell on one
-arm only. They paint from four opaque texels datagen puts in every texture of ours (`DEBUG_X`, the
-marker row's right-hand end), so a program of ours still only ever returns a texture coordinate.
-
 The armour model draws the left arm and leg as mirror images of the right ones from the same
 texture strips, so vanilla can't show different art per side. The same shader detects mirrored
 fragments from the handedness of the texture mapping: on a base texture it samples the limb boxes
 one strip up, where datagen puts the mirrored left-side art; a placement texture is marked with
 its side and hidden on the other limb; the preview slots carry the side in their cell.
 
-**The handedness is read with the sense of the kind of face the fragment is on.** A box's top and
-bottom faces need not unwrap the way its four sides do: v runs *across* the box there, from the back
-edge to the front, instead of down it (which is what puts the top face's last row against the front
-face's first, and is why a shoulder patch reads with the art's top towards the wearer's back). Only
-u's direction is then in question, and the handedness follows from it; the derivation is written out
-in `ovvar.glsl`. `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SAME_SENSE`
-says whether the top's is the same one — it is, which the playtest settled: taking it as inverted
-put each shoulder's art on the other shoulder. So the top face's u runs the wearer's right to left,
-the same way the front face's does, which is also what the edge they share demands.
-
-`mirrored` is computed from both senses, exactly once, and every path reads that one bool, so a top
-face and a side face can never disagree about which arm they are on
-(`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL does not run in the game
-tests). Note what the senses *cannot* explain: both arms' top faces are the very same texels, so
-`mirrored` is the only thing that can tell them apart, and under either sense exactly one of the two
-shoulder cells is selected per arm — every setting predicts both shoulders drawing, one patch each.
-A bare shoulder is not a state either constant can produce. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
+`OVVAR_MIRROR_SENSE` is the calibration, and it holds for a box's top and bottom faces as well as its
+sides: v runs *across* the box there, from the back edge to the front, instead of down it, but u
+runs the wearer's right to left the way the front face's does (the edge the two share demands it),
+so the handedness comes out the same; the derivation is written out in `ovvar.glsl`. That is what
+lets the base garment draw the left arm's top face from the mirror strip as well. `mirrored` is
+computed exactly once and every path reads that one bool, so no two of them can disagree about
+which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
+does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the plain
 mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
@@ -944,8 +871,7 @@ sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Sol
 
 ## Credits
 
-Patch art: the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
-size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
+Patch art: ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too), with
 PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
 Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew by Millia; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
