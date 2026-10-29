@@ -16,7 +16,7 @@ final class Verify {
     static final String[] STRUCTURES = {
         "#minecraft:village", "minecraft:trial_chambers", "minecraft:ancient_city", "minecraft:stronghold", "minecraft:mansion",
         "minecraft:monument", "minecraft:desert_pyramid", "minecraft:jungle_pyramid", "minecraft:pillager_outpost",
-        "minecraft:trail_ruins", "minecraft:swamp_hut", "minecraft:igloo"};
+        "minecraft:trail_ruins", "minecraft:swamp_hut", "minecraft:igloo", "#minecraft:ocean_ruin"};
     static final String[] BIOMES = {
         "plains", "forest", "birch_forest", "taiga", "dark_forest", "jungle", "bamboo_jungle", "savanna", "mangrove_swamp",
         "cherry_grove", "pale_garden", "desert", "badlands", "eroded_badlands", "wooded_badlands", "snowy_plains", "ice_spikes",
