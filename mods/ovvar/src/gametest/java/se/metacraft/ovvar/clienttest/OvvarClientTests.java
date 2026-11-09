@@ -103,9 +103,8 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// the mannequins' equipment has gone out and so queued their combos.
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(20);
-				server.runCommand("execute as Tester run ovvar reload");
-				ctx.waitTicks(100);   // the urgent build (2 s) and the push it ends in
-				acceptResourcePack(ctx);
+				ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
+						"the pack with the ovve's and the frack's combos");
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();
