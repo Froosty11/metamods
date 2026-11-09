@@ -168,7 +168,8 @@ public final class OvveFeet {
 		ALIVE.clear();
 	}
 
-	private static ItemStack cuffsFor(ItemStack ovve) {
+	/** The virtual cuffs viewers are sent for an ovve over an empty feet slot (never in an inventory). */
+	public static ItemStack cuffsFor(ItemStack ovve) {
 		OvveItem item = (OvveItem) ovve.getItem();
 		ItemStack cuffs = new ItemStack(ModContent.feet(item.chapter));
 		SpotPlacements patches = ovve.get(ModComponents.PATCHES);
@@ -177,6 +178,7 @@ public final class OvveFeet {
 		if (preview != null) cuffs.set(ModComponents.PREVIEW, preview);
 		cuffs.set(ModComponents.FEET_CHANNEL, true);
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) cuffs.set(ModComponents.ON_STAND, true);
+		if (ovve.isEnchanted()) cuffs.set(ModComponents.GARMENT_GLINT, true);   // the whole garment glints
 		return cuffs;
 	}
 

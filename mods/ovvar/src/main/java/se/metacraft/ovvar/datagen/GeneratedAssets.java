@@ -16,6 +16,7 @@ import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
+import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.sewing.Outline;
@@ -394,6 +395,17 @@ public final class GeneratedAssets implements DataProvider {
 		swedish.put(ModCommands.SHADERS_LINK, "Patcha ditt shaderpack");
 		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris.");
 		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på ben och armar? Patcha packet igen: /ovvar shaders");
+
+		// The six ovve enchantments: their names in both languages, and the item tag they all support,
+		// every chapter's ovve or frack (so a new chapter takes them without touching the definitions).
+		OvveEnchantments.NAMES.forEach((enchantment, names) -> {
+			String langKey = "enchantment." + MOD + "." + enchantment.identifier().getPath();
+			lang.put(langKey, names.en());
+			swedish.put(langKey, names.sv());
+		});
+		JsonArray ovvar = new JsonArray();
+		for (Chapter chapter : Chapter.values()) ovvar.add(ModContent.ovveId(chapter).toString());
+		files.json(data.resolve("tags/item/enchantable/ovve.json"), obj("replace", false, "values", ovvar));
 
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);

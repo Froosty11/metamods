@@ -173,6 +173,7 @@ public final class OvveTop {
 		Placement preview = ovve.get(ModComponents.PREVIEW);
 		if (preview != null) top.set(ModComponents.PREVIEW, preview);
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
+		if (ovve.isEnchanted()) top.set(ModComponents.GARMENT_GLINT, true);   // the whole garment glints
 		return top;
 	}
 

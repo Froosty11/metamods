@@ -5,6 +5,8 @@
 	"mixins": [
 		"CompanionCursorMixin",
 		"CustomClickMixin",
+		"EnchantRandomlyFunctionMixin",
+		"EnchantmentHelperMixin",
 		"ForeignOvveMixin",
 		"ResourcePackResponseMixin"
 	],

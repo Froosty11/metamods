@@ -77,6 +77,14 @@ public final class ModComponents {
 	public static final DataComponentType<String> FLAT = register("flat",
 			DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
 
+	/**
+	 * On the companion top and the virtual cuffs of an enchanted ovve: the whole garment glints, so the
+	 * client stack gets {@code enchantment_glint_override}. Copied from the ovve each time, never saved.
+	 * (A type needs a stream codec to build; Polymer strips it from every stack sent, like {@link #FEET_CHANNEL}.)
+	 */
+	public static final DataComponentType<Boolean> GARMENT_GLINT = register("garment_glint",
+			DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL));
+
 	private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
 		return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
 	}
@@ -84,6 +92,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT);
 	}
 }
