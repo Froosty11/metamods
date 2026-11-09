@@ -657,6 +657,13 @@ once a client reports a pack loaded (a mixin on the resource-pack response) the 
 every ovve it can see is sent again. Rebuilds are batched: a combination the dye colour can
 still show waits a minute and a half for company; one it cannot is built within two seconds.
 
+Combinations are per chapter: a line of `combos.json` is `chapter/piece:combo`, and a combination
+is built only for the chapter it was sewn on (its bottom twice on an ovve that rolls down, once
+otherwise), so the pack grows with what is sewn, not with the number of chapters. A line from
+before chapters were keyed (`piece:combo`) is read as that combination on each of the chapters
+there were then (Data, IT, Silicon-blue IT, Media) that has the half, so nothing drawn before the
+upgrade is lost; the file is written back in the new form.
+
 The dye colour carries patches without any pack change. Up to three placements per half ride in it
 — six on the legs when the wearer's feet slot carries the second channel (below), four on the top
 when one of them is on the chest or the back (the trim, below): a dyeable layer
