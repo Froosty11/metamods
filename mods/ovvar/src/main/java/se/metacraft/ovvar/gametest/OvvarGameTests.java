@@ -308,7 +308,8 @@ public final class OvvarGameTests {
 	/**
 	 * However many patches an ovve carries, its tooltip stays no taller than an item with five
 	 * enchantments: the status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches,
-	 * and one hint line. This sews every catalogue patch on (several times over, where a cell
+	 * and one hint line — plus, since unpatched shaderpacks draw the limbs as a checker, the
+	 * shaders line ({@link OvveItem#SHADERS_HINT}), which is not counted in the five. This sews every catalogue patch on (several times over, where a cell
 	 * exists to put a repeat on — the seat has only the one cell, so its patch gets it once) and
 	 * reads the tooltip {@code OvveItem} itself would send a client.
 	 */
@@ -334,7 +335,7 @@ public final class OvvarGameTests {
 		Looks.setSewn(ovve, SpotPlacements.fromList(placements).getOrThrow());
 		List<Component> tooltip = new ArrayList<>();
 		((OvveItem) ovve.getItem()).modifyClientTooltip(tooltip, ovve, null);
-		int max = 1 + OvveItem.PATCH_LIST_LINES + 1;   // status + patch list + hint, no "no patches" line
+		int max = 1 + OvveItem.PATCH_LIST_LINES + 1 + 1;   // status + patch list + hint + shaders line, no "no patches" line
 		if (tooltip.size() > max) {
 			helper.fail("a fully-patched ovve's tooltip is " + tooltip.size() + " lines, wanted at most " + max + ": " + tooltip);
 		}

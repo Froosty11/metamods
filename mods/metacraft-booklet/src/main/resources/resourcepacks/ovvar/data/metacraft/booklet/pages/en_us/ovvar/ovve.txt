@@ -10,6 +10,8 @@ order=1
 
 Each ovve is a single item that goes in the <bold>legs</bold> slot: drag it in, or shift-click it. Right-clicking does not equip it (see pockets). It protects like leather and never wears out.
 
+Pink-black checker on your arms and legs? Your shaderpack has not been patched for ovves. Type <bold>/ovvar shaders</bold> to get the patcher.
+
 The <bold>Media frack</bold> is a tailcoat, so it goes in the <bold>chest</bold> slot instead. It is its own top: there is nothing to roll up or down, and patches go only on the coat. Its pockets work like an ovve's.
 
 ### Header: The top

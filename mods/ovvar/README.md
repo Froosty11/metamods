@@ -843,6 +843,16 @@ fragments from the handedness of the texture mapping: on a base texture it sampl
 one strip up, where datagen puts the mirrored left-side art; a placement texture is marked with
 its side and hidden on the other limb; the preview slots carry the side in their cell.
 
+The right limbs read a copy too. Datagen copies the right arm's and the right leg's box unchanged
+to skin texel (16, 0) in the head rows of the top and the bottom layer (`Spot.RIGHT_COPY_X`, the
+same row as the mirror strip; columns 16–31 are otherwise unused, and datagen `require`s them
+empty), and fills the box itself with a magenta/black checker (`Spot.CHECKER_A`/`CHECKER_B`, one
+skin texel square) wherever the copy has cloth. Our shader draws both limbs from their copies
+(`OVVAR_RIGHT_COPY_X`, pinned by `ShaderLayoutTests`), so vanilla clients and patched shaderpacks
+see exactly what they always did; any other shader samples the box and shows the limbs as a
+missing texture, which is the cue to run `/ovvar shaders` (the tooltip and the guidebook say so).
+The paper doll and the Blockbench plugin put the copy back on the box before they draw.
+
 `OVVAR_MIRROR_SENSE` is the calibration, and it holds for a box's top and bottom faces as well as its
 sides: v runs *across* the box there, from the back edge to the front, instead of down it, but u
 runs the wearer's right to left the way the front face's does (the edge the two share demands it),
@@ -850,8 +860,8 @@ so the handedness comes out the same; the derivation is written out in `ovvar.gl
 lets the base garment draw the left arm's top face from the mirror strip as well. `mirrored` is
 computed exactly once and every path reads that one bool, so no two of them can disagree about
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
-does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the plain
-mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
+does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users run `OvvarShaderPatcher.jar`
 (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
 autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
