@@ -3,6 +3,7 @@ package se.metacraft.ovvar.gametest;
 import com.mojang.serialization.JavaOps;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.server.level.ServerPlayer;
@@ -465,5 +466,78 @@ public final class MobOvvarTests {
 			helper.assertValueEqual(m.getDropChances().byEquipment(EquipmentSlot.LEGS), 0f, m + "'s legs drop chance");
 		}
 		helper.succeed();
+	}
+
+	// ---- patches drop on death
+
+	private static final Set<String> WORN = Set.of("patch_spiken", "patch_jgs", "patch_pung", "patch_kth");
+
+	/** A zombie in a marked DATA ovve (top up) and a marked MEDIA frack, ready to die. */
+	private static Zombie patchedZombie(GameTestHelper helper) {
+		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(Placement.parse("front_top_left.spiken"), Placement.parse("leg_front_top_r.jgs"), Placement.parse("seat.pung"))).getOrThrow());
+		ovve.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+		OvveItem.setTopUp(ovve, true);
+		MobOvvar.wear(zombie, ovve);
+		ItemStack frack = new ItemStack(ModContent.ovve(Chapter.MEDIA));
+		Looks.setSewn(frack, SpotPlacements.fromList(List.of(Placement.parse("front_top_right.kth"))).getOrThrow());
+		frack.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+		MobOvvar.wear(zombie, frack);
+		return zombie;
+	}
+
+	private static List<ItemStack> itemsAround(GameTestHelper helper) {
+		var box = new net.minecraft.world.phys.AABB(helper.absolutePos(new net.minecraft.core.BlockPos(0, 0, 0))).inflate(10);
+		return helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box).stream().map(net.minecraft.world.entity.item.ItemEntity::getItem).toList();
+	}
+
+	private static void killAndCheck(GameTestHelper helper, float chance, boolean byPlayer, Set<String> expected) {
+		withMobOvvar(helper, new MobOvvarConfig(true, 0.05f, chance), () -> {
+			var level = helper.getLevel();
+			Zombie zombie = patchedZombie(helper);
+			var source = byPlayer ? level.damageSources().playerAttack(helper.makeMockServerPlayerInLevel()) : level.damageSources().generic();
+			zombie.hurtServer(level, source, 1000f);
+			// withMobOvvar restores the config when the body returns, so the kill and the item check both happen here.
+			// A zombie's own loot (rotten flesh) is random and not what is under test: only garments and patches count.
+			for (ItemStack item : itemsAround(helper)) if (item.getItem() instanceof OvveItem) helper.fail("the garment dropped: " + item);
+			List<String> ids = itemsAround(helper).stream().map(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()).filter(id -> id.startsWith("patch_")).sorted().toList();
+			helper.assertValueEqual(new java.util.TreeSet<>(ids), new java.util.TreeSet<>(expected), "the dropped items");
+			helper.assertValueEqual(ids.size(), expected.size(), "how many items dropped");
+		});
+	}
+
+	@GameTest
+	public void playerKillDropsTheWornPatches(GameTestHelper helper) {
+		killAndCheck(helper, 1f, true, WORN);
+	}
+
+	@GameTest
+	public void noPatchesWithoutAPlayer(GameTestHelper helper) {
+		killAndCheck(helper, 1f, false, Set.of());
+	}
+
+	@GameTest
+	public void dropChanceZeroDropsNothing(GameTestHelper helper) {
+		killAndCheck(helper, 0f, true, Set.of());
+	}
+
+	@GameTest
+	public void curedVillagerKeepsNoGarment(GameTestHelper helper) {
+		var level = helper.getLevel();
+		var villager = helper.spawn(EntityTypes.ZOMBIE_VILLAGER, 2, 1, 2);
+		MobOvvar.wear(villager, marked(RandomSource.create(16), EquipmentSlot.LEGS));
+		MobOvvar.wear(villager, marked(RandomSource.create(17), EquipmentSlot.CHEST));
+		Mob cured = villager.convertTo(EntityTypes.VILLAGER, net.minecraft.world.entity.ConversionParams.single(villager, false, false), m -> {});
+		if (cured == null) helper.fail("no cure");
+		helper.runAfterDelay(1, () -> {
+			for (EquipmentSlot slot : EquipmentSlot.values()) {
+				if (MobOvvar.is(cured.getItemBySlot(slot))) helper.fail("the cured villager kept a garment in " + slot);
+			}
+			for (ItemStack item : itemsAround(helper)) {
+				if (MobOvvar.is(item) || item.getItem() instanceof OvveItem) helper.fail("the cure dropped a garment: " + item);
+			}
+			helper.succeed();
+		});
 	}
 }

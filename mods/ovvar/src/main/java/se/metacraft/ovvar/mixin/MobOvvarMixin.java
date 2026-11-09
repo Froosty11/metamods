@@ -4,6 +4,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -38,5 +40,11 @@ public abstract class MobOvvarMixin {
 		if ((slot == EquipmentSlot.LEGS || slot == EquipmentSlot.CHEST) && MobOvvar.is(self.getItemBySlot(slot))) {
 			cir.setReturnValue(ItemStack.EMPTY);
 		}
+	}
+
+	/** The patches a mob wore sometimes drop when a player kills it. */
+	@Inject(method = "dropCustomDeathLoot", at = @At("HEAD"))
+	private void ovvar$dropPatches(ServerLevel level, DamageSource source, boolean killedByPlayer, CallbackInfo ci) {
+		MobOvvar.onDeath((Mob) (Object) this, level, source, killedByPlayer);
 	}
 }

@@ -9,7 +9,11 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import se.metacraft.ovvar.MobOvvarConfig;
+import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.OvvarConfig;
 import se.metacraft.ovvar.content.item.OvveItem;
 
 import java.util.ArrayList;
@@ -26,8 +30,11 @@ public final class MobOvvar {
 
 	/** A mob's garment is never an item on the ground: a marked stack cannot become an {@link ItemEntity}. */
 	public static void init() {
-		ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) ->
-				!(entity instanceof ItemEntity item && is(item.getItem())));
+		ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) -> {
+			if (!(entity instanceof ItemEntity item && is(item.getItem()))) return true;
+			Ovvar.LOGGER.debug("[ovvar] rejected a mob's garment as an item entity: {}", item.getItem());
+			return false;
+		});
 	}
 
 	/** Most draws spent finding cells for a garment's patches. */
@@ -120,5 +127,16 @@ public final class MobOvvar {
 			if (random.nextFloat() < chance) drops.add(new ItemStack(ModContent.patchItem(placement.patch())));
 		}
 		return drops;
+	}
+
+	/** A player's kill: the legs and chest garments each drop the patches they wore, by chance. The garments never drop. */
+	public static void onDeath(Mob mob, ServerLevel level, DamageSource source, boolean killedByPlayer) {
+		if (!killedByPlayer) return;
+		float chance = patchDropChance(OvvarConfig.get().mobOvvar(), source.getEntity());
+		for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.LEGS, EquipmentSlot.CHEST}) {
+			ItemStack garment = mob.getItemBySlot(slot);
+			if (!is(garment)) continue;
+			for (ItemStack drop : patchDrops(garment, mob.getRandom(), chance)) mob.spawnAtLocation(level, drop);
+		}
 	}
 }
