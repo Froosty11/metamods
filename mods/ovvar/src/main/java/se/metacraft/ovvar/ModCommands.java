@@ -264,8 +264,8 @@ public final class ModCommands {
 		}
 		Looks.claimIfNeeded(player, stack);   // before the inventory takes it (an emptied stack reads as bare)
 		if (!player.getInventory().add(stack)) player.drop(stack, false, Prediction.SERVER_ONLY);
-		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
-				+ " " + chapter.garmentWord() + (patchSpec.isEmpty() ? " (their stored design)" : " with " + patches.size() + " patch(es)")), true);
+		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.fullName
+				+ (patchSpec.isEmpty() ? " (their stored design)" : " with " + patches.size() + " patch(es)")), true);
 		return 1;
 	}
 
@@ -433,7 +433,7 @@ public final class ModCommands {
 		}
 		int count = looks.size();
 		String kind = mannequin ? "mannequins" : "stands";
-		ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.name + " " + kind), false);
+		ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.fullName + " " + kind), false);
 		return count;
 	}
 

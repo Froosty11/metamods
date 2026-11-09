@@ -343,6 +343,8 @@ public final class GeneratedAssets implements DataProvider {
 		Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} arts in the preview library", MOD, placementTextures, library.size());
 
 		Map<Chapter, Integer> chapterColours = new LinkedHashMap<>();
+		// The Swedish lines: every garment's name, and further down the shaders hint.
+		Map<String, String> swedish = new LinkedHashMap<>();
 		for (Chapter chapter : Chapter.values()) {
 			Tex overlay = overlay(chapter.overlay, chapter);
 			int colour = overlay.dominant();
@@ -360,11 +362,14 @@ public final class GeneratedAssets implements DataProvider {
 			}
 
 			String ovve = ModContent.ovveId(chapter).getPath();
-			Tex tinted = icon.tinted(colour);
-			// A garment cut unlike the ovve (the frack) brings its own icon, drawn in its own colours:
-			// tinting the ovve's would give the wrong shape, and grey cloth tints to the grey's stray hue.
-			item(ovve, ownIcon(chapter) != null ? ownIcon(chapter) : tinted);
-			lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
+			// A garment with its own icon (the fracks, and every chapter whose art comes coloured) has it
+			// drawn in its own colours: tinting the ovve's would give the frack the wrong shape, and
+			// black, white or grey cloth tints to the grey's stray hue.
+			Tex own = ownIcon(chapter);
+			Tex garmentIcon = own != null ? own : icon.tinted(colour);
+			item(ovve, garmentIcon);
+			lang.put("item." + MOD + "." + ovve, chapter.fullName);
+			swedish.put("item." + MOD + "." + ovve, chapter.svName);
 			// A frack is all top: no legs layer (what the overlay paints on the legs, the coat's tails,
 			// is left out — a chest item cannot draw there), no companion top, no cuffs.
 			if (!chapter.pieces().contains(Piece.BOTTOM)) continue;
@@ -373,20 +378,21 @@ public final class GeneratedAssets implements DataProvider {
 			if (chapter.rollable) equipment(chapter, Piece.BOTTOM, true);
 
 			String topItem = ModContent.topId(chapter).getPath();
-			item(topItem, Tex.blank(16, 16).blit(tinted, 0, 0, 16, 8, 0, 0));
+			item(topItem, Tex.blank(16, 16).blit(garmentIcon, 0, 0, 16, 8, 0, 0));
 			String feetItem = ModContent.feetId(chapter).getPath();
-			item(feetItem, Tex.blank(16, 16).blit(tinted, 0, 12, 16, 4, 0, 12));
-			lang.put("item." + MOD + "." + topItem, chapter.name + " " + chapter.garmentWord() + " (top)");
-			lang.put("item." + MOD + "." + feetItem, chapter.name + " " + chapter.garmentWord() + " (cuffs)");
+			item(feetItem, Tex.blank(16, 16).blit(garmentIcon, 0, 12, 16, 4, 0, 12));
+			lang.put("item." + MOD + "." + topItem, chapter.fullName + " (top)");
+			lang.put("item." + MOD + "." + feetItem, chapter.fullName + " (cuffs)");
+			swedish.put("item." + MOD + "." + topItem, chapter.svName + " (överdel)");
+			swedish.put("item." + MOD + "." + feetItem, chapter.svName + " (muddar)");
 		}
 		Ovvar.LOGGER.info("[{} datagen] {} patches, {} cells, {} chapters", MOD, Patches.all().size(), Spot.values().length, Chapter.values().length);
 
 		sewingFont(chapterColours, arts);
 
-		// The translated lines: the tooltip's shaders hint (OvveItem.SHADERS_HINT) and /ovvar shaders. Everything
-		// else is English only, and the client falls back to en_us for every key sv_se lacks.
+		// The translated lines: the garment names above, the tooltip's shaders hint (OvveItem.SHADERS_HINT) and
+		// /ovvar shaders. Everything else is English only, and the client falls back to en_us for every key sv_se lacks.
 		lang.put(OvveItem.SHADERS_HINT, OvveItem.SHADERS_HINT_EN);
-		Map<String, String> swedish = new LinkedHashMap<>();
 		lang.put(ModCommands.SHADERS_INTRO, ModCommands.SHADERS_INTRO_EN);
 		lang.put(ModCommands.SHADERS_LINK, ModCommands.SHADERS_LINK_EN);
 		lang.put(ModCommands.SHADERS_STEPS, ModCommands.SHADERS_STEPS_EN);

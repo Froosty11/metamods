@@ -276,8 +276,8 @@ public final class WardrobeGui extends SimpleGui {
 	 * everything else the title used to say is drawn as glyphs instead.
 	 */
 	public static String titleText(Chapter chapter) {
-		String full = " " + chapter.name + " " + chapter.garmentWord();
-		// A long chapter name gives up the garment word rather than the counts beside it. Measured
+		String full = " " + chapter.fullName;
+		// A long garment name falls back to the chapter's short name rather than give up the counts beside it. Measured
 		// against counts nobody will reach, so the title does not wobble as the numbers grow.
 		if (!WardrobeFont.statsRow(999, 99, 99, full.length()).isEmpty()) return full;
 		return " " + chapter.name;
@@ -345,7 +345,7 @@ public final class WardrobeGui extends SimpleGui {
 		for (Chapter tab : tabs) {
 			boolean current = tab == chapter;
 			GuiElementBuilder element = GuiElementBuilder.from(new ItemStack(ModContent.ovve(tab)))
-					.setName(Component.literal(tab.name + " " + tab.garmentWord()).withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE))
+					.setName(Component.literal(tab.fullName).withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE))
 					.addLoreLine(Component.literal(current ? "(showing)" : "Click to switch to it").withStyle(current ? ChatFormatting.GOLD : ChatFormatting.GRAY))
 					.glow(current);
 			element.setCallback((index, type, action, gui) -> reopen(tab, angle));
@@ -599,7 +599,7 @@ public final class WardrobeGui extends SimpleGui {
 		book.addLoreLine(Component.literal("The stash and your ovvar follow you to every server").withStyle(ChatFormatting.DARK_GRAY));
 		for (Map.Entry<Chapter, SpotPlacements> entry : wardrobe.designs().entrySet()) {
 			List<Placement> list = entry.getValue().asPlacementList();
-			book.addLoreLine(Component.literal(entry.getKey().name + " " + entry.getKey().garmentWord() + ": " + list.size() + " patch(es)").withStyle(ChatFormatting.DARK_GRAY));
+			book.addLoreLine(Component.literal(entry.getKey().fullName + ": " + list.size() + " patch(es)").withStyle(ChatFormatting.DARK_GRAY));
 		}
 		return book.build();
 	}
