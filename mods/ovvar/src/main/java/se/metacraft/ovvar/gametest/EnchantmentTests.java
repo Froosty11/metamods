@@ -473,6 +473,35 @@ public final class EnchantmentTests {
 	}
 
 	@GameTest
+	public void keepsakeSurvivesARealRespawn(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		player.die(helper.getLevel().damageSources().generic());
+		ServerPlayer fresh = helper.getLevel().getServer().getPlayerList().respawn(player, false, Entity.RemovalReason.KILLED);
+		try {
+			ItemStack legs = fresh.getItemBySlot(EquipmentSlot.LEGS);
+			helper.assertTrue(legs.is(ModContent.ovve(Chapter.DATA)), "the respawned player wears the ovve: " + legs);
+			helper.assertValueEqual(dirtIn(legs), 3, "dirt in the respawned ovve");
+			helper.assertFalse(player.hasAttached(Keepsake.KEPT), "the old player still has KEPT");
+		} finally {
+			if (fresh != player) fresh.discard();
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void keepsakeStashAppends(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ItemStack first = keepsakeOvve(helper, 1);
+		player.setAttached(Keepsake.KEPT, List.of(new Keepsake.Kept(7, first)));
+		player.getInventory().setItem(3, keepsakeOvve(helper, 2));
+		Keepsake.stash(player);
+		helper.assertValueEqual(player.getAttachedOrElse(Keepsake.KEPT, List.of()).size(), 2, "KEPT entries after a second stash");
+		helper.succeed();
+	}
+
+	@GameTest
 	public void keepsakeRestoreNeverDeletes(GameTestHelper helper) {
 		ServerPlayer from = helper.makeMockServerPlayerInLevel();
 		ItemStack a = keepsakeOvve(helper, 1), b = keepsakeOvve(helper, 2);

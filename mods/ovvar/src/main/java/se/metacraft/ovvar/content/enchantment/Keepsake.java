@@ -34,7 +34,8 @@ public final class Keepsake {
 	 */
 	public static void stash(ServerPlayer player) {
 		Inventory inventory = player.getInventory();
-		List<Kept> kept = new ArrayList<>();
+		List<Kept> kept = new ArrayList<>(player.getAttachedOrElse(KEPT, List.of()));
+		int before = kept.size();
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			ItemStack stack = inventory.getItem(slot);
 			if (OvveEnchantments.level(stack, OvveEnchantments.KEEPSAKE) > 0) {
@@ -42,7 +43,7 @@ public final class Keepsake {
 				inventory.setItem(slot, ItemStack.EMPTY);
 			}
 		}
-		if (!kept.isEmpty()) player.setAttached(KEPT, kept);
+		if (kept.size() > before) player.setAttached(KEPT, kept);
 	}
 
 	/**
@@ -71,7 +72,9 @@ public final class Keepsake {
 	}
 
 	public static void init() {
-		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
+		// After the respawn, not COPY_FROM: that fires before the new player is moved to the spawn point,
+		// where a full-inventory drop would land at the origin.
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
 			if (!alive) restore(oldPlayer, newPlayer);
 		});
 	}
