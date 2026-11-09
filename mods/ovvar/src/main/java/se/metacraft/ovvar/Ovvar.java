@@ -18,6 +18,8 @@ import se.metacraft.ovvar.sewing.WardrobeMannequin;
 import se.metacraft.ovvar.sewing.StashSession;
 import se.metacraft.ovvar.store.Wardrobes;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +50,12 @@ public class Ovvar implements ModInitializer {
 		Combos.init();
 		WardrobeArt.init();
 		Wardrobes.init();
+		// After Combos' and Wardrobes' own SERVER_STARTING listeners (KNOWN loaded, store open), and
+		// before the pack builds at SERVER_STARTED.
+		ServerLifecycleEvents.SERVER_STARTING.register(s -> {
+			int added = Combos.prebuild(Wardrobes.storedDesigns(Duration.ofSeconds(20)));
+			LOGGER.info("[ovvar] pre-built {} stored design combination(s)", added);
+		});
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();

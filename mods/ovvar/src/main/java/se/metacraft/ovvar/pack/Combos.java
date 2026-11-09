@@ -18,6 +18,7 @@ import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.OvveTopItem;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
+import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
@@ -155,6 +156,24 @@ public final class Combos {
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
 	public static boolean isKnown(Piece piece, Combo combo) {
 		return KNOWN.contains(key(piece, combo));
+	}
+
+	/**
+	 * Marks every half of every design as known, without scheduling a build (the startup build
+	 * follows), so no player gets a pack push merely because a patch they wear left the instant
+	 * range. Returns how many keys were new.
+	 */
+	public static int prebuild(Collection<SpotPlacements> designs) {
+		int added = 0;
+		for (SpotPlacements design : designs) {
+			for (Piece piece : Piece.values()) {
+				Optional<SpotPlacements> half = design.forPiece(piece);
+				if (half.isEmpty()) continue;
+				if (KNOWN.add(key(piece, Placement.combo(half.get().asPlacementList())))) added++;
+			}
+		}
+		if (added > 0) dirty.set(true);
+		return added;
 	}
 
 	/** Tests only: the current generation's pack holds this combination, as a startup build would leave it. */
@@ -428,7 +447,15 @@ public final class Combos {
 		}
 	}
 
+	/**
+	 * Which placements are sewn on a half, with no order: they are kept sorted, so a combination
+	 * read from combos.json (stored sorted) equals the same one asked for in sewing order.
+	 */
 	public record Combo(List<Placement> placements) {
+
+		public Combo {
+			placements = placements.stream().sorted().toList();
+		}
 
 		public static final Codec<Combo> KEY_CODEC = Codec.STRING.comapFlatMap(
 				key -> placementKeys(key).stream().map(placement -> Placement.CODEC.parse(JavaOps.INSTANCE, placement)).reduce(

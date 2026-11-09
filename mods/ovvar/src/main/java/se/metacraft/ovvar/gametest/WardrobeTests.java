@@ -51,6 +51,8 @@ import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.JsonOps;
 
 import java.io.IOException;
+import java.time.Duration;
+import se.metacraft.ovvar.pack.Combos;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -2894,6 +2896,93 @@ public final class WardrobeTests {
 			return -1;
 		}
 		return Double.parseDouble(matcher.group(1)) * (matcher.group(2) == null ? 1 : Spot.DETAIL);
+	}
+
+	// ---- startup pre-build
+
+	private static Combos.Combo comboOf(SpotPlacements design, Piece piece) {
+		return Placement.combo(design.forPiece(piece).orElseThrow().asPlacementList());
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void startupPrebuildsStoredDesigns(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		FileBackend backend = new FileBackend(dir);
+		SpotPlacements a = SpotPlacements.fromList(List.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it"))).getOrThrow();
+		SpotPlacements b = SpotPlacements.fromList(List.of(Placement.parse("front_top_left.itk"), Placement.parse("back_big.kommn"),
+				Placement.parse("sleeve_front_top_l.data"), Placement.parse("sleeve_out_top_r.metacrew"))).getOrThrow();
+		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.DATA, a).withVersion(1), 0);
+		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.IT, b).withVersion(1), 0);
+		Combos.Combo comboA = comboOf(a, Piece.BOTTOM), comboB = comboOf(b, Piece.TOP);
+		int fresh = (Combos.isKnown(Piece.BOTTOM, comboA) ? 0 : 1) + (Combos.isKnown(Piece.TOP, comboB) ? 0 : 1);
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+					if (designs.size() != 2) helper.fail("stored designs: " + designs.size());
+					int added = Combos.prebuild(designs);
+					if (added < fresh) helper.fail("pre-built " + added + ", expected at least " + fresh);
+					if (!Combos.isKnown(Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
+					if (!Combos.isKnown(Piece.TOP, comboB)) helper.fail("B's combination is not known");
+					int again = Combos.prebuild(designs);
+					if (again != 0) helper.fail("a second pre-build added " + again);
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void prebuildNeverThrows(GameTestHelper helper) {
+		MinecraftServer server = helper.getLevel().getServer();
+		Combos.Combo fixed = Placement.combo(List.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it")));
+		boolean before = Combos.isKnown(Piece.BOTTOM, fixed);
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					WardrobeBackend failing = new WardrobeBackend() {
+						@Override public Optional<Wardrobe> load(UUID owner) { return Optional.empty(); }
+						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
+						@Override public String describe() { return "failing"; }
+						@Override public List<Wardrobe> all() throws IOException { throw new IOException("down"); }
+					};
+					WardrobeBackend plain = new WardrobeBackend() {
+						@Override public Optional<Wardrobe> load(UUID owner) { return Optional.empty(); }
+						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
+						@Override public String describe() { return "plain"; }
+					};
+					for (WardrobeBackend backend : List.of(failing, plain)) {
+						Wardrobes.use(server, backend);
+						List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+						if (!designs.isEmpty()) helper.fail(backend.describe() + " listed " + designs.size());
+						if (Combos.prebuild(designs) != 0) helper.fail("pre-built from nothing");
+					}
+					if (Combos.isKnown(Piece.BOTTOM, fixed) != before) helper.fail("the known set changed");
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/** A combination is the same whatever order its patches were sewn in: combos.json stores them sorted, looks ask in sewing order. */
+	@GameTest(maxTicks = 1200)
+	public void combinationIgnoresSewingOrder(GameTestHelper helper) {
+		Placement seat = Placement.parse("seat.rivals"), leg = Placement.parse("leg_front_top_l.it");
+		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
+		for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
+			Combos.Combo live = Placement.combo(order);
+			if (!stored.combo().equals(live) || stored.combo().hashCode() != live.hashCode()) helper.fail("not equal in order " + order);
+			if (!stored.equals(new Combos.KeyedCombo(Piece.BOTTOM, live))) helper.fail("keyed combos differ in order " + order);
+			if (!stored.combo().key().equals(live.key())) helper.fail("keys differ in order " + order);
+		}
+		// An older combos.json line with its placements in any order still loads, to the same combination.
+		Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:seat.rivals-leg_front_top_l.it").getOrThrow();
+		if (!reversed.equals(stored)) helper.fail("an unsorted stored key loads to a different combination");
+		Combos.prebuild(List.of(SpotPlacements.fromList(List.of(leg, seat)).getOrThrow()));
+		if (!Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(seat, leg))) || !Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(leg, seat)))) {
+			helper.fail("a pre-built combination is not known in both orders");
+		}
+		helper.succeed();
 	}
 
 	/** A generated item texture (a patch's inventory icon), off the runtime classpath. */

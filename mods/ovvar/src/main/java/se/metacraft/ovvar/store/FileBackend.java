@@ -91,6 +91,20 @@ public final class FileBackend implements WardrobeBackend {
 		return out;
 	}
 
+	@Override
+	public List<Wardrobe> all() throws IOException {
+		if (!Files.isDirectory(dir)) return List.of();
+		List<Wardrobe> out = new ArrayList<>();
+		try (Stream<Path> files = Files.list(dir)) {
+			for (Path path : (Iterable<Path>) files::iterator) {
+				if (!path.getFileName().toString().endsWith(".json")) continue;
+				Wardrobe wardrobe = read(path);
+				if (wardrobe != null) out.add(wardrobe);
+			}
+		}
+		return out;
+	}
+
 	/** Moves an owner's file aside as {@code <uuid>.json.imported}, so a second import skips it. */
 	public void markImported(UUID owner) throws IOException {
 		Path path = file(owner);
