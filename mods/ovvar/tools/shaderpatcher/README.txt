@@ -6,10 +6,13 @@ rifts (the void anchor's, and nether rifts). Vanilla clients get that automatica
 with a shaderpack in Iris or OptiFine, the pack replaces those shaders, so you see plain overalls
 without patches and flat, still rifts — unless your shaderpack is patched.
 
+The easy way is the web page: https://metacraft.se/ovvar/shaders (drop your pack in, download the
+"+ovvar" copy). This jar does the same on your own computer, if you would rather not upload anything.
+
 1. Have Java installed (java.com or adoptium.net).
-2. Double-click OvvarShaderPatcher.jar.
-   It finds your .minecraft/shaderpacks folder and writes a "+ovvar" copy of every pack
-   (the originals are untouched).
+2. Double-click OvvarShaderPatcher.jar. A window asks which shaderpack(s) to patch (it opens in
+   your .minecraft/shaderpacks folder; pick .zip files or folders, several at once is fine).
+   It writes a "+ovvar" copy next to each (the originals are untouched). Cancel does nothing.
 3. In Iris / OptiFine, select the "+ovvar" copy.
 
 Re-run it when you install or update a shaderpack.

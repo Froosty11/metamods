@@ -1,7 +1,10 @@
 package metacraft.ovvar.shaderpatcher;
 
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileFilter;
 import java.awt.GraphicsEnvironment;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,7 +45,8 @@ import java.util.zip.ZipOutputStream;
  * shaders.properties gains four custom uniforms. Nothing else in the pack is touched; originals
  * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
  *
- * Double-click: patches every pack in the Minecraft shaderpacks folder and shows a summary.
+ * Double-click: a file chooser (opening in the Minecraft shaderpacks folder) asks which packs, then a summary shows.
+ * This is the fallback for the web patcher at https://metacraft.se/ovvar/shaders.
  * Command line: {@code java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]}.
  */
 public final class Patcher {
@@ -55,25 +59,37 @@ public final class Patcher {
 		this.dryRun = dryRun;
 	}
 
+	/** Which packs to patch when the jar is double-clicked: the user's pick, empty when they cancel. */
+	interface Chooser {
+		List<Path> choose(Path start);
+	}
+
 	public static void main(String[] args) throws IOException {
+		boolean interactive = System.console() == null && !GraphicsEnvironment.isHeadless() && args.length == 0;
+		System.exit(run(args, interactive ? Patcher::chooseWithDialog : null, interactive));
+	}
+
+	/**
+	 * Patches the packs named in {@code args}; with none, asks {@code chooser} (null: nobody to ask, so
+	 * say how to name packs). An empty pick means the user cancelled: exit 0, no dialog. Returns the exit code.
+	 */
+	static int run(String[] args, Chooser chooser, boolean showSummary) {
 		boolean dryRun = false;
 		List<Path> packs = new ArrayList<>();
 		for (String a : args) {
 			if (a.equals("--dry-run")) dryRun = true;
 			else packs.add(Paths.get(a));
 		}
-		boolean interactive = System.console() == null && !GraphicsEnvironment.isHeadless() && packs.isEmpty();
 		Patcher patcher = new Patcher(dryRun);
 		if (packs.isEmpty()) {
-			Path folder = shaderpacksFolder();
-			if (folder == null || !Files.isDirectory(folder)) {
-				patcher.say("No shaderpacks folder found (looked for .minecraft/shaderpacks). Pass pack paths as arguments.");
-			} else {
-				patcher.say("Shaderpacks folder: " + folder);
-				try (var list = Files.list(folder)) {
-					list.sorted().forEach(packs::add);
-				}
+			if (chooser == null) {
+				System.out.println("Usage: java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]");
+				System.out.println("Or patch your pack on the web: https://metacraft.se/ovvar/shaders");
+				return 0;
 			}
+			Path folder = shaderpacksFolder();
+			packs.addAll(chooser.choose(folder != null && Files.isDirectory(folder) ? folder : null));
+			if (packs.isEmpty()) return 0;
 		}
 		for (Path pack : packs) {
 			try {
@@ -86,11 +102,32 @@ public final class Patcher {
 		patcher.say("");
 		patcher.say(patcher.patchedPacks + " pack(s) patched, " + patcher.skippedPacks + " skipped, " + patcher.failedPacks + " failed."
 				+ (patcher.patchedPacks > 0 ? " Select the \"" + SUFFIX + "\" copy in Iris." : ""));
-		if (interactive) {
+		if (showSummary) {
 			JOptionPane.showMessageDialog(null, patcher.log.toString(), "Ovvar shader patcher",
 					patcher.failedPacks > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
 		}
-		System.exit(patcher.failedPacks > 0 ? 1 : 0);
+		return patcher.failedPacks > 0 ? 1 : 0;
+	}
+
+	/** A multi-select file chooser for zips and folders, opening in the shaderpacks folder when there is one. */
+	private static List<Path> chooseWithDialog(Path start) {
+		JFileChooser chooser = new JFileChooser(start == null ? null : start.toFile());
+		chooser.setDialogTitle("Pick the shaderpack(s) to patch for ovvar");
+		chooser.setMultiSelectionEnabled(true);
+		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		chooser.setFileFilter(new FileFilter() {
+			@Override public boolean accept(File f) {
+				return f.isDirectory() || f.getName().toLowerCase(Locale.ROOT).endsWith(".zip");
+			}
+			@Override public String getDescription() {
+				return "Shaderpacks (.zip or folder)";
+			}
+		});
+		List<Path> picked = new ArrayList<>();
+		if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+			for (File f : chooser.getSelectedFiles()) picked.add(f.toPath());
+		}
+		return picked;
 	}
 
 	private void say(String line) {

@@ -469,6 +469,7 @@ pure white, so the stitching reads the same on every chapter.
 `config/ovvar.json` → `server` (what this server calls itself):
 
     name                     this server's name (default "METAcraft"; no longer used for the MOTD)
+    shader_patcher_url       the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders")
 
 ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
 the file: the defaults are the ones documented here, and a key only needs
@@ -494,7 +495,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the shaderpack patcher, and how to use it
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: server.shader_patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -861,12 +862,14 @@ lets the base garment draw the left arm's top face from the mirror strip as well
 computed exactly once and every path reads that one bool, so no two of them can disagree about
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
 does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
-overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users run `OvvarShaderPatcher.jar`
-(built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
-autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
-or, where autohost serves nothing, the way into the downloaded pack): double-clicked, it writes a
-`+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`server.shader_patcher_url`, default
+https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
+`OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
+`assets/ovvar/shaderpatcher/` and served by Polymer's autohost on the game port at
+`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, which the page's footer
+links): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+several at once, Cancel does nothing) and writes a
+`+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
 MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's

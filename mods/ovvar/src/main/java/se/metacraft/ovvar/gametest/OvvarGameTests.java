@@ -306,6 +306,71 @@ public final class OvvarGameTests {
 	}
 
 	/**
+	 * {@code /ovvar shaders} sends three lines, the second a link to the configured patcher page
+	 * (and the hover shows it); change the config and the link follows. Runs in one tick on the
+	 * server thread, so nothing else sees the changed config; it is put back in a finally.
+	 */
+	@GameTest
+	public void shadersCommandLinksThePage(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		net.minecraft.server.MinecraftServer server = helper.getLevel().getServer();
+		se.metacraft.ovvar.ServerConfig before = OvvarConfig.get().server();
+		try {
+			String firstUrl = shadersLink(helper, server, player, before.shaderPatcherUrl());
+			if (firstUrl == null) return;
+			String other = "https://example.org/x";
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(),
+					new se.metacraft.ovvar.ServerConfig(before.name(), other), config.designs(), config.stash()));
+			shadersLink(helper, server, player, other);
+		} finally {
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), before, config.designs(), config.stash()));
+		}
+		helper.succeed();
+	}
+
+	/** Runs the command, checks its three lines and the link on the second; returns the link or null after failing. */
+	private static String shadersLink(GameTestHelper helper, net.minecraft.server.MinecraftServer server, ServerPlayer player, String expected) {
+		List<Component> lines = new ArrayList<>();
+		// The command writes to the player's own connection (the mock's embedded channel): read the chat packets off it.
+		io.netty.channel.embedded.EmbeddedChannel channel;
+		try {
+			var field = net.minecraft.network.Connection.class.getDeclaredField("channel");
+			field.setAccessible(true);
+			var connection = net.minecraft.server.network.ServerCommonPacketListenerImpl.class.getDeclaredField("connection");
+			connection.setAccessible(true);
+			channel = (io.netty.channel.embedded.EmbeddedChannel) field.get(connection.get(player.connection));
+		} catch (ReflectiveOperationException | ClassCastException | NullPointerException e) {
+			helper.fail("can't reach the mock player's channel: " + e);
+			return null;
+		}
+		channel.outboundMessages().clear();
+		try {
+			int ran = server.getCommands().getDispatcher().execute("ovvar shaders", player.createCommandSourceStack());
+			if (ran != 1) { helper.fail("/ovvar shaders returned " + ran); return null; }
+		} catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+			helper.fail("/ovvar shaders did not run: " + e.getMessage());
+			return null;
+		}
+		channel.runPendingTasks();
+		Object sent;
+		while ((sent = channel.readOutbound()) != null) {
+			if (sent instanceof net.minecraft.network.protocol.game.ClientboundSystemChatPacket chat) lines.add(chat.content());
+		}
+		if (lines.size() != 3) { helper.fail("/ovvar shaders sent " + lines.size() + " lines, wanted 3: " + lines); return null; }
+		var click = lines.get(1).getStyle().getClickEvent();
+		if (!(click instanceof net.minecraft.network.chat.ClickEvent.OpenUrl open) || !open.uri().toString().equals(expected)) {
+			helper.fail("second line should open " + expected + ", has " + click);
+			return null;
+		}
+		if (!(lines.get(1).getStyle().getHoverEvent() instanceof net.minecraft.network.chat.HoverEvent.ShowText hover)
+				|| !hover.value().getString().equals(expected)) {
+			helper.fail("second line's hover should show " + expected);
+			return null;
+		}
+		return expected;
+	}
+
+	/**
 	 * However many patches an ovve carries, its tooltip stays six lines or fewer under the name: the
 	 * status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches, one hint line and the
 	 * shaders line ({@link OvveItem#SHADERS_HINT}; unpatched shaderpacks draw the limbs as a
