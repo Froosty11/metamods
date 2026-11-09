@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @param enabled        whether he turns up at all
  * @param share          his share (0-0.5) of all wanderer visits
  * @param chapterOvves   how many chapters' ovvar (only he sells them) are on offer per visit
- * @param ovvePrice      emerald blocks asked for one
+ * @param ovvePrice      emeralds asked for one
  * @param patches        how many loot patches are on offer per visit
- * @param patchPrice     emerald blocks asked for one
+ * @param patchPrice     emeralds asked for one
  * @param poolPicks      how many of {@code pool} are on offer per visit
  * @param playersPerRoll how many players count as one more roll of his visit
  * @param maxLoaded      how many Punkphöz can be loaded at once
@@ -31,7 +31,7 @@ public record PunkphozConfig(boolean enabled, double share, int chapterOvves, in
 			int poolPicks, int playersPerRoll, int maxLoaded, List<PoolEntry> pool) {
 	public static final PunkphozConfig DEFAULT = new PunkphozConfig(true, 0.25, 3, 24, 2, 6, 4, 5, 3, List.of());
 
-	/** One thing in his pool: {@code count} of {@code item} for {@code price} emerald blocks, {@code maxUses} times. */
+	/** One thing in his pool: {@code count} of {@code item} for {@code price} emeralds, {@code maxUses} times. */
 	public record PoolEntry(Identifier item, int price, int count, int maxUses) {
 		public static final Codec<PoolEntry> CODEC = RecordCodecBuilder.create(i -> i.group(
 				Identifier.CODEC.fieldOf("item").forGetter(PoolEntry::item),
@@ -45,13 +45,13 @@ public record PunkphozConfig(boolean enabled, double share, int chapterOvves, in
 			ConfigFields.field(Codec.BOOL, "enabled", DEFAULT.enabled, "Whether Punkphoz, a wandering trader with his own stock, turns up.").forGetter(PunkphozConfig::enabled),
 			ConfigFields.field(Codec.doubleRange(0, 0.5), "share", DEFAULT.share, "His share of all wanderer visits; vanilla wanderers come as often as without him.").forGetter(PunkphozConfig::share),
 			ConfigFields.field(Codec.intRange(0, 20), "chapter_ovves", DEFAULT.chapterOvves, "How many chapters' ovvar (only he sells them) are on offer per visit.").forGetter(PunkphozConfig::chapterOvves),
-			ConfigFields.field(Codec.intRange(1, 64), "ovve_price", DEFAULT.ovvePrice, "Emerald blocks asked for one ovve.").forGetter(PunkphozConfig::ovvePrice),
+			ConfigFields.field(Codec.intRange(1, 64), "ovve_price", DEFAULT.ovvePrice, "Emeralds asked for one ovve.").forGetter(PunkphozConfig::ovvePrice),
 			ConfigFields.field(Codec.intRange(0, 10), "patches", DEFAULT.patches, "How many loot patches are on offer per visit.").forGetter(PunkphozConfig::patches),
-			ConfigFields.field(Codec.intRange(1, 64), "patch_price", DEFAULT.patchPrice, "Emerald blocks asked for one patch.").forGetter(PunkphozConfig::patchPrice),
+			ConfigFields.field(Codec.intRange(1, 64), "patch_price", DEFAULT.patchPrice, "Emeralds asked for one patch.").forGetter(PunkphozConfig::patchPrice),
 			ConfigFields.field(Codec.intRange(0, 20), "pool_picks", DEFAULT.poolPicks, "How many things from the pool are on offer per visit.").forGetter(PunkphozConfig::poolPicks),
 			ConfigFields.field(Codec.intRange(1, 100), "players_per_roll", DEFAULT.playersPerRoll, "How many players online count as one roll for his visit.").forGetter(PunkphozConfig::playersPerRoll),
 			ConfigFields.field(Codec.intRange(0, 20), "max_loaded", DEFAULT.maxLoaded, "How many Punkphoz can be loaded at once.").forGetter(PunkphozConfig::maxLoaded),
-			ConfigFields.field(PoolEntry.CODEC.listOf(), "pool", DEFAULT.pool, "The things he sells besides ovvar and patches: item (registry id), price (emerald blocks, 1-64),", "count (1-64, default 1) and max_uses (default 1). An item that isn't registered is left out and logged.").forGetter(PunkphozConfig::pool)
+			ConfigFields.field(PoolEntry.CODEC.listOf(), "pool", DEFAULT.pool, "The things he sells besides ovvar and patches: item (registry id), price (emeralds, 1-64),", "count (1-64, default 1) and max_uses (default 1). An item that isn't registered is left out and logged.").forGetter(PunkphozConfig::pool)
 	).apply(i, PunkphozConfig::new));
 
 	/** The pool's entries that can be offered, and why the others can't. */
