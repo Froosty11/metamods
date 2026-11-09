@@ -1,10 +1,12 @@
 package se.metacraft.ovvar.content;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Unit;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.ovvar.MobOvvarConfig;
@@ -21,6 +23,12 @@ import java.util.List;
  */
 public final class MobOvvar {
 	private MobOvvar() {}
+
+	/** A mob's garment is never an item on the ground: a marked stack cannot become an {@link ItemEntity}. */
+	public static void init() {
+		ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) ->
+				!(entity instanceof ItemEntity item && is(item.getItem())));
+	}
 
 	/** Most draws spent finding cells for a garment's patches. */
 	private static final int MAX_DRAWS = 16;

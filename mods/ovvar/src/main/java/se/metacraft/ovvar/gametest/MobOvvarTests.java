@@ -354,4 +354,116 @@ public final class MobOvvarTests {
 			if (chests == 0) helper.fail("no zombie of " + MOBS + " spawned in a chestplate");
 		});
 	}
+
+	// ---- the garment never leaves the mob
+
+	private static ItemStack marked(RandomSource random, EquipmentSlot slot) {
+		ItemStack garment = MobOvvar.garment(random, slot, true);
+		if (garment.isEmpty()) throw new IllegalStateException("no garment for " + slot);
+		return garment;
+	}
+
+	@GameTest
+	public void mobNeverSwapsItsGarment(GameTestHelper helper) {
+		RandomSource r = RandomSource.create(11);
+		var level = helper.getLevel();
+		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
+		zombie.setCanPickUpLoot(true);
+		ItemStack ovve = marked(r, EquipmentSlot.LEGS);
+		MobOvvar.wear(zombie, ovve);
+		if (!zombie.equipItemIfPossible(level, new ItemStack(Items.DIAMOND_LEGGINGS)).isEmpty()) helper.fail("a zombie swapped its ovve");
+		if (zombie.getItemBySlot(EquipmentSlot.LEGS) != ovve) helper.fail("the zombie's legs changed");
+
+		Zombie frack = helper.spawn(EntityTypes.ZOMBIE, 3, 1, 2);
+		frack.setCanPickUpLoot(true);
+		ItemStack coat = marked(r, EquipmentSlot.CHEST);
+		MobOvvar.wear(frack, coat);
+		if (!frack.equipItemIfPossible(level, new ItemStack(Items.DIAMOND_CHESTPLATE)).isEmpty()) helper.fail("a zombie swapped its frack");
+		if (frack.getItemBySlot(EquipmentSlot.CHEST) != coat) helper.fail("the zombie's chest changed");
+
+		var piglin = helper.spawn(EntityTypes.PIGLIN, 4, 1, 2);
+		piglin.setCanPickUpLoot(true);
+		ItemStack pigOvve = marked(r, EquipmentSlot.LEGS);
+		MobOvvar.wear(piglin, pigOvve);
+		if (!piglin.equipItemIfPossible(level, new ItemStack(Items.GOLDEN_LEGGINGS)).isEmpty()) helper.fail("a piglin swapped its ovve");
+		if (piglin.getItemBySlot(EquipmentSlot.LEGS) != pigOvve) helper.fail("the piglin's legs changed");
+
+		Zombie plain = helper.spawn(EntityTypes.ZOMBIE, 5, 1, 2);
+		plain.setCanPickUpLoot(true);
+		plain.setItemSlot(EquipmentSlot.LEGS, new ItemStack(Items.LEATHER_LEGGINGS));
+		plain.equipItemIfPossible(level, new ItemStack(Items.DIAMOND_LEGGINGS));
+		helper.assertValueEqual(plain.getItemBySlot(EquipmentSlot.LEGS).getItem(), Items.DIAMOND_LEGGINGS, "an unmarked zombie's legs");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void lootingNeverDropsTheGarment(GameTestHelper helper) {
+		var level = helper.getLevel();
+		RandomSource r = RandomSource.create(12);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ItemStack sword = new ItemStack(Items.NETHERITE_SWORD);
+		sword.enchant(level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+				.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.LOOTING), 3);
+		player.setItemSlot(EquipmentSlot.MAINHAND, sword);
+		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
+		MobOvvar.wear(zombie, marked(r, EquipmentSlot.LEGS));
+		MobOvvar.wear(zombie, marked(r, EquipmentSlot.CHEST));
+		helper.assertValueEqual(zombie.getDropChances().byEquipment(EquipmentSlot.LEGS), 0f, "legs drop chance");
+		helper.assertValueEqual(zombie.getDropChances().byEquipment(EquipmentSlot.CHEST), 0f, "chest drop chance");
+		zombie.hurtServer(level, level.damageSources().playerAttack(player), 1000f);
+		helper.runAfterDelay(1, () -> {
+			var box = new net.minecraft.world.phys.AABB(helper.absolutePos(new net.minecraft.core.BlockPos(0, 0, 0))).inflate(10);
+			for (var item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box)) {
+				if (item.getItem().getItem() instanceof OvveItem || item.getItem().getItem() instanceof se.metacraft.ovvar.content.item.OvveTopItem) {
+					helper.fail("the garment dropped: " + item.getItem());
+				}
+			}
+			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void mobOvveNeverLandsAsAnItem(GameTestHelper helper) {
+		var level = helper.getLevel();
+		Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
+		ItemStack garment = marked(RandomSource.create(13), EquipmentSlot.LEGS);
+		var item = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y, at.z, garment);
+		if (level.addFreshEntity(item)) helper.fail("a mob's ovve landed as an item");
+		var plain = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y, at.z, new ItemStack(ModContent.ovve(Chapter.values()[0])));
+		if (!level.addFreshEntity(plain)) helper.fail("an unmarked ovve could not land");
+		plain.discard();
+		helper.succeed();
+	}
+
+	@GameTest
+	public void playersCannotKeepOne(GameTestHelper helper) {
+		var level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ItemStack garment = marked(RandomSource.create(14), EquipmentSlot.LEGS);
+		ItemStack plain = new ItemStack(ModContent.ovve(((OvveItem) garment.getItem()).chapter));
+		player.getInventory().setItem(0, garment);
+		player.getInventory().setItem(1, plain);
+		garment.inventoryTick(level, player, null);
+		plain.inventoryTick(level, player, null);
+		helper.assertValueEqual(garment.getCount(), 0, "the marked ovve's count");
+		helper.assertValueEqual(plain.getCount(), 1, "the unmarked ovve's count");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void conversionKeepsTheRules(GameTestHelper helper) {
+		RandomSource r = RandomSource.create(15);
+		var husk = helper.spawn(EntityTypes.HUSK, 2, 1, 2);
+		MobOvvar.wear(husk, marked(r, EquipmentSlot.LEGS));
+		Mob zombie = husk.convertTo(EntityTypes.ZOMBIE, net.minecraft.world.entity.ConversionParams.single(husk, true, true), m -> {});
+		var piglin = helper.spawn(EntityTypes.PIGLIN, 4, 1, 2);
+		MobOvvar.wear(piglin, marked(r, EquipmentSlot.LEGS));
+		Mob pigman = piglin.convertTo(EntityTypes.ZOMBIFIED_PIGLIN, net.minecraft.world.entity.ConversionParams.single(piglin, true, true), m -> {});
+		for (Mob m : new Mob[] {zombie, pigman}) {
+			if (m == null) helper.fail("no conversion");
+			if (!MobOvvar.is(m.getItemBySlot(EquipmentSlot.LEGS))) helper.fail(m + " lost the marker");
+			helper.assertValueEqual(m.getDropChances().byEquipment(EquipmentSlot.LEGS), 0f, m + "'s legs drop chance");
+		}
+		helper.succeed();
+	}
 }

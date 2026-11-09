@@ -4,6 +4,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.ovvar.compat.danse.DanseCompat;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.item.OvveFeet;
 import se.metacraft.ovvar.content.item.OvveTop;
@@ -43,6 +44,7 @@ public class Ovvar implements ModInitializer {
 		OvvarConfig.get();
 		ModContent.register();
 		PatchLoot.init();
+		MobOvvar.init();
 		OvveTop.init();
 		OvveFeet.init();
 		StandSewing.init();
