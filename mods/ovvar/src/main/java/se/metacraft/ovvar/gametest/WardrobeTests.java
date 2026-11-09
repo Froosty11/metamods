@@ -2546,6 +2546,74 @@ public final class WardrobeTests {
 		helper.succeed();
 	}
 
+	// ---- many chapters
+
+	/** Past seven chapters the tab row shows six and a "more" tab that turns to the next six. */
+	@GameTest
+	public void tabRowScrollsPastSevenChapters(GameTestHelper helper) {
+		List<Chapter> tabs = List.of(Chapter.values()).subList(0, 9);
+		WardrobeGui.TabWindow first = WardrobeGui.tabWindow(tabs, tabs.get(0));
+		if (!first.shown().equals(tabs.subList(0, 6)) || first.activeColumn() != 0 || first.more() != tabs.get(6)) {
+			helper.fail("first window: " + first);
+		}
+		WardrobeGui.TabWindow second = WardrobeGui.tabWindow(tabs, tabs.get(7));
+		if (!second.shown().equals(tabs.subList(6, 9)) || second.activeColumn() != 1 || second.more() != tabs.get(0)) {
+			helper.fail("second window: " + second);
+		}
+		List<Chapter> seven = tabs.subList(0, 7);
+		WardrobeGui.TabWindow fits = WardrobeGui.tabWindow(seven, seven.get(6));
+		if (!fits.shown().equals(seven) || fits.activeColumn() != 6 || fits.more() != null) helper.fail("seven tabs: " + fits);
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void moreTabOpensTheNextWindow(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		List<Chapter> tabs = List.of(Chapter.values()).subList(0, 9);
+		for (Chapter chapter : tabs) {
+			ItemStack ovve = new ItemStack(ModContent.ovve(chapter));
+			OvveItem.setOwner(ovve, owner);
+			player.getInventory().add(ovve);
+		}
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> guarded(server, () -> {
+					WardrobeGui gui = WardrobeGui.forTest(player, tabs.get(0), Angle.FRONT);
+					GuiElement more = gui.getGuiElement(6);
+					if (more == null || !more.getItemStack().getHoverName().getString().equals("More ovvar ▶")) {
+						helper.fail("slot (0,6) is not the more tab: " + (more == null ? null : more.getItemStack().getHoverName().getString()));
+					}
+					more.getGuiCallback().click(6, eu.pb4.sgui.api.ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ContainerInput.PICKUP, gui);
+					WardrobeGui next = gui.reopenedTo();
+					if (next == null) helper.fail("clicking the more tab opened nothing");
+					if (next.angle() != Angle.FRONT) helper.fail("the more tab changed the angle");
+					if (next.getGuiElement(0).getItemStack().getItem() != ModContent.ovve(tabs.get(6))) {
+						helper.fail("the next window does not start at the seventh chapter");
+					}
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/** The fonts hand out codepoints in order and run dry for good: room for more chapters is checked. */
+	@GameTest
+	public void fontsHaveRoomForMoreChapters(GameTestHelper helper) {
+		int wardrobe = WardrobeFont.codepointsLeft(), sewing = se.metacraft.ovvar.sewing.SewingFont.codepointsLeft();
+		Ovvar.LOGGER.info("codepoints left: WardrobeFont {}, SewingFont {}", wardrobe, sewing);
+		int needed = 4 * Angle.values().length * 4;
+		if (wardrobe < needed) helper.fail("WardrobeFont has " + wardrobe + " codepoints left, wanted " + needed);
+		if (sewing < 4) helper.fail("SewingFont has " + sewing + " codepoints left, wanted 4");
+		helper.succeed();
+	}
+
 	/** A throwaway store back (never the run dir's configured one), and the next test may go. */
 	private static void release(MinecraftServer server) {
 		Wardrobes.use(server, idleBackend());
