@@ -293,18 +293,17 @@ public final class ModCommands {
 
 	/**
 	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; players patch their
-	 * pack on a web page (the config's {@code server.shader_patcher_url}). Three lines: why, the link, how.
+	 * pack on a web page (the config's {@code shaders.patcher_url}). Three lines: why, the link, how.
 	 */
 	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		CommandSourceStack source = ctx.getSource();
 		source.getPlayerOrException();
-		String configured = OvvarConfig.get().server().shaderPatcherUrl();
-		String url = configured == null || configured.isBlank() ? ServerConfig.DEFAULT_SHADER_PATCHER_URL : configured.strip();
+		String url = OvvarConfig.get().shaders().patcherUrlOrDefault();
 		MutableComponent link = Component.translatableWithFallback(SHADERS_LINK, SHADERS_LINK_EN).withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE);
 		try {
 			link.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))).withHoverEvent(new HoverEvent.ShowText(Component.literal(url))));
 		} catch (IllegalArgumentException e) {
-			Ovvar.LOGGER.warn("[ovvar] server.shader_patcher_url \"{}\" is not a URL: {}", url, e.getMessage());
+			Ovvar.LOGGER.warn("[ovvar] shaders.patcher_url \"{}\" is not a URL: {}", url, e.getMessage());
 		}
 		source.sendSystemMessage(Component.translatableWithFallback(SHADERS_INTRO, SHADERS_INTRO_EN).withStyle(ChatFormatting.GOLD));
 		source.sendSystemMessage(link);
