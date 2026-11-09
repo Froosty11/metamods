@@ -166,6 +166,18 @@ public final class Combos {
 		});
 	}
 
+	/** Tests only: undoes {@link #markBuiltForTest} in every generation still held, so nothing test-only stays behind. */
+	public static void unmarkBuiltForTest(Piece piece, Combo combo) {
+		KeyedCombo key = key(piece, combo);
+		if (KNOWN.contains(key)) return;   // something real asked for it meanwhile: a build holds it for that reason
+		BUILT.replaceAll((g, built) -> {
+			if (!built.contains(key)) return built;
+			Set<KeyedCombo> next = new HashSet<>(built);
+			next.remove(key);
+			return Set.copyOf(next);
+		});
+	}
+
 	/** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
 	public static void request(Piece piece, Combo combo, boolean urgent) {
 		KeyedCombo key = key(piece, combo);

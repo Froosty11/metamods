@@ -182,11 +182,17 @@ public final class PatchAcquiringTests {
 				"the top's dye: Starkt alone, the one instant patch on it");
 		helper.assertFalse(top.complete(), "the top is complete without the pack");
 
-		for (Piece piece : Piece.values()) {
-			Combos.markBuiltForTest(piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
-		}
-		for (Piece piece : Piece.values()) {
-			helper.assertTrue(Looks.look(stack, piece, null).complete(), piece + " is not complete once the pack holds its combo");
+		try {
+			for (Piece piece : Piece.values()) {
+				Combos.markBuiltForTest(piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
+			}
+			for (Piece piece : Piece.values()) {
+				helper.assertTrue(Looks.look(stack, piece, null).complete(), piece + " is not complete once the pack holds its combo");
+			}
+		} finally {
+			for (Piece piece : Piece.values()) {
+				Combos.unmarkBuiltForTest(piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
+			}
 		}
 		helper.succeed();
 	}

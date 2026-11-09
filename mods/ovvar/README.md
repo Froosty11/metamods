@@ -565,8 +565,8 @@ pack will). Put the id in `PatchLoot.LOOT` (it turns up in structure chests) or 
 (crafted or given) — startup and datagen fail if it is in neither. Then `runDatagen`.
 The droppable patches, and only those, ride in the dye colour (instant, previewable): they get the
 first design codes automatically, wherever the line sits, and there is room for 23 of them, so
-two more loot patches take the two spare slots by themselves; a 24th fails datagen and startup
-(free a slot or make one of them `NON_LOOT`). Crafted and given patches only go through the pack;
+a new loot patch takes a spare slot by itself; one past 23 fails datagen and startup (free a
+slot or make one of them `NON_LOOT`). Crafted and given patches only go through the pack;
 the preview library is the head rows of the texture (64×16 skin texels less the tables and
 the marker corner, packed by the texel, an art at its own size) and datagen fails loudly when that runs out.
 
@@ -670,9 +670,9 @@ the one that binds: 19 × 23 = 437 fits and 19 × 24 = 456 would not, so `Looks.
 23, and the cap test holds the designs to the most that fits as well as the states to the cap, so
 neither number can be raised on its own (a cell added to the top costs designs). **The 23 are the
 droppable patches.** A patch that can turn up in a chest can end up on anyone, so it has to show
-the moment it is sewn: `Patches.byCode` gives `PatchLoot.LOOT` codes 1–21, in catalogue order,
-and everything else comes after, and `Looks.instant` is exactly "is it loot". Codes 22 and 23
-are spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
+the moment it is sewn: `Patches.byCode` gives `PatchLoot.LOOT` the first codes, in catalogue
+order, and everything else comes after, and `Looks.instant` is exactly "is it loot". While loot
+is fewer than 23, the codes past it are spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
 the count from the preview texture), but nothing is ever encoded with them and their library and
 table rows stay empty, until a new loot patch takes one by itself. `PatchLoot.check` fails startup
 and datagen if loot ever outgrows the 23. The codes are never stored (the dye colour is worked out

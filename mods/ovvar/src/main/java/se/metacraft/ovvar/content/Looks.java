@@ -41,8 +41,8 @@ public final class Looks {
 	 *
 	 * <p><b>Which designs.</b> The droppable ones, {@link PatchLoot#LOOT}, and only those: a patch
 	 * that can turn up on anyone has to show at once, and {@link Patches#byCode} gives loot the first
-	 * codes wherever its line is in the catalogue. Loot is 21 patches today, so codes 22 and 23 are
-	 * spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
+	 * codes wherever its line is in the catalogue. The codes past the last loot patch are spare
+	 * while loot is fewer than 23: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
 	 * the count from the preview texture), but nothing is encoded with them and datagen writes no
 	 * library art or table row for them, until a new loot patch takes one by itself.
 	 * {@link PatchLoot#check} fails startup and datagen if loot ever outgrows the 23. A crafted or

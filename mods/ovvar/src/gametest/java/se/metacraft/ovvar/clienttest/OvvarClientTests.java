@@ -98,7 +98,14 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					OvveItem.wear(f, frack);
 					level.addFreshEntity(f);
 				});
-				acceptResourcePack(ctx);   // the current system may push a rebuilt pack for the fourth patch
+				// ITK and IT are not loot, so not instant: on the ovve and the frack they show only once the
+				// pack holds the combos. Tester asks for it himself (a mannequin never claims a push), after
+				// the mannequins' equipment has gone out and so queued their combos.
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(20);
+				server.runCommand("execute as Tester run ovvar reload");
+				ctx.waitTicks(100);   // the urgent build (2 s) and the push it ends in
+				acceptResourcePack(ctx);
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();
