@@ -1,34 +1,49 @@
 package se.metacraft.ovvar.gametest;
 
 import com.mojang.serialization.JavaOps;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
-import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.LivingEntity;
-import java.util.UUID;
-import se.metacraft.ovvar.pack.Combos;
+import net.minecraft.util.Unit;
+import net.minecraft.world.entity.ConversionParams;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.phys.AABB;
+
 import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.ModContent;
-import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.SpotPlacements;
+import se.metacraft.ovvar.content.item.OvveFeet;
 import se.metacraft.ovvar.content.item.OvveItem;
+import se.metacraft.ovvar.content.item.OvveTopItem;
+import se.metacraft.ovvar.content.item.PatchItem;
+import se.metacraft.ovvar.pack.Combos;
+
+import java.util.LinkedHashMap;
+import java.util.TreeSet;
+import java.util.UUID;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -188,7 +203,7 @@ public final class MobOvvarTests {
 			ItemStack garment = MobOvvar.garment(RandomSource.create(seed), seed % 2 == 0 ? EquipmentSlot.LEGS : EquipmentSlot.CHEST, true);
 			List<String> ids = placements(garment).stream().map(p -> p.patch().id()).sorted().toList();
 			List<String> all = MobOvvar.patchDrops(garment, RandomSource.create(seed), 1f).stream()
-					.map(s -> ((se.metacraft.ovvar.content.item.PatchItem) s.getItem()).patch.id()).sorted().toList();
+					.map(s -> ((PatchItem) s.getItem()).patch.id()).sorted().toList();
 			helper.assertValueEqual(all, ids, "the drops at chance 1");
 			if (!MobOvvar.patchDrops(garment, RandomSource.create(seed), 0f).isEmpty()) helper.fail("a drop at chance 0");
 			worn += ids.size();
@@ -207,7 +222,7 @@ public final class MobOvvarTests {
 
 	@GameTest
 	public void everyViewerSeesItAll(GameTestHelper helper) {
-		var mannequin = helper.spawn(EntityTypes.MANNEQUIN, new net.minecraft.core.BlockPos(2, 1, 2));
+		var mannequin = helper.spawn(EntityTypes.MANNEQUIN, new BlockPos(2, 1, 2));
 		int tops = 0;
 		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
 			for (int seed = 0; seed < 200; seed++) {
@@ -244,7 +259,7 @@ public final class MobOvvarTests {
 		try {
 			ItemStack marked = new ItemStack(ModContent.ovve(Chapter.DATA));
 			Looks.setSewn(marked, SpotPlacements.fromList(placements).getOrThrow());
-			marked.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+			marked.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
 			ItemStack control = marked.copy();
 			control.remove(ModComponents.MOB_OVVE);
 
@@ -252,7 +267,7 @@ public final class MobOvvarTests {
 			PolymerItemUtils.getPolymerItemStack(marked, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
 			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's garment queued a combination");
 			// ...nor do the virtual cuffs a mob's bare feet are shown in.
-			ItemStack cuffs = se.metacraft.ovvar.content.item.OvveFeet.cuffsFor(marked);
+			ItemStack cuffs = OvveFeet.cuffsFor(marked);
 			if (!MobOvvar.is(cuffs)) helper.fail("the cuffs lack the marker");
 			PolymerItemUtils.getPolymerItemStack(cuffs, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
 			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's cuffs queued a combination");
@@ -310,7 +325,7 @@ public final class MobOvvarTests {
 	@GameTest(maxTicks = 1200)
 	public void mobsSpawnInOvvar(GameTestHelper helper) {
 		withMobOvvar(helper, new MobOvvarConfig(true, 1f, .5f), () -> {
-			Map<EntityType<? extends Mob>, Boolean> types = new java.util.LinkedHashMap<>();
+			Map<EntityType<? extends Mob>, Boolean> types = new LinkedHashMap<>();
 			types.put(EntityTypes.ZOMBIE, true);
 			types.put(EntityTypes.HUSK, true);
 			types.put(EntityTypes.SKELETON, false);
@@ -403,8 +418,8 @@ public final class MobOvvarTests {
 		RandomSource r = RandomSource.create(12);
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		ItemStack sword = new ItemStack(Items.NETHERITE_SWORD);
-		sword.enchant(level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
-				.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.LOOTING), 3);
+		sword.enchant(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+				.getOrThrow(Enchantments.LOOTING), 3);
 		player.setItemSlot(EquipmentSlot.MAINHAND, sword);
 		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
 		MobOvvar.wear(zombie, marked(r, EquipmentSlot.LEGS));
@@ -413,9 +428,9 @@ public final class MobOvvarTests {
 		helper.assertValueEqual(zombie.getDropChances().byEquipment(EquipmentSlot.CHEST), 0f, "chest drop chance");
 		zombie.hurtServer(level, level.damageSources().playerAttack(player), 1000f);
 		helper.runAfterDelay(1, () -> {
-			var box = new net.minecraft.world.phys.AABB(helper.absolutePos(new net.minecraft.core.BlockPos(0, 0, 0))).inflate(10);
-			for (var item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box)) {
-				if (item.getItem().getItem() instanceof OvveItem || item.getItem().getItem() instanceof se.metacraft.ovvar.content.item.OvveTopItem) {
+			var box = new AABB(helper.absolutePos(new BlockPos(0, 0, 0))).inflate(10);
+			for (var item : level.getEntitiesOfClass(ItemEntity.class, box)) {
+				if (item.getItem().getItem() instanceof OvveItem || item.getItem().getItem() instanceof OvveTopItem) {
 					helper.fail("the garment dropped: " + item.getItem());
 				}
 			}
@@ -428,9 +443,9 @@ public final class MobOvvarTests {
 		var level = helper.getLevel();
 		Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
 		ItemStack garment = marked(RandomSource.create(13), EquipmentSlot.LEGS);
-		var item = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y, at.z, garment);
+		var item = new ItemEntity(level, at.x, at.y, at.z, garment);
 		if (level.addFreshEntity(item)) helper.fail("a mob's ovve landed as an item");
-		var plain = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y, at.z, new ItemStack(ModContent.ovve(Chapter.values()[0])));
+		var plain = new ItemEntity(level, at.x, at.y, at.z, new ItemStack(ModContent.ovve(Chapter.values()[0])));
 		if (!level.addFreshEntity(plain)) helper.fail("an unmarked ovve could not land");
 		plain.discard();
 		helper.succeed();
@@ -456,10 +471,10 @@ public final class MobOvvarTests {
 		RandomSource r = RandomSource.create(15);
 		var husk = helper.spawn(EntityTypes.HUSK, 2, 1, 2);
 		MobOvvar.wear(husk, marked(r, EquipmentSlot.LEGS));
-		Mob zombie = husk.convertTo(EntityTypes.ZOMBIE, net.minecraft.world.entity.ConversionParams.single(husk, true, true), m -> {});
+		Mob zombie = husk.convertTo(EntityTypes.ZOMBIE, ConversionParams.single(husk, true, true), m -> {});
 		var piglin = helper.spawn(EntityTypes.PIGLIN, 4, 1, 2);
 		MobOvvar.wear(piglin, marked(r, EquipmentSlot.LEGS));
-		Mob pigman = piglin.convertTo(EntityTypes.ZOMBIFIED_PIGLIN, net.minecraft.world.entity.ConversionParams.single(piglin, true, true), m -> {});
+		Mob pigman = piglin.convertTo(EntityTypes.ZOMBIFIED_PIGLIN, ConversionParams.single(piglin, true, true), m -> {});
 		for (Mob m : new Mob[] {zombie, pigman}) {
 			if (m == null) helper.fail("no conversion");
 			if (!MobOvvar.is(m.getItemBySlot(EquipmentSlot.LEGS))) helper.fail(m + " lost the marker");
@@ -477,19 +492,19 @@ public final class MobOvvarTests {
 		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
 		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
 		Looks.setSewn(ovve, SpotPlacements.fromList(List.of(Placement.parse("front_top_left.spiken"), Placement.parse("leg_front_top_r.jgs"), Placement.parse("seat.pung"))).getOrThrow());
-		ovve.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+		ovve.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
 		OvveItem.setTopUp(ovve, true);
 		MobOvvar.wear(zombie, ovve);
 		ItemStack frack = new ItemStack(ModContent.ovve(Chapter.MEDIA));
 		Looks.setSewn(frack, SpotPlacements.fromList(List.of(Placement.parse("front_top_right.kth"))).getOrThrow());
-		frack.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+		frack.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
 		MobOvvar.wear(zombie, frack);
 		return zombie;
 	}
 
 	private static List<ItemStack> itemsAround(GameTestHelper helper) {
-		var box = new net.minecraft.world.phys.AABB(helper.absolutePos(new net.minecraft.core.BlockPos(0, 0, 0))).inflate(10);
-		return helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box).stream().map(net.minecraft.world.entity.item.ItemEntity::getItem).toList();
+		var box = new AABB(helper.absolutePos(new BlockPos(0, 0, 0))).inflate(10);
+		return helper.getLevel().getEntitiesOfClass(ItemEntity.class, box).stream().map(ItemEntity::getItem).toList();
 	}
 
 	private static void killAndCheck(GameTestHelper helper, float chance, boolean byPlayer, Set<String> expected) {
@@ -502,7 +517,7 @@ public final class MobOvvarTests {
 			// A zombie's own loot (rotten flesh) is random and not what is under test: only garments and patches count.
 			for (ItemStack item : itemsAround(helper)) if (item.getItem() instanceof OvveItem) helper.fail("the garment dropped: " + item);
 			List<String> ids = itemsAround(helper).stream().map(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()).filter(id -> id.startsWith("patch_")).sorted().toList();
-			helper.assertValueEqual(new java.util.TreeSet<>(ids), new java.util.TreeSet<>(expected), "the dropped items");
+			helper.assertValueEqual(new TreeSet<>(ids), new TreeSet<>(expected), "the dropped items");
 			helper.assertValueEqual(ids.size(), expected.size(), "how many items dropped");
 		});
 	}
@@ -528,7 +543,7 @@ public final class MobOvvarTests {
 		var villager = helper.spawn(EntityTypes.ZOMBIE_VILLAGER, 2, 1, 2);
 		MobOvvar.wear(villager, marked(RandomSource.create(16), EquipmentSlot.LEGS));
 		MobOvvar.wear(villager, marked(RandomSource.create(17), EquipmentSlot.CHEST));
-		Mob cured = villager.convertTo(EntityTypes.VILLAGER, net.minecraft.world.entity.ConversionParams.single(villager, false, false), m -> {});
+		Mob cured = villager.convertTo(EntityTypes.VILLAGER, ConversionParams.single(villager, false, false), m -> {});
 		if (cured == null) helper.fail("no cure");
 		helper.runAfterDelay(1, () -> {
 			for (EquipmentSlot slot : EquipmentSlot.values()) {
@@ -538,6 +553,38 @@ public final class MobOvvarTests {
 				if (MobOvvar.is(item) || item.getItem() instanceof OvveItem) helper.fail("the cure dropped a garment: " + item);
 			}
 			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void killerIsThePlayerTheMobRemembers(GameTestHelper helper) {
+		var level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
+		helper.assertTrue(MobOvvar.killer(zombie, level.damageSources().generic()) == null, "no killer for a mob nobody hit");
+		zombie.setLastHurtByPlayer(player, 100);
+		helper.assertTrue(MobOvvar.killer(zombie, level.damageSources().generic()) == player, "a delayed kill credits the player");
+		var wolf = helper.spawn(EntityTypes.WOLF, 4, 1, 2);
+		helper.assertTrue(MobOvvar.killer(zombie, level.damageSources().mobAttack(wolf)) == player, "a tamed wolf's kill credits the player");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void noMobDropsNoPatches(GameTestHelper helper) {
+		withMobOvvar(helper, new MobOvvarConfig(true, 0.05f, 1f), () -> {
+			var level = helper.getLevel();
+			var rules = level.getServer().getGameRules();
+			boolean before = rules.get(GameRules.MOB_DROPS);
+			rules.set(GameRules.MOB_DROPS, false, level.getServer());
+			try {
+				Zombie zombie = patchedZombie(helper);
+				zombie.hurtServer(level, level.damageSources().playerAttack(helper.makeMockServerPlayerInLevel()), 1000f);
+				for (ItemStack item : itemsAround(helper)) {
+					if (BuiltInRegistries.ITEM.getKey(item.getItem()).getPath().startsWith("patch_")) helper.fail("a patch dropped with mob drops off: " + item);
+				}
+			} finally {
+				rules.set(GameRules.MOB_DROPS, before, level.getServer());
+			}
 		});
 	}
 }

@@ -1,16 +1,18 @@
 package se.metacraft.ovvar.content;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Unit;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.damagesource.DamageSource;
+
 import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
@@ -115,7 +117,12 @@ public final class MobOvvar {
 		mob.setDropChance(item.chapter.slot, 0f);
 	}
 
-	/** How likely each worn patch is to drop. Magpie (part 5) raises this for a killer whose ovve has it. */
+	/**
+	 * How likely each worn patch is to drop. Magpie (part 5) raises this for a killer whose ovve has it.
+	 *
+	 * @param killer the player credited with the kill (see {@link #killer}), so a tamed wolf's or a
+	 *               delayed kill still reaches the player; may be null
+	 */
 	public static float patchDropChance(MobOvvarConfig config, @Nullable Entity killer) {
 		return config.patchDropChance();
 	}
@@ -129,10 +136,16 @@ public final class MobOvvar {
 		return drops;
 	}
 
+	/** The player credited with this kill: the one the mob remembers hitting, else whoever dealt the damage. */
+	public static @Nullable Entity killer(Mob mob, DamageSource source) {
+		Player player = mob.getLastHurtByPlayer();
+		return player != null ? player : source.getEntity();
+	}
+
 	/** A player's kill: the legs and chest garments each drop the patches they wore, by chance. The garments never drop. */
 	public static void onDeath(Mob mob, ServerLevel level, DamageSource source, boolean killedByPlayer) {
 		if (!killedByPlayer) return;
-		float chance = patchDropChance(OvvarConfig.get().mobOvvar(), source.getEntity());
+		float chance = patchDropChance(OvvarConfig.get().mobOvvar(), killer(mob, source));
 		for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.LEGS, EquipmentSlot.CHEST}) {
 			ItemStack garment = mob.getItemBySlot(slot);
 			if (!is(garment)) continue;
