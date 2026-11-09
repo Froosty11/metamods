@@ -30,7 +30,14 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.functions.EnchantRandomlyFunction;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.EntityTypes;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.Placement;
+import se.metacraft.ovvar.content.Spot;
+import se.metacraft.ovvar.content.SpotPlacements;
+import se.metacraft.ovvar.content.enchantment.PatchworkProtection;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.enchantment.EnchantmentsConfig;
@@ -45,6 +52,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static se.metacraft.ovvar.content.enchantment.OvveEnchantments.*;
 
@@ -262,5 +270,36 @@ public final class EnchantmentTests {
 		menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(EnchantmentHelper.createBook(new EnchantmentInstance(onBook, 1)));
 		menu.createResult();
 		return menu.getSlot(AnvilMenu.RESULT_SLOT).getItem();
+	}
+
+	@GameTest
+	public void patchworkScalesWithPatches(GameTestHelper helper) {
+		EnchantmentsConfig.Patchwork cfg = EnchantmentsConfig.Patchwork.DEFAULT;
+		float[][] cases = {{0, 1, 0f}, {4, 1, 1.0f}, {8, 1, 2.0f}, {16, 1, 4.0f}, {40, 1, 4.0f}, {16, 0, 0f}};
+		for (float[] c : cases) {
+			helper.assertValueEqual(PatchworkProtection.protection((int) c[0], (int) c[1], cfg), c[2], "protection(" + (int) c[0] + ", " + (int) c[1] + ")");
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void patchworkProtectsTheWearer(GameTestHelper helper) {
+		Holder<Enchantment> patchwork = holder(helper, PATCHWORK_PROTECTION);
+		var itk = Patches.get("itk");
+		List<Placement> placements = Stream.of(Spot.FRONT_TOP_LEFT, Spot.FRONT_TOP_RIGHT, Spot.FRONT_LOW_LEFT, Spot.FRONT_LOW_RIGHT,
+				Spot.SLEEVE_OUT_TOP_R, Spot.SLEEVE_OUT_TOP_L, Spot.LEG_OUT_TOP_R, Spot.LEG_OUT_TOP_L).map(s -> new Placement(s, itk)).toList();
+		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(2, 1, 2));
+		ItemStack plain = new ItemStack(ModContent.ovve(Chapter.DATA));
+		Looks.setSewn(plain, SpotPlacements.fromList(placements).getOrThrow());
+		ItemStack enchanted = plain.copy();
+		enchanted.enchant(patchwork, 1);
+		var level = helper.getLevel();
+		OvveItem.wear(stand, enchanted);
+		float got = EnchantmentHelper.getDamageProtection(level, stand, level.damageSources().generic());
+		helper.assertTrue(Math.abs(got - 2.0f) < 1e-4f, "protection with 8 patches was " + got);
+		helper.assertValueEqual(EnchantmentHelper.getDamageProtection(level, stand, level.damageSources().fellOutOfWorld()), 0f, "protection against the void");
+		OvveItem.wear(stand, plain);
+		helper.assertValueEqual(EnchantmentHelper.getDamageProtection(level, stand, level.damageSources().generic()), 0f, "protection without the enchantment");
+		helper.succeed();
 	}
 }
