@@ -8,6 +8,7 @@
 		"EnchantRandomlyFunctionMixin",
 		"EnchantmentHelperMixin",
 		"ForeignOvveMixin",
+		"KeepsakeDeathMixin",
 		"ResourcePackResponseMixin"
 	],
 	"injectors": {

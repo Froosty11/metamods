@@ -35,6 +35,7 @@ import net.minecraft.world.entity.EntityTypes;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.PatchLoot;
+import se.metacraft.ovvar.content.enchantment.Keepsake;
 import se.metacraft.ovvar.content.enchantment.Magpie;
 import se.metacraft.ovvar.content.item.PatchItem;
 import net.minecraft.world.entity.Entity;
@@ -394,6 +395,111 @@ public final class EnchantmentTests {
 		helper.assertFalse(Magpie.mobOvvarDrop(roll, base, null, cfg), "no killer got a drop");
 		near(helper, Magpie.patchDropBonus(standIn(helper, Chapter.DATA, 2)), 0.20f, "patchDropBonus(Magpie II)");
 		near(helper, Magpie.patchDropBonus(null), 0f, "patchDropBonus(null)");
+		helper.succeed();
+	}
+
+	// ---- Keepsake
+
+	private static ItemStack keepsakeOvve(GameTestHelper helper, int dirt) {
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		ovve.enchant(holder(helper, KEEPSAKE), 1);
+		if (dirt > 0) {
+			var bundle = ovve.getOrDefault(DataComponents.BUNDLE_CONTENTS, net.minecraft.world.item.component.BundleContents.EMPTY).asMutable();
+			bundle.tryInsert(new ItemStack(Items.DIRT, dirt));
+			ovve.set(DataComponents.BUNDLE_CONTENTS, bundle.toImmutable());
+		}
+		return ovve;
+	}
+
+	private static int dirtIn(ItemStack ovve) {
+		int n = 0;
+		var contents = ovve.get(DataComponents.BUNDLE_CONTENTS);
+		if (contents != null) for (var s : contents.items()) n += s.count();
+		return n;
+	}
+
+	private static int legsIndex() {
+		for (var e : net.minecraft.world.entity.player.Inventory.EQUIPMENT_SLOT_MAPPING.int2ObjectEntrySet()) {
+			if (e.getValue() == EquipmentSlot.LEGS) return e.getIntKey();
+		}
+		throw new IllegalStateException("no legs slot");
+	}
+
+	/** The item entities around {@code at} that were not there before (tests share the world, and it may hold litter from earlier runs). */
+	private static List<net.minecraft.world.entity.item.ItemEntity> itemsNear(GameTestHelper helper, Entity at, double radius, Set<java.util.UUID> before) {
+		return helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, at.getBoundingBox().inflate(radius))
+				.stream().filter(e -> !before.contains(e.getUUID())).toList();
+	}
+
+	private static Set<java.util.UUID> itemIds(GameTestHelper helper, Entity at, double radius) {
+		Set<java.util.UUID> ids = new HashSet<>();
+		for (var e : helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, at.getBoundingBox().inflate(radius))) ids.add(e.getUUID());
+		return ids;
+	}
+
+	@GameTest
+	public void keepsakeOvveSurvivesDeath(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		ItemStack plain = new ItemStack(ModContent.ovve(Chapter.IT));
+		player.getInventory().setItem(5, plain);
+		player.getInventory().setItem(6, new ItemStack(Items.DIRT, 10));
+		Set<java.util.UUID> before = itemIds(helper, player, 8);
+		player.die(helper.getLevel().damageSources().generic());
+
+		List<Keepsake.Kept> kept = player.getAttachedOrElse(Keepsake.KEPT, List.of());
+		helper.assertValueEqual(kept.size(), 1, "kept entries");
+		helper.assertValueEqual(kept.getFirst().slot(), legsIndex(), "kept slot");
+		helper.assertValueEqual(dirtIn(kept.getFirst().stack()), 3, "dirt in the kept ovve");
+		boolean itOvve = false, dirt = false, data = false;
+		for (var item : itemsNear(helper, player, 8, before)) {
+			ItemStack s = item.getItem();
+			if (s.is(ModContent.ovve(Chapter.IT))) itOvve = true;
+			if (s.is(Items.DIRT) && s.getCount() == 10) dirt = true;
+			if (s.is(ModContent.ovve(Chapter.DATA))) data = true;
+		}
+		helper.assertTrue(itOvve, "the plain IT ovve dropped");
+		helper.assertTrue(dirt, "the 10 dirt dropped");
+		helper.assertFalse(data, "the Keepsake ovve dropped");
+
+		ServerPlayer fresh = helper.makeMockServerPlayerInLevel();
+		Keepsake.restore(player, fresh);
+		ItemStack legs = fresh.getItemBySlot(EquipmentSlot.LEGS);
+		helper.assertTrue(legs.is(ModContent.ovve(Chapter.DATA)), "the ovve is back in the legs slot: " + legs);
+		helper.assertValueEqual(dirtIn(legs), 3, "dirt in the restored ovve");
+		helper.assertFalse(player.hasAttached(Keepsake.KEPT), "the dead player still has KEPT");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void keepsakeRestoreNeverDeletes(GameTestHelper helper) {
+		ServerPlayer from = helper.makeMockServerPlayerInLevel();
+		ItemStack a = keepsakeOvve(helper, 1), b = keepsakeOvve(helper, 2);
+		from.setAttached(Keepsake.KEPT, List.of(new Keepsake.Kept(legsIndex(), a), new Keepsake.Kept(5, b)));
+		ServerPlayer fresh = helper.makeMockServerPlayerInLevel();
+		fresh.setGameMode(GameType.SURVIVAL);
+		ItemStack c = new ItemStack(ModContent.ovve(Chapter.IT));
+		fresh.setItemSlot(EquipmentSlot.LEGS, c);
+		for (int i = 0; i < 36; i++) if (i != 5) fresh.getInventory().setItem(i, new ItemStack(Items.STONE));
+		Set<java.util.UUID> before = itemIds(helper, fresh, 2);
+		Keepsake.restore(from, fresh);
+
+		helper.assertValueEqual(dirtIn(fresh.getInventory().getItem(5)), 2, "slot 5 holds ovve B");
+		helper.assertTrue(fresh.getItemBySlot(EquipmentSlot.LEGS).is(ModContent.ovve(Chapter.IT)), "the worn ovve C stayed");
+		int ovvar = 0, droppedA = 0;
+		for (int i = 0; i < fresh.getInventory().getContainerSize(); i++) {
+			if (fresh.getInventory().getItem(i).getItem() instanceof OvveItem) ovvar++;
+		}
+		for (var item : itemsNear(helper, fresh, 2, before)) {
+			if (item.getItem().getItem() instanceof OvveItem) {
+				ovvar++;
+				if (dirtIn(item.getItem()) == 1) droppedA++;
+			}
+		}
+		helper.assertValueEqual(droppedA, 1, "ovve A lying near the player");
+		helper.assertValueEqual(ovvar, 3, "ovvar across inventory and ground");
+		helper.assertFalse(from.hasAttached(Keepsake.KEPT), "KEPT removed from the old player");
 		helper.succeed();
 	}
 }
