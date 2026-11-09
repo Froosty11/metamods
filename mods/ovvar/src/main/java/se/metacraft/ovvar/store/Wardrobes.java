@@ -142,7 +142,7 @@ public final class Wardrobes {
 				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().values());
 			} catch (TimeoutException e) {
 				all.cancel(true);   // only interrupts: a JDBC read that ignores interrupts can still hold the single store thread (the driver's query timeout is the real bound)
-				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; cancelled, combinations are built as they are sewn", timeout.toSeconds());
+				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; gave up waiting and interrupted the read, combinations are built as they are sewn", timeout.toSeconds());
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();

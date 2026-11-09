@@ -2920,7 +2920,7 @@ public final class WardrobeTests {
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
 					try {
-						Combos.forgetForTest(Piece.BOTTOM, comboA);   // nothing else sews these cells, but the count below must prove something
+						Combos.forgetForTest(Piece.BOTTOM, comboA);   // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
 						Combos.forgetForTest(Piece.TOP, comboB);
 						Wardrobes.use(server, new FileBackend(dir));
 						List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
@@ -2943,7 +2943,8 @@ public final class WardrobeTests {
 	@GameTest(maxTicks = 1200)
 	public void prebuildNeverThrows(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
-		Combos.Combo fixed = Placement.combo(List.of(Placement.parse("leg_back_mid_l.batata"), Placement.parse("leg_back_mid_r.batato")));
+		// leg_out_mid_l.batata + leg_out_mid_r.batato: only this test sews these cells
+		Combos.Combo fixed = Placement.combo(List.of(Placement.parse("leg_out_mid_l.batata"), Placement.parse("leg_out_mid_r.batato")));
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
@@ -2978,9 +2979,23 @@ public final class WardrobeTests {
 	/** A combination is the same whatever order its patches were sewn in: combos.json stores them sorted, looks ask in sewing order. */
 	@GameTest(maxTicks = 1200)
 	public void combinationIgnoresSewingOrder(GameTestHelper helper) {
-		Placement seat = Placement.parse("leg_back_mid_l.batata"), leg = Placement.parse("leg_back_mid_r.batato");
+		MinecraftServer server = helper.getLevel().getServer();
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					try {
+						checkSewingOrder(helper);
+					} finally {
+						release(server);
+					}
+				}))
+				.thenSucceed();
+	}
+
+	private static void checkSewingOrder(GameTestHelper helper) {
+		Placement seat = Placement.parse("leg_front_mid_l.cerise"), leg = Placement.parse("leg_front_mid_r.batatu");
 		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
-		Combos.forgetForTest(Piece.BOTTOM, stored.combo());   // leg_back_mid_l.batata + leg_back_mid_r.batato: no other test sews these cells
+		Combos.forgetForTest(Piece.BOTTOM, stored.combo());   // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
 		try {
 			for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
 				Combos.Combo live = Placement.combo(order);
@@ -2997,7 +3012,6 @@ public final class WardrobeTests {
 		} finally {
 			Combos.forgetForTest(Piece.BOTTOM, stored.combo());
 		}
-		helper.succeed();
 	}
 
 	/** A generated item texture (a patch's inventory icon), off the runtime classpath. */
