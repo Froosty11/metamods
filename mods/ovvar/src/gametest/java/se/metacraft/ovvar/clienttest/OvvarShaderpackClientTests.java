@@ -34,6 +34,14 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 	private static final int TOLERANCE = 40;
 	private static final double CHECKER_SHARE = 0.30;
 	private static final double GARMENT_SHARE = 0.50;
+	/**
+	 * The Data ovve cloth's dominant texel, rgb(189,55,84): hue about 345 degrees, apart from skin (20-35) and
+	 * from the checker's magenta (300). A bare skin leg, or a leg showing the checker, has too few such pixels.
+	 */
+	private static final float DATA_CLOTH_HUE = java.awt.Color.RGBtoHSB(189, 55, 84, null)[0];
+	private static final float HUE_RANGE = 25f / 360f;
+	private static final float MIN_SATURATION = 0.3f;
+	private static final double CLOTH_SHARE = 0.30;
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
@@ -108,6 +116,20 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 				System.out.println("[ovvar-clienttest] iris " + expect + ": " + garment + "/" + total + " crop pixels differ from the background");
 				if (garment < total * GARMENT_SHARE) {
 					throw new AssertionError("the right-leg crop is not on the garment: only " + garment + "/" + total + " pixels differ from the background");
+				}
+				int cloth = 0;
+				float[] hsb = new float[3];
+				for (int y = y0; y < y1; y++) {
+					for (int x = x0; x < x1; x++) {
+						int p = img.getRGB(x, y);
+						java.awt.Color.RGBtoHSB((p >> 16) & 255, (p >> 8) & 255, p & 255, hsb);
+						float dh = Math.abs(hsb[0] - DATA_CLOTH_HUE);
+						if (hsb[1] >= MIN_SATURATION && Math.min(dh, 1f - dh) <= HUE_RANGE) cloth++;
+					}
+				}
+				System.out.println("[ovvar-clienttest] iris " + expect + ": " + cloth + "/" + total + " crop pixels are Data cloth coloured");
+				if (expect.equals("art") && cloth < total * CLOTH_SHARE) {
+					throw new AssertionError("the right-leg crop does not show the Data ovve's cloth: only " + cloth + "/" + total + " cerise pixels (a bare leg or an ovve that never drew)");
 				}
 				double share = near / (double) total;
 				System.out.println("[ovvar-clienttest] iris " + expect + ": " + near + "/" + total + " right-leg pixels near #FF00FF (" + share + ")");
