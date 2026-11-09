@@ -3,7 +3,6 @@ package se.metacraft.ovvar.content.enchantment;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
@@ -22,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import se.metacraft.bundles.util.BundleHelper;
 import se.metacraft.ovvar.OvvarConfig;
 import se.metacraft.ovvar.content.item.OvveItem;
+import se.metacraft.ovvar.mixin.KeyringDiggingAccessor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +34,8 @@ import java.util.UUID;
  * Keyring: when a survival player starts breaking a block, the best tool in the worn garment's pockets
  * comes to the selected hotbar slot, and the hand's item goes into the pocket the tool came from. The
  * tool goes back when no break action has come for {@code swap_back_ticks}, right after a break that
- * leaves it below {@link #DURABILITY_FLOOR}, and on disconnect.
+ * leaves it below {@link #DURABILITY_FLOOR}, and on leaving. A held mouse button sends nothing between
+ * START and STOP, so a player the server still sees digging counts as acting ({@link #digging}).
  *
  * Items only ever move between the slot and the pockets; nothing is created or deleted. Whenever the
  * slot or the pockets no longer look the way the swap left them (the tool moved, broke or was dropped,
@@ -70,7 +71,7 @@ public final class Keyring {
 			if (player instanceof ServerPlayer serverPlayer) afterBreak(serverPlayer);
 		});
 		ServerTickEvents.END_SERVER_TICK.register(Keyring::tick);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> swapBack(handler.player));
+		// Leaving: KeyringLeaveMixin, on PlayerList.remove before the save (Fabric's DISCONNECT can fire on the netty thread).
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			if (entity instanceof ServerPlayer player) SWAPS.remove(player.getUUID());
 		});
@@ -168,7 +169,11 @@ public final class Keyring {
 		tick(server, OvvarConfig.get().enchantments().keyring().swapBackTicks());
 	}
 
-	/** END_SERVER_TICK: the tool goes back after {@code swapBackTicks} with no break action; a dead or gone player's swap is forgotten. */
+	/**
+	 * END_SERVER_TICK: the tool goes back after {@code swapBackTicks} with no break action and no dig in progress,
+	 * and at once when the swap is no longer intact (it is then just forgotten); a dead or gone player's swap is
+	 * forgotten.
+	 */
 	public static void tick(MinecraftServer server, int swapBackTicks) {
 		if (SWAPS.isEmpty()) return;
 		long now = server.getTickCount();
@@ -178,11 +183,30 @@ public final class Keyring {
 			ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
 			if (player == null || player.isRemoved() || player.isDeadOrDying()) {
 				it.remove();
+			} else if (!intact(player, entry.getValue())) {
+				due.add(player);
+			} else if (digging(player)) {
+				entry.setValue(entry.getValue().touched(now));
 			} else if (now - entry.getValue().lastAction() >= swapBackTicks) {
 				due.add(player);
 			}
 		}
 		for (ServerPlayer player : due) swapBack(player);
+	}
+
+	/** Is the swap still as it was left: the tool in its slot, worn on a Keyring garment? Only then does a dig keep it going. */
+	private static boolean intact(ServerPlayer player, Swap swap) {
+		Inventory inventory = player.getInventory();
+		if (swap.inventorySlot() < 0 || swap.inventorySlot() >= inventory.getContainerSize()) return false;
+		ItemStack garment = OvveItem.worn(player);
+		return inventory.getItem(swap.inventorySlot()).is(swap.tool())
+				&& OvveEnchantments.level(garment, OvveEnchantments.KEYRING) > 0 && !EnderPockets.has(garment);
+	}
+
+	/** Is the server still breaking a block for this player (between START and STOP, or a delayed destroy)? */
+	public static boolean digging(ServerPlayer player) {
+		KeyringDiggingAccessor mode = (KeyringDiggingAccessor) player.gameMode;
+		return mode.isOvvarDestroyingBlock() || mode.isOvvarDelayedDestroy();
 	}
 
 	/**

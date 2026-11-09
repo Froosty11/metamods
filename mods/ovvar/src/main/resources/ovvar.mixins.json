@@ -11,6 +11,8 @@
 		"ForeignOvveMixin",
 		"KeepsakeDeathMixin",
 		"KeyringBreakActionMixin",
+		"KeyringDiggingAccessor",
+		"KeyringLeaveMixin",
 		"ResourcePackResponseMixin",
 		"SpilledDrinkMixin"
 	],
