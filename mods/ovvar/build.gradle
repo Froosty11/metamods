@@ -53,9 +53,10 @@ dependencies {
 	def danseJar = "Froosty11:danse:${project.danse_version}"
 	compileOnly danseJar
 	runtimeOnly danseJar
-	// Danse's one Polymer module ovvar does not already have. It bundles bil, DialogUtils, sgui,
-	// placeholder-api and map-canvas-api as nested jars, but depends on this one without including it.
-	runtimeOnly("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
+	// Punkphöz is a Blockbench model played by BIL, the way the traders' shopkeepers are (mods/traders).
+	implementation include("de.tomalbrc:blockbench-import-library:2.2.0+26.3-rc-3")
+	// BIL's and Danse's Polymer module ovvar does not otherwise have (Danse depends on it without including it).
+	implementation include("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
 	// The client gesture test starts a gesture through Danse's own controller rather than its
 	// command, so a failure inside Danse surfaces as a stack trace instead of a swallowed chat line.
 	gametestCompileOnly danseJar
@@ -212,6 +213,12 @@ if (project.hasProperty('ovvar.iris.expect')) {
 }
 
 processResources {
+	// Punkphöz's model is the traders' IT trader (mods/traders/src/main/resources/model/traders/it_trader.bbmodel),
+	// copied in at build time so the two never drift apart and mods/traders stays untouched.
+	from(project(':mods:traders').file('src/main/resources/model/traders/it_trader.bbmodel')) {
+		into 'model/ovvar'
+		rename { 'punkphoz.bbmodel' }
+	}
 	// The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
 	from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }
 	from('tools/shaderpatcher/README.txt') { into 'assets/ovvar/shaderpatcher' }
