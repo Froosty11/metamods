@@ -1,7 +1,7 @@
 package se.metacraft.ovvar.gametest;
 
+import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.OvvarConfig;
-import se.metacraft.ovvar.ServerConfig;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
@@ -84,7 +84,7 @@ public final class WardrobeTests {
 	private static final int MARKER_ROW_DATA = 3;
 
 	/** Held by whichever sequence test is using the server's wardrobe store right now. */
-	private static final AtomicBoolean BUSY = new AtomicBoolean();
+	static final AtomicBoolean BUSY = new AtomicBoolean();
 
 	static {
 		// The moment the server is up — before the first test spawns a mock player and well before
@@ -565,15 +565,22 @@ public final class WardrobeTests {
 	 */
 	@GameTest
 	public void configFileShowsEverySetting(GameTestHelper helper) {
-		OvvarConfig config = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT);
+		OvvarConfig config = new OvvarConfig(true, 6, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, se.metacraft.ovvar.ShadersConfig.DEFAULT, MobOvvarConfig.DEFAULT);
 		JsonObject root = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config)
 				.getOrThrow(message -> new IllegalStateException("config does not encode: " + message)).getAsJsonObject();
 		assertEveryKey(helper, root, OvvarConfig.class, "root");
-		assertEveryKey(helper, root.getAsJsonObject("server"), ServerConfig.class, "server");
 		JsonObject designs = root.getAsJsonObject("designs");
 		assertEveryKey(helper, designs, DesignStoreConfig.class, "designs");
 		assertEveryKey(helper, designs == null ? null : designs.getAsJsonObject("jdbc"), DesignStoreConfig.Jdbc.class, "designs.jdbc");
 		assertEveryKey(helper, root.getAsJsonObject("stash"), StashConfig.class, "stash");
+		assertEveryKey(helper, root.getAsJsonObject("shaders"), se.metacraft.ovvar.ShadersConfig.class, "shaders");
+		JsonObject mob = root.getAsJsonObject("mob_ovvar");
+		assertEveryKey(helper, mob, MobOvvarConfig.class, "mob_ovvar");
+		if (mob != null) {
+			for (String key : List.of("enabled", "chance", "patch_drop_chance")) {
+				if (!mob.has(key)) helper.fail("mob_ovvar has no \"" + key + "\" key: " + mob.keySet());
+			}
+		}
 		try {
 			java.nio.file.Path file = java.nio.file.Files.createTempFile("ovvar-config", ".json");
 			se.metacraft.config.util.helper.JanksonHelper.save(file, OvvarConfig.CODEC.codec(), config);
@@ -584,6 +591,18 @@ public final class WardrobeTests {
 		} catch (java.io.IOException e) {
 			helper.fail("couldn't write the config file: " + e);
 		}
+		helper.succeed();
+	}
+
+	/** A config/ovvar.json from before mob ovvar has no mob_ovvar block: it loads, with the defaults. */
+	@GameTest
+	public void configWithoutMobOvvarLoadsDefaults(GameTestHelper helper) {
+		JsonObject old = new JsonObject();
+		old.addProperty("sewing_minigame", false);
+		old.addProperty("stitches", 6);
+		OvvarConfig loaded = OvvarConfig.CODEC.codec().parse(JsonOps.INSTANCE, old)
+				.getOrThrow(message -> new IllegalStateException("an old config does not load: " + message));
+		helper.assertValueEqual(loaded.mobOvvar(), MobOvvarConfig.DEFAULT, "mob_ovvar of a config without the block");
 		helper.succeed();
 	}
 
@@ -807,13 +826,13 @@ public final class WardrobeTests {
 						StashConfig withSessions = new StashConfig(sessions.minigameServer(), sessions.sewGameModes(), sessions.ingameObjective(),
 								sessions.bankOnPickup(), sessions.bankInCreative(), sessions.unpickToStash(), sessions.withdraw(), true,
 								sessions.stashClick(), sessions.anyStand(), sessions.sessionReach(), sessions.sessionSeconds(), sessions.explainInChat());
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), withSessions));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(), withSessions, config.shaders(), config.mobOvvar()));
 						StashSession.start(player, NYCKELN_PATCH, why -> helper.fail("could not start a session: " + why));
 						WardrobeGui withSession = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
 						if (isEmpty(withSession, 49)) helper.fail("finish-sewing button missing with a session running");
 						StashSession.end(player, null);
 					} finally {
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), sessions));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(), sessions, config.shaders(), config.mobOvvar()));
 					}
 					release(server);
 				}))
@@ -837,10 +856,10 @@ public final class WardrobeTests {
 				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
 				.thenExecute(() -> guarded(server, () -> {
 					try {
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(),
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(),
 								new StashConfig(true, stash.sewGameModes(), stash.ingameObjective(), stash.bankOnPickup(), stash.bankInCreative(),
 										stash.unpickToStash(), stash.withdraw(), stash.sessions(), stash.stashClick(), stash.anyStand(),
-										stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat())));
+										stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat()), config.shaders(), config.mobOvvar()));
 						WardrobeGui gui = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
 						// Not gone, and not a pane of grey glass either: the action's own icon, dimmed
 						// and slashed, named "(not here)" and carrying the reason.
@@ -872,7 +891,7 @@ public final class WardrobeTests {
 								.anyMatch(line -> line.getString().toLowerCase(java.util.Locale.ROOT).contains("look"));
 						if (!sawLookOnly) helper.fail("help book does not explain the server is look-only");
 					} finally {
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(), stash, config.shaders(), config.mobOvvar()));
 					}
 					release(server);
 				}))
@@ -2516,15 +2535,15 @@ public final class WardrobeTests {
 			bundle.tryInsert(new ItemStack(net.minecraft.world.item.Items.DIAMOND, 64));
 			ovve.set(net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS, bundle.toImmutable());
 
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(),
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(),
 					new StashConfig(true, stash.sewGameModes(), stash.ingameObjective(), stash.bankOnPickup(), stash.bankInCreative(),
 							stash.unpickToStash(), stash.withdraw(), stash.sessions(), stash.stashClick(), stash.anyStand(),
-							stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat())));
+							stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat()), config.shaders(), config.mobOvvar()));
 			String refusal = WardrobeMannequin.show(player, ovve);
 			if (refusal == null) helper.fail("no refusal on a minigame server");
 			if (WardrobeMannequin.mannequinOf(player) != null) helper.fail("a mannequin was tracked despite the refusal");
 
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(), stash, config.shaders(), config.mobOvvar()));
 			String ok = WardrobeMannequin.show(player, ovve);
 			if (ok != null) helper.fail("refused on a survival server: " + ok);
 			var m = WardrobeMannequin.mannequinEntityOf(player);
@@ -2541,7 +2560,7 @@ public final class WardrobeTests {
 			if (WardrobeMannequin.mannequinOf(player).equals(beforeSecond)) helper.fail("the second click reused the same entity instead of replacing it");
 			if (!m.isRemoved()) helper.fail("the first mannequin was not discarded by the second click");
 		} finally {
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.designs(), stash, config.shaders(), config.mobOvvar()));
 		}
 		helper.succeed();
 	}
@@ -2977,31 +2996,35 @@ public final class WardrobeTests {
 		MinecraftServer server = helper.getLevel().getServer();
 		Path dir = Files.createTempDirectory("ovvar-wardrobes");
 		FileBackend backend = new FileBackend(dir);
-		SpotPlacements a = SpotPlacements.fromList(List.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it"))).getOrThrow();
-		SpotPlacements b = SpotPlacements.fromList(List.of(Placement.parse("front_top_left.itk"), Placement.parse("back_big.kommn"),
-				Placement.parse("sleeve_front_top_l.data"), Placement.parse("sleeve_out_top_r.metacrew"))).getOrThrow();
+		SpotPlacements a = SpotPlacements.fromList(List.of(Placement.parse("leg_back_mid_l.batata"), Placement.parse("leg_back_mid_r.batato"))).getOrThrow();
+		SpotPlacements b = SpotPlacements.fromList(List.of(Placement.parse("sleeve_back_mid_r.batatu"), Placement.parse("sleeve_back_mid_l.cerise"))).getOrThrow();
 		Files.writeString(dir.resolve(UUID.randomUUID() + ".json"), "{ not json");   // one corrupt file must not cost the rest
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.DATA, a).withVersion(1), 0);
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.IT, b).withVersion(1), 0);
 		Combos.Combo comboA = comboOf(a, Piece.BOTTOM), comboB = comboOf(b, Piece.TOP);
-		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);   // whatever an earlier test requested, so the count below proves something
-		Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
-					Wardrobes.use(server, new FileBackend(dir));
-					List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
-					if (designs.size() != 2) helper.fail("stored designs: " + designs.size());
-					int added = Combos.prebuild(designs);
-					if (added < 2) helper.fail("pre-built " + added + ", expected at least 2");
-					if (!Combos.isKnown(Chapter.DATA, Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
-					if (!Combos.isKnown(Chapter.IT, Piece.TOP, comboB)) helper.fail("B's combination is not known");
-					boolean otherChapter = Combos.isKnown(Chapter.IT, Piece.BOTTOM, comboA);
-					int again = Combos.prebuild(designs);
-					// A frack has no bottom: a design's bottom half on one is not pre-built.
-					int frack = Combos.prebuild(List.of(Map.entry(Chapter.MEDIA, a)));
-					Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);
-					Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
+					boolean otherChapter;
+					int again, frack;
+					try {
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);   // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
+						Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
+						Wardrobes.use(server, new FileBackend(dir));
+						List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+						if (designs.size() != 2) helper.fail("stored designs: " + designs.size());
+						int added = Combos.prebuild(designs);
+						if (added != 2) helper.fail("pre-built " + added + ", expected 2");
+						if (!Combos.isKnown(Chapter.DATA, Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
+						if (!Combos.isKnown(Chapter.IT, Piece.TOP, comboB)) helper.fail("B's combination is not known");
+						otherChapter = Combos.isKnown(Chapter.IT, Piece.BOTTOM, comboA);
+						again = Combos.prebuild(designs);
+						// A frack has no bottom: a design's bottom half on one is not pre-built.
+						frack = Combos.prebuild(List.of(Map.entry(Chapter.MEDIA, a)));
+					} finally {
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);
+						Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
+					}
 					release(server);
 					if (again != 0) helper.fail("a second pre-build added " + again);
 					if (otherChapter) helper.fail("A's combination is known for a chapter it was not stored on");
@@ -3013,11 +3036,12 @@ public final class WardrobeTests {
 	@GameTest(maxTicks = 1200)
 	public void prebuildNeverThrows(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
-		Combos.Combo fixed = Placement.combo(List.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it")));
-		boolean before = Combos.isKnown(Chapter.DATA, Piece.BOTTOM, fixed);
+		// leg_out_mid_l.batata + leg_out_mid_r.batato: only this test sews these cells
+		Combos.Combo fixed = Placement.combo(List.of(Placement.parse("leg_out_mid_l.batata"), Placement.parse("leg_out_mid_r.batato")));
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
+					Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed);   // known stays false: nothing here may add it
 					WardrobeBackend failing = new WardrobeBackend() {
 						@Override public Optional<Wardrobe> load(UUID owner) { return Optional.empty(); }
 						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
@@ -3029,13 +3053,17 @@ public final class WardrobeTests {
 						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
 						@Override public String describe() { return "plain"; }
 					};
-					for (WardrobeBackend backend : List.of(failing, plain)) {
-						Wardrobes.use(server, backend);
-						List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
-						if (!designs.isEmpty()) helper.fail(backend.describe() + " listed " + designs.size());
-						if (Combos.prebuild(designs) != 0) helper.fail("pre-built from nothing");
+					try {
+						for (WardrobeBackend backend : List.of(failing, plain)) {
+							Wardrobes.use(server, backend);
+							List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+							if (!designs.isEmpty()) helper.fail(backend.describe() + " listed " + designs.size());
+							if (Combos.prebuild(designs) != 0) helper.fail("pre-built from nothing");
+						}
+						if (Combos.isKnown(Chapter.DATA, Piece.BOTTOM, fixed)) helper.fail("the known set changed");
+					} finally {
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed);
 					}
-					if (Combos.isKnown(Chapter.DATA, Piece.BOTTOM, fixed) != before) helper.fail("the known set changed");
 					release(server);
 				}))
 				.thenSucceed();
@@ -3044,22 +3072,39 @@ public final class WardrobeTests {
 	/** A combination is the same whatever order its patches were sewn in: combos.json stores them sorted, looks ask in sewing order. */
 	@GameTest(maxTicks = 1200)
 	public void combinationIgnoresSewingOrder(GameTestHelper helper) {
-		Placement seat = Placement.parse("seat.rivals"), leg = Placement.parse("leg_front_top_l.it");
+		MinecraftServer server = helper.getLevel().getServer();
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					try {
+						checkSewingOrder(helper);
+					} finally {
+						release(server);
+					}
+				}))
+				.thenSucceed();
+	}
+
+	private static void checkSewingOrder(GameTestHelper helper) {
+		Placement seat = Placement.parse("leg_front_mid_l.cerise"), leg = Placement.parse("leg_front_mid_r.batatu");
 		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
-		for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
-			Combos.Combo live = Placement.combo(order);
-			if (!stored.combo().equals(live) || stored.combo().hashCode() != live.hashCode()) helper.fail("not equal in order " + order);
-			if (!stored.equals(new Combos.KeyedCombo(Chapter.DATA, Piece.BOTTOM, live))) helper.fail("keyed combos differ in order " + order);
-			if (!stored.combo().key().equals(live.key())) helper.fail("keys differ in order " + order);
+		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());   // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
+		try {
+			for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
+				Combos.Combo live = Placement.combo(order);
+				if (!stored.combo().equals(live) || stored.combo().hashCode() != live.hashCode()) helper.fail("not equal in order " + order);
+				if (!stored.equals(new Combos.KeyedCombo(Chapter.DATA, Piece.BOTTOM, live))) helper.fail("keyed combos differ in order " + order);
+				if (!stored.combo().key().equals(live.key())) helper.fail("keys differ in order " + order);
+			}
+			// An older combos.json line with its placements in any order still loads, to the same combination.
+			Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:" + leg.key() + "-" + seat.key()).getOrThrow();
+			if (!reversed.equals(stored)) helper.fail("an unsorted stored key loads to a different combination");
+			Combos.prebuild(List.of(Map.entry(Chapter.DATA, SpotPlacements.fromList(List.of(leg, seat)).getOrThrow())));
+			boolean both = Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(seat, leg))) && Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(leg, seat)));
+			if (!both) helper.fail("a pre-built combination is not known in both orders");
+		} finally {
+			Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());
 		}
-		// An older combos.json line with its placements in any order still loads, to the same combination.
-		Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:seat.rivals-leg_front_top_l.it").getOrThrow();
-		if (!reversed.equals(stored)) helper.fail("an unsorted stored key loads to a different combination");
-		Combos.prebuild(List.of(Map.entry(Chapter.DATA, SpotPlacements.fromList(List.of(leg, seat)).getOrThrow())));
-		boolean both = Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(seat, leg))) && Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(leg, seat)));
-		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());
-		if (!both) helper.fail("a pre-built combination is not known in both orders");
-		helper.succeed();
 	}
 
 	/** A generated item texture (a patch's inventory icon), off the runtime classpath. */
@@ -3073,7 +3118,7 @@ public final class WardrobeTests {
 		}
 	}
 
-	private static void assertThat(boolean condition, String message) {
+	static void assertThat(boolean condition, String message) {
 		if (!condition) throw new GameTestAssertException(Component.literal(message), 0);
 	}
 }

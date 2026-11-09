@@ -28,6 +28,7 @@ import java.util.Set;
 public final class PatchLoot {
 	private PatchLoot() {}
 
+	// Moving a patch out of LOOT later makes it vanish from persistent mobs garments: they never request combos.
 	/** The patches structure chests hold, and the instant ones (see the class comment). */
 	public static final Set<String> LOOT = Set.of(
 			"spiken", "slaggan", "ticket_to_my_heart", "maid", "pung",

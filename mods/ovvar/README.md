@@ -116,6 +116,25 @@ them. It is added to the tables as they load, not shipped as copies of them, so 
 another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
 `LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
 
+**Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
+chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
+`Mob.populateDefaultEquipmentSlots` (`MobOvvarMixin`, wrapping its `setItemSlot`) and
+`Piglin.maybeWearArmor` (`PiglinOvvarMixin`), because a piglin rolls its own gold. Only a slot vanilla
+was about to fill is touched, so each spawn roll is the chance that vanilla's piece becomes a garment
+(`MobOvvar.spawnPiece`); a mob that already wears one keeps it. The chapter is random among those that
+are worn in that slot (fracks are `Chapter.values()` with `slot == CHEST`), an ovve's top is up at
+random where the chapter can roll, and it carries one to three patches from `PatchLoot.LOOT` only,
+all of them instant looks, on cells that show (a frack's top, an ovve's top only when it is up and no
+chest piece covers it). It is unowned, marked `ovvar:mob_ovve`, and pushes no pack and builds no combo.
+The garment can never reach a player: its slot's drop chance is 0, `equipItemIfPossible` is cancelled
+for a slot that holds one (so a swap for better armour can't put it on the ground), `ALLOW_LOAD`
+rejects any item entity holding a marked stack, and the player tick deletes a marked garment found in
+a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`, the player being
+`MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
+patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
+`config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` is where Magpie (part 5) will raise the drop chance.
+
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
@@ -473,16 +492,11 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-`config/ovvar.json` → `server` (what this server calls itself):
+`config/ovvar.json` → `shaders` (players with a shaderpack):
 
-    name                     this server's name (default "METAcraft"; no longer used for the MOTD)
-    shader_patcher_url       the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders")
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default)
 
-ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
-the file: the defaults are the ones documented here, and a key only needs
-writing to change it.
-
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
+Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
 stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
 you would rather read the help there than here. Every block is always written, even one that is
@@ -496,13 +510,14 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar give [player] <chapter> [patches]   their stored design; with patches (all / cell.patch / ids) those replace it
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
+    /ovvar mob [ovve|frack]                    a persistent zombie at you in a mob ovvar ovve (default) or frack, to look at or kill
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: server.shader_patcher_url)
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -522,8 +537,8 @@ The file backend is fine for one server or a shared mount; a network of servers 
 `./gradlew :mods:ovvar:runServer` runs a dev server (set `online-mode=false` and turn on Polymer's
 pack host to join it with a plain vanilla client). Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. The
-game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
-with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
+game tests: `./gradlew :mods:ovvar:runGameTest` (its own world under `build/run/gameTest`, so a dev
+server holding `./run` doesn't get in the way) — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
 sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; that an
 empty-handed click on a stand's chest takes the whole ovve off
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
@@ -835,6 +850,11 @@ that shows the older state to them until they reload or rejoin (a joining player
 current pack). Every combination is still built in the background within 90 s so the pack is
 complete for whoever joins next.
 
+At startup every stored wardrobe design has its combinations added to the build (capped at 20 s;
+on a timeout or a store that cannot be read it logs a warning and falls back to building them as
+they are sewn). On a shared store, a design sewn on another server after this one started still
+triggers one push for its wearer, as for codes past the instant range.
+
 **This is the feature, not a gap in it.** It is tempting to push the new pack to everybody online
 the moment somebody's design outgrows the dye channels — the people looking at a wearer are the
 ones whose clients draw it, and until they reload they see only the instant part of it. It was
@@ -898,7 +918,7 @@ lets the base garment draw the left arm's top face from the mirror strip as well
 computed exactly once and every path reads that one bool, so no two of them can disagree about
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
 does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
-overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`server.shader_patcher_url`, default
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
 https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
 `OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at

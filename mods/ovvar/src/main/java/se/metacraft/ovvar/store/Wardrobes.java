@@ -2,6 +2,8 @@ package se.metacraft.ovvar.store;
 
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -11,8 +13,6 @@ import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.time.Duration;
-import se.metacraft.ovvar.content.Chapter;
-import se.metacraft.ovvar.content.SpotPlacements;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -142,8 +142,8 @@ public final class Wardrobes {
 			try {
 				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().entrySet());
 			} catch (TimeoutException e) {
-				all.cancel(true);   // a hung read must not hold the store thread against later joins
-				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; cancelled, combinations are built as they are sewn", timeout.toSeconds());
+				all.cancel(true);   // only interrupts: a JDBC read that ignores interrupts can still hold the single store thread (the driver's query timeout is the real bound)
+				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; gave up waiting and interrupted the read, combinations are built as they are sewn", timeout.toSeconds());
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
