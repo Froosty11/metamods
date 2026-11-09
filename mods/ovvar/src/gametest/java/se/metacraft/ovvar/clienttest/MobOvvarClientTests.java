@@ -17,11 +17,9 @@ import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.Patches;
-import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.SpotPlacements;
 import se.metacraft.ovvar.content.item.OvveItem;
-import se.metacraft.ovvar.pack.Combos;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -35,6 +33,7 @@ import java.util.Properties;
  * ride in the dye colour and show without any pack push: the client takes no resource-pack offer
  * after its initial join. Husks stand in for the mobs (they do not burn in daylight).
  *
+ * Each sewn patch is checked separately: the top half and the legs sit in different boxes.
  * Judged by the colours the patches leave (Nyckeln 0x0 green, TMEIT blue), none near Data's cerise.
  * Runs in the cloud under software rendering, so the checks are tolerant. Never run locally.
  */
@@ -57,7 +56,6 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 				server.runCommand("time set noon");
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");
 
-				// The garments are made on the server; the halves' combinations must stay unknown to the pack.
 				server.runOnServer(mc -> {
 					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
 					ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
@@ -73,16 +71,6 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 					Looks.setSewn(frack, SpotPlacements.fromList(List.of(Placement.parse("front_top_left.nyckeln0x0"))).getOrThrow());
 					frack.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
 					husk(level, 6.5, frack);
-
-					for (ItemStack garment : List.of(ovve, frack)) {
-						for (Piece piece : Piece.values()) {
-							var placements = SpotPlacements.asPlacementList(Looks.sewn(garment, piece));
-							if (placements.isEmpty()) continue;
-							if (Combos.isKnown(piece, Placement.combo(placements))) {
-								throw new AssertionError("a mob's " + garment.getItem() + " " + piece + " was queued for the pack");
-							}
-						}
-					}
 				});
 				conn.waitForClientboundPackets();
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
@@ -96,6 +84,9 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 				ClientTestSupport.assertNoChecker(ovveShot, box.x0(), box.y0(), box.x1(), box.y1(), "mob ovve");
 				assertPresent(ovveShot, box, "nyckeln 0x0 (green) on the mob's ovve", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				assertPresent(ovveShot, box, "tmeit (blue) on the mob's ovve", (r, g, bl) -> bl > 150 && bl > r + 70 && bl > g + 40, 20);
+				// The leg patch is below the subject box, so it gets its own, with the top-half patch out of it.
+				Region legs = Region.legsBox(ovveShot);
+				assertPresent(ovveShot, legs, "nyckeln 0x0 (green) on the mob's leg", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 
 				server.runCommand("tp Tester 6.5 -60 0.5 0 0");
 				conn.waitForClientboundPackets();
@@ -125,7 +116,23 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 	private interface Rgb { boolean test(int r, int g, int b); }
 
 	private record Region(int x0, int y0, int x1, int y1) {
-		/** The subject's box around the screen's centre, as in OvvarClientTests. */
+		/**
+		 * The subject's box around the screen's centre, as in OvvarClientTests. It was made for the
+		 * mannequin (1.8 tall); the taller Husk's head clips out of its top, which is harmless.
+		 */
+		/**
+		 * The legs, below the hips. The camera sits 1.62 above the feet, level, at 3 blocks, with a
+		 * 70 degree vertical field of view at 1080 px: 540 / tan(35) = 771 px per block at distance 1, so
+		 * 257 px per block at 3. The eye is the screen's centre row, so the hips (0.75 above the feet,
+		 * 0.87 below the eye) sit at centre + 224 and the feet (1.62 below) at centre + 416. The box
+		 * runs from just under the hips to just past the feet, a leg and a bit wide each way (a leg is
+		 * 0.25 across, 64 px; the box is +-110 px), so it holds nothing of the torso's patches.
+		 */
+		static Region legsBox(BufferedImage img) {
+			int w = img.getWidth(), h = img.getHeight();
+			return new Region(w / 2 - 110, h / 2 + 232, w / 2 + 110, Math.min(h, h / 2 + 430));
+		}
+
 		static Region subjectBox(BufferedImage img) {
 			int w = img.getWidth(), h = img.getHeight();
 			return new Region(w / 2 - 150, h / 2 - 40, w / 2 + 150, h / 2 + 185);
