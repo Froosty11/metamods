@@ -865,9 +865,9 @@ does not run in the game tests). Clients whose core shaders are replaced (Iris, 
 overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`server.shader_patcher_url`, default
 https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
 `OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/` and served by Polymer's autohost on the game port at
-`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, which the page's footer
-links): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+`assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at
+`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, but no longer linked from
+the page: the website links its own copy): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
 several at once, Cancel does nothing) and writes a
 `+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's

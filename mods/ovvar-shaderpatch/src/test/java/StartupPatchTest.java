@@ -97,6 +97,32 @@ public class StartupPatchTest {
 	}
 
 	@Test
+	void carriesIrisPackOptionsToTheCopy() throws IOException {
+		Files.writeString(packs.resolve("bsl.zip.txt"), "shadowMapResolution=4096\n");
+		iris("shaderPack=bsl.zip\n");
+		StartupPatch.run(game);
+		assertEquals("shadowMapResolution=4096\n", Files.readString(packs.resolve("bsl+ovvar.zip.txt")));
+	}
+
+	@Test
+	void keepsTheCopysOwnIrisPackOptions() throws IOException {
+		Files.writeString(packs.resolve("bsl.zip.txt"), "a=1\n");
+		Files.writeString(packs.resolve("bsl+ovvar.zip.txt"), "b=2\n");
+		iris("shaderPack=bsl.zip\n");
+		StartupPatch.run(game);
+		assertEquals("b=2\n", Files.readString(packs.resolve("bsl+ovvar.zip.txt")));
+	}
+
+	@Test
+	void nothingPatchedLogsTheCoresReason() throws IOException {
+		Map<String, byte[]> pack = new LinkedHashMap<>();
+		pack.put("shaders/final.fsh", "void main() {}\n".getBytes(StandardCharsets.UTF_8));
+		Patcher.writeZip(packs.resolve("odd.zip"), pack);
+		List<String> log = StartupPatch.run(game);
+		assertTrue(log.stream().anyMatch(l -> l.startsWith("odd.zip: a shaderpack, but nothing")));
+	}
+
+	@Test
 	void leavesIrisAloneWithoutCopy() throws IOException {
 		Path config = Files.createDirectories(game.resolve("config"));
 		Path props = config.resolve("iris.properties");

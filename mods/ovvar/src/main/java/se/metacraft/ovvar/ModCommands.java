@@ -287,7 +287,7 @@ public final class ModCommands {
 	public static final String SHADERS_INTRO = "chat." + Ovvar.MOD_ID + ".shaders.intro";
 	public static final String SHADERS_LINK = "chat." + Ovvar.MOD_ID + ".shaders.link";
 	public static final String SHADERS_STEPS = "chat." + Ovvar.MOD_ID + ".shaders.steps";
-	public static final String SHADERS_INTRO_EN = "Playing with a shaderpack? It needs a one-time patch, or ovvar show a pink-black checker.";
+	public static final String SHADERS_INTRO_EN = "Playing with a shaderpack? It needs a one-time patch, or ovvar show a pink-black checker. Patched it before this update? Patch the original pack again.";
 	public static final String SHADERS_LINK_EN = "Patch your shaderpack";
 	public static final String SHADERS_STEPS_EN = "Drop your pack in, download the +ovvar copy, put it in your shaderpacks folder and pick it in Iris.";
 

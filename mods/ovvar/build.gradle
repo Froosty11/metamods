@@ -97,15 +97,36 @@ tasks.register('patcherFixtures', JavaExec) {
 }
 // The TypeScript port (tools/shaderpatcher/web) runs the same fixtures, so the two patchers can't drift apart
 // unnoticed. Needs node on the PATH; without it the task logs and skips.
-def nodeExe = System.getenv('PATH')?.split(File.pathSeparator as String)?.collect { new File(it, 'node') }?.find { it.canExecute() }
+def nodeExe = System.getenv('PATH')?.split(File.pathSeparator as String)?.collectMany { [new File(it, 'node'), new File(it, 'node.exe')] }?.find { it.isFile() && it.canExecute() }
+// node runs .ts natively (type stripping, no flag) from 22.18.0 on 22.x and from 23.6.0 on 23+; older: skip, never fail.
+def nodeRunsTs = { File exe ->
+	try {
+		def proc = new ProcessBuilder(exe.toString(), '--version').redirectErrorStream(true).start()
+		def text = proc.inputStream.text.trim()
+		proc.waitFor()
+		def m = text =~ /^v(\d+)\.(\d+)\.(\d+)/
+		if (!m.find()) return false
+		int major = m.group(1) as int, minor = m.group(2) as int
+		major >= 24 || (major == 23 && minor >= 6) || (major == 22 && minor >= 18)
+	} catch (Exception e) {
+		false
+	}
+}
 tasks.register('patcherFixturesTs', Exec) {
 	group = 'verification'
 	description = 'Runs the TypeScript shader patcher over the shared fixtures (needs node on the PATH).'
 	workingDir = projectDir
 	commandLine((nodeExe ?: 'node').toString(), '--test', 'tools/shaderpatcher/web/patcher.test.ts')
 	onlyIf {
-		if (nodeExe == null) logger.lifecycle('patcherFixturesTs: node is not on the PATH, skipping the TypeScript patcher fixtures')
-		nodeExe != null
+		if (nodeExe == null) {
+			logger.lifecycle('patcherFixturesTs: node is not on the PATH, skipping the TypeScript patcher fixtures')
+			return false
+		}
+		if (!nodeRunsTs(nodeExe)) {
+			logger.lifecycle('patcherFixturesTs: node is too old to run .ts (needs 22.18+ or 23.6+), skipping the TypeScript patcher fixtures')
+			return false
+		}
+		true
 	}
 }
 tasks.register('patcherRunTest', JavaExec) {
@@ -175,7 +196,7 @@ if (project.hasProperty('iris')) {
 }
 // -PshaderpatchMod additionally puts the ovvar-shaderpatch launcher mod (mods/ovvar-shaderpatch) on the client
 // test's runtime: with the ORIGINAL pack in -Piris, it must write <pack>+ovvar.zip and switch iris.properties
-// to it at preLaunch, so the run needs no hand patching (cloud only, see README "Client screenshot tests").
+// to it at preLaunch, so the run needs no hand patching (cloud only, see README "Client test under a shaderpack").
 if (project.hasProperty('shaderpatchMod')) {
 	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -PshaderpatchMod needs -Piris=<shaderpack .zip>')
 	dependencies {

@@ -278,7 +278,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 			// list above is empty, so the tooltip is still only 3 lines tall.
 			tooltip.add(Component.literal("Sew patches on at an armour stand").withStyle(ChatFormatting.DARK_GRAY));
 		}
-		tooltip.add(Component.translatable(SHADERS_HINT).withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.translatableWithFallback(SHADERS_HINT, SHADERS_HINT_EN).withStyle(ChatFormatting.GRAY));
 	}
 
 	/**
@@ -287,6 +287,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	 * (GeneratedAssets.withLimbCopies), and this says what to do about it.
 	 */
 	public static final String SHADERS_HINT = "tooltip." + Ovvar.MOD_ID + ".shaders";
+	public static final String SHADERS_HINT_EN = "Pink-black checker on your limbs? Patch the pack again: /ovvar shaders";
 
 	private static String countLabel(int count) {
 		if (count == 0) return "no patches yet";

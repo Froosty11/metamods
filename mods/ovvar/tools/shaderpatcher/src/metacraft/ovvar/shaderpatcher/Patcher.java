@@ -156,7 +156,12 @@ public final class Patcher {
 	private void patchPack(Path src) throws IOException {
 		String name = src.getFileName().toString();
 		boolean zip = name.toLowerCase(Locale.ROOT).endsWith(".zip");
-		if (name.contains(SUFFIX) || (!zip && !Files.isDirectory(src))) {
+		if (name.contains(SUFFIX)) {
+			say(name + ": a +ovvar copy; pick the original pack");
+			skippedPacks++;
+			return;
+		}
+		if (!zip && !Files.isDirectory(src)) {
 			skippedPacks++;
 			return;
 		}
@@ -224,6 +229,11 @@ public final class Patcher {
 	}
 
 	public static void writeFolder(Path out, Map<String, byte[]> files) throws IOException {
+		if (Files.exists(out)) {
+			try (java.util.stream.Stream<Path> s = Files.walk(out)) {
+				for (Path p : (Iterable<Path>) s.sorted(java.util.Comparator.reverseOrder())::iterator) Files.delete(p);
+			}
+		}
 		for (Map.Entry<String, byte[]> e : files.entrySet()) {
 			Path p = out.resolve(e.getKey());
 			Files.createDirectories(p.getParent());
