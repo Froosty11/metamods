@@ -65,7 +65,8 @@ public final class Patcher {
 	}
 
 	public static void main(String[] args) throws IOException {
-		boolean interactive = System.console() == null && !GraphicsEnvironment.isHeadless() && args.length == 0;
+		// Not System.console() == null: on JDK 22+ console() is non-null even with no terminal.
+		boolean interactive = args.length == 0 && !GraphicsEnvironment.isHeadless();
 		System.exit(run(args, interactive ? Patcher::chooseWithDialog : null, interactive));
 	}
 

@@ -322,6 +322,9 @@ public final class OvvarGameTests {
 			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(),
 					new se.metacraft.ovvar.ServerConfig(before.name(), other), config.designs(), config.stash()));
 			shadersLink(helper, server, player, other);
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(),
+					new se.metacraft.ovvar.ServerConfig(before.name(), "  "), config.designs(), config.stash()));
+			shadersLink(helper, server, player, se.metacraft.ovvar.ServerConfig.DEFAULT_SHADER_PATCHER_URL);
 		} finally {
 			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), before, config.designs(), config.stash()));
 		}

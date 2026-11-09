@@ -108,7 +108,15 @@ tasks.register('patcherFixturesTs', Exec) {
 		nodeExe != null
 	}
 }
-tasks.named('patcherFixtures') { finalizedBy 'patcherFixturesTs' }
+tasks.register('patcherRunTest', JavaExec) {
+	group = 'verification'
+	description = 'Runs Patcher.run through its chooser seam: cancel, a pick, and no-GUI usage.'
+	classpath = sourceSets.patcherTest.output + sourceSets.patcher.output + files(patcherResources)
+	mainClass = 'metacraft.ovvar.shaderpatcher.PatcherRunTest'
+	workingDir = projectDir
+	args = ['tools/shaderpatcher/fixtures']
+}
+tasks.named('patcherFixtures') { finalizedBy 'patcherFixturesTs', 'patcherRunTest' }
 tasks.named('check') { dependsOn 'patcherFixtures' }
 tasks.register('patcherJar', Jar) {
 	from sourceSets.patcher.output

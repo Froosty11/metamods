@@ -298,7 +298,8 @@ public final class ModCommands {
 	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		CommandSourceStack source = ctx.getSource();
 		source.getPlayerOrException();
-		String url = OvvarConfig.get().server().shaderPatcherUrl();
+		String configured = OvvarConfig.get().server().shaderPatcherUrl();
+		String url = configured == null || configured.isBlank() ? ServerConfig.DEFAULT_SHADER_PATCHER_URL : configured.strip();
 		MutableComponent link = Component.translatableWithFallback(SHADERS_LINK, SHADERS_LINK_EN).withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE);
 		try {
 			link.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))).withHoverEvent(new HoverEvent.ShowText(Component.literal(url))));
