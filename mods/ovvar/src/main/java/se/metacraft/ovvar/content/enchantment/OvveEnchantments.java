@@ -75,6 +75,7 @@ public final class OvveEnchantments {
 					PackActivationType.ALWAYS_ENABLED);
 			if (!ok) Ovvar.LOGGER.warn("[{}] the brewery_curse pack could not be registered", Ovvar.MOD_ID);
 		}
+		EnderPockets.init();
 		Keepsake.init();
 		SpilledDrink.init();
 		// Each enchantment's behaviour hooks in here.

@@ -10,6 +10,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Unit;
 import se.metacraft.ovvar.sewing.StandDisplays;
 import se.metacraft.ovvar.sewing.StashSession;
 
@@ -85,6 +86,22 @@ public final class ModComponents {
 	public static final DataComponentType<Boolean> GARMENT_GLINT = register("garment_glint",
 			DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL));
 
+	/**
+	 * On an Ender Pockets ovve: which entry of the client's pocket preview (the clicking player's ender chest,
+	 * {@link se.metacraft.ovvar.content.enchantment.EnderPockets#view}) is selected, as the bundle's own
+	 * selection would be. Absent = none. Never saved; Polymer strips it (a type needs a stream codec to build).
+	 */
+	public static final DataComponentType<Integer> ENDER_SELECTED = register("ender_selected",
+			DataComponentType.<Integer>builder().networkSynchronized(ByteBufCodecs.VAR_INT));
+
+	/**
+	 * On a copy of an Ender Pockets ovve inside another's pocket preview (in the ender chest, or deeper, in a
+	 * shulker box or bundle there): its own preview is empty, so a preview never contains itself. Only ever on
+	 * the copies {@link se.metacraft.ovvar.content.enchantment.EnderPockets#view} hands to Polymer, never on a real stack.
+	 */
+	public static final DataComponentType<Unit> ENDER_NESTED = register("ender_nested",
+			DataComponentType.<Unit>builder().networkSynchronized(Unit.STREAM_CODEC));
+
 	private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
 		return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
 	}
@@ -92,6 +109,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED);
 	}
 }
