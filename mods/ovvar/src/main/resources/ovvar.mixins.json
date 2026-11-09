@@ -9,7 +9,8 @@
 		"EnchantmentHelperMixin",
 		"ForeignOvveMixin",
 		"KeepsakeDeathMixin",
-		"ResourcePackResponseMixin"
+		"ResourcePackResponseMixin",
+		"SpilledDrinkMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -6,6 +6,7 @@ import se.metacraft.ovvar.OvvarConfig;
 import se.metacraft.ovvar.store.DesignStoreConfig;
 import se.metacraft.ovvar.store.Wardrobe;
 import se.metacraft.ovvar.store.Wardrobes;
+import se.metacraft.ovvar.content.enchantment.SpilledDrink;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModComponents;
@@ -230,6 +231,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 				return;
 			}
 			Looks.claimIfNeeded(player, stack);
+			if (slot == chapter.slot) SpilledDrink.tickWorn(player, stack);
 		} else {
 			refresh(stack);   // on a stand or a mannequin: follow the owner's design (loaded on demand)
 			UUID owner = owner(stack);

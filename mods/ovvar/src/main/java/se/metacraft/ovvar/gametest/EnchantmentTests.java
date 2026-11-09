@@ -36,6 +36,11 @@ import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.enchantment.Keepsake;
+import se.metacraft.ovvar.content.enchantment.SpilledDrink;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import se.metacraft.ovvar.content.enchantment.Magpie;
 import se.metacraft.ovvar.content.item.PatchItem;
 import net.minecraft.world.entity.Entity;
@@ -529,6 +534,124 @@ public final class EnchantmentTests {
 		helper.assertValueEqual(droppedA, 1, "ovve A lying near the player");
 		helper.assertValueEqual(ovvar, 3, "ovvar across inventory and ground");
 		helper.assertFalse(from.hasAttached(Keepsake.KEPT), "KEPT removed from the old player");
+		helper.succeed();
+	}
+
+	// ---- Curse of the Spilled Drink
+
+	private static SpilledDrink.Dose dose(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect, int amp, int duration, float scale, long due) {
+		return new SpilledDrink.Dose(effect, amp, duration, scale, due);
+	}
+
+	@GameTest
+	public void secondDoseIsWeakerAndShorter(GameTestHelper helper) {
+		EnchantmentsConfig.SpilledDrink cfg = EnchantmentsConfig.SpilledDrink.DEFAULT;
+		helper.assertValueEqual(SpilledDrink.secondDoses(List.of(new MobEffectInstance(MobEffects.SPEED, 1800, 1)), 1000, cfg),
+				List.of(dose(MobEffects.SPEED, 0, 900, 1f, 2900)), "strong swiftness");
+		helper.assertValueEqual(SpilledDrink.secondDoses(List.of(new MobEffectInstance(MobEffects.SPEED, 3600, 0)), 1000, cfg),
+				List.of(dose(MobEffects.SPEED, 0, 1800, 1f, 4700)), "swiftness");
+		helper.assertValueEqual(SpilledDrink.secondDoses(List.of(new MobEffectInstance(MobEffects.INSTANT_HEALTH, 1, 0)), 1000, cfg),
+				List.of(dose(MobEffects.INSTANT_HEALTH, 0, 1, 0.5f, 1100)), "healing");
+		helper.assertValueEqual(SpilledDrink.secondDoses(List.of(new MobEffectInstance(MobEffects.NIGHT_VISION, -1, 0)), 1000, cfg).size(), 0, "infinite");
+		helper.assertValueEqual(SpilledDrink.secondDoses(List.of(), 1000, cfg).size(), 0, "water");
+		helper.succeed();
+	}
+
+	private static ServerPlayer cursedPlayer(GameTestHelper helper, boolean cursed) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		if (cursed) ovve.enchant(holder(helper, SPILLED_DRINK_CURSE), 1);
+		player.setItemSlot(EquipmentSlot.LEGS, ovve);
+		return player;
+	}
+
+	private static void drinkSwiftness(GameTestHelper helper, ServerPlayer player) {
+		ItemStack potion = PotionContents.createItemStack(Items.POTION, Potions.SWIFTNESS);
+		new PotionContents(Potions.SWIFTNESS).onConsume(helper.getLevel(), player, potion, potion.get(DataComponents.CONSUMABLE));
+	}
+
+	@GameTest
+	public void drinkingSchedulesTheDose(GameTestHelper helper) {
+		ServerPlayer cursed = cursedPlayer(helper, true);
+		drinkSwiftness(helper, cursed);
+		List<SpilledDrink.Dose> doses = cursed.getAttachedOrElse(SpilledDrink.DOSES, List.of());
+		if (OvveEnchantments.BREWERY) {
+			helper.assertValueEqual(doses.size(), 1, "doses with Brewery");
+			helper.assertTrue(doses.getFirst().effect().is(MobEffects.SPEED.unwrapKey().orElseThrow()), "the dose is speed");
+		} else {
+			helper.assertValueEqual(doses.size(), 0, "doses without Brewery (the curse is off)");
+		}
+		ServerPlayer plain = cursedPlayer(helper, false);
+		drinkSwiftness(helper, plain);
+		helper.assertValueEqual(plain.getAttachedOrElse(SpilledDrink.DOSES, List.of()).size(), 0, "doses without the curse");
+		helper.succeed();
+	}
+
+	private static void tickOnly(GameTestHelper helper, ServerPlayer player) {
+		var players = helper.getLevel().getServer().getPlayerList().getPlayers();
+		boolean added = !players.contains(player);
+		if (added) players.add(player);
+		try {
+			SpilledDrink.tick(helper.getLevel().getServer());
+		} finally {
+			if (added) players.remove(player);
+		}
+	}
+
+	@GameTest
+	public void dueDoseLands(GameTestHelper helper) {
+		ServerPlayer player = cursedPlayer(helper, false);
+		long now = helper.getLevel().getServer().overworld().getGameTime();
+		player.setAttached(SpilledDrink.DOSES, List.of(dose(MobEffects.SPEED, 0, 1800, 1f, now), dose(MobEffects.SLOWNESS, 0, 100, 1f, now + 1000)));
+		tickOnly(helper, player);
+		MobEffectInstance speed = player.getEffect(MobEffects.SPEED);
+		helper.assertTrue(speed != null && speed.getAmplifier() == 0 && speed.getDuration() >= 1799, "speed landed: " + speed);
+		helper.assertTrue(player.getEffect(MobEffects.SLOWNESS) == null, "the future dose landed early");
+		List<SpilledDrink.Dose> left = player.getAttachedOrElse(SpilledDrink.DOSES, List.of());
+		helper.assertValueEqual(left.size(), 1, "doses left");
+		helper.assertTrue(left.getFirst().effect().is(MobEffects.SLOWNESS.unwrapKey().orElseThrow()), "the future one is left");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void secondDoseNeverWeakensActive(GameTestHelper helper) {
+		ServerPlayer player = cursedPlayer(helper, false);
+		long now = helper.getLevel().getServer().overworld().getGameTime();
+		player.addEffect(new MobEffectInstance(MobEffects.SPEED, 2000, 1));
+		player.setAttached(SpilledDrink.DOSES, List.of(dose(MobEffects.SPEED, 0, 900, 1f, now)));
+		tickOnly(helper, player);
+		MobEffectInstance speed = player.getEffect(MobEffects.SPEED);
+		helper.assertTrue(speed != null && speed.getAmplifier() == 1 && speed.getDuration() >= 1999, "active speed after a weaker dose: " + speed);
+		// A weaker dose that outlasts it is kept hidden underneath; the active one is still untouched.
+		player.setAttached(SpilledDrink.DOSES, List.of(dose(MobEffects.SPEED, 0, 5000, 1f, now)));
+		tickOnly(helper, player);
+		speed = player.getEffect(MobEffects.SPEED);
+		helper.assertTrue(speed != null && speed.getAmplifier() == 1 && speed.getDuration() >= 1998, "active speed after a longer weaker dose: " + speed);
+		helper.succeed();
+	}
+
+	@GameTest
+	public void dripsNowAndThen(GameTestHelper helper) {
+		RandomSource r = RandomSource.create(0);
+		int hits = 0;
+		for (int i = 0; i < 20000; i++) if (SpilledDrink.nuisance(r, 200)) hits++;
+		helper.assertTrue(hits >= 70 && hits <= 130, "drips in 20000 ticks: " + hits);
+		helper.succeed();
+	}
+
+	@GameTest
+	public void curseBookOnlyWhenOffered(GameTestHelper helper) {
+		var registries = helper.getLevel().registryAccess();
+		Optional<ItemStack> book = SpilledDrink.wandererBook(registries, EnchantmentsConfig.DEFAULT, true);
+		helper.assertTrue(book.isPresent(), "a book with Brewery");
+		helper.assertTrue(book.get().is(Items.ENCHANTED_BOOK), "an enchanted book");
+		helper.assertValueEqual(book.get().get(DataComponents.STORED_ENCHANTMENTS).getLevel(holder(helper, SPILLED_DRINK_CURSE)), 1, "stored level");
+		helper.assertTrue(SpilledDrink.wandererBook(registries, EnchantmentsConfig.DEFAULT, false).isEmpty(), "a book without Brewery");
+		EnchantmentsConfig off = new EnchantmentsConfig(EnchantmentsConfig.Toggle.ON, EnchantmentsConfig.Patchwork.DEFAULT, EnchantmentsConfig.Magpie.DEFAULT,
+				EnchantmentsConfig.Toggle.ON, EnchantmentsConfig.Keyring.DEFAULT, new EnchantmentsConfig.SpilledDrink(false, 100, 0.5f, 0.5f, 200));
+		helper.assertTrue(SpilledDrink.wandererBook(registries, off, true).isEmpty(), "a book with the curse disabled");
+		helper.assertValueEqual(SpilledDrink.WANDERER_PRICE, 16, "price");
 		helper.succeed();
 	}
 }
