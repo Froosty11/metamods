@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -137,7 +138,12 @@ public final class Wardrobes {
 			if (!available()) return out;
 			WardrobeBackend b = backend;
 			Future<List<Wardrobe>> all = executor.submit(b::all);
-			for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().values());
+			try {
+				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().values());
+			} catch (TimeoutException e) {
+				all.cancel(true);   // a hung read must not hold the store thread against later joins
+				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; cancelled, combinations are built as they are sewn", timeout.toSeconds());
+			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			Ovvar.LOGGER.warn("[ovvar] wardrobes: interrupted while listing stored designs");

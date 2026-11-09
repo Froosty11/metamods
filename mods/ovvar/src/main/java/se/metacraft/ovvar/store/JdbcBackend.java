@@ -105,7 +105,13 @@ public final class JdbcBackend implements WardrobeBackend {
 		try (PreparedStatement statement = prepare("SELECT version, data FROM " + table);
 			 ResultSet rows = statement.executeQuery()) {
 			List<Wardrobe> out = new ArrayList<>();
-			while (rows.next()) out.add(decode(rows.getString(2)).withVersion(rows.getLong(1)));
+			while (rows.next()) {
+				try {
+					out.add(decode(rows.getString(2)).withVersion(rows.getLong(1)));
+				} catch (IOException e) {
+					Ovvar.LOGGER.warn("[ovvar] wardrobes: skipping an undecodable row: {}", e.getMessage());
+				}
+			}
 			return out;
 		} catch (SQLException e) {
 			closeQuietly();

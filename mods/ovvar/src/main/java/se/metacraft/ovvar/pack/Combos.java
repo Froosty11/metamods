@@ -185,6 +185,11 @@ public final class Combos {
 		});
 	}
 
+	/** Tests only: drops a combination from the known set (and has it saved without it), so a test leaves nothing behind. */
+	public static void forgetForTest(Piece piece, Combo combo) {
+		if (KNOWN.remove(key(piece, combo))) dirty.set(true);
+	}
+
 	/** Tests only: undoes {@link #markBuiltForTest} in every generation still held, so nothing test-only stays behind. */
 	public static void unmarkBuiltForTest(Piece piece, Combo combo) {
 		KeyedCombo key = key(piece, combo);

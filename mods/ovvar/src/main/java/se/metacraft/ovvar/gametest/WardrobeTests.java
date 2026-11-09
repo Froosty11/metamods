@@ -23,6 +23,7 @@ import se.metacraft.ovvar.store.Wardrobe;
 import se.metacraft.ovvar.store.WardrobeBackend;
 import se.metacraft.ovvar.store.Wardrobes;
 import se.metacraft.ovvar.content.Piece;
+import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.pack.WardrobeArt;
@@ -51,11 +52,10 @@ import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.JsonOps;
 
 import java.io.IOException;
-import java.time.Duration;
-import se.metacraft.ovvar.pack.Combos;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -2912,10 +2912,12 @@ public final class WardrobeTests {
 		SpotPlacements a = SpotPlacements.fromList(List.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it"))).getOrThrow();
 		SpotPlacements b = SpotPlacements.fromList(List.of(Placement.parse("front_top_left.itk"), Placement.parse("back_big.kommn"),
 				Placement.parse("sleeve_front_top_l.data"), Placement.parse("sleeve_out_top_r.metacrew"))).getOrThrow();
+		Files.writeString(dir.resolve(UUID.randomUUID() + ".json"), "{ not json");   // one corrupt file must not cost the rest
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.DATA, a).withVersion(1), 0);
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.IT, b).withVersion(1), 0);
 		Combos.Combo comboA = comboOf(a, Piece.BOTTOM), comboB = comboOf(b, Piece.TOP);
-		int fresh = (Combos.isKnown(Piece.BOTTOM, comboA) ? 0 : 1) + (Combos.isKnown(Piece.TOP, comboB) ? 0 : 1);
+		Combos.forgetForTest(Piece.BOTTOM, comboA);   // whatever an earlier test requested, so the count below proves something
+		Combos.forgetForTest(Piece.TOP, comboB);
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
@@ -2923,12 +2925,14 @@ public final class WardrobeTests {
 					List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
 					if (designs.size() != 2) helper.fail("stored designs: " + designs.size());
 					int added = Combos.prebuild(designs);
-					if (added < fresh) helper.fail("pre-built " + added + ", expected at least " + fresh);
+					if (added < 2) helper.fail("pre-built " + added + ", expected at least 2");
 					if (!Combos.isKnown(Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
 					if (!Combos.isKnown(Piece.TOP, comboB)) helper.fail("B's combination is not known");
 					int again = Combos.prebuild(designs);
-					if (again != 0) helper.fail("a second pre-build added " + again);
+					Combos.forgetForTest(Piece.BOTTOM, comboA);
+					Combos.forgetForTest(Piece.TOP, comboB);
 					release(server);
+					if (again != 0) helper.fail("a second pre-build added " + again);
 				}))
 				.thenSucceed();
 	}
@@ -2979,9 +2983,9 @@ public final class WardrobeTests {
 		Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:seat.rivals-leg_front_top_l.it").getOrThrow();
 		if (!reversed.equals(stored)) helper.fail("an unsorted stored key loads to a different combination");
 		Combos.prebuild(List.of(SpotPlacements.fromList(List.of(leg, seat)).getOrThrow()));
-		if (!Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(seat, leg))) || !Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(leg, seat)))) {
-			helper.fail("a pre-built combination is not known in both orders");
-		}
+		boolean both = Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(seat, leg))) && Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(leg, seat)));
+		Combos.forgetForTest(Piece.BOTTOM, stored.combo());
+		if (!both) helper.fail("a pre-built combination is not known in both orders");
 		helper.succeed();
 	}
 
