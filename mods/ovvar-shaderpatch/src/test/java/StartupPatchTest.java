@@ -55,6 +55,7 @@ public class StartupPatchTest {
 	void skipsCurrentCopy() throws IOException {
 		StartupPatch.run(game);
 		FileTime old = FileTime.fromMillis(1_000_000_000_000L);
+		Files.setLastModifiedTime(original, FileTime.fromMillis(old.toMillis() - 10_000));
 		Files.setLastModifiedTime(copy, old);
 		StartupPatch.run(game);
 		assertEquals(old, Files.getLastModifiedTime(copy));
@@ -121,5 +122,84 @@ public class StartupPatchTest {
 		assertFalse(log.isEmpty());
 		// and a game dir that does not exist
 		assertNotEquals(null, StartupPatch.run(game.resolve("missing")));
+	}
+
+	@Test
+	void rewritesCopyWhenOriginalIsReplaced() throws IOException {
+		StartupPatch.run(game);
+		FileTime t1 = FileTime.fromMillis(1_000_000_000_000L);
+		Files.setLastModifiedTime(copy, t1);
+		Files.setLastModifiedTime(original, FileTime.fromMillis(t1.toMillis() + 5_000));
+		StartupPatch.run(game);
+		assertTrue(Files.getLastModifiedTime(copy).toMillis() > t1.toMillis() + 5_000);
+	}
+
+	@Test
+	void rewritesCorruptCopy() throws IOException {
+		Files.writeString(copy, "garbage");
+		StartupPatch.run(game);
+		assertEquals("stamp=" + PackPatch.stamp() + "\n", new String(copyFiles().get(PackPatch.STAMP_FILE), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void cleansLeftoverTemp() throws IOException {
+		Path tmp = packs.resolve("bsl.zip.ovvar-tmp");
+		Files.writeString(tmp, "half");
+		StartupPatch.run(game);
+		assertFalse(Files.exists(tmp));
+		assertTrue(Files.isRegularFile(copy));
+	}
+
+	@Test
+	void logsOneLinePerSkippedPack() throws IOException {
+		Map<String, byte[]> resourcePack = new LinkedHashMap<>();
+		resourcePack.put("pack.mcmeta", "{}".getBytes(StandardCharsets.UTF_8));
+		Patcher.writeZip(packs.resolve("faithful.zip"), resourcePack);
+		List<String> log = StartupPatch.run(game);
+		assertEquals(1, log.stream().filter(l -> l.startsWith("faithful.zip")).count());
+	}
+
+	private Path iris(String content) throws IOException {
+		Path props = Files.createDirectories(game.resolve("config")).resolve("iris.properties");
+		Files.write(props, content.getBytes(StandardCharsets.ISO_8859_1));
+		return props;
+	}
+
+	private String read(Path p) throws IOException {
+		return new String(Files.readAllBytes(p), StandardCharsets.ISO_8859_1);
+	}
+
+	@Test
+	void irisKeepsCrlf() throws IOException {
+		Path props = iris("# c\r\nenableShaders=true\r\nshaderPack=bsl.zip\r\nx=1\r\n");
+		StartupPatch.run(game);
+		assertEquals("# c\r\nenableShaders=true\r\nshaderPack=bsl+ovvar.zip\r\nx=1\r\n", read(props));
+	}
+
+	@Test
+	void irisSpacedAndColonForms() throws IOException {
+		Path props = iris("shaderPack = bsl.zip\n");
+		StartupPatch.run(game);
+		assertEquals("shaderPack=bsl+ovvar.zip\n", read(props));
+		props = iris("shaderPack:bsl.zip\n");
+		StartupPatch.run(game);
+		assertEquals("shaderPack=bsl+ovvar.zip\n", read(props));
+	}
+
+	@Test
+	void irisNonLatin1AndSpace() throws IOException {
+		Path odd = packs.resolve("bsl \u30c4.zip");
+		Patcher.writeZip(odd, Patcher.readFolder(FIXTURE));
+		Path props = iris("shaderPack=bsl \\u30C4.zip\n");
+		StartupPatch.run(game);
+		assertTrue(Files.isRegularFile(packs.resolve("bsl \u30c4+ovvar.zip")));
+		assertEquals("shaderPack=bsl \\u30C4+ovvar.zip\n", read(props));
+	}
+
+	@Test
+	void irisAlreadyOnCopyIsUnchanged() throws IOException {
+		Path props = iris("shaderPack=bsl+ovvar.zip\n");
+		StartupPatch.run(game);
+		assertEquals("shaderPack=bsl+ovvar.zip\n", read(props));
 	}
 }
