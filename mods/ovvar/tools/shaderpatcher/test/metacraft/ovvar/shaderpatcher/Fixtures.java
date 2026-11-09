@@ -16,7 +16,8 @@ import java.util.stream.Stream;
 /**
  * Runs {@link PackPatch} over the shared fixtures: {@code <dir>/<case>/in/**} is a pack, and
  * {@code expected/} holds the output pack (only for PATCHED), {@code status.txt} (the status
- * name) and {@code log.txt} (the log lines). The TypeScript port reads the very same files.
+ * name) and {@code log.txt} (the log lines). Inputs are read in sorted path order (a TreeMap), and
+ * the log order follows that. The TypeScript port reads the very same files.
  * {@code --update} writes {@code expected/} instead of comparing. Exit 1 on any difference.
  */
 public final class Fixtures {

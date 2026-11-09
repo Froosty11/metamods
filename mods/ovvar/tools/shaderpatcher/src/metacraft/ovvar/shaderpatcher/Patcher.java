@@ -115,10 +115,6 @@ public final class Patcher {
 
 	// ---------------------------------------------------------------- packs
 
-
-
-	// ---------------------------------------------------------------- packs
-
 	private void patchPack(Path src) throws IOException {
 		String name = src.getFileName().toString();
 		boolean zip = name.toLowerCase(Locale.ROOT).endsWith(".zip");

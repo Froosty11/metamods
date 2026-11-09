@@ -1,3 +1,2 @@
 #version 330 compatibility
-#define FRAGMENT_STAGE
-#include "/lib/entity.glsl"
+#include "/lib/entity_fragment.glsl"
