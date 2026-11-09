@@ -89,9 +89,10 @@ keys and Millia's six each a 16×16 beside their 12×12 — Ticket to my heart a
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
 seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Ainrave's Nyckeln 0x2, is gone from the
-list; its id still reads as that patch, so an ovve sewn with it loads.) New entries go at the end of the list: a design's instant
-code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
-repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
+list; its id still reads as that patch, so an ovve sewn with it loads.) A new entry can go anywhere in
+the list: items, wardrobes and `combos.json` name patches by id, and a design's instant code is
+derived, not its position — the droppable patches (`PatchLoot.LOOT`) take the first codes, in list
+order, and the rest come after (`Patches.byCode`; see "the dye colour" below). Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
 so the ä lives in the display name only. Seat art is drawn as seen from behind, the only
 way anybody sees a seat, so it reads across the figure the way it was drawn: the art's left half
 goes on the wearer's left leg, which is the leg at the viewer's left from behind
@@ -560,10 +561,13 @@ layout at four times it (`Spot.DETAIL`), the art scaled up ×2 as datagen bakes 
 dividing by the same ratio (`OVVAR_ART_SCALE`) when it reads the library — so art stays the size it
 always was on the cloth, and the texture's head rows hold four times the library they did. A big patch rides in the dye
 colour like any other (the shader bends it round the corners from its own cell's face, as the
-pack will). Then `runDatagen`.
-The first 23
-designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library is the head rows of the texture (64×16 skin texels less the tables and
+pack will). Put the id in `PatchLoot.LOOT` (it turns up in structure chests) or `PatchLoot.NON_LOOT`
+(crafted or given) — startup and datagen fail if it is in neither. Then `runDatagen`.
+The droppable patches, and only those, ride in the dye colour (instant, previewable): they get the
+first design codes automatically, wherever the line sits, and there is room for 23 of them, so
+two more loot patches take the two spare slots by themselves; a 24th fails datagen and startup
+(free a slot or make one of them `NON_LOOT`). Crafted and given patches only go through the pack;
+the preview library is the head rows of the texture (64×16 skin texels less the tables and
 the marker corner, packed by the texel, an art at its own size) and datagen fails loudly when that runs out.
 
 ### Art at more than one size
@@ -664,16 +668,24 @@ holds every half under the 448 states the shader's float binomials are exact to 
 `Looks.INSTANT_STATES`). **Cells and designs share those 448.** The top half, with 19 cells, is
 the one that binds: 19 × 23 = 437 fits and 19 × 24 = 456 would not, so `Looks.INSTANT_DESIGNS` is
 23, and the cap test holds the designs to the most that fits as well as the states to the cap, so
-neither number can be raised on its own (a cell added to the top costs designs). The cost is that
-the 24th and later entries in the catalogue cannot ride in the dye colour — a patch sewn from one of
-them waits for the pack to catch up (seconds; and the top's trim channel still carries one of them
-at once). The catalogue is thirty long, so that is Starkt and Millia's six today. The preview
-texture holds the art of the first 23 designs — any size, in a block of library cells — plus cell
+neither number can be raised on its own (a cell added to the top costs designs). **The 23 are the
+droppable patches.** A patch that can turn up in a chest can end up on anyone, so it has to show
+the moment it is sewn: `Patches.byCode` gives `PatchLoot.LOOT` codes 1–21, in catalogue order,
+and everything else comes after, and `Looks.instant` is exactly "is it loot". Codes 22 and 23
+are spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
+the count from the preview texture), but nothing is ever encoded with them and their library and
+table rows stay empty, until a new loot patch takes one by itself. `PatchLoot.check` fails startup
+and datagen if loot ever outgrows the 23. The codes are never stored (the dye colour is worked out
+per packet and the tables ship in the same build), so re-deriving them repaints nothing. The cost
+is that a crafted or given patch (ITK, IT, Data, IN, Medieteknik, Rivals, KomMN, TMEIT Marshal,
+METAcrew) cannot ride in the dye colour — sewn, it waits for the pack to catch up (seconds; and
+the top's trim channel still carries one of them at once). The preview
+texture holds the art of the loot designs — any size, in a block of library cells — plus cell
 and design tables (a cell's row carries its own size beside its position, since a cell is not one
 size any more); the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
-past the first 23 in the catalogue only go through the pack. The tooltip's "Dyed" line is
+that are not loot only go through the pack. The tooltip's "Dyed" line is
 hidden.
 
 The top has a fourth instant slot: the armour trim. The client draws a trim as one more layer

@@ -152,6 +152,20 @@ public final class Combos {
 		return BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current).contains(key);
 	}
 
+	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
+	public static boolean isKnown(Piece piece, Combo combo) {
+		return KNOWN.contains(key(piece, combo));
+	}
+
+	/** Tests only: the current generation's pack holds this combination, as a startup build would leave it. */
+	public static void markBuiltForTest(Piece piece, Combo combo) {
+		BUILT.compute(generation, (g, built) -> {
+			Set<KeyedCombo> next = built == null ? new HashSet<>() : new HashSet<>(built);
+			next.add(key(piece, combo));
+			return Set.copyOf(next);
+		});
+	}
+
 	/** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
 	public static void request(Piece piece, Combo combo, boolean urgent) {
 		KeyedCombo key = key(piece, combo);

@@ -29,7 +29,7 @@ public final class Looks {
 	/**
 	 * The instant channel: up to {@value #INSTANT} placements per half ride in the dye colour, as
 	 * the rank of their set among all sets of (cell, design) states — cells × {@value #INSTANT_DESIGNS}
-	 * designs, the first ones in the catalogue. Ranked combinations use the bits far better than
+	 * designs, the first codes in {@link Patches#byCode}. Ranked combinations use the bits far better than
 	 * fixed slots: three on the top (19 cells × 23 = 437 states, C(437,3) ≈ 13.8M) fit under 255³.
 	 * The shader's binomials are exact up to {@value #INSTANT_STATES} states; {@link #rank} checks
 	 * the range, and a game test checks every half against it, so cells or designs added later
@@ -37,9 +37,17 @@ public final class Looks {
 	 *
 	 * <p><b>Cells and designs share the {@value #INSTANT_STATES}.</b> The top, with 19 cells, is the
 	 * half that binds: 23 designs is the most that fits (19 × 24 = 456 would not), and the bottom's
-	 * 13 cells sit well inside it. So the 24th and later entries in the catalogue cannot ride in the
-	 * dye colour, and a patch sewn from one of them waits for the pack to catch up (seconds, and the
-	 * trim channel still carries one of them on the top). A cell added to the top costs designs.
+	 * 13 cells sit well inside it. A cell added to the top costs designs.
+	 *
+	 * <p><b>Which designs.</b> The droppable ones, {@link PatchLoot#LOOT}, and only those: a patch
+	 * that can turn up on anyone has to show at once, and {@link Patches#byCode} gives loot the first
+	 * codes wherever its line is in the catalogue. Loot is 21 patches today, so codes 22 and 23 are
+	 * spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
+	 * the count from the preview texture), but nothing is encoded with them and datagen writes no
+	 * library art or table row for them, until a new loot patch takes one by itself.
+	 * {@link PatchLoot#check} fails startup and datagen if loot ever outgrows the 23. A crafted or
+	 * given patch is never instant: sewn, it waits for the pack to catch up (seconds, and the trim
+	 * channel still carries one of them on the top).
 	 */
 	public static final int INSTANT = 3, INSTANT_DESIGNS = 23;
 	/**
@@ -48,9 +56,17 @@ public final class Looks {
 	 */
 	public static final int INSTANT_STATES = 448;
 
-	/** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
+	/** Can this placement ride in the dye colour? (Its design must be a loot patch: see {@link #instant(Patches.Patch)}.) */
 	public static boolean instant(Placement p) {
-		return Patches.code(p.patch()) <= INSTANT_DESIGNS;
+		return instant(p.patch());
+	}
+
+	/**
+	 * Can this design ride in the dye colour? Exactly the droppable ones ({@link PatchLoot#LOOT}),
+	 * which {@link Patches#byCode} puts first; the spare codes past them are nobody's.
+	 */
+	public static boolean instant(Patches.Patch p) {
+		return PatchLoot.LOOT.contains(p.id());
 	}
 
 	// ---- placements
@@ -187,7 +203,7 @@ public final class Looks {
 	static int state(Placement p) {
 		int cell = Spot.cells(p.piece()).indexOf(p.spot());
 		int design = Patches.code(p.patch()) - 1;
-		if (cell < 0 || design < 0 || design >= INSTANT_DESIGNS) throw new IllegalArgumentException("not an instant placement: " + p);
+		if (cell < 0 || !instant(p) || design < 0 || design >= INSTANT_DESIGNS) throw new IllegalArgumentException("not an instant placement: " + p);
 		return cell * INSTANT_DESIGNS + design;
 	}
 
@@ -203,6 +219,11 @@ public final class Looks {
 		for (int i = 0; i < s.length; i++) value += choose(s[i], i + 1);  // combinadic
 		if (value >= 255L * 255 * 255) throw new IllegalStateException("instant channel overflow: " + value);
 		return (int) value;
+	}
+
+	/** The dye colour that carries exactly this instant set on a half, as {@link #look} encodes it. Public for tests. */
+	public static int instantDye(Piece piece, List<Placement> set) {
+		return encode(rank(piece, set));
 	}
 
 	static long choose(int n, int k) {

@@ -8,6 +8,7 @@ import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.Ownership;
+import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
@@ -1894,7 +1895,7 @@ public final class WardrobeTests {
 				}
 			}
 			for (Piece piece : Piece.values()) {
-				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // not in the library at all
+				if (!Looks.instant(patch)) continue;   // not in the library at all
 				List<Integer> library = artColours(generated(piece, "patch/preview_" + piece.id));
 				for (int colour : want) {
 					if (!library.contains(colour)) {
@@ -2254,12 +2255,14 @@ public final class WardrobeTests {
 			helper.fail("the channel has room for " + (Looks.INSTANT_DESIGNS + 1) + " designs but only names "
 					+ Looks.INSTANT_DESIGNS + ": " + topCells + " x " + (Looks.INSTANT_DESIGNS + 1) + " <= " + Looks.INSTANT_STATES);
 		}
-		// And the channel packs a full set of the highest-numbered cells without overflowing.
+		// And the channel packs a full set of the highest-numbered cells, in the highest-coded design
+		// that is ever encoded (the last loot patch), without overflowing.
 		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.values()[0]));
 		List<Spot> top = Spot.cells(Piece.TOP);
-		Patches.Patch itk = Patches.get("itk");
+		Patches.Patch last = Patches.byCode().get(PatchLoot.LOOT.size() - 1);
+		if (!Looks.instant(last)) helper.fail(last.id() + ", the last loot code, is not instant");
 		for (int i = 0; i < Looks.INSTANT; i++) {
-			Placement placement = new Placement(top.get(top.size() - 1 - i), itk);
+			Placement placement = new Placement(top.get(top.size() - 1 - i), last);
 			if (!Looks.sew(ovve, placement)) helper.fail("could not sew " + placement.key());
 		}
 		if (Looks.look(ovve, Piece.TOP, UUID.randomUUID(), false).dye() == 0) helper.fail("a full instant channel encoded to no dye colour");
@@ -2827,8 +2830,8 @@ public final class WardrobeTests {
 		for (Piece piece : Piece.values()) {
 			Tex preview = generated(piece, "patch/preview_" + piece.id);
 			for (Patches.Patch patch : Patches.all()) {
+				if (!Looks.instant(patch)) continue;   // never in the dye colour, so never in the library
 				int design = Patches.code(patch) - 1;
-				if (design >= Looks.INSTANT_DESIGNS) continue;   // never in the dye colour, so never in the library
 				for (Patches.Fit fit : Patches.Fit.values()) {
 					int slot = design + fit.ordinal() * (int) slots;
 					int at = (int) tableX + 2 * (int) columns + slot / 16, size = (int) tableX + 3 * (int) columns + slot / 16;
@@ -2846,6 +2849,17 @@ public final class WardrobeTests {
 								+ want.file() + "'s art" + java.util.Arrays.toString(firstDifference(block, art)));
 					}
 					rows++;
+				}
+			}
+			// The spare codes past LOOT (22 and 23 today) are no design's: their rows stay empty, so
+			// the shader has nothing to draw for them until a loot patch takes the slot.
+			for (int code = PatchLoot.LOOT.size() + 1; code <= Looks.INSTANT_DESIGNS; code++) {
+				for (Patches.Fit fit : Patches.Fit.values()) {
+					int slot = code - 1 + fit.ordinal() * (int) slots;
+					int at = (int) tableX + 2 * (int) columns + slot / 16, size = (int) tableX + 3 * (int) columns + slot / 16;
+					if (preview.get(at, slot % 16) != 0 || preview.get(size, slot % 16) != 0) {
+						helper.fail("the " + piece + " design table has a row for spare code " + code + " (" + fit + ")");
+					}
 				}
 			}
 		}
