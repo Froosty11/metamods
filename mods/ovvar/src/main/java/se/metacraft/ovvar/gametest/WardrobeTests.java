@@ -1,5 +1,6 @@
 package se.metacraft.ovvar.gametest;
 
+import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.OvvarConfig;
 import se.metacraft.ovvar.ServerConfig;
 import se.metacraft.ovvar.Ovvar;
@@ -84,7 +85,7 @@ public final class WardrobeTests {
 	private static final int MARKER_ROW_DATA = 3;
 
 	/** Held by whichever sequence test is using the server's wardrobe store right now. */
-	private static final AtomicBoolean BUSY = new AtomicBoolean();
+	static final AtomicBoolean BUSY = new AtomicBoolean();
 
 	static {
 		// The moment the server is up — before the first test spawns a mock player and well before
@@ -565,7 +566,7 @@ public final class WardrobeTests {
 	 */
 	@GameTest
 	public void configFileShowsEverySetting(GameTestHelper helper) {
-		OvvarConfig config = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT);
+		OvvarConfig config = new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, MobOvvarConfig.DEFAULT);
 		JsonObject root = OvvarConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config)
 				.getOrThrow(message -> new IllegalStateException("config does not encode: " + message)).getAsJsonObject();
 		assertEveryKey(helper, root, OvvarConfig.class, "root");
@@ -807,13 +808,13 @@ public final class WardrobeTests {
 						StashConfig withSessions = new StashConfig(sessions.minigameServer(), sessions.sewGameModes(), sessions.ingameObjective(),
 								sessions.bankOnPickup(), sessions.bankInCreative(), sessions.unpickToStash(), sessions.withdraw(), true,
 								sessions.stashClick(), sessions.anyStand(), sessions.sessionReach(), sessions.sessionSeconds(), sessions.explainInChat());
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), withSessions));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), withSessions, config.mobOvvar()));
 						StashSession.start(player, NYCKELN_PATCH, why -> helper.fail("could not start a session: " + why));
 						WardrobeGui withSession = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
 						if (isEmpty(withSession, 49)) helper.fail("finish-sewing button missing with a session running");
 						StashSession.end(player, null);
 					} finally {
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), sessions));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), sessions, config.mobOvvar()));
 					}
 					release(server);
 				}))
@@ -840,7 +841,7 @@ public final class WardrobeTests {
 						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(),
 								new StashConfig(true, stash.sewGameModes(), stash.ingameObjective(), stash.bankOnPickup(), stash.bankInCreative(),
 										stash.unpickToStash(), stash.withdraw(), stash.sessions(), stash.stashClick(), stash.anyStand(),
-										stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat())));
+										stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat()), config.mobOvvar()));
 						WardrobeGui gui = WardrobeGui.forTest(player, CHAPTER, Angle.FRONT);
 						// Not gone, and not a pane of grey glass either: the action's own icon, dimmed
 						// and slashed, named "(not here)" and carrying the reason.
@@ -872,7 +873,7 @@ public final class WardrobeTests {
 								.anyMatch(line -> line.getString().toLowerCase(java.util.Locale.ROOT).contains("look"));
 						if (!sawLookOnly) helper.fail("help book does not explain the server is look-only");
 					} finally {
-						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+						OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash, config.mobOvvar()));
 					}
 					release(server);
 				}))
@@ -2519,12 +2520,12 @@ public final class WardrobeTests {
 			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(),
 					new StashConfig(true, stash.sewGameModes(), stash.ingameObjective(), stash.bankOnPickup(), stash.bankInCreative(),
 							stash.unpickToStash(), stash.withdraw(), stash.sessions(), stash.stashClick(), stash.anyStand(),
-							stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat())));
+							stash.sessionReach(), stash.sessionSeconds(), stash.explainInChat()), config.mobOvvar()));
 			String refusal = WardrobeMannequin.show(player, ovve);
 			if (refusal == null) helper.fail("no refusal on a minigame server");
 			if (WardrobeMannequin.mannequinOf(player) != null) helper.fail("a mannequin was tracked despite the refusal");
 
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash, config.mobOvvar()));
 			String ok = WardrobeMannequin.show(player, ovve);
 			if (ok != null) helper.fail("refused on a survival server: " + ok);
 			var m = WardrobeMannequin.mannequinEntityOf(player);
@@ -2541,7 +2542,7 @@ public final class WardrobeTests {
 			if (WardrobeMannequin.mannequinOf(player).equals(beforeSecond)) helper.fail("the second click reused the same entity instead of replacing it");
 			if (!m.isRemoved()) helper.fail("the first mannequin was not discarded by the second click");
 		} finally {
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash));
+			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), config.server(), config.designs(), stash, config.mobOvvar()));
 		}
 		helper.succeed();
 	}

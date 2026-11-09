@@ -1,0 +1,113 @@
+package se.metacraft.ovvar.content;
+
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.Unit;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
+import se.metacraft.ovvar.MobOvvarConfig;
+import se.metacraft.ovvar.content.item.OvveItem;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Mob ovvar: a mob that vanilla would spawn in leggings or a chestplate sometimes wears a patched
+ * ovve or frack instead. The garment is marked ({@link ModComponents#MOB_OVVE}), unowned, and
+ * carries one to three {@link PatchLoot#LOOT} patches, all of which ride in the dye colour, so it
+ * draws for everyone without a pack. It never drops; the patches it wore sometimes do.
+ */
+public final class MobOvvar {
+	private MobOvvar() {}
+
+	/** Most draws spent finding cells for a garment's patches. */
+	private static final int MAX_DRAWS = 16;
+
+	/** The chapters worn in this slot, in enum order: ovves for the legs, fracks for the chest. */
+	public static List<Chapter> chapters(EquipmentSlot slot) {
+		List<Chapter> chapters = new ArrayList<>();
+		for (Chapter chapter : Chapter.values()) if (chapter.slot == slot) chapters.add(chapter);
+		return chapters;
+	}
+
+	/** The patches a mob may wear: the droppable ones, every one of which is instant. */
+	public static List<Patches.Patch> patches() {
+		return PatchLoot.looted().stream().filter(Looks::instant).toList();
+	}
+
+	/** Is this a mob's own ovve or frack? */
+	public static boolean is(ItemStack stack) {
+		return stack.has(ModComponents.MOB_OVVE);
+	}
+
+	/**
+	 * A new unowned marked ovve (legs) or frack (chest) with one to three patches.
+	 *
+	 * @param topCells whether the top half shows (a frack's always does; an ovve's does when its top is
+	 *                 up and nothing covers it): only then may a patch go on a top cell
+	 * @return the garment, or EMPTY when no chapter wears this slot or no patch may be worn
+	 */
+	public static ItemStack garment(RandomSource random, EquipmentSlot slot, boolean topCells) {
+		List<Chapter> chapters = chapters(slot);
+		List<Patches.Patch> patches = patches();
+		if (chapters.isEmpty() || patches.isEmpty()) return ItemStack.EMPTY;
+		Chapter chapter = chapters.get(random.nextInt(chapters.size()));
+		ItemStack stack = new ItemStack(ModContent.ovve(chapter));
+		stack.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
+		boolean up = slot == EquipmentSlot.CHEST || !chapter.rollable || random.nextBoolean();
+		if (slot == EquipmentSlot.LEGS) OvveItem.setTopUp(stack, up);
+		boolean tops = slot == EquipmentSlot.CHEST || (up && topCells);
+		List<Spot> cells = new ArrayList<>();
+		for (Piece piece : chapter.pieces()) {
+			if (piece == Piece.TOP && !tops) continue;
+			cells.addAll(Spot.cells(piece));
+		}
+		int wanted = 1 + random.nextInt(Looks.INSTANT);
+		int placed = 0;
+		for (int draw = 0; draw < MAX_DRAWS && placed < wanted; draw++) {
+			Patches.Patch patch = patches.get(random.nextInt(patches.size()));
+			List<Spot> open = new ArrayList<>();
+			for (Spot cell : cells) {
+				if (patch.fits(cell) && Looks.canSew(stack, new Placement(cell, patch))) open.add(cell);
+			}
+			if (open.isEmpty()) continue;
+			if (Looks.sew(stack, new Placement(open.get(random.nextInt(open.size())), patch))) placed++;
+		}
+		return placed == 0 ? ItemStack.EMPTY : stack;
+	}
+
+	/**
+	 * What a mob's spawn roll puts in this slot: {@code vanilla}, or now and then a garment in its
+	 * place (whose slot then never drops).
+	 */
+	public static ItemStack spawnPiece(Mob mob, EquipmentSlot slot, ItemStack vanilla, RandomSource random, MobOvvarConfig config) {
+		if (slot != EquipmentSlot.LEGS && slot != EquipmentSlot.CHEST) return vanilla;
+		if (!config.enabled() || vanilla.isEmpty() || !(random.nextFloat() < config.chance())) return vanilla;
+		ItemStack garment = garment(random, slot, slot == EquipmentSlot.CHEST || mob.getItemBySlot(EquipmentSlot.CHEST).isEmpty());
+		if (garment.isEmpty()) return vanilla;
+		mob.setDropChance(slot, 0f);
+		return garment;
+	}
+
+	/** Puts a garment on the mob in its own slot; the slot never drops. */
+	public static void wear(Mob mob, ItemStack garment) {
+		OvveItem.wear(mob, garment);
+		mob.setDropChance(((OvveItem) garment.getItem()).chapter.slot, 0f);
+	}
+
+	/** How likely each worn patch is to drop. Magpie (part 5) raises this for a killer whose ovve has it. */
+	public static float patchDropChance(MobOvvarConfig config, @Nullable Entity killer) {
+		return config.patchDropChance();
+	}
+
+	/** The patches this garment wore that drop: each placement independently, one patch item apiece. */
+	public static List<ItemStack> patchDrops(ItemStack garment, RandomSource random, float chance) {
+		List<ItemStack> drops = new ArrayList<>();
+		for (Placement placement : SpotPlacements.asPlacementList(Looks.sewn(garment))) {
+			if (random.nextFloat() < chance) drops.add(new ItemStack(ModContent.patchItem(placement.patch())));
+		}
+		return drops;
+	}
+}

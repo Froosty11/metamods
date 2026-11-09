@@ -22,8 +22,9 @@ import java.util.function.UnaryOperator;
  * @param server	     what this server calls itself ({@link ServerConfig})
  * @param designs	    where the players' wardrobes live and what sewing does without it ({@link DesignStoreConfig})
  * @param stash		  this server's role, and the rules for taking patches out of the stash ({@link StashConfig})
+ * @param mobOvvar	   mobs that spawn in an ovve or a frack and drop its patches ({@link MobOvvarConfig})
  */
-public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig server, DesignStoreConfig designs, StashConfig stash) {
+public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig server, DesignStoreConfig designs, StashConfig stash, MobOvvarConfig mobOvvar) {
 	public static final int MIN_STITCHES = 1, MAX_STITCHES = 16;
 
 
@@ -32,11 +33,12 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 			ConfigFields.required(Codec.intRange(MIN_STITCHES, MAX_STITCHES).fieldOf("stitches"), "How many pulls a cell-sized patch takes in the minigame (1-16); bigger patches take", "proportionally more.").forGetter(OvvarConfig::stitches),
 			ConfigFields.field(ServerConfig.CODEC.codec(), "server", ServerConfig.DEFAULT, "What this server calls itself. (ovvar no longer sets the MOTD from it: that is", "server.properties' motd.)").forGetter(OvvarConfig::server),
 			ConfigFields.field(DesignStoreConfig.CODEC.codec(), "designs", DesignStoreConfig.DEFAULT, "Where every player's wardrobe (their sewn patches per chapter and their stash of unsewn patches)", "is kept. All servers should point at the same store.").forGetter(OvvarConfig::designs),
-			ConfigFields.field(StashConfig.CODEC.codec(), "stash", StashConfig.DEFAULT, "What this server is, and the rules for patches here. Patches live in a player's stash (shared by", "all servers), on their ovve, or as items in the world.").forGetter(OvvarConfig::stash)
-	).apply(instance, (minigame, stitches, server, designs, stash) -> new OvvarConfig(minigame, stitches, server, designs, stash)));
+			ConfigFields.field(StashConfig.CODEC.codec(), "stash", StashConfig.DEFAULT, "What this server is, and the rules for patches here. Patches live in a player's stash (shared by", "all servers), on their ovve, or as items in the world.").forGetter(OvvarConfig::stash),
+			ConfigFields.field(MobOvvarConfig.CODEC.codec(), "mob_ovvar", MobOvvarConfig.DEFAULT, "Mob ovvar: mobs that spawn in an ovve or a frack and drop its patches.").forGetter(OvvarConfig::mobOvvar)
+	).apply(instance, (minigame, stitches, server, designs, stash, mobOvvar) -> new OvvarConfig(minigame, stitches, server, designs, stash, mobOvvar)));
 
 	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, () -> new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT)
+			CODEC, () -> new OvvarConfig(true, 6, ServerConfig.DEFAULT, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, MobOvvarConfig.DEFAULT)
 	).build(Ovvar.MOD_ID);
 
 
@@ -45,12 +47,17 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, ServerConfig ser
 	}
 
 	public OvvarConfig minigame(boolean on, int stitches) {
-		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), server, designs, stash);
+		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), server, designs, stash, mobOvvar);
 	}
 
 	/** The same config with other store settings (a test, a command). */
 	public OvvarConfig designs(DesignStoreConfig designs) {
-		return new OvvarConfig(sewingMinigame, stitches, server, designs, stash);
+		return new OvvarConfig(sewingMinigame, stitches, server, designs, stash, mobOvvar);
+	}
+
+	/** The same config with other mob ovvar settings (a test, a command). */
+	public OvvarConfig mobOvvar(MobOvvarConfig mobOvvar) {
+		return new OvvarConfig(sewingMinigame, stitches, server, designs, stash, mobOvvar);
 	}
 
 	/** Re-reads {@code config/ovvar.json}. */
