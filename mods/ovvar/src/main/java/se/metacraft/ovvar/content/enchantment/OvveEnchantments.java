@@ -78,6 +78,7 @@ public final class OvveEnchantments {
 		EnderPockets.init();
 		Keepsake.init();
 		SpilledDrink.init();
+		Keyring.init();
 		// Each enchantment's behaviour hooks in here.
 	}
 
