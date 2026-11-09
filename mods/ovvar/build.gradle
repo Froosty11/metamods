@@ -126,6 +126,37 @@ tasks.register('wardrobeSheet', JavaExec) {
 	args = [project.findProperty('sheet') ?: '/tmp/wardrobe_v3_sheet.png', project.findProperty('chapter') ?: 'data', project.findProperty('sheetState') ?: 'sewn']
 }
 
+// The same client tests under a shaderpack: -Piris=<shaderpack .zip> adds Iris and Sodium to the test client
+// and turns that pack on (ported from nether-rifts). With -Povvar.iris.expect=checker|art the client run also
+// does unpatchedPackShowsChecker (an unpatched pack shows the magenta/black checker on the right limbs, a pack
+// patched by OvvarShaderPatcher.jar does not). Gradle -D flags do not reach the forked game JVM, so both
+// properties are turned into jvmArgs here. A missing pack file fails the run before the client starts.
+if (project.hasProperty('iris')) {
+	def pack = file(project.property('iris'))
+	dependencies {
+		gametestRuntimeOnly("maven.modrinth:iris:1.11.7+26.3-fabric")
+		gametestRuntimeOnly("maven.modrinth:sodium:mc26.3-0.9.3-alpha.1-fabric")
+	}
+	tasks.named('runClientGameTest') {
+		def runDir = file('build/run/clientGameTest')
+		environment('OVVAR_SHADERPACK', pack.name)
+		jvmArgs "-Dovvar.iris.pack=${pack.name}"
+		doFirst {
+			if (!pack.isFile()) throw new GradleException("Ovvar: -Piris=${pack} is not a file")
+			delete fileTree("$runDir/shaderpacks")
+			project.copy { from pack; into "$runDir/shaderpacks" }
+			file("$runDir/config").mkdirs()
+			file("$runDir/config/iris.properties").text = "enableShaders=true\nshaderPack=${pack.name}\n"
+		}
+	}
+}
+if (project.hasProperty('ovvar.iris.expect')) {
+	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -Povvar.iris.expect needs -Piris=<shaderpack .zip>')
+	tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+		jvmArgs "-Dovvar.iris.expect=${project.property('ovvar.iris.expect')}"
+	}
+}
+
 processResources {
 	// The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
 	from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }

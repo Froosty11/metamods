@@ -880,6 +880,26 @@ sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Sol
 (OpenGL 4.1), so they are unchecked. Check a pack in game with
 `./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
 
+### Client test under a shaderpack (unpatched pack shows the checker)
+
+`OvvarShaderpackClientTests` does nothing unless `-Povvar.iris.expect=checker|art` is given (and then
+`-Piris=<pack.zip>` is required). It stands a Data ovve on a mannequin with nothing sewn, waits 100 ticks and
+crops the right leg's front face: `checker` wants at least 30% of its pixels within 40 per channel of #FF00FF
+(an unpatched pack draws the checker that fills the original right-limb box), `art` wants none. It first asserts
+through Iris's API that a pack is in use and is the one named by `-Piris`; Iris falls back silently otherwise.
+In the cloud (environment `Minecraft`):
+
+```
+curl -L -o bsl.zip <BSL download URL from Modrinth>
+./gradlew :mods:ovvar:patcherJar
+java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 # writes bsl+ovvar.zip next to it
+./gradlew :mods:ovvar:runClientGameTest                                        # vanilla, unchanged
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=checker
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
+```
+
+Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
+
 ## Credits
 
 Patch art: ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
