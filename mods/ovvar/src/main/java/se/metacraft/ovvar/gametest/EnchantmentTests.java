@@ -34,6 +34,15 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.EntityTypes;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.PatchLoot;
+import se.metacraft.ovvar.content.enchantment.Magpie;
+import se.metacraft.ovvar.content.item.PatchItem;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.levelgen.SingleThreadedRandomSource;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
 import se.metacraft.ovvar.content.SpotPlacements;
@@ -300,6 +309,91 @@ public final class EnchantmentTests {
 		helper.assertValueEqual(EnchantmentHelper.getDamageProtection(level, stand, level.damageSources().fellOutOfWorld()), 0f, "protection against the void");
 		OvveItem.wear(stand, plain);
 		helper.assertValueEqual(EnchantmentHelper.getDamageProtection(level, stand, level.damageSources().generic()), 0f, "protection without the enchantment");
+		helper.succeed();
+	}
+
+	// ---- Magpie
+
+	private static void near(GameTestHelper helper, float got, float want, String what) {
+		helper.assertTrue(Math.abs(got - want) < 1e-6f, what + " was " + got + ", wanted " + want);
+	}
+
+	@GameTest
+	public void magpieChances(GameTestHelper helper) {
+		EnchantmentsConfig.Magpie cfg = EnchantmentsConfig.Magpie.DEFAULT;
+		near(helper, Magpie.chestChance(0, cfg), 0.05f, "chestChance(0)");
+		near(helper, Magpie.chestChance(1, cfg), 0.08f, "chestChance(1)");
+		near(helper, Magpie.chestChance(3, cfg), 0.14f, "chestChance(3)");
+		near(helper, Magpie.mobOvvarChance(0.25f, 2, cfg), 0.45f, "mobOvvarChance(0.25, 2)");
+		near(helper, Magpie.mobOvvarChance(0.95f, 3, cfg), 1.0f, "mobOvvarChance(0.95, 3)");
+		helper.assertValueEqual(Magpie.level(null), 0, "level(null)");
+		helper.succeed();
+	}
+
+	/** An armour stand in a Data ovve (or a Media frack) with {@code magpie} levels of Magpie; 0 means plain. */
+	private static ArmorStand standIn(GameTestHelper helper, Chapter chapter, int magpie) {
+		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(2, 1, 2));
+		ItemStack garment = new ItemStack(ModContent.ovve(chapter));
+		if (magpie > 0) garment.enchant(holder(helper, MAGPIE), magpie);
+		OvveItem.wear(stand, garment);
+		return stand;
+	}
+
+	/** The share of 4000 dungeon chests, opened by {@code opener}, that hold a patch; no NON_LOOT patch may ever show. */
+	private static double patchShare(GameTestHelper helper, Entity opener) {
+		LootTable table = helper.getLevel().getServer().reloadableRegistries().getLootTable(BuiltInLootTables.SIMPLE_DUNGEON);
+		LootParams.Builder builder = new LootParams.Builder(helper.getLevel())
+				.withParameter(LootContextParams.ORIGIN, helper.absoluteVec(new Vec3(1, 1, 1)));
+		if (opener != null) builder.withParameter(LootContextParams.THIS_ENTITY, opener);
+		LootParams params = builder.create(LootContextParamSets.CHEST);
+		int with = 0;
+		for (int seed = 0; seed < 4000; seed++) {
+			boolean any = false;
+			for (ItemStack stack : table.getRandomItems(params, seed)) {
+				if (stack.getItem() instanceof PatchItem item) {
+					any = true;
+					helper.assertFalse(PatchLoot.NON_LOOT.contains(item.patch.id()), "a dungeon chest held " + item.patch.id() + ", which is not loot");
+				}
+			}
+			if (any) with++;
+		}
+		return with / 4000.0;
+	}
+
+	private static void share(GameTestHelper helper, double got, double lo, double hi, String what) {
+		helper.assertTrue(got >= lo && got <= hi, what + ": " + got + " not in [" + lo + ", " + hi + "]");
+	}
+
+	@GameTest
+	public void magpieRaisesChestPatches(GameTestHelper helper) {
+		share(helper, patchShare(helper, standIn(helper, Chapter.DATA, 3)), 0.12, 0.16, "Magpie III opener");
+		share(helper, patchShare(helper, standIn(helper, Chapter.DATA, 0)), 0.035, 0.065, "plain ovve opener");
+		share(helper, patchShare(helper, null), 0.035, 0.065, "no opener");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void magpieOnAFrackCounts(GameTestHelper helper) {
+		share(helper, patchShare(helper, standIn(helper, Chapter.MEDIA, 3)), 0.12, 0.16, "Magpie III frack opener");
+		helper.succeed();
+	}
+
+	/** Part 2's mob-ovvar patch-drop roll will call {@link Magpie#mobOvvarDrop}; this is that comparison. */
+	@GameTest
+	public void magpieRaisesMobOvvarDrops(GameTestHelper helper) {
+		float base = 0.25f;
+		RandomSource roll = new SingleThreadedRandomSource(0) {
+			@Override
+			public float nextFloat() {
+				return base + 0.05f;
+			}
+		};
+		EnchantmentsConfig.Magpie cfg = EnchantmentsConfig.Magpie.DEFAULT;
+		helper.assertFalse(Magpie.mobOvvarDrop(roll, base, standIn(helper, Chapter.DATA, 0), cfg), "a killer in a plain ovve got a drop");
+		helper.assertTrue(Magpie.mobOvvarDrop(roll, base, standIn(helper, Chapter.DATA, 1), cfg), "a killer in a Magpie I ovve got no drop");
+		helper.assertFalse(Magpie.mobOvvarDrop(roll, base, null, cfg), "no killer got a drop");
+		near(helper, Magpie.patchDropBonus(standIn(helper, Chapter.DATA, 2)), 0.20f, "patchDropBonus(Magpie II)");
+		near(helper, Magpie.patchDropBonus(null), 0f, "patchDropBonus(null)");
 		helper.succeed();
 	}
 }
