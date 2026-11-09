@@ -314,19 +314,17 @@ public final class OvvarGameTests {
 	public void shadersCommandLinksThePage(GameTestHelper helper) {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		net.minecraft.server.MinecraftServer server = helper.getLevel().getServer();
-		se.metacraft.ovvar.ServerConfig before = OvvarConfig.get().server();
+		se.metacraft.ovvar.ShadersConfig before = OvvarConfig.get().shaders();
 		try {
-			String firstUrl = shadersLink(helper, server, player, before.shaderPatcherUrl());
+			String firstUrl = shadersLink(helper, server, player, before.patcherUrlOrDefault());
 			if (firstUrl == null) return;
 			String other = "https://example.org/x";
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(),
-					new se.metacraft.ovvar.ServerConfig(before.name(), other), config.designs(), config.stash(), config.mobOvvar()));
+			OvvarConfig.modify(config -> config.shaders(new se.metacraft.ovvar.ShadersConfig(other)));
 			shadersLink(helper, server, player, other);
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(),
-					new se.metacraft.ovvar.ServerConfig(before.name(), "  "), config.designs(), config.stash(), config.mobOvvar()));
-			shadersLink(helper, server, player, se.metacraft.ovvar.ServerConfig.DEFAULT_SHADER_PATCHER_URL);
+			OvvarConfig.modify(config -> config.shaders(new se.metacraft.ovvar.ShadersConfig("  ")));
+			shadersLink(helper, server, player, se.metacraft.ovvar.ShadersConfig.DEFAULT_PATCHER_URL);
 		} finally {
-			OvvarConfig.modify(config -> new OvvarConfig(config.sewingMinigame(), config.stitches(), before, config.designs(), config.stash(), config.mobOvvar()));
+			OvvarConfig.modify(config -> config.shaders(before));
 		}
 		helper.succeed();
 	}
