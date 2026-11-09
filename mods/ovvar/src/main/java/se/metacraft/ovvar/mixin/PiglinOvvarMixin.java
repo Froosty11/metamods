@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,6 +21,6 @@ public abstract class PiglinOvvarMixin {
 	@WrapOperation(method = "maybeWearArmor", at = @At(value = "INVOKE", target =
 			"Lnet/minecraft/world/entity/monster/piglin/Piglin;setItemSlot(Lnet/minecraft/world/entity/EquipmentSlot;Lnet/minecraft/world/item/ItemStack;)V"))
 	private void ovvar$mobOvvar(Piglin self, EquipmentSlot slot, ItemStack stack, Operation<Void> original, @Local(argsOnly = true) RandomSource random) {
-		original.call(self, slot, MobOvvar.spawnPiece((Mob) (Object) this, slot, stack, random, OvvarConfig.get().mobOvvar()));
+		original.call(self, slot, MobOvvar.spawnPiece(self, slot, stack, random, OvvarConfig.get().mobOvvar()));
 	}
 }

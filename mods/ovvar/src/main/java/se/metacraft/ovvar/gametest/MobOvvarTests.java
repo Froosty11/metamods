@@ -41,20 +41,17 @@ import se.metacraft.ovvar.content.item.OvveTopItem;
 import se.metacraft.ovvar.content.item.PatchItem;
 import se.metacraft.ovvar.pack.Combos;
 
-import java.util.LinkedHashMap;
-import java.util.TreeSet;
-import java.util.UUID;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import net.minecraft.network.chat.Component;
-import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.EntityType;
@@ -304,7 +301,7 @@ public final class MobOvvarTests {
 	/** Runs the body with this mob ovvar config, holding the lock; the config and the lock come back whatever happens. */
 	private static void withMobOvvar(GameTestHelper helper, MobOvvarConfig config, Runnable body) {
 		helper.startSequence()
-				.thenWaitUntil(() -> assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
+				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
 				.thenExecute(() -> {
 					MobOvvarConfig before = OvvarConfig.get().mobOvvar();
 					try {
@@ -316,10 +313,6 @@ public final class MobOvvarTests {
 					}
 				})
 				.thenSucceed();
-	}
-
-	private static void assertThat(boolean condition, String message) {
-		if (!condition) throw new GameTestAssertException(Component.literal(message), 0);
 	}
 
 	@GameTest(maxTicks = 1200)
@@ -566,6 +559,8 @@ public final class MobOvvarTests {
 		helper.assertTrue(MobOvvar.killer(zombie, level.damageSources().generic()) == player, "a delayed kill credits the player");
 		var wolf = helper.spawn(EntityTypes.WOLF, 4, 1, 2);
 		helper.assertTrue(MobOvvar.killer(zombie, level.damageSources().mobAttack(wolf)) == player, "a tamed wolf's kill credits the player");
+		Zombie fresh = helper.spawn(EntityTypes.ZOMBIE, 3, 1, 3);
+		helper.assertTrue(MobOvvar.killer(fresh, level.damageSources().mobAttack(wolf)) == wolf, "a mob nobody hit falls back to the damage's entity");
 		helper.succeed();
 	}
 
@@ -582,9 +577,34 @@ public final class MobOvvarTests {
 				for (ItemStack item : itemsAround(helper)) {
 					if (BuiltInRegistries.ITEM.getKey(item.getItem()).getPath().startsWith("patch_")) helper.fail("a patch dropped with mob drops off: " + item);
 				}
+				// Control: the same kill with mob drops on does drop patches, so the check above can't pass vacuously.
+				rules.set(GameRules.MOB_DROPS, true, level.getServer());
+				Zombie control = patchedZombie(helper);
+				control.hurtServer(level, level.damageSources().playerAttack(helper.makeMockServerPlayerInLevel()), 1000f);
+				helper.assertTrue(itemsAround(helper).stream().anyMatch(i -> BuiltInRegistries.ITEM.getKey(i.getItem()).getPath().startsWith("patch_")),
+						"with mob drops on the same kill drops patches");
 			} finally {
 				rules.set(GameRules.MOB_DROPS, before, level.getServer());
 			}
 		});
+	}
+
+	@GameTest
+	public void mobCommandSummonsOne(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		var level = helper.getLevel();
+		var source = player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
+		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
+			var box = player.getBoundingBox().inflate(2);
+			List<Zombie> before = level.getEntitiesOfClass(Zombie.class, box);
+			level.getServer().getCommands().performPrefixedCommand(source, slot == EquipmentSlot.LEGS ? "ovvar mob" : "ovvar mob frack");
+			List<Zombie> added = level.getEntitiesOfClass(Zombie.class, box);
+			added.removeAll(before);
+			helper.assertValueEqual(added.size(), 1, "zombies the command added for " + slot);
+			Zombie zombie = added.getFirst();
+			helper.assertTrue(MobOvvar.is(zombie.getItemBySlot(slot)), "the zombie's " + slot + " is a mob ovvar garment");
+			helper.assertTrue(zombie.isPersistenceRequired(), "the zombie is persistent");
+		}
+		helper.succeed();
 	}
 }

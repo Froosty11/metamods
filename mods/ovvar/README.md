@@ -113,6 +113,25 @@ them. It is added to the tables as they load, not shipped as copies of them, so 
 another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
 `LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
 
+**Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
+chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
+`Mob.populateDefaultEquipmentSlots` (`MobOvvarMixin`, wrapping its `setItemSlot`) and
+`Piglin.maybeWearArmor` (`PiglinOvvarMixin`), because a piglin rolls its own gold. Only a slot vanilla
+was about to fill is touched, so each spawn roll is the chance that vanilla's piece becomes a garment
+(`MobOvvar.spawnPiece`); a mob that already wears one keeps it. The chapter is random among those that
+are worn in that slot (fracks are `Chapter.values()` with `slot == CHEST`), an ovve's top is up at
+random where the chapter can roll, and it carries one to three patches from `PatchLoot.LOOT` only,
+all of them instant looks, on cells that show (a frack's top, an ovve's top only when it is up and no
+chest piece covers it). It is unowned, marked `ovvar:mob_ovve`, and pushes no pack and builds no combo.
+The garment can never reach a player: its slot's drop chance is 0, `equipItemIfPossible` is cancelled
+for a slot that holds one (so a swap for better armour can't put it on the ground), `ALLOW_LOAD`
+rejects any item entity holding a marked stack, and the player tick deletes a marked garment found in
+a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`, the player being
+`MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
+patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
+`config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` is where Magpie (part 5) will raise the drop chance.
+
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
@@ -490,6 +509,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar give [player] <chapter> [patches]   their stored design; with patches (all / cell.patch / ids) those replace it
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
+    /ovvar mob [ovve|frack]                    a persistent zombie at you in a mob ovvar ovve (default) or frack, to look at or kill
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)

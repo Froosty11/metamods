@@ -27,7 +27,7 @@ public abstract class MobOvvarMixin {
 	@WrapOperation(method = "populateDefaultEquipmentSlots", at = @At(value = "INVOKE", target =
 			"Lnet/minecraft/world/entity/Mob;setItemSlot(Lnet/minecraft/world/entity/EquipmentSlot;Lnet/minecraft/world/item/ItemStack;)V"))
 	private void ovvar$mobOvvar(Mob self, EquipmentSlot slot, ItemStack stack, Operation<Void> original, @Local(argsOnly = true) RandomSource random) {
-		original.call(self, slot, MobOvvar.spawnPiece((Mob) (Object) this, slot, stack, random, OvvarConfig.get().mobOvvar()));
+		original.call(self, slot, MobOvvar.spawnPiece(self, slot, stack, random, OvvarConfig.get().mobOvvar()));
 	}
 
 	/**

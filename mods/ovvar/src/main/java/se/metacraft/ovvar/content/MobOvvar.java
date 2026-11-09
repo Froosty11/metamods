@@ -12,7 +12,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
-
 import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
@@ -118,10 +117,10 @@ public final class MobOvvar {
 	}
 
 	/**
-	 * How likely each worn patch is to drop. Magpie (part 5) raises this for a killer whose ovve has it.
+	 * How likely each worn patch is to drop. Magpie (part 5) will raise this for a killer whose ovve has it.
 	 *
-	 * @param killer the player credited with the kill (see {@link #killer}), so a tamed wolf's or a
-	 *               delayed kill still reaches the player; may be null
+	 * @param killer the creditee of the kill (see {@link #killer}); reserved for Magpie (part 5) and
+	 *               unused today; may be null
 	 */
 	public static float patchDropChance(MobOvvarConfig config, @Nullable Entity killer) {
 		return config.patchDropChance();

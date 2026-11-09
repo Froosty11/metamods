@@ -575,6 +575,13 @@ public final class WardrobeTests {
 		assertEveryKey(helper, designs, DesignStoreConfig.class, "designs");
 		assertEveryKey(helper, designs == null ? null : designs.getAsJsonObject("jdbc"), DesignStoreConfig.Jdbc.class, "designs.jdbc");
 		assertEveryKey(helper, root.getAsJsonObject("stash"), StashConfig.class, "stash");
+		JsonObject mob = root.getAsJsonObject("mob_ovvar");
+		assertEveryKey(helper, mob, MobOvvarConfig.class, "mob_ovvar");
+		if (mob != null) {
+			for (String key : List.of("enabled", "chance", "patch_drop_chance")) {
+				if (!mob.has(key)) helper.fail("mob_ovvar has no \"" + key + "\" key: " + mob.keySet());
+			}
+		}
 		try {
 			java.nio.file.Path file = java.nio.file.Files.createTempFile("ovvar-config", ".json");
 			se.metacraft.config.util.helper.JanksonHelper.save(file, OvvarConfig.CODEC.codec(), config);
@@ -585,6 +592,18 @@ public final class WardrobeTests {
 		} catch (java.io.IOException e) {
 			helper.fail("couldn't write the config file: " + e);
 		}
+		helper.succeed();
+	}
+
+	/** A config/ovvar.json from before mob ovvar has no mob_ovvar block: it loads, with the defaults. */
+	@GameTest
+	public void configWithoutMobOvvarLoadsDefaults(GameTestHelper helper) {
+		JsonObject old = new JsonObject();
+		old.addProperty("sewing_minigame", false);
+		old.addProperty("stitches", 6);
+		OvvarConfig loaded = OvvarConfig.CODEC.codec().parse(JsonOps.INSTANCE, old)
+				.getOrThrow(message -> new IllegalStateException("an old config does not load: " + message));
+		helper.assertValueEqual(loaded.mobOvvar(), MobOvvarConfig.DEFAULT, "mob_ovvar of a config without the block");
 		helper.succeed();
 	}
 
@@ -3025,7 +3044,7 @@ public final class WardrobeTests {
 		}
 	}
 
-	private static void assertThat(boolean condition, String message) {
+	static void assertThat(boolean condition, String message) {
 		if (!condition) throw new GameTestAssertException(Component.literal(message), 0);
 	}
 }
