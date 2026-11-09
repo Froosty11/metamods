@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ovvar poster</title>
+<style>
+/* Rendered at 1240×1754 CSS px, device scale 2 → 2480×3508 (A-series portrait).
+   Minecraft's glyphs sit on an 8-to-the-em grid, so every font-size is a multiple of 8. */
+@font-face { font-family: "Minecraft"; src: url("fonts/Minecraft.otf"); font-weight: 400; }
+@font-face { font-family: "Minecraft"; src: url("fonts/Minecraft-Bold.otf"); font-weight: 700; }
+
+:root {
+	--cloth: #8C2340;
+	--fold: #5E1529;
+	--thread: #F4EBDD;
+	--gold: #F2B632;
+	--green: #2BD13E;
+	--ink: #190C12;
+	--hero: url("img/31_shaders_complementary_group_front.png");
+	--hero-pos: 50% 100%;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1240px; height: 1754px; overflow: hidden; }
+body {
+	font-family: "Minecraft", monospace;
+	color: var(--thread);
+	background: var(--cloth);
+	-webkit-font-smoothing: none;
+	position: relative;
+}
+
+/* ---------- the screenshot ---------- */
+.hero {
+	position: absolute; inset: 0 0 auto 0; height: 640px;
+	background: var(--hero) var(--hero-pos) / cover no-repeat;
+}
+/* the sky behind the title is pulled down a stop so the lettering holds */
+.hero::after {
+	content: ""; position: absolute; inset: 0;
+	background: linear-gradient(to bottom, rgba(25,12,18,.55) 0, rgba(25,12,18,0) 300px);
+}
+
+.title {
+	position: absolute; left: 64px; top: 28px; z-index: 2;
+	font-weight: 700; font-size: 176px; line-height: 1; letter-spacing: 0;
+	color: var(--thread);
+	text-shadow: 8px 8px 0 var(--ink);
+}
+.sub {
+	position: absolute; left: 72px; top: 516px; z-index: 2;
+	font-size: 24px; line-height: 32px; max-width: 720px;
+	text-shadow: 4px 4px 0 var(--ink);
+}
+
+/* ---------- the hem: cloth folded up over the picture, stitched down ---------- */
+.cloth {
+	position: absolute; inset: 592px 0 0 0;
+	background:
+		/* weave: one darker texel row and column every 8px, like the item texture */
+		repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 4px, transparent 4px 16px),
+		repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 4px, transparent 4px 16px),
+		var(--cloth);
+}
+.cloth::before { /* the fold */
+	content: ""; position: absolute; inset: 0 0 auto 0; height: 40px; background: var(--fold);
+}
+.cloth::after { /* the stitch */
+	content: ""; position: absolute; left: 0; right: 0; top: 56px; height: 8px;
+	background: repeating-linear-gradient(90deg, var(--thread) 0 32px, transparent 32px 56px);
+}
+
+/* ---------- the number ---------- */
+.count {
+	position: absolute; left: -16px; right: -16px; top: 688px; height: 96px;
+	font-weight: 400; font-size: 32px; line-height: 96px; white-space: nowrap; text-align: center;
+	color: var(--ink); background: var(--gold);
+	border-top: 4px dashed var(--ink); border-bottom: 4px dashed var(--ink);
+	outline: 8px solid var(--gold);
+	box-shadow: 0 16px 0 rgba(0,0,0,.28);
+	transform: rotate(-.6deg);
+}
+.ways {
+	position: absolute; left: 68px; top: 814px;
+	font-weight: 700; font-size: 64px; line-height: 64px; white-space: nowrap;
+	text-shadow: 4px 4px 0 var(--ink);
+}
+.count-what {
+	position: absolute; left: 72px; top: 900px; width: 1096px;
+	font-size: 24px; line-height: 34px;
+}
+.count-what sup { font-size: 16px; vertical-align: 10px; line-height: 0; }
+.count-what b { font-weight: 400; color: var(--gold); }
+
+/* ---------- stats, sewn on ---------- */
+.patch {
+	position: absolute;
+	background: var(--ink);
+	outline: 8px solid var(--ink);
+	border: 4px dashed var(--thread);
+	padding: 14px 20px 16px;
+	box-shadow: 8px 8px 0 rgba(0,0,0,.28);
+}
+.patch .n { font-weight: 700; font-size: 48px; line-height: 48px; display: block; }
+.patch .l { font-size: 16px; line-height: 22px; display: block; margin-top: 8px; }
+.patch.p1 { left: 72px;  top: 1030px; width: 328px; transform: rotate(-1.5deg); }
+.patch.p2 { left: 452px; top: 1024px; width: 336px; transform: rotate(1deg); background: var(--thread); color: var(--ink); outline-color: var(--thread); border-color: var(--cloth); }
+.patch.p3 { left: 840px; top: 1034px; width: 328px; transform: rotate(-.75deg); }
+.patch.w { background: var(--fold); outline-color: var(--fold); border-color: var(--gold); }
+.patch.w .n { font-weight: 400; font-size: 24px; line-height: 28px; color: var(--gold); }
+.patch.w1 { left: 72px;  top: 1178px; width: 328px; transform: rotate(1deg); }
+.patch.w2 { left: 452px; top: 1184px; width: 336px; transform: rotate(-.75deg); }
+.patch.w3 { left: 840px; top: 1176px; width: 328px; transform: rotate(1.25deg); }
+.patch.first { right: 36px; top: 84px; width: 248px; z-index: 3; transform: rotate(4deg); background: var(--gold); color: var(--ink); outline-color: var(--gold); border-color: var(--ink); }
+.patch.first .n { font-weight: 400; font-size: 24px; line-height: 28px; }
+.patch.p1 .n { color: var(--green); }
+.patch.p3 .n { color: var(--gold); }
+
+/* ---------- close-ups, sewn on ---------- */
+.shot {
+	position: absolute; width: 344px; height: 136px;
+	outline: 8px solid var(--thread);
+	border: 4px dashed var(--fold);
+	background-size: cover; background-repeat: no-repeat;
+	box-shadow: 8px 8px 0 rgba(0,0,0,.28);
+}
+.shot.s1 { left: 72px;  top: 1318px; transform: rotate(1deg);   background-image: url("img/06_closeup_shoulder_corner.png");   background-position: 70% 72%; background-size: 130%; }
+.shot.s2 { left: 448px; top: 1322px; transform: rotate(-1deg);  background-image: url("img/10_closeup_back_big_cell.png");   background-position: 18% 66%; background-size: 135%; }
+.shot.s3 { left: 824px; top: 1318px; transform: rotate(.75deg); background-image: url("img/08_closeup_leg_rolled_down.png"); background-position: 50% 82%; background-size: 140%; }
+.cap {
+	position: absolute; top: 1470px; width: 344px; font-size: 16px; line-height: 20px; opacity: .9;
+}
+.shot.s4 { left: 72px;  top: 1528px; transform: rotate(-.75deg); }
+.shot.s5 { left: 448px; top: 1524px; transform: rotate(1deg); }
+.shot.s6 { left: 824px; top: 1530px; transform: rotate(-1deg); }
+.shot.s4 { background-image: url("img/31_shaders_bsl_group_front.png"); background-position: 45% 72%; background-size: 170%; }
+.shot.s5 { background-image: url("img/23_armour_over_ovve_front.png"); background-position: 15% 62%; background-size: 115%; }
+.shot.s6 { background-image: url("img/21_inventory_worn_ovve_pockets.png"); background-position: 64% 47%; background-size: 215%; }
+.cap.r2 { top: 1680px; }
+.cap.c1, .cap.c4 { left: 72px; } .cap.c2, .cap.c5 { left: 448px; } .cap.c3, .cap.c6 { left: 824px; }
+
+/* real patch art, loose on the cloth */
+.art { position: absolute; image-rendering: pixelated; filter: drop-shadow(4px 4px 0 rgba(0,0,0,.35)); }
+
+.art.a1 { right: 256px; top: 560px; width: 112px; transform: rotate(6deg); }
+.art.a2 { right: 96px; top: 544px; width: 128px; transform: rotate(-5deg); }
+
+.foot {
+	position: absolute; right: 72px; top: 1124px; text-align: right;
+	font-size: 16px; line-height: 24px; opacity: .85;
+}
+</style>
+</head>
+<body>
+
+<div class="hero"></div>
+<h1 class="title">OVVAR</h1>
+<p class="sub">Student overalls for Minecraft. Earn patches, sew them on where you like, wear your whole year on your back.</p>
+
+<div class="patch first"><span class="n">A first, as far as we know</span><span class="l">Outfits players compose themselves, patch by patch, that a vanilla client can see.</span></div>
+
+<div class="cloth"></div>
+<img class="art a1" src="img/patches/itk_16x16.png" alt="">
+<img class="art a2" src="img/patches/in_gold.png" alt="">
+
+<div class="count">40,533,074,945,605,645,208,272,643,089,435,106,646,003</div>
+<div class="ways">ways to patch one ovve</div>
+<p class="count-what">Today's 16 patches over 33 cells, plus 2 across the seat: <b>17<sup>31</sup> × 291</b>. Each new patch multiplies it by 6.6. The first three on each half ride inside <b>a single dye colour</b>, drawn by a core shader as you sew.</p>
+
+<div class="patch p1"><span class="n">0</span><span class="l">client mods. Join with vanilla, the server sends the rest.</span></div>
+<div class="patch p2"><span class="n">735</span><span class="l">lines of GLSL bending pixel art round arms and legs.</span></div>
+<div class="patch p3"><span class="n">34</span><span class="l">places to sew a patch, from shoulders to seat.</span></div>
+
+<div class="patch w w1"><span class="n">Event patches</span><span class="l">Earned at chapter events. You had to be there.</span></div>
+<div class="patch w w2"><span class="n">Your stash</span><span class="l">Every patch you own, banked until you sew it.</span></div>
+<div class="patch w w3"><span class="n">Every world</span><span class="l">Sew on one server, wear it on all of them.</span></div>
+
+<div class="shot s1"></div><div class="shot s2"></div><div class="shot s3"></div>
+<p class="cap c1">Art wraps round the corners of the body, the way cloth does.</p>
+<p class="cap c2">A 16×16 back piece and a seat patch, drawn by chapter artists.</p>
+<p class="cap c3">Zip it down and the top hangs from the waist, patches and all.</p>
+
+<div class="shot s4"></div><div class="shot s5"></div><div class="shot s6"></div>
+<p class="cap r2 c4">Works with shader packs: BSL, Complementary, Photon and more, through a bundled patcher.</p>
+<p class="cap r2 c5">Armour goes on over it: chestplate, elytra, the lot.</p>
+<p class="cap r2 c6">It has pockets. An ovve is a bundle you wear!</p>
+
+</body>
+</html>

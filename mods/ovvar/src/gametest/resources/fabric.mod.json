@@ -8,6 +8,7 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
+			"metacraft.ovvar.clienttest.PromoShots",
 			"metacraft.ovvar.clienttest.OvvarClientTests"
 		]
 	},
