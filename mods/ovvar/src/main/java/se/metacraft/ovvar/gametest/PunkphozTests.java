@@ -9,6 +9,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -26,17 +27,26 @@ import net.minecraft.world.level.storage.TagValueOutput;
 import com.mojang.serialization.JsonOps;
 import se.metacraft.ovvar.PunkphozConfig;
 import se.metacraft.ovvar.PunkphozConfig.PoolEntry;
+import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.ModContent;
+import se.metacraft.ovvar.content.PatchLoot;
+import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.entity.Punkphoz;
 import se.metacraft.ovvar.content.entity.PunkphozEntities;
+import se.metacraft.ovvar.content.entity.PunkphozHistory;
+import se.metacraft.ovvar.content.entity.PunkphozStock;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Punkphöz: a wandering trader wearing the traders' model, with no invisibility potion to drink. */
 public final class PunkphozTests {
@@ -103,12 +113,18 @@ public final class PunkphozTests {
 		});
 	}
 
-	/** His offers survive a save and load. (They are empty until he has stock.) */
+	/** His offers, a trade made on one of them, survive a save and load; loading him is not a visit. */
 	@GameTest
 	public void stockSurvivesSaveAndLoad(GameTestHelper helper) {
 		var level = helper.getLevel();
 		Punkphoz punkphoz = helper.spawn(PunkphozEntities.PUNKPHOZ, new BlockPos(1, 1, 1));
 		MerchantOffers before = punkphoz.getOffers();
+		if (before.isEmpty()) {
+			helper.fail("Punkphöz has no stock to save");
+			return;
+		}
+		before.getFirst().increaseUses();
+		int visits = PunkphozHistory.get(level.getServer()).visits();
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
 		punkphoz.saveWithoutId(output);
 		CompoundTag saved = output.buildResult();
@@ -120,6 +136,147 @@ public final class PunkphozTests {
 		}
 		loaded.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), saved));
 		helper.assertValueEqual(describe(loaded.getOffers()), describe(before), "the offers after a save and load");
+		helper.assertValueEqual(loaded.getOffers().getFirst().getUses(), 1, "the traded offer's uses after a save and load");
+		helper.assertValueEqual(PunkphozHistory.get(level.getServer()).visits(), visits, "visits after loading him");
+		helper.succeed();
+	}
+
+	private static final List<PoolEntry> SIX = List.of(entry("minecraft:apple", 1), entry("minecraft:bread", 2),
+			entry("minecraft:diamond", 3), entry("minecraft:saddle", 4), entry("minecraft:name_tag", 5), entry("minecraft:cake", 6));
+
+	private static PunkphozConfig withCounts(int chapterOvves, int poolPicks) {
+		var d = PunkphozConfig.DEFAULT;
+		return new PunkphozConfig(d.enabled(), d.share(), chapterOvves, d.ovvePrice(), d.patches(), d.patchPrice(),
+				poolPicks, d.playersPerRoll(), d.maxLoaded(), List.of());
+	}
+
+	private static Set<String> lootIds() {
+		Set<String> ids = new HashSet<>();
+		for (Patches.Patch patch : PatchLoot.looted()) ids.add(BuiltInRegistries.ITEM.getKey(ModContent.patchItem(patch)).toString());
+		return ids;
+	}
+
+	private static String id(ItemStack stack) {
+		return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+	}
+
+	private static Chapter chapterOf(ItemStack stack) {
+		for (Chapter chapter : Chapter.values()) if (stack.is(ModContent.ovve(chapter))) return chapter;
+		return null;
+	}
+
+	@GameTest
+	public void rollHasExactCounts(GameTestHelper helper) {
+		var stock = PunkphozStock.roll(PunkphozConfig.DEFAULT, SIX, RandomSource.create(42), new PunkphozHistory());
+		helper.assertValueEqual(stock.size(), 9, "offers");
+		Set<Chapter> chapters = EnumSet.noneOf(Chapter.class);
+		for (var s : stock.subList(0, 3)) {
+			Chapter chapter = chapterOf(s.result());
+			if (chapter == null || !PunkphozStock.EXCLUSIVE.contains(chapter)) helper.fail("not an exclusive ovve: " + id(s.result()));
+			chapters.add(chapter);
+			helper.assertValueEqual(s.emeralds(), 24, "an ovve's price");
+			helper.assertValueEqual(s.maxUses(), 1, "an ovve's max uses");
+		}
+		helper.assertValueEqual(chapters.size(), 3, "distinct chapters");
+		Set<String> loot = lootIds(), patches = new HashSet<>();
+		for (var s : stock.subList(3, 5)) {
+			if (!loot.contains(id(s.result()))) helper.fail("not a loot patch: " + id(s.result()));
+			patches.add(id(s.result()));
+			helper.assertValueEqual(s.emeralds(), 6, "a patch's price");
+		}
+		helper.assertValueEqual(patches.size(), 2, "distinct patches");
+		Map<String, Integer> prices = new HashMap<>();
+		for (PoolEntry e : SIX) prices.put(e.item().toString(), e.price());
+		Set<String> picks = new HashSet<>();
+		for (var s : stock.subList(5, 9)) {
+			Integer price = prices.get(id(s.result()));
+			if (price == null) helper.fail("not from the pool: " + id(s.result()));
+			helper.assertValueEqual(s.emeralds(), price, "the price of " + id(s.result()));
+			picks.add(id(s.result()));
+		}
+		helper.assertValueEqual(picks.size(), 4, "distinct pool picks");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void patchesOnlyFromLoot(GameTestHelper helper) {
+		RandomSource random = RandomSource.create(7);
+		Set<String> nonLoot = new HashSet<>();
+		for (String patch : PatchLoot.NON_LOOT) nonLoot.add("ovvar:patch_" + patch);
+		Set<String> loot = lootIds();
+		for (int i = 0; i < 2000; i++) {
+			for (var s : PunkphozStock.roll(withCounts(0, 0), List.of(), random, new PunkphozHistory())) {
+				String id = id(s.result());
+				if (!loot.contains(id) || nonLoot.contains(id)) {
+					helper.fail("a patch not from PatchLoot.LOOT: " + id);
+					return;
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void chapterPicksFavourTheLongestWaiting(GameTestHelper helper) {
+		Chapter waiting = PunkphozStock.EXCLUSIVE.iterator().next();
+		Map<String, Integer> last = new HashMap<>();
+		for (Chapter chapter : PunkphozStock.EXCLUSIVE) if (chapter != waiting) last.put(chapter.id, 9);
+		RandomSource random = RandomSource.create(42);
+		int picked = 0;
+		for (int i = 0; i < 1000; i++) {
+			var stock = PunkphozStock.roll(withCounts(1, 0), List.of(), random, new PunkphozHistory(10, last));
+			if (stock.getFirst().result().is(ModContent.ovve(waiting))) picked++;
+		}
+		if (picked < 400) helper.fail(waiting.id + " (never offered) picked only " + picked + " of 1000 times");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void historyRecordsTheVisit(GameTestHelper helper) {
+		PunkphozHistory history = new PunkphozHistory();
+		var stock = PunkphozStock.roll(PunkphozConfig.DEFAULT, List.of(), RandomSource.create(42), history);
+		helper.assertValueEqual(history.visits(), 1, "visits");
+		int offered = 0;
+		for (Chapter chapter : PunkphozStock.EXCLUSIVE) {
+			boolean inStock = stock.stream().anyMatch(s -> s.result().is(ModContent.ovve(chapter)));
+			helper.assertValueEqual(history.lastOffered(chapter), inStock ? 0 : -1, "lastOffered(" + chapter.id + ")");
+			if (inStock) offered++;
+		}
+		helper.assertValueEqual(offered, 3, "chapters offered");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void fewerExclusivesThanAsked(GameTestHelper helper) {
+		var stock = PunkphozStock.roll(withCounts(99, 0), List.of(), RandomSource.create(42), new PunkphozHistory());
+		Set<Chapter> chapters = EnumSet.noneOf(Chapter.class);
+		int ovves = 0;
+		for (var s : stock) {
+			Chapter chapter = chapterOf(s.result());
+			if (chapter == null) continue;
+			ovves++;
+			chapters.add(chapter);
+		}
+		helper.assertValueEqual(ovves, PunkphozStock.EXCLUSIVE.size(), "ovve offers");
+		helper.assertValueEqual(chapters, EnumSet.copyOf(PunkphozStock.EXCLUSIVE), "chapters offered");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void poolSmallerThanPicks(GameTestHelper helper) {
+		var stock = PunkphozStock.roll(withCounts(0, 4), SIX.subList(0, 2), RandomSource.create(42), new PunkphozHistory());
+		var pool = stock.subList(PunkphozConfig.DEFAULT.patches(), stock.size()).stream().map(s -> id(s.result())).toList();
+		helper.assertValueEqual(pool.size(), 2, "pool offers");
+		helper.assertValueEqual(new HashSet<>(pool), Set.of("minecraft:apple", "minecraft:bread"), "pool offers");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void nothingButPatches(GameTestHelper helper) {
+		var stock = PunkphozStock.roll(withCounts(0, 4), List.of(), RandomSource.create(42), new PunkphozHistory());
+		helper.assertValueEqual(stock.size(), 2, "offers");
+		Set<String> loot = lootIds();
+		for (var s : stock) if (!loot.contains(id(s.result()))) helper.fail("not a patch: " + id(s.result()));
 		helper.succeed();
 	}
 
