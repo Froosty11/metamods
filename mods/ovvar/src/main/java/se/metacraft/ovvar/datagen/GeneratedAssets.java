@@ -744,21 +744,10 @@ public final class GeneratedAssets implements DataProvider {
 
 		if (!chapter.rollable) return out;
 		// Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
-		if (chapter.nercabbadArmour != null) {
-			// A leggings texture drawn as such (PolymITer's), shifted to the chapter's colour — hue
-			// and saturation from the website overlay's main colour, its own shading scaled to
-			// that colour's brightness. No left-limb art, so the left leg mirrors the right.
-			int colour = overlay.dominant();
-			Tex armour = art(chapter.nercabbadArmour);
-			require(armour.width == 64 && armour.height == 32, chapter.nercabbadArmour + ".png is not a 64×32 armour texture");
-			armour = armour.tinted(colour).brightened(Tex.brightness(colour) / Tex.brightness(armour.dominant()));
-			out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", armour, RIGHT_LEG, Tex.blank(64, 64), LEFT_LEG));
-		} else {
-			Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
-			Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
-					.blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
-			out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", cut, RIGHT_LEG, rolled, LEFT_LEG));
-		}
+		Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
+		Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
+				.blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
+		out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", cut, RIGHT_LEG, rolled, LEFT_LEG));
 		return out;
 	}
 

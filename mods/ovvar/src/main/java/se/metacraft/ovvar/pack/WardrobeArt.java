@@ -120,7 +120,7 @@ public final class WardrobeArt {
 		}
 	}
 
-	/** The chapter's cloth colour ({@link Chapter#colour}): the PolymITer variants carry their base chapter's. */
+	/** The chapter's cloth colour ({@link Chapter#colour}). */
 	public static int colour(Chapter chapter) {
 		return chapter.colour;
 	}

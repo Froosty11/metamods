@@ -4,7 +4,10 @@ import net.minecraft.world.entity.EquipmentSlot;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -15,39 +18,45 @@ import java.util.Set;
  * other chapters' art comes coloured.
  */
 public enum Chapter {
-	DATA("data", "Data", "Data ovve", "Data-ovve", 0xBD3754, "data", "data-nercabbad", null, null, true, EquipmentSlot.LEGS, false),
-	IT("it", "IT", "IT ovve", "IT-ovve", 0x8A57BD, "it", "it-nercabbad", null, null, true, EquipmentSlot.LEGS, false),
-	/** The older silicon-blue IT ovve; PolymITer's kiselblå, applied to the IT overlay. */
-	IT_KISEL("it_kisel", "Silicon-blue IT", "Silicon-blue IT ovve", "Kiselblå IT-ovve", 0x769BB0, "it", "it-nercabbad", null, 0x769BB0, true, EquipmentSlot.LEGS, false),
+	DATA("data", "Data", "Data ovve", "Data-ovve", 0xBD3754, "data", "data-nercabbad", null, true, EquipmentSlot.LEGS, false),
+	IT("it", "IT", "IT ovve", "IT-ovve", 0x8A57BD, "it", "it-nercabbad", null, true, EquipmentSlot.LEGS, false),
+	/** The older silicon-blue IT ovve: kiselblå, applied to the IT overlay. */
+	IT_KISEL("it_kisel", "Silicon-blue IT", "Silicon-blue IT ovve", "Kiselblå IT-ovve", 0x769BB0, "it", "it-nercabbad", 0x769BB0, true, EquipmentSlot.LEGS, false),
 	/**
 	 * The tailcoat: a chest-slot garment, the one thing that sets it apart from the ovvar. It is
 	 * its own top — no companion, nothing to roll down, no legs and no cuffs; its pockets and its
 	 * patches (the top's cells only) work as an ovve's do.
 	 */
-	MEDIA("media", "Media", "Media frack", "Media-frack", 0x1B1B1B, "mediafrack", null, null, null, false, EquipmentSlot.CHEST, false),
-	/**
-	 * For comparison: the same ovvar with PolymITer's hand-drawn leggings texture
-	 * ({@code art/ovvar/polymiter/nercabbad.png}, its red one) for the rolled-down state, shifted to
-	 * the chapter's colour — PolymITer only ever drew that state, so the top is the website's.
-	 */
-	DATA_POLYMITER("data_polymiter", "Data (PolymITer)", "Data (PolymITer) ovve", "Data (PolymITer)-ovve", 0xBD3754, "data", "data-nercabbad", "polymiter/nercabbad", null, true, EquipmentSlot.LEGS, false),
-	IT_POLYMITER("it_polymiter", "IT (PolymITer)", "IT (PolymITer) ovve", "IT (PolymITer)-ovve", 0x8A57BD, "it", "it-nercabbad", "polymiter/nercabbad", null, true, EquipmentSlot.LEGS, false),
+	MEDIA("media", "Media", "Media frack", "Media-frack", 0x1B1B1B, "mediafrack", null, null, false, EquipmentSlot.CHEST, false),
 	// The rest of KTH's chapters: pre-coloured art (tools/chapter_overlays.py), no recipe — their only survival source is the wandering Punkphöz.
-	ARKITEKTUR("arkitektur", "Arkitektur", "Arkitektur ovve", "Arkitektur-ovve", 0xA43AA8, "arkitektur", "arkitektur-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	CL("cl", "CL", "CL ovve", "CL-ovve", 0x1A1A1A, "cl", "cl-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	DOKTORAND("doktorand", "Doktorand", "Doktorand ovve", "Doktorand-ovve", 0x1A1A1A, "doktorand", "doktorand-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	ELEKTRO("elektro", "Elektro", "Elektro ovve", "Elektro-ovve", 0xF5F5F5, "elektro", "elektro-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	ENERGI("energi", "Energi och miljö", "Energi och miljö ovve", "Energi och miljö-ovve", 0x006B71, "energi", "energi-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	FYSIK("fysik", "Fysik", "Fysik ovve", "Fysik-ovve", 0xFF642B, "fysik", "fysik-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	INDEK("indek", "Indek", "Indek ovve", "Indek-ovve", 0x4A2C1D, "indek", "indek-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	INGENJOR("ingenjor", "Ingenjör", "Ingenjör ovve", "Ingenjör-ovve", 0xA0522D, "ingenjor", "ingenjor-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	KEMI("kemi", "Kemi", "Kemi ovve", "Kemi-ovve", 0xFFCB05, "kemi", "kemi-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	MIT("mit", "Medicinsk teknik", "Medicinsk teknik ovve", "Medicinsk teknik-ovve", 0x8EC9EB, "mit", "mit-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	OPEN("open", "OPEN", "OPEN ovve", "OPEN-ovve", 0xC62C22, "open", "open-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	SAMHALL("samhall", "Samhällsbyggnad", "Samhällsbyggnad ovve", "Samhällsbyggnad-ovve", 0x294630, "samhall", "samhall-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
-	TBAS("tbas", "TBas", "TBas ovve", "TBas-ovve", 0xA2EE8D, "tbas", "tbas-nercabbad", null, null, true, EquipmentSlot.LEGS, true),
+	ARKITEKTUR("arkitektur", "Arkitektur", "Arkitektur ovve", "Arkitektur-ovve", 0xA43AA8, "arkitektur", "arkitektur-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	CL("cl", "CL", "CL ovve", "CL-ovve", 0x1A1A1A, "cl", "cl-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	DOKTORAND("doktorand", "Doktorand", "Doktorand ovve", "Doktorand-ovve", 0x1A1A1A, "doktorand", "doktorand-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	ELEKTRO("elektro", "Elektro", "Elektro ovve", "Elektro-ovve", 0xF5F5F5, "elektro", "elektro-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	ENERGI("energi", "Energi och miljö", "Energi och miljö ovve", "Energi och miljö-ovve", 0x006B71, "energi", "energi-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	FYSIK("fysik", "Fysik", "Fysik ovve", "Fysik-ovve", 0xFF642B, "fysik", "fysik-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	INDEK("indek", "Indek", "Indek ovve", "Indek-ovve", 0x4A2C1D, "indek", "indek-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	INGENJOR("ingenjor", "Ingenjör", "Ingenjör ovve", "Ingenjör-ovve", 0xA0522D, "ingenjor", "ingenjor-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	KEMI("kemi", "Kemi", "Kemi ovve", "Kemi-ovve", 0xFFCB05, "kemi", "kemi-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	MIT("mit", "Medicinsk teknik", "Medicinsk teknik ovve", "Medicinsk teknik-ovve", 0x8EC9EB, "mit", "mit-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	OPEN("open", "OPEN", "OPEN ovve", "OPEN-ovve", 0xC62C22, "open", "open-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	SAMHALL("samhall", "Samhällsbyggnad", "Samhällsbyggnad ovve", "Samhällsbyggnad-ovve", 0x294630, "samhall", "samhall-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	TBAS("tbas", "TBas", "TBas ovve", "TBas-ovve", 0xA2EE8D, "tbas", "tbas-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	/** Media's frack without Media's emblem: the same cut, its own chapter. */
-	B_FRACK("b", "B-frack", "B-frack", "B-frack", 0x1B1B1B, "bfrack", null, null, null, false, EquipmentSlot.CHEST, true);
+	B_FRACK("b", "B-frack", "B-frack", "B-frack", 0x1B1B1B, "bfrack", null, null, false, EquipmentSlot.CHEST, true);
+
+	/**
+	 * Chapters that were removed, by their old id, with the chapter whose items and designs they
+	 * now load as. In order: the wardrobe migration applies them one after the other.
+	 */
+	public static final Map<String, Chapter> RETIRED;
+
+	static {
+		Map<String, Chapter> retired = new LinkedHashMap<>();
+		retired.put("data_polymiter", IT);
+		retired.put("it_polymiter", IT_KISEL);
+		RETIRED = Collections.unmodifiableMap(retired);
+	}
 
 	public final String id;
 	/** The chapter's own name, as the wardrobe's title falls back to when the full name does not fit. */
@@ -61,11 +70,6 @@ public enum Chapter {
 	public final String overlay;
 	/** Overlay for the rolled-down state (legs + the top hanging at the waist), or null if the chapter has none. */
 	public final @Nullable String nercabbadOverlay;
-	/**
-	 * A ready-made 64×32 leggings texture for the rolled-down state, recoloured to the chapter's
-	 * colour and used instead of cutting {@link #nercabbadOverlay} (PolymITer's art), or null.
-	 */
-	public final @Nullable String nercabbadArmour;
 	public final @Nullable Integer tint;
 	/** Whether the top can be rolled down; needs a nercabbad overlay. */
 	public final boolean rollable;
@@ -79,7 +83,7 @@ public enum Chapter {
 	public final boolean wandererOnly;
 
 	Chapter(String id, String name, String fullName, String svName, int colour, String overlay, @Nullable String nercabbadOverlay,
-			@Nullable String nercabbadArmour, @Nullable Integer tint, boolean rollable, EquipmentSlot slot, boolean wandererOnly) {
+			@Nullable Integer tint, boolean rollable, EquipmentSlot slot, boolean wandererOnly) {
 		this.id = id;
 		this.name = name;
 		this.fullName = fullName;
@@ -88,7 +92,6 @@ public enum Chapter {
 		this.wandererOnly = wandererOnly;
 		this.overlay = overlay;
 		this.nercabbadOverlay = nercabbadOverlay;
-		this.nercabbadArmour = nercabbadArmour;
 		this.tint = tint;
 		this.rollable = rollable;
 		this.slot = slot;
