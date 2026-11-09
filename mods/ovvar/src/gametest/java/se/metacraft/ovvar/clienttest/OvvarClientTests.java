@@ -53,6 +53,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if (ClientTestSupport.skipUnderShaderpack("OvvarClientTests")) return;
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
 		props.setProperty("server-port", "25599");   // the two comparison servers hold 25565 and 25566
@@ -243,9 +244,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 
 	/** The pack is accepted unasked (ServerPackAutoAcceptMixin); wait for it to download and apply. */
 	private static void acceptResourcePack(ClientGameTestContext ctx) {
-		ctx.waitTicks(20);
-		ctx.waitFor(client -> client.gui.overlay() == null && !(client.gui.screen() instanceof ConfirmScreen), 20 * 90);
-		ctx.waitTicks(20);
+		ClientTestSupport.acceptResourcePack(ctx);
 	}
 
 	interface Rgb { boolean test(int r, int g, int b); }

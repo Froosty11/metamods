@@ -119,7 +119,6 @@ if (project.hasProperty('iris')) {
 	}
 	tasks.named('runClientGameTest') {
 		def runDir = file('build/run/clientGameTest')
-		environment('OVVAR_SHADERPACK', pack.name)
 		jvmArgs "-Dovvar.iris.pack=${pack.name}"
 		doFirst {
 			if (!pack.isFile()) throw new GradleException("Ovvar: -Piris=${pack} is not a file")

@@ -123,6 +123,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if (ClientTestSupport.skipUnderShaderpack("OvvarDanseClientTests")) return;
 		if (!FabricLoader.getInstance().isModLoaded("danse")) return;
 		if (!danseCanGestureHere()) {
 			System.out.println("[ovvar-danse-clienttest] skipped: Danse's server-side mixins are not applied in a "

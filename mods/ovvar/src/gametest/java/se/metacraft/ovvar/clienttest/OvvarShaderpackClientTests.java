@@ -33,6 +33,7 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 	private static final int MAGENTA_R = 255, MAGENTA_G = 0, MAGENTA_B = 255;
 	private static final int TOLERANCE = 40;
 	private static final double CHECKER_SHARE = 0.30;
+	private static final double GARMENT_SHARE = 0.50;
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
@@ -50,9 +51,9 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 		props.setProperty("difficulty", "peaceful");
 		try (TestDedicatedServerContext server = ctx.worldBuilder().createServer(props)) {
 			try (TestDedicatedServerConnection conn = server.connect()) {
-				ctx.waitTicks(20);
-				ctx.runOnClient(client -> assertIrisLoadedPack());
+				ClientTestSupport.acceptResourcePack(ctx);
 				conn.waitForChunksRender();
+				ctx.runOnClient(client -> assertIrisLoadedPack());
 				server.runCommand("gamerule advance_time false");
 				server.runCommand("time set noon");
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");
@@ -69,11 +70,12 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 					m.setItemSlot(EquipmentSlot.CHEST, top);
 					level.addFreshEntity(m);
 				});
-				ctx.waitTicks(40);   // the pack, if the server sends one
+				ClientTestSupport.acceptResourcePack(ctx);   // the pack, once the ovve exists
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(100);
+				ctx.runOnClient(client -> assertIrisLoadedPack());
 				Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("ovvar_iris_leg_" + expect).withSize(1920, 1080));
 				BufferedImage img = read(shot);
 				// The mannequin faces the camera, so its right leg is on the screen's left of centre: the
@@ -91,6 +93,21 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 								&& Math.abs(((p >> 8) & 255) - MAGENTA_G) <= TOLERANCE
 								&& Math.abs((p & 255) - MAGENTA_B) <= TOLERANCE) near++;
 					}
+				}
+				// Positive control: the crop must be mostly garment, or "art" passes on a crop that missed the leg
+				// (or a garment that never drew). Garment = differs from the background beside the subject, same row.
+				int garment = 0;
+				for (int y = y0; y < y1; y++) {
+					for (int x = x0; x < x1; x++) {
+						int p = img.getRGB(x, y), q = img.getRGB(x + 300, y);   // 300 px right: well clear of the arm (centre +150)
+						if (Math.abs(((p >> 16) & 255) - ((q >> 16) & 255)) > TOLERANCE
+								|| Math.abs(((p >> 8) & 255) - ((q >> 8) & 255)) > TOLERANCE
+								|| Math.abs((p & 255) - (q & 255)) > TOLERANCE) garment++;
+					}
+				}
+				System.out.println("[ovvar-clienttest] iris " + expect + ": " + garment + "/" + total + " crop pixels differ from the background");
+				if (garment < total * GARMENT_SHARE) {
+					throw new AssertionError("the right-leg crop is not on the garment: only " + garment + "/" + total + " pixels differ from the background");
 				}
 				double share = near / (double) total;
 				System.out.println("[ovvar-clienttest] iris " + expect + ": " + near + "/" + total + " right-leg pixels near #FF00FF (" + share + ")");
