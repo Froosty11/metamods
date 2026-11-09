@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.core.component.DataComponents;
 import se.metacraft.ovvar.content.ModComponents;
 import net.minecraft.world.entity.decoration.Mannequin;
