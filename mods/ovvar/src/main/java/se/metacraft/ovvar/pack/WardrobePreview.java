@@ -577,27 +577,16 @@ public final class WardrobePreview {
 		String key = "cloth/" + chapter.id;
 		Tex cached = CACHE.get(key);
 		if (cached != null) return cached;
-		// Not computeIfAbsent: reading the two halves puts them in this same map.
-		Tex top = rightLimbRestored(read(Piece.TOP, EquipmentJson.baseTexture(chapter, Piece.TOP, false)), GeneratedAssets.RIGHT_ARM);
+		// Not computeIfAbsent: reading the two halves puts them in this same map. Each with its right
+		// limb's copy put back on the box, which holds the checker for unpatched shaderpacks.
+		Tex top = GeneratedAssets.rightLimbRestored(read(Piece.TOP, EquipmentJson.baseTexture(chapter, Piece.TOP, false)), Piece.TOP);
 		// A frack has no trousers: nothing under the top.
 		Tex bottom = chapter.pieces().contains(Piece.BOTTOM)
-				? rightLimbRestored(read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false)), GeneratedAssets.RIGHT_LEG)
+				? GeneratedAssets.rightLimbRestored(read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false)), Piece.BOTTOM)
 				: Tex.blank(top.width, top.height);
 		Tex cloth = bottom.composite(top);
 		CACHE.put(key, cloth);
 		return cloth;
-	}
-
-	/**
-	 * A base layer with its right-limb copy put back on the box, as our shader draws it: the box
-	 * itself is the checker an unpatched shaderpack shows (GeneratedAssets.withLimbCopies), and
-	 * the doll is drawn the way the garment looks with our shader.
-	 */
-	private static Tex rightLimbRestored(Tex layer, int[] box) {
-		int x = box[0] * D, y = box[1] * D, w = box[2] * D, h = box[3] * D;
-		int cx = Spot.RIGHT_COPY_X * D, cy = (box[1] - Spot.MIRROR_SHIFT) * D;
-		// Only cloth is copied, and the box is transparent wherever the copy is, so this is the box exactly.
-		return layer.blit(layer, cx, cy, w, h, x, y);
 	}
 
 	/**

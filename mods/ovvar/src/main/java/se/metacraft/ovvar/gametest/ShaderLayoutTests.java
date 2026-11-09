@@ -7,6 +7,7 @@ import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Spot;
 import se.metacraft.ovvar.datagen.GeneratedAssets;
 import se.metacraft.ovvar.datagen.Tex;
+import se.metacraft.ovvar.pack.WardrobePreview;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -49,12 +50,13 @@ public final class ShaderLayoutTests {
 		for (Layer layer : layers(wrong)) {
 			Tex tex = layer.tex();
 			Tex copy = tex.crop(layer.copyX(), layer.copyY(), BOX, BOX);
-			if (copy.isEmpty()) {
+			// Copied unchanged: the cut's own right-limb box, texel for texel. A box with no art has an
+			// empty copy, and that is a valid layout; a box with art must not lose it.
+			Tex art = layer.base().cut().scale(D).crop(layer.boxX(), layer.boxY(), BOX, BOX);
+			if (copy.isEmpty() && !art.isEmpty()) {
 				wrong.add(layer.label() + ": nothing at the right-limb copy (" + Spot.RIGHT_COPY_X + ", " + layer.copyY() / D + ")");
 				continue;
 			}
-			// Copied unchanged: the cut's own right-limb box, texel for texel.
-			Tex art = layer.base().cut().scale(D).crop(layer.boxX(), layer.boxY(), BOX, BOX);
 			if (!same(copy, art)) wrong.add(layer.label() + ": the right-limb copy is not the right-limb box's art unchanged");
 			for (int y = 0; y < BOX; y++) {
 				for (int x = 0; x < BOX; x++) {
@@ -143,7 +145,42 @@ public final class ShaderLayoutTests {
 			helper.fail("ovvar.glsl's OVVAR_RIGHT_COPY_X is " + value + ", Spot.RIGHT_COPY_X is " + Spot.RIGHT_COPY_X);
 			return;
 		}
+		// And the base garment's branch of ovvar_uv reads it: a constant declared and never used would
+		// leave the right limbs on the checker. GLSL does not run here, so the structure is what is pinned.
+		String branch = baseGarmentBranch(glsl);
+		if (branch == null) {
+			helper.fail("ovvar_uv has no `if (kind.r < 0.5) { ... }` base-garment branch to look in");
+			return;
+		}
+		if (!code(branch).contains("OVVAR_RIGHT_COPY_X")) {
+			helper.fail("ovvar_uv's base-garment branch does not use OVVAR_RIGHT_COPY_X, so the right limbs read the checker");
+			return;
+		}
 		helper.succeed();
+	}
+
+	/**
+	 * The paper doll draws the bare garment out of the base layers' right-limb boxes, which are the
+	 * checker now; it has to put the copy back first. No CHECKER_A pixel on any angle of an ovve.
+	 */
+	@GameTest
+	public void noCheckerOnPaperDoll(GameTestHelper helper) {
+		List<String> wrong = new ArrayList<>();
+		for (Chapter chapter : List.of(Chapter.DATA, Chapter.IT)) {
+			for (WardrobePreview.Angle angle : WardrobePreview.Angle.values()) {
+				Tex doll = WardrobePreview.bareArt(chapter, angle);
+				scan:
+				for (int y = 0; y < doll.height; y++) {
+					for (int x = 0; x < doll.width; x++) {
+						if (doll.get(x, y) == Spot.CHECKER_A) {
+							wrong.add(chapter.id + " " + angle + ": checker at (" + x + ", " + y + ")");
+							break scan;
+						}
+					}
+				}
+			}
+		}
+		finish(helper, wrong);
 	}
 
 	// ---- helpers
@@ -167,6 +204,27 @@ public final class ShaderLayoutTests {
 		}
 		if (out.isEmpty()) wrong.add("no base layers at all");
 		return out;
+	}
+
+	/** The body of ovvar_uv's base-garment branch, {@code if (kind.r < 0.5) { ... }}, braces matched; null if absent. */
+	private static String baseGarmentBranch(String glsl) {
+		int fn = glsl.indexOf("vec2 ovvar_uv(");
+		int at = fn < 0 ? -1 : glsl.indexOf("if (kind.r < 0.5) {", fn);
+		if (at < 0) return null;
+		int open = glsl.indexOf('{', at), depth = 0;
+		for (int i = open; i < glsl.length(); i++) {
+			char c = glsl.charAt(i);
+			if (c == '{') depth++;
+			else if (c == '}' && --depth == 0) return glsl.substring(open + 1, i);
+		}
+		return null;
+	}
+
+	/** GLSL with its line comments dropped, so a mention in a comment does not count as a use. */
+	private static String code(String glsl) {
+		StringBuilder out = new StringBuilder();
+		for (String line : glsl.split("\n")) out.append(line.contains("//") ? line.substring(0, line.indexOf("//")) : line).append('\n');
+		return out.toString();
 	}
 
 	private static boolean inside(int x, int y, int x0, int y0) {

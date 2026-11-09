@@ -306,15 +306,15 @@ public final class OvvarGameTests {
 	}
 
 	/**
-	 * However many patches an ovve carries, its tooltip stays no taller than an item with five
-	 * enchantments: the status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches,
-	 * and one hint line — plus, since unpatched shaderpacks draw the limbs as a checker, the
-	 * shaders line ({@link OvveItem#SHADERS_HINT}), which is not counted in the five. This sews every catalogue patch on (several times over, where a cell
-	 * exists to put a repeat on — the seat has only the one cell, so its patch gets it once) and
-	 * reads the tooltip {@code OvveItem} itself would send a client.
+	 * However many patches an ovve carries, its tooltip stays six lines or fewer under the name: the
+	 * status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches, one hint line and the
+	 * shaders line ({@link OvveItem#SHADERS_HINT}; unpatched shaderpacks draw the limbs as a
+	 * checker). This sews every catalogue patch on (several times over, where a cell exists to put a
+	 * repeat on — the seat has only the one cell, so its patch gets it once) and reads the tooltip
+	 * {@code OvveItem} itself would send a client.
 	 */
 	@GameTest
-	public void aFullyPatchedOvvesTooltipIsStillFiveLinesOrLess(GameTestHelper helper) {
+	public void aFullyPatchedOvvesTooltipIsStillSixLinesOrLess(GameTestHelper helper) {
 		List<Patches.Patch> catalogue = Patches.all();
 		List<Placement> placements = new ArrayList<>();
 		int next = 0;

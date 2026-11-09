@@ -777,6 +777,20 @@ public final class GeneratedAssets implements DataProvider {
 	}
 
 	/**
+	 * A written base layer (at any detail) with its right-limb copy put back on the box: the
+	 * garment as our shader draws it. For every reader that is not that shader and cuts the right
+	 * limb out of the layer itself — the paper doll, Danse's stand-ins — since the box is the
+	 * checker. Only cloth is copied and the box is transparent wherever the copy is, so this gives
+	 * back the box exactly. The piece says which limb the layer owns: the top the arm, the bottom
+	 * (rolled down or not) the leg.
+	 */
+	public static Tex rightLimbRestored(Tex layer, Piece piece) {
+		int[] box = piece == Piece.TOP ? RIGHT_ARM : RIGHT_LEG;
+		int s = layer.width / 64;
+		return layer.blit(layer, Spot.RIGHT_COPY_X * s, (box[1] - Spot.MIRROR_SHIFT) * s, box[2] * s, box[3] * s, box[0] * s, box[1] * s);
+	}
+
+	/**
 	 * The left limb's art one strip up from the right limb's box, with every face mirrored in
 	 * place: the model draws the left limb as a mirror image off the right strips, and the shader
 	 * sends those fragments here, so the art must be pre-mirrored to come out straight. The art is
