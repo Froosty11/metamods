@@ -11,5 +11,5 @@ Nothing here can fail startup: every error is logged (`[ovvar-shaderpatch]`) and
 
 No Polymer, no Fabric API dependency. It is client-only and on no server deploy list; the `dist` bundle skips it.
 
-Tests: `./gradlew :mods:ovvar-shaderpatch:test`. Cloud check: see "Client screenshot tests" in `mods/ovvar/README.md`
+Tests: `./gradlew :mods:ovvar-shaderpatch:test`. Cloud check: see "Client test under a shaderpack" in `mods/ovvar/README.md`
 (`-PshaderpatchMod`).

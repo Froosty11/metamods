@@ -122,6 +122,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// ITK's green (86,214,46 and 120,232,80) and IT's purple ground (120,60,170) cannot come
 				// from the cerise garment: their presence proves those patches drew. (Nyckeln and Data read
 				// closer to the garment and make poorer probes.)
+				ClientTestSupport.assertNoChecker(a, box.x0(), box.y0(), box.x1(), box.y1(), "mannequin");
 				assertPresent(a, box, "itk (green)", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				assertPresent(a, box, "it (lilac rim)", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
 				// The garment surface must be steady between two frames: the prototype's tag crawl changed

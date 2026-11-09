@@ -40,6 +40,18 @@ public final class PatcherRunTest {
 		check("usage names the page", true, out.contains("https://metacraft.se/ovvar/shaders"));
 		check("usage shows the command line", true, out.contains("Usage"));
 
+		// A +ovvar name is said out loud, not skipped silently.
+		out = capture(() -> check("copy exit", 0, Patcher.run(new String[] {dir.resolve("fix+ovvar.zip").toString()}, null, false)));
+		check("copy is explained", true, out.contains("fix+ovvar.zip: a +ovvar copy; pick the original pack"));
+
+		// writeFolder clears an existing destination first, so files of an older copy don't linger.
+		Path folder = dir.resolve("folder-out");
+		Files.createDirectories(folder.resolve("old"));
+		Files.writeString(folder.resolve("old/stale.txt"), "x");
+		Patcher.writeFolder(folder, java.util.Map.of("a/b.txt", new byte[] {1}));
+		check("writeFolder drops stale files", false, Files.exists(folder.resolve("old/stale.txt")));
+		check("writeFolder writes the files", true, Files.exists(folder.resolve("a/b.txt")));
+
 		if (failures > 0) {
 			System.err.println(failures + " PatcherRunTest check(s) failed");
 			System.exit(1);

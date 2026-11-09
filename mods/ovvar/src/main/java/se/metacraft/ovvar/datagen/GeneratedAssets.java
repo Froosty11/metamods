@@ -385,15 +385,15 @@ public final class GeneratedAssets implements DataProvider {
 
 		// The translated lines: the tooltip's shaders hint (OvveItem.SHADERS_HINT) and /ovvar shaders. Everything
 		// else is English only, and the client falls back to en_us for every key sv_se lacks.
-		lang.put(OvveItem.SHADERS_HINT, "Pink-black checker on your limbs? Type /ovvar shaders");
+		lang.put(OvveItem.SHADERS_HINT, OvveItem.SHADERS_HINT_EN);
 		Map<String, String> swedish = new LinkedHashMap<>();
 		lang.put(ModCommands.SHADERS_INTRO, ModCommands.SHADERS_INTRO_EN);
 		lang.put(ModCommands.SHADERS_LINK, ModCommands.SHADERS_LINK_EN);
 		lang.put(ModCommands.SHADERS_STEPS, ModCommands.SHADERS_STEPS_EN);
-		swedish.put(ModCommands.SHADERS_INTRO, "Spelar du med shaderpack? Det behöver en engångspatch, annars visar ovvar ett rosa-svart rutmönster.");
+		swedish.put(ModCommands.SHADERS_INTRO, "Spelar du med shaderpack? Det behöver en engångspatch, annars visar ovvar ett rosa-svart rutmönster. Patchade du före den här uppdateringen? Patcha originalpacket igen.");
 		swedish.put(ModCommands.SHADERS_LINK, "Patcha ditt shaderpack");
 		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris.");
-		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på armar och ben? Skriv /ovvar shaders");
+		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på ben och armar? Patcha packet igen: /ovvar shaders");
 
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);

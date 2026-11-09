@@ -95,7 +95,10 @@ public final class StartupPatch {
 		if (result.status() != PackPatch.Status.PATCHED) {
 			switch (result.status()) {
 				case NOT_A_SHADERPACK -> say(log, name + ": not a shaderpack, skipped");
-				case NOTHING_PATCHED -> say(log, name + ": a shaderpack, but nothing in it could be patched");
+				case NOTHING_PATCHED -> {
+					say(log, name + ": a shaderpack, but nothing in it could be patched");
+					for (String line : result.log()) say(log, "  " + line);
+				}
 				default -> say(log, name + ": already a patched copy, skipped");
 			}
 			return;
@@ -198,6 +201,7 @@ public final class StartupPatch {
 				Path original = packs.resolve(current);
 				String copy = copyName(current, isZip(original));
 				if (Files.exists(original) && isCurrent(original, packs.resolve(copy))) {
+					carryOptions(packs, current, copy, log);
 					out.append(escapedEntry("shaderPack", copy)).append(ending);
 					changed = true;
 					say(log, "iris.properties: shaderPack " + current + " -> " + copy);
@@ -214,6 +218,20 @@ public final class StartupPatch {
 			} finally {
 				Files.deleteIfExists(tmp);
 			}
+		}
+	}
+
+	/** Iris keeps a pack's settings in {@code shaderpacks/<pack>.txt}; the copy starts with the original's, unless it has its own. */
+	private static void carryOptions(Path packs, String original, String copy, List<String> log) {
+		try {
+			Path from = packs.resolve(original + ".txt");
+			Path to = packs.resolve(copy + ".txt");
+			if (Files.isRegularFile(from) && !Files.exists(to)) {
+				Files.copy(from, to);
+				say(log, "copied " + from.getFileName() + " to " + to.getFileName());
+			}
+		} catch (IOException | RuntimeException e) {
+			say(log, "could not carry over the pack's settings: " + e);
 		}
 	}
 
