@@ -117,10 +117,6 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 
 	private record Region(int x0, int y0, int x1, int y1) {
 		/**
-		 * The subject's box around the screen's centre, as in OvvarClientTests. It was made for the
-		 * mannequin (1.8 tall); the taller Husk's head clips out of its top, which is harmless.
-		 */
-		/**
 		 * The legs, below the hips. The camera sits 1.62 above the feet, level, at 3 blocks, with a
 		 * 70 degree vertical field of view at 1080 px: 540 / tan(35) = 771 px per block at distance 1, so
 		 * 257 px per block at 3. The eye is the screen's centre row, so the hips (0.75 above the feet,
@@ -133,6 +129,10 @@ public final class MobOvvarClientTests implements FabricClientGameTest {
 			return new Region(w / 2 - 110, h / 2 + 232, w / 2 + 110, Math.min(h, h / 2 + 430));
 		}
 
+		/**
+		 * The subject's box around the screen's centre, as in OvvarClientTests. It was made for the
+		 * mannequin (1.8 tall); the taller Husk's head clips out of its top, which is harmless.
+		 */
 		static Region subjectBox(BufferedImage img) {
 			int w = img.getWidth(), h = img.getHeight();
 			return new Region(w / 2 - 150, h / 2 - 40, w / 2 + 150, h / 2 + 185);
