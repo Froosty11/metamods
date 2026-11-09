@@ -898,6 +898,10 @@ java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 #
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
 ```
 
+With `-Piris` set, `OvvarClientTests` and `OvvarDanseClientTests` skip themselves (their screenshots are judged
+against vanilla rendering), so only this test runs. It also requires at least half of the cropped leg to differ from the
+background, so `art` cannot pass on a crop that missed the leg.
+
 Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
 
 ## Credits
