@@ -95,6 +95,20 @@ tasks.register('patcherFixtures', JavaExec) {
 	workingDir = projectDir
 	args = ['tools/shaderpatcher/fixtures'] + (project.hasProperty('updateGoldens') ? ['--update'] : [])
 }
+// The TypeScript port (tools/shaderpatcher/web) runs the same fixtures, so the two patchers can't drift apart
+// unnoticed. Needs node on the PATH; without it the task logs and skips.
+def nodeExe = System.getenv('PATH')?.split(File.pathSeparator as String)?.collect { new File(it, 'node') }?.find { it.canExecute() }
+tasks.register('patcherFixturesTs', Exec) {
+	group = 'verification'
+	description = 'Runs the TypeScript shader patcher over the shared fixtures (needs node on the PATH).'
+	workingDir = projectDir
+	commandLine((nodeExe ?: 'node').toString(), '--test', 'tools/shaderpatcher/web/patcher.test.ts')
+	onlyIf {
+		if (nodeExe == null) logger.lifecycle('patcherFixturesTs: node is not on the PATH, skipping the TypeScript patcher fixtures')
+		nodeExe != null
+	}
+}
+tasks.named('patcherFixtures') { finalizedBy 'patcherFixturesTs' }
 tasks.named('check') { dependsOn 'patcherFixtures' }
 tasks.register('patcherJar', Jar) {
 	from sourceSets.patcher.output
