@@ -4,7 +4,12 @@ import com.mojang.serialization.JavaOps;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import java.util.UUID;
+import se.metacraft.ovvar.pack.Combos;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -15,6 +20,8 @@ import net.minecraft.world.item.component.BundleContents;
 import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.ModComponents;
+import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.Piece;
@@ -176,6 +183,68 @@ public final class MobOvvarTests {
 		}
 		double ratio = dropped / (double) worn;
 		if (ratio < 0.45 || ratio > 0.55) helper.fail("drop ratio " + ratio + " at 0.5");
+		helper.succeed();
+	}
+
+	/** Wears the garment on a mannequin and ticks it once, as the server does: an ovve's companion top appears. */
+	private static void wearAndTick(GameTestHelper helper, LivingEntity mannequin, ItemStack garment) {
+		OvveItem.wear(mannequin, garment);
+		garment.inventoryTick(helper.getLevel(), mannequin, ((OvveItem) garment.getItem()).chapter.slot);
+	}
+
+	@GameTest
+	public void everyViewerSeesItAll(GameTestHelper helper) {
+		var mannequin = helper.spawn(EntityTypes.MANNEQUIN, new net.minecraft.core.BlockPos(2, 1, 2));
+		int tops = 0;
+		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
+			for (int seed = 0; seed < 200; seed++) {
+				mannequin.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+				ItemStack garment = MobOvvar.garment(RandomSource.create(seed), slot, true);
+				wearAndTick(helper, mannequin, garment);
+				List<Placement> all = placements(garment);
+				for (Piece piece : chapter(garment).pieces()) {
+					ItemStack half = piece == Piece.TOP && slot == EquipmentSlot.LEGS ? mannequin.getItemBySlot(EquipmentSlot.CHEST) : garment;
+					if (piece == Piece.TOP && slot == EquipmentSlot.LEGS) {
+						if (!OvveItem.topUp(garment)) continue;
+						if (half.isEmpty() || !MobOvvar.is(half)) helper.fail("the companion top of seed " + seed + " lacks the marker: " + half);
+						tops++;
+					}
+					Looks.Look look = Looks.look(half, piece, UUID.randomUUID());
+					if (!look.complete()) helper.fail(slot + " seed " + seed + " " + piece + " is not complete");
+					if (look.trim() != null) helper.fail(slot + " seed " + seed + " " + piece + " needs a trim");
+					if (look.feetDye() != 0) helper.fail(slot + " seed " + seed + " " + piece + " has feet dye");
+					boolean any = all.stream().anyMatch(p -> p.piece() == piece);
+					if (any && look.dye() == 0) helper.fail(slot + " seed " + seed + " " + piece + " has patches but no dye");
+				}
+			}
+		}
+		if (tops == 0) helper.fail("no companion top was ever checked");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void mobOvvarQueueNoCombo(GameTestHelper helper) {
+		List<Placement> placements = List.of(Placement.parse("leg_front_top_r.batata"), Placement.parse("leg_out_top_l.batatu"), Placement.parse("seat.pung"));
+		Combos.Combo combo = Placement.combo(placements);
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		Combos.forgetForTest(Piece.BOTTOM, combo);
+		try {
+			ItemStack marked = new ItemStack(ModContent.ovve(Chapter.DATA));
+			Looks.setSewn(marked, SpotPlacements.fromList(placements).getOrThrow());
+			marked.set(ModComponents.MOB_OVVE, net.minecraft.util.Unit.INSTANCE);
+			ItemStack control = marked.copy();
+			control.remove(ModComponents.MOB_OVVE);
+
+			Looks.look(marked, Piece.BOTTOM, UUID.randomUUID());
+			PolymerItemUtils.getPolymerItemStack(marked, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's garment queued a combination");
+
+			Looks.look(control, Piece.BOTTOM, UUID.randomUUID());
+			PolymerItemUtils.getPolymerItemStack(control, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+			if (!Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("control: an unmarked ovve did not queue the combination");
+		} finally {
+			Combos.forgetForTest(Piece.BOTTOM, combo);
+		}
 		helper.succeed();
 	}
 }

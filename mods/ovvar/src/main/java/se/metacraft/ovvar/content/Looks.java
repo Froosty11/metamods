@@ -154,6 +154,7 @@ public final class Looks {
 	 * @param requestCombo whether a patch set the pack does not yet hold should be queued for it. A
 	 *   view that only draws the dye's instant patches (the chestplate wrap in {@link OvveTop}) passes
 	 *   false, so wearing armour never triggers a pack build for the overflow it does not show.
+	 *   A mob's garment ({@link MobOvvar}) never queues one either: its patches all ride the dye.
 	 */
 	public static Look look(ItemStack stack, Piece piece, UUID player, boolean requestCombo) {
 		// On an armour stand the patches are display entities (StandDisplays); the armour draws none.
@@ -168,7 +169,7 @@ public final class Looks {
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
-		if (requestCombo && baked < core.size()) Combos.request(piece, Placement.combo(core), urgent);
+		if (requestCombo && baked < core.size() && !MobOvvar.is(stack)) Combos.request(piece, Placement.combo(core), urgent);
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
 		// What the dye cannot take, the top's trim can, one placement, any design: the newest left over.
