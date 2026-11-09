@@ -80,7 +80,9 @@ public final class MobOvvar {
 
 	/**
 	 * What a mob's spawn roll puts in this slot: {@code vanilla}, or now and then a garment in its
-	 * place (whose slot then never drops).
+	 * place (whose slot then never drops). Vanilla rolls the chest before the legs (head, chest,
+	 * legs, feet — {@code Mob.EQUIPMENT_POPULATION_ORDER}, and a piglin's own roll likewise), so
+	 * when the legs come the chest is settled and says truly whether an ovve's top shows.
 	 */
 	public static ItemStack spawnPiece(Mob mob, EquipmentSlot slot, ItemStack vanilla, RandomSource random, MobOvvarConfig config) {
 		if (slot != EquipmentSlot.LEGS && slot != EquipmentSlot.CHEST) return vanilla;
@@ -91,10 +93,11 @@ public final class MobOvvar {
 		return garment;
 	}
 
-	/** Puts a garment on the mob in its own slot; the slot never drops. */
+	/** Puts a garment on the mob in its own slot; the slot never drops. Anything but an ovve or frack is left alone. */
 	public static void wear(Mob mob, ItemStack garment) {
+		if (!(garment.getItem() instanceof OvveItem item)) return;
 		OvveItem.wear(mob, garment);
-		mob.setDropChance(((OvveItem) garment.getItem()).chapter.slot, 0f);
+		mob.setDropChance(item.chapter.slot, 0f);
 	}
 
 	/** How likely each worn patch is to drop. Magpie (part 5) raises this for a killer whose ovve has it. */

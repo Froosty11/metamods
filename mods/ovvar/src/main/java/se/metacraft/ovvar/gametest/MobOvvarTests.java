@@ -37,9 +37,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.gametest.framework.GameTestAssertException;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.phys.Vec3;
+import se.metacraft.ovvar.OvvarConfig;
+
 /**
- * How a mob is dressed in an ovve or a frack (mob ovvar): pure, seeded, and needing no lock, since
- * nothing here touches the config or the world.
+ * How a mob is dressed in an ovve or a frack (mob ovvar). The garment tests are pure and seeded; the
+ * spawn tests set the config, so they take turns on {@link WardrobeTests#BUSY} and put it back.
  */
 public final class MobOvvarTests {
 	private static final int SEEDS = 2000;
@@ -155,6 +165,8 @@ public final class MobOvvarTests {
 		ItemStack helmet = new ItemStack(Items.IRON_HELMET);
 		helper.assertTrue(MobOvvar.spawnPiece(zombie, EquipmentSlot.HEAD, helmet, random, always) == helmet, "a helmet is never replaced");
 		helper.assertTrue(MobOvvar.spawnPiece(zombie, EquipmentSlot.LEGS, ItemStack.EMPTY, random, always).isEmpty(), "nothing stays nothing");
+		MobOvvar.wear(zombie, new ItemStack(Items.IRON_BOOTS));
+		helper.assertTrue(zombie.getItemBySlot(EquipmentSlot.FEET).isEmpty(), "wear leaves anything but a garment alone");
 
 		MobOvvarConfig rare = new MobOvvarConfig(true, 0.05f, .5f);
 		// One stream: the first float of RandomSource.create(n) over consecutive n is a narrow, ordered band, not a sample.
@@ -251,5 +263,95 @@ public final class MobOvvarTests {
 			Combos.forgetForTest(Piece.BOTTOM, combo);
 		}
 		helper.succeed();
+	}
+
+	// ---- the spawn hooks
+
+	private static final int MOBS = 400;
+	private static final DifficultyInstance HARD = new DifficultyInstance(Difficulty.HARD, 10_000_000L, 10_000_000L, 1f);
+
+	/** MOBS fresh mobs of this type, positioned in the test and never added, after a natural finalizeSpawn. */
+	private static List<Mob> spawned(GameTestHelper helper, EntityType<? extends Mob> type, boolean zombie) {
+		List<Mob> mobs = new ArrayList<>();
+		Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
+		for (int i = 0; i < MOBS; i++) {
+			Mob mob = type.create(helper.getLevel(), EntitySpawnReason.NATURAL);
+			if (mob == null) helper.fail("no " + type);
+			mob.snapTo(at);
+			SpawnGroupData group = zombie ? new Zombie.ZombieGroupData(false, false) : null;
+			mob.finalizeSpawn(helper.getLevel(), HARD, EntitySpawnReason.NATURAL, group);
+			mobs.add(mob);
+		}
+		return mobs;
+	}
+
+	/** Runs the body with this mob ovvar config, holding the lock; the config and the lock come back whatever happens. */
+	private static void withMobOvvar(GameTestHelper helper, MobOvvarConfig config, Runnable body) {
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
+				.thenExecute(() -> {
+					MobOvvarConfig before = OvvarConfig.get().mobOvvar();
+					try {
+						OvvarConfig.modify(c -> c.mobOvvar(config));
+						body.run();
+					} finally {
+						OvvarConfig.modify(c -> c.mobOvvar(before));
+						WardrobeTests.BUSY.set(false);
+					}
+				})
+				.thenSucceed();
+	}
+
+	private static void assertThat(boolean condition, String message) {
+		if (!condition) throw new GameTestAssertException(Component.literal(message), 0);
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void mobsSpawnInOvvar(GameTestHelper helper) {
+		withMobOvvar(helper, new MobOvvarConfig(true, 1f, .5f), () -> {
+			Map<EntityType<? extends Mob>, Boolean> types = new java.util.LinkedHashMap<>();
+			types.put(EntityTypes.ZOMBIE, true);
+			types.put(EntityTypes.HUSK, true);
+			types.put(EntityTypes.SKELETON, false);
+			types.put(EntityTypes.STRAY, false);
+			types.put(EntityTypes.PIGLIN, false);
+			types.forEach((type, zombie) -> {
+				int legs = 0, chests = 0;
+				for (Mob mob : spawned(helper, type, zombie)) {
+					ItemStack leg = mob.getItemBySlot(EquipmentSlot.LEGS), chest = mob.getItemBySlot(EquipmentSlot.CHEST);
+					if (!leg.isEmpty()) {
+						legs++;
+						if (!MobOvvar.is(leg)) helper.fail(type + " spawned in " + leg + " at chance 1");
+						helper.assertValueEqual(mob.getDropChances().byEquipment(EquipmentSlot.LEGS), 0f, type + "'s legs drop chance");
+						// The chest is rolled first, so an ovve under a chest piece was dressed as covered: no patch on its top.
+						if (!chest.isEmpty() && placements(leg).stream().anyMatch(p -> p.piece() == Piece.TOP)) helper.fail(type + "'s covered ovve top has a patch");
+					}
+					if (!chest.isEmpty()) {
+						chests++;
+						if (!MobOvvar.is(chest)) helper.fail(type + " spawned in " + chest + " at chance 1");
+						helper.assertValueEqual(chapter(chest).slot, EquipmentSlot.CHEST, type + "'s chest garment's slot");
+						helper.assertValueEqual(mob.getDropChances().byEquipment(EquipmentSlot.CHEST), 0f, type + "'s chest drop chance");
+					}
+				}
+				if (legs == 0) helper.fail("no " + type + " of " + MOBS + " spawned with anything on its legs");
+				if (chests == 0) helper.fail("no " + type + " of " + MOBS + " spawned with anything on its chest");
+			});
+		});
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void offMeansVanillaArmour(GameTestHelper helper) {
+		withMobOvvar(helper, new MobOvvarConfig(false, 1f, .5f), () -> {
+			int legs = 0, chests = 0;
+			for (Mob mob : spawned(helper, EntityTypes.ZOMBIE, true)) {
+				for (EquipmentSlot slot : EquipmentSlot.values()) {
+					if (MobOvvar.is(mob.getItemBySlot(slot))) helper.fail("a zombie wears a mob garment with mob ovvar off");
+				}
+				if (!mob.getItemBySlot(EquipmentSlot.LEGS).isEmpty()) legs++;
+				if (!mob.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) chests++;
+			}
+			if (legs == 0) helper.fail("no zombie of " + MOBS + " spawned in leggings");
+			if (chests == 0) helper.fail("no zombie of " + MOBS + " spawned in a chestplate");
+		});
 	}
 }
