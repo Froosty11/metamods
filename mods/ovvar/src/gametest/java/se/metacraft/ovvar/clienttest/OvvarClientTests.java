@@ -218,7 +218,11 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	private static final int CROP = 6;
 	/** How far a crop's mean may stray from the shaded chapter colour, per channel. */
 	private static final int COLOUR_TOLERANCE = 48;
-	/** Vertical field of view for the lineup: set, not assumed (OvvarDanseClientTests leaves it at 50). */
+	/**
+	 * Vertical field of view for the lineup: set, not assumed (OvvarDanseClientTests leaves it at 50).
+	 * The FOV effects (a flying spectator's ×1.1) are turned off with it, and the projection still
+	 * reads the camera's own FOV for the frame rather than trusting this.
+	 */
 	private static final int LINEUP_FOV = 70;
 	/** Mannequins per screenshot: six two blocks apart span ten blocks, well inside the frame from six blocks off. */
 	private static final int PER_SHOT = 6;
@@ -257,6 +261,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 		List<Chapter> up = List.of(Chapter.values());
 		List<Chapter> down = up.stream().filter(chapter -> chapter.rollable).toList();
 		int fovBefore = ctx.computeOnClient(client -> client.options.fov().get());
+		double fovEffectBefore = ctx.computeOnClient(client -> client.options.fovEffectScale().get());
 		try (TestDedicatedServerContext server = ctx.worldBuilder().createServer(props)) {
 			try (TestDedicatedServerConnection conn = server.connect()) {
 				ClientTestSupport.acceptResourcePack(ctx);
@@ -272,11 +277,12 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					for (int i = 0; i < down.size(); i++) lineupMannequin(level, down.get(i), false, lineupX(i), DOWN_ROW_Z);
 				});
 				conn.waitForClientboundPackets();
-				ClientTestSupport.acceptResourcePack(ctx);   // the pack, once the garments exist
+				ClientTestSupport.acceptResourcePack(ctx);   // only to settle: nothing is sewn, so no combos and no new pack
 				// First person with the HUD hidden (F1): no hotbar or crosshair over the row either.
 				ctx.runOnClient(client -> {
 					client.options.setCameraType(CameraType.FIRST_PERSON);
 					client.options.fov().set(LINEUP_FOV);
+					client.options.fovEffectScale().set(0.0);
 					if (!client.gui.hud.isHidden()) client.gui.hud.toggle();
 				});
 				ctx.waitTicks(100);   // let the mannequins' spawn interpolation settle before the first shot
@@ -288,6 +294,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 		} finally {
 			ctx.runOnClient(client -> {
 				client.options.fov().set(fovBefore);
+				client.options.fovEffectScale().set(fovEffectBefore);
 				if (client.gui.hud.isHidden()) client.gui.hud.toggle();
 			});
 		}
@@ -319,8 +326,11 @@ public final class OvvarClientTests implements FabricClientGameTest {
 			BufferedImage img = instantShot(ctx, server, conn, name + "_" + shot,
 					"tp Tester " + camX + " -60 " + (rowZ - LINEUP_DISTANCE) + " 0 0");
 			Vec3 eye = ctx.computeOnClient(client -> client.player.getEyePosition());
+			// The FOV the frame was drawn with (vertical, degrees), FOV effects included.
+			double fov = ctx.computeOnClient(client -> (double) client.gameRenderer.mainCamera().getFov());
+			System.out.println("[ovvar-clienttest] lineup " + name + "_" + shot + ": camera fov " + fov + ", eye " + eye);
 			for (int i = from; i < to; i++) {
-				String off = chestColour(img, eye, row.get(i), topUp, lineupX(i), rowZ, name + "_" + shot);
+				String off = chestColour(img, eye, fov, row.get(i), topUp, lineupX(i), rowZ, name + "_" + shot);
 				if (off != null) wrong.add(off);
 			}
 		}
@@ -336,7 +346,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	 * rolled-down ovve is read on its right thigh (leggings layer, half a unit proud; texel row 3, the
 	 * leg's middle). Returns null when it matches, else a line saying how it does not.
 	 */
-	private static String chestColour(BufferedImage img, Vec3 eye, Chapter chapter, boolean topUp,
+	private static String chestColour(BufferedImage img, Vec3 eye, double fov, Chapter chapter, boolean topUp,
 			double x, double z, String shot) {
 		double east, height, front;
 		if (topUp || chapter.slot == EquipmentSlot.CHEST) {
@@ -356,7 +366,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 		}
 		// The camera looks south (+z) level: east (+x) is screen left, up is screen up.
 		double dx = x + east - eye.x, dy = -60 + height - eye.y, dz = z - front - eye.z;
-		double focal = img.getHeight() / 2.0 / Math.tan(Math.toRadians(LINEUP_FOV) / 2);
+		double focal = img.getHeight() / 2.0 / Math.tan(Math.toRadians(fov) / 2);
 		int cx = (int) Math.round(img.getWidth() / 2.0 - focal * dx / dz);
 		int cy = (int) Math.round(img.getHeight() / 2.0 - focal * dy / dz);
 		int x0 = cx - CROP / 2, y0 = cy - CROP / 2;
