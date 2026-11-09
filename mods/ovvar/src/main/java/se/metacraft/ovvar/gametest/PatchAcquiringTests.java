@@ -203,16 +203,16 @@ public final class PatchAcquiringTests {
 		UUID owner = UUID.randomUUID();
 		Files.writeString(dir.resolve(owner + ".json"), """
 				{
-				  "designs": {
-				    "data": [
-				      "seat.rivals",
-				      "leg_front_top_l.it"
-				    ]
-				  },
-				  "stash": {
-				    "starkt": 2
-				  },
-				  "version": 1
+					"designs": {
+						"data": [
+							"seat.rivals",
+							"leg_front_top_l.it"
+						]
+					},
+					"stash": {
+						"starkt": 2
+					},
+					"version": 1
 				}""", StandardCharsets.UTF_8);
 		Wardrobe read = new FileBackend(dir).load(owner).orElseThrow();
 		helper.assertValueEqual(read.design(Chapter.DATA).map(d -> Set.copyOf(d.asPlacementList())).orElse(Set.of()),
