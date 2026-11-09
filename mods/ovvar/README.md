@@ -831,6 +831,11 @@ that shows the older state to them until they reload or rejoin (a joining player
 current pack). Every combination is still built in the background within 90 s so the pack is
 complete for whoever joins next.
 
+At startup every stored wardrobe design has its combinations added to the build (capped at 20 s;
+on a timeout or a store that cannot be read it logs a warning and falls back to building them as
+they are sewn). On a shared store, a design sewn on another server after this one started still
+triggers one push for its wearer, as for codes past the instant range.
+
 **This is the feature, not a gap in it.** It is tempting to push the new pack to everybody online
 the moment somebody's design outgrows the dye channels — the people looking at a wearer are the
 ones whose clients draw it, and until they reload they see only the instant part of it. It was

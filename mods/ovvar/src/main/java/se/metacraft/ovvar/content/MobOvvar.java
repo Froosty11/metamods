@@ -147,7 +147,8 @@ public final class MobOvvar {
 		float chance = patchDropChance(OvvarConfig.get().mobOvvar(), killer(mob, source));
 		for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.LEGS, EquipmentSlot.CHEST}) {
 			ItemStack garment = mob.getItemBySlot(slot);
-			if (!is(garment)) continue;
+			// The companion top of a top-up ovve (OvveTopItem, in the empty chest slot) carries a copy of its patches: not a garment.
+			if (!is(garment) || !(garment.getItem() instanceof OvveItem)) continue;
 			for (ItemStack drop : patchDrops(garment, mob.getRandom(), chance)) mob.spawnAtLocation(level, drop);
 		}
 	}

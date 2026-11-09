@@ -2,6 +2,7 @@ package se.metacraft.ovvar.store;
 
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -11,7 +12,6 @@ import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.time.Duration;
-import se.metacraft.ovvar.content.SpotPlacements;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;

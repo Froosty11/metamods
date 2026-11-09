@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Unit;
 import net.minecraft.world.entity.ConversionParams;
@@ -496,8 +497,7 @@ public final class MobOvvarTests {
 	}
 
 	private static List<ItemStack> itemsAround(GameTestHelper helper) {
-		var box = new AABB(helper.absolutePos(new BlockPos(0, 0, 0))).inflate(10);
-		return helper.getLevel().getEntitiesOfClass(ItemEntity.class, box).stream().map(ItemEntity::getItem).toList();
+		return helper.getLevel().getEntitiesOfClass(ItemEntity.class, helper.getBounds()).stream().map(ItemEntity::getItem).toList();
 	}
 
 	private static void killAndCheck(GameTestHelper helper, float chance, boolean byPlayer, Set<String> expected) {
@@ -512,6 +512,24 @@ public final class MobOvvarTests {
 			List<String> ids = itemsAround(helper).stream().map(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()).filter(id -> id.startsWith("patch_")).sorted().toList();
 			helper.assertValueEqual(new TreeSet<>(ids), new TreeSet<>(expected), "the dropped items");
 			helper.assertValueEqual(ids.size(), expected.size(), "how many items dropped");
+		});
+	}
+
+	@GameTest
+	public void topUpMobDropsEachPatchOnce(GameTestHelper helper) {
+		withMobOvvar(helper, new MobOvvarConfig(true, 0.05f, 1f), () -> {
+			var level = helper.getLevel();
+			Zombie zombie = helper.spawn(EntityTypes.ZOMBIE, 2, 1, 2);
+			ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+			Looks.setSewn(ovve, SpotPlacements.fromList(List.of(Placement.parse("front_top_left.spiken"), Placement.parse("leg_front_top_r.jgs"), Placement.parse("seat.pung"))).getOrThrow());
+			ovve.set(ModComponents.MOB_OVVE, Unit.INSTANCE);
+			OvveItem.setTopUp(ovve, true);
+			MobOvvar.wear(zombie, ovve);
+			zombie.tick();
+			helper.assertTrue(zombie.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem, "the companion top is in the chest slot");
+			zombie.hurtServer(level, level.damageSources().playerAttack(helper.makeMockServerPlayerInLevel()), 1000f);
+			List<String> ids = itemsAround(helper).stream().map(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()).filter(id -> id.startsWith("patch_")).sorted().toList();
+			helper.assertValueEqual(ids, List.of("patch_jgs", "patch_pung", "patch_spiken"), "each worn patch drops exactly once");
 		});
 	}
 
@@ -593,17 +611,23 @@ public final class MobOvvarTests {
 	public void mobCommandSummonsOne(GameTestHelper helper) {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		var level = helper.getLevel();
-		var source = player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
-		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
-			var box = player.getBoundingBox().inflate(2);
-			List<Zombie> before = level.getEntitiesOfClass(Zombie.class, box);
-			level.getServer().getCommands().performPrefixedCommand(source, slot == EquipmentSlot.LEGS ? "ovvar mob" : "ovvar mob frack");
-			List<Zombie> added = level.getEntitiesOfClass(Zombie.class, box);
-			added.removeAll(before);
-			helper.assertValueEqual(added.size(), 1, "zombies the command added for " + slot);
-			Zombie zombie = added.getFirst();
-			helper.assertTrue(MobOvvar.is(zombie.getItemBySlot(slot)), "the zombie's " + slot + " is a mob ovvar garment");
-			helper.assertTrue(zombie.isPersistenceRequired(), "the zombie is persistent");
+		var source = player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER);
+		List<Zombie> summoned = new ArrayList<>();
+		try {
+			for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
+				var box = player.getBoundingBox().inflate(2);
+				List<Zombie> before = level.getEntitiesOfClass(Zombie.class, box);
+				level.getServer().getCommands().performPrefixedCommand(source, slot == EquipmentSlot.LEGS ? "ovvar mob" : "ovvar mob frack");
+				List<Zombie> added = level.getEntitiesOfClass(Zombie.class, box);
+				added.removeAll(before);
+				helper.assertValueEqual(added.size(), 1, "zombies the command added for " + slot);
+				Zombie zombie = added.getFirst();
+				summoned.add(zombie);
+				helper.assertTrue(MobOvvar.is(zombie.getItemBySlot(slot)), "the zombie's " + slot + " is a mob ovvar garment");
+				helper.assertTrue(zombie.isPersistenceRequired(), "the zombie is persistent");
+			}
+		} finally {
+			for (Zombie z : summoned) z.discard();
 		}
 		helper.succeed();
 	}
