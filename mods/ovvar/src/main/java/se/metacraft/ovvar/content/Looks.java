@@ -191,6 +191,7 @@ public final class Looks {
 	 * cannot be shown in full without a newer pack is claimed for them ({@link Combos#claim}).
 	 */
 	public static void claimIfNeeded(ServerPlayer player, ItemStack stack) {
+		if (MobOvvar.is(stack)) return;   // a mob's garment is always drawn in full: no pack push for it
 		for (Piece piece : Piece.values()) {
 			if (!look(stack, piece, player.getUUID()).complete()) {
 				Combos.claim(player, piece, Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece))));

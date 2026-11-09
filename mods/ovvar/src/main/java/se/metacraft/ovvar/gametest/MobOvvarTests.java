@@ -198,7 +198,7 @@ public final class MobOvvarTests {
 		int tops = 0;
 		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
 			for (int seed = 0; seed < 200; seed++) {
-				mannequin.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+				for (EquipmentSlot s : EquipmentSlot.values()) mannequin.setItemSlot(s, ItemStack.EMPTY);
 				ItemStack garment = MobOvvar.garment(RandomSource.create(seed), slot, true);
 				wearAndTick(helper, mannequin, garment);
 				List<Placement> all = placements(garment);
@@ -238,6 +238,11 @@ public final class MobOvvarTests {
 			Looks.look(marked, Piece.BOTTOM, UUID.randomUUID());
 			PolymerItemUtils.getPolymerItemStack(marked, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
 			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's garment queued a combination");
+			// ...nor do the virtual cuffs a mob's bare feet are shown in.
+			ItemStack cuffs = se.metacraft.ovvar.content.item.OvveFeet.cuffsFor(marked);
+			if (!MobOvvar.is(cuffs)) helper.fail("the cuffs lack the marker");
+			PolymerItemUtils.getPolymerItemStack(cuffs, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's cuffs queued a combination");
 
 			Looks.look(control, Piece.BOTTOM, UUID.randomUUID());
 			PolymerItemUtils.getPolymerItemStack(control, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
