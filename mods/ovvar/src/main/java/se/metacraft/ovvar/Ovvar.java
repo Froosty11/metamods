@@ -60,6 +60,8 @@ public class Ovvar implements ModInitializer {
 			int added = Combos.prebuild(Wardrobes.storedDesigns(Duration.ofSeconds(20)));
 			LOGGER.info("[ovvar] pre-built {} stored design combination(s)", added);
 		});
+		// Every mod's items are registered by now, so a pool item from a missing mod is logged at startup.
+		ServerLifecycleEvents.SERVER_STARTED.register(s -> PunkphozConfig.poolOnOffer());
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();

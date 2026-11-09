@@ -23,6 +23,9 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 
+import com.mojang.serialization.JsonOps;
+import se.metacraft.ovvar.PunkphozConfig;
+import se.metacraft.ovvar.PunkphozConfig.PoolEntry;
 import se.metacraft.ovvar.content.entity.Punkphoz;
 import se.metacraft.ovvar.content.entity.PunkphozEntities;
 
@@ -117,6 +120,58 @@ public final class PunkphozTests {
 		}
 		loaded.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), saved));
 		helper.assertValueEqual(describe(loaded.getOffers()), describe(before), "the offers after a save and load");
+		helper.succeed();
+	}
+
+	private static PoolEntry entry(String item, int price) {
+		return new PoolEntry(Identifier.parse(item), price, 1, 1);
+	}
+
+	private static PunkphozConfig withPool(PoolEntry... pool) {
+		var d = PunkphozConfig.DEFAULT;
+		return new PunkphozConfig(d.enabled(), d.share(), d.chapterOvves(), d.ovvePrice(), d.patches(), d.patchPrice(),
+				d.poolPicks(), d.playersPerRoll(), d.maxLoaded(), List.of(pool));
+	}
+
+	@GameTest
+	public void defaultsAreWritten(GameTestHelper helper) {
+		JsonObject json = PunkphozConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, PunkphozConfig.DEFAULT).getOrThrow().getAsJsonObject();
+		for (String key : List.of("enabled", "share", "chapter_ovves", "ovve_price", "patches", "patch_price", "pool_picks",
+				"players_per_roll", "max_loaded", "pool")) {
+			if (!json.has(key)) helper.fail("the encoded default has no '" + key + "': " + json);
+		}
+		helper.assertValueEqual(json.size(), 10, "keys written");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void poolSkipsMissingItems(GameTestHelper helper) {
+		var resolved = PunkphozConfig.resolve(withPool(entry("nosuchmod:thing", 3), entry("minecraft:emerald_block", 5)));
+		helper.assertValueEqual(resolved.entries().stream().map(PoolEntry::item).toList(),
+				List.of(Identifier.parse("minecraft:emerald_block")), "entries");
+		helper.assertValueEqual(resolved.warnings(),
+				List.of("Punkphöz: leaving out nosuchmod:thing from the pool: it isn't registered"), "warnings");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void poolRejectsGivenOnlyPatches(GameTestHelper helper) {
+		var resolved = PunkphozConfig.resolve(withPool(entry("ovvar:patch_rivals", 4), entry("ovvar:patch_tmeit-marshal", 4),
+				entry("ovvar:patch_metacrew", 4), entry("ovvar:patch_spiken", 4)));
+		helper.assertValueEqual(resolved.entries().stream().map(e -> e.item().getPath()).toList(), List.of("patch_spiken"), "entries");
+		helper.assertValueEqual(resolved.warnings(), List.of(
+				"Punkphöz: leaving out ovvar:patch_rivals from the pool: patch 'rivals' is given-only (PatchLoot.NON_LOOT)",
+				"Punkphöz: leaving out ovvar:patch_tmeit-marshal from the pool: patch 'tmeit-marshal' is given-only (PatchLoot.NON_LOOT)",
+				"Punkphöz: leaving out ovvar:patch_metacrew from the pool: patch 'metacrew' is given-only (PatchLoot.NON_LOOT)"), "warnings");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void poolWarningsOncePerLoad(GameTestHelper helper) {
+		var config = withPool(entry("nosuchmod:thing", 3), entry("ovvar:patch_rivals", 4), entry("minecraft:emerald_block", 5));
+		int before = PunkphozConfig.warningsLogged();
+		for (int i = 0; i < 50; i++) PunkphozConfig.poolOnOffer(config);
+		helper.assertValueEqual(PunkphozConfig.warningsLogged() - before, 2, "warnings logged over 50 calls");
 		helper.succeed();
 	}
 
