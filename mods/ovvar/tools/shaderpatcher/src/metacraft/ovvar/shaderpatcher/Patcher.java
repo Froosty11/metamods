@@ -186,7 +186,7 @@ public final class Patcher {
 
 	// ---------------------------------------------------------------- files
 
-	private static Map<String, byte[]> readZip(Path zip) throws IOException {
+	public static Map<String, byte[]> readZip(Path zip) throws IOException {
 		Map<String, byte[]> files = new LinkedHashMap<>();
 		try (ZipFile z = new ZipFile(zip.toFile())) {
 			Enumeration<? extends ZipEntry> entries = z.entries();
@@ -201,7 +201,7 @@ public final class Patcher {
 		return files;
 	}
 
-	private static Map<String, byte[]> readFolder(Path root) throws IOException {
+	public static Map<String, byte[]> readFolder(Path root) throws IOException {
 		Map<String, byte[]> files = new LinkedHashMap<>();
 		Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 			@Override
@@ -213,7 +213,7 @@ public final class Patcher {
 		return files;
 	}
 
-	private static void writeZip(Path out, Map<String, byte[]> files) throws IOException {
+	public static void writeZip(Path out, Map<String, byte[]> files) throws IOException {
 		try (ZipOutputStream z = new ZipOutputStream(Files.newOutputStream(out))) {
 			for (Map.Entry<String, byte[]> e : files.entrySet()) {
 				z.putNextEntry(new ZipEntry(e.getKey()));
@@ -223,7 +223,7 @@ public final class Patcher {
 		}
 	}
 
-	private static void writeFolder(Path out, Map<String, byte[]> files) throws IOException {
+	public static void writeFolder(Path out, Map<String, byte[]> files) throws IOException {
 		for (Map.Entry<String, byte[]> e : files.entrySet()) {
 			Path p = out.resolve(e.getKey());
 			Files.createDirectories(p.getParent());

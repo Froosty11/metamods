@@ -161,7 +161,9 @@ if (project.hasProperty('iris')) {
 	}
 	tasks.named('runClientGameTest') {
 		def runDir = file('build/run/clientGameTest')
-		jvmArgs "-Dovvar.iris.pack=${pack.name}"
+		// With -PshaderpatchMod the launcher mod switches Iris to the patched copy, which is the pack to expect.
+		def expectedPack = project.hasProperty('shaderpatchMod') ? pack.name.replaceAll(/\.zip$/, '') + '+ovvar.zip' : pack.name
+		jvmArgs "-Dovvar.iris.pack=${expectedPack}"
 		doFirst {
 			if (!pack.isFile()) throw new GradleException("Ovvar: -Piris=${pack} is not a file")
 			delete fileTree("$runDir/shaderpacks")
@@ -169,6 +171,15 @@ if (project.hasProperty('iris')) {
 			file("$runDir/config").mkdirs()
 			file("$runDir/config/iris.properties").text = "enableShaders=true\nshaderPack=${pack.name}\n"
 		}
+	}
+}
+// -PshaderpatchMod additionally puts the ovvar-shaderpatch launcher mod (mods/ovvar-shaderpatch) on the client
+// test's runtime: with the ORIGINAL pack in -Piris, it must write <pack>+ovvar.zip and switch iris.properties
+// to it at preLaunch, so the run needs no hand patching (cloud only, see README "Client screenshot tests").
+if (project.hasProperty('shaderpatchMod')) {
+	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -PshaderpatchMod needs -Piris=<shaderpack .zip>')
+	dependencies {
+		gametestRuntimeOnly project(path: ':mods:ovvar-shaderpatch')
 	}
 }
 if (project.hasProperty('ovvar.iris.expect')) {

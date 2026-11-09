@@ -901,6 +901,15 @@ java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 #
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
 ```
 
+Without hand patching, through the launcher mod (`mods/ovvar-shaderpatch`, which patches the instance's shaderpacks at
+`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote:
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PshaderpatchMod
+```
+
+Iris's log then names `bsl+ovvar.zip`, and `unpatchedPackShowsChecker` passes with `art`.
+
 With `-Piris` set, `OvvarClientTests` and `OvvarDanseClientTests` skip themselves (their screenshots are judged
 against vanilla rendering), so only this test runs. It also requires at least half of the cropped leg to differ from the
 background, so `art` cannot pass on a crop that missed the leg.
