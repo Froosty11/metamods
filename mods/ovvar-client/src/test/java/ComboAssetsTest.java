@@ -9,10 +9,15 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import org.junit.jupiter.api.Test;
-import se.metacraft.ovvar.combo.ComboAssets;
+import se.metacraft.ovvarclient.combo.ComboAssets;
 import se.metacraft.ovvarclient.ClientCombos;
 
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.profiling.InactiveProfiler;
+import net.minecraft.util.profiling.ProfilerFiller;
+
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -97,19 +102,31 @@ public class ComboAssetsTest {
 		Map<ResourceKey<EquipmentAsset>, EquipmentClientInfo> loaded = Map.of(key("data/top"), garment);
 		assertSame(garment, ClientCombos.buildOrFallBack(key("data/top/no_such_cell.itk"), loaded));
 		assertSame(EquipmentAssetManager.MISSING, ClientCombos.buildOrFallBack(key("nothing"), loaded));
+		assertSame(EquipmentAssetManager.MISSING, ClientCombos.buildOrFallBack(key("feet/iron"), loaded));
 		EquipmentClientInfo built = ClientCombos.buildOrFallBack(key("data/top/front_top_left.itk"), loaded);
 		assertNotSame(garment, built);
 		assertNotSame(EquipmentAssetManager.MISSING, built);
 	}
 
+	/** Without the server's Polymer pack (the garment is not loaded) nothing is built: the textures would be missing. */
+	@Test
+	void withoutTheGarmentLoadedNothingIsBuilt() {
+		assertSame(EquipmentAssetManager.MISSING, ClientCombos.buildOrFallBack(key("data/top/front_top_left.itk"), Map.of()));
+	}
+
 	/**
 	 * The mixin itself (fabric-loader-junit runs the tests under Knot with the mod's mixins): an asset
-	 * manager with no packs at all hands out a built combination for a combination's name, the same object
-	 * the next time, and still MISSING for anything else.
+	 * manager holding only the base garment (as the Polymer pack would) hands out a built combination for a
+	 * combination's name, the same object the next time, and still MISSING for anything else. Its reload
+	 * marks the hook ready, which is what lets the client handshake.
 	 */
 	@Test
-	void theAssetManagerBuildsMissingCombinations() {
+	void theAssetManagerBuildsMissingCombinations() throws ReflectiveOperationException {
 		EquipmentAssetManager manager = new EquipmentAssetManager();
+		Method apply = EquipmentAssetManager.class.getDeclaredMethod("apply", Map.class, ResourceManager.class, ProfilerFiller.class);
+		apply.setAccessible(true);
+		apply.invoke(manager, Map.of(Identifier.fromNamespaceAndPath("ovvar", "data/top"), EquipmentClientInfo.builder().build()), null, InactiveProfiler.INSTANCE);
+		assertTrue(ClientCombos.ready(), "a reload through the asset manager did not mark the hook ready");
 		EquipmentClientInfo built = manager.get(key("data/top/front_top_left.itk"));
 		assertEquals(ClientCombos.build("data/top/front_top_left.itk").orElseThrow(), built);
 		assertSame(built, manager.get(key("data/top/front_top_left.itk")));

@@ -30,6 +30,9 @@
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}"
 	},
+	"breaks": {
+		"ovvar-shaderpatch": "*"
+	},
 	"recommends": {
 		"fabric-api": "*"
 	}

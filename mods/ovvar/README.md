@@ -1053,8 +1053,9 @@ A player with the optional client mod (`mods/ovvar-client`, `ovvar-client.jar`) 
 pack: an equipment asset's name spells out the whole combination, every texture it stacks is already in the
 Polymer pack, and the mod builds any `ovvar:<chapter>/<piece>[_nercabbad]/<combo>` asset its packs lack from the
 name (a mixin on `EquipmentAssetManager.get`). The names and the JSON come from `src/combo`
-(`se.metacraft.ovvar.combo.ComboAssets`, plain Java and Gson), which this mod and the client mod both compile,
-so the two cannot build a definition differently; `ComboAssetsParityTests` checks the client's name-only build
+(`se.metacraft.ovvar.combo.ComboAssets`, plain Java and Gson), which this mod and the client mod both compile
+(the client's copy moved to `se.metacraft.ovvarclient.combo` by its build, so with both mods on one classpath each
+runs its own), so the two cannot build a definition differently; `ComboAssetsParityTests` checks the client's name-only build
 against `ComboPack`'s bytes, and the cell table it carries against `Spot`.
 
 The handshake: the client registers a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
@@ -1062,13 +1063,15 @@ The handshake: the client registers a configuration-phase receiver on `ovvar:dra
 `ServerConfigurationConnectionEvents.CONFIGURE`, before the join packs are chosen, `Combos` knows. Such a
 player then gets no `ComboPack` among their join packs, is sent whole combinations (`Looks.look`: the full
 combo as the asset, no dye bits, no trim, nothing owed), is never claimed for or pushed a pack, and
-`/ovvar reload` tells them there is nothing to reload. A mob's garment stays on the dye for them, as for
+`/ovvar reload` tells them there is nothing to reload. What they sew or see is still queued for the pack (at
+once when they sew it), so a vanilla player joining later gets it as if the sewer had been vanilla too. A mob's garment stays on the dye for them, as for
 everybody. The chestplate wrap is unchanged (with the whole combination on the legs and top it carries no dye,
 the same as for a vanilla client whose pack holds the combination).
 
 The protocol is `ComboAssets.PROTOCOL`, in the channel's name: a server and a client on different protocols
 never handshake, and that client is pushed the pack as before. So is a vanilla client, a client whose hook
-did not load (its mixin config is not required; no hook, no handshake), and a client without Fabric API. Bump
+did not load (its mixin config is not required; no hook, no handshake), and a client without Fabric API. The
+client builds nothing while the base garment is not loaded (no Polymer pack: the textures would be missing). Bump
 the protocol whenever a name could mean something else or build different JSON; `ComboAssetsTest` in the
 client mod pins a hash of the cell table and recipe to catch that, and reads `src/combo/goldens.json`, which
 the game tests compare to the pack (`-PupdateComboGoldens` rewrites it).

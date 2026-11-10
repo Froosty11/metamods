@@ -187,6 +187,10 @@ public final class Looks {
 		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
 		if (requestCombo && chapter != null && baked < core.size() && !MobOvvar.is(stack)) Combos.request(chapter, piece, Placement.combo(core), urgent);
+		// Seen by a client that draws it anyway: still queued (lazily) for everyone else's pack.
+		if (drawsAll && requestCombo && chapter != null && !core.isEmpty() && !Combos.isBuilt(chapter, piece, Placement.combo(core), null)) {
+			Combos.request(chapter, piece, Placement.combo(core), false);
+		}
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
 		// What the dye cannot take, the top's trim can, one placement, any design: the newest left over.

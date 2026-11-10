@@ -9,7 +9,7 @@ import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.metacraft.ovvar.combo.ComboAssets;
+import se.metacraft.ovvarclient.combo.ComboAssets;
 
 import java.util.Map;
 import java.util.Optional;
@@ -44,19 +44,24 @@ public final class ClientCombos {
 	/**
 	 * What to draw for an {@code ovvar:} asset the packs do not hold: the combination built from its name or,
 	 * for a name this build cannot read (which a server on the same protocol never sends), the garment one
-	 * level up without its patches rather than nothing. Never throws: this runs while rendering.
+	 * level up without its patches rather than nothing. Only while that garment is loaded: without the
+	 * server's Polymer pack none of the textures exist, and the asset stays missing, as on vanilla. Anything
+	 * that is not a combination's name ({@code feet/...}, a base garment) is left missing too. Never throws:
+	 * this runs while rendering.
 	 */
 	public static EquipmentClientInfo buildOrFallBack(ResourceKey<EquipmentAsset> id, Map<ResourceKey<EquipmentAsset>, EquipmentClientInfo> loaded) {
 		String path = id.identifier().getPath();
+		int slash = path.lastIndexOf('/');
+		if (path.split("/", -1).length != 3) return EquipmentAssetManager.MISSING;
+		EquipmentClientInfo garment = loaded.get(ResourceKey.create(EquipmentAssets.ROOT_ID, id.identifier().withPath(path.substring(0, slash))));
+		if (garment == null) return EquipmentAssetManager.MISSING;
 		try {
 			Optional<EquipmentClientInfo> built = build(path);
 			if (built.isPresent()) return built.get();
 		} catch (RuntimeException e) {
 			LOGGER.warn("[ovvar-client] building equipment asset {} failed", id.identifier(), e);
 		}
-		int slash = path.lastIndexOf('/');
-		if (slash < 0) return EquipmentAssetManager.MISSING;
 		LOGGER.warn("[ovvar-client] cannot build equipment asset {}; drawing it without its patches", id.identifier());
-		return loaded.getOrDefault(ResourceKey.create(EquipmentAssets.ROOT_ID, id.identifier().withPath(path.substring(0, slash))), EquipmentAssetManager.MISSING);
+		return garment;
 	}
 }

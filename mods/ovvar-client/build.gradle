@@ -7,6 +7,15 @@
 // initDist in the root build.gradle skips it. See README.md.
 version = project.ovvar_client_version
 
+// ovvar's combination names and JSON (mods/ovvar/src/combo), the very source the server builds its pack from,
+// moved into this mod's own package (se.metacraft.ovvarclient.combo) on the way in: with ovvar on the same
+// classpath (singleplayer, the dev client tests) each jar then runs its own copy, never the other's.
+def relocateCombo = tasks.register('relocateCombo', Sync) {
+	from('../ovvar/src/combo/java/se/metacraft/ovvar/combo')
+	into layout.buildDirectory.dir('generated/combo/se/metacraft/ovvarclient/combo')
+	filter { String line -> line.replace('package se.metacraft.ovvar.combo;', 'package se.metacraft.ovvarclient.combo;') }
+}
+
 sourceSets {
 	// The shader patcher core (mods/ovvar/tools/shaderpatcher/src), compiled for Java 11 so the jar still
 	// runs with `java -jar` on an old system Java; dependency-free, the jar's Main-Class.
@@ -14,8 +23,7 @@ sourceSets {
 		java.srcDir '../ovvar/tools/shaderpatcher/src'
 	}
 	main {
-		// ovvar's combination names and JSON (mods/ovvar/src/combo), the very source the server builds its pack from
-		java.srcDir '../ovvar/src/combo/java'
+		java.srcDir(files(layout.buildDirectory.dir('generated/combo')).builtBy(relocateCombo))
 		compileClasspath += patcher.output
 		runtimeClasspath += patcher.output
 	}

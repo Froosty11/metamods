@@ -71,8 +71,9 @@ public final class ClientHandshakeTests {
 
 	/**
 	 * More patches than the dye holds, one of them given-only, on a combination the pack does not have: a
-	 * player who handshook is sent all of it as the asset (no dye, no trim, nothing owed), nothing is queued
-	 * or claimed for them, and /ovvar reload sends them nothing. A vanilla viewer still waits for the pack.
+	 * player who handshook is sent all of it as the asset (no dye, no trim, nothing owed), is never claimed
+	 * for, and /ovvar reload sends them nothing; the combination is still queued for everyone else's pack.
+	 * A vanilla viewer still waits for the pack.
 	 */
 	@GameTest
 	public void aHandshakenPlayerIsSentWholeCombinationsAndNeverPushed(GameTestHelper helper) {
@@ -92,7 +93,8 @@ public final class ClientHandshakeTests {
 			assertThat(look.dye() == 0 && look.feetDye() == 0 && look.trim() == null, "a client that draws combinations was sent dye bits or a trim");
 			assertThat(look.complete(), "a client that draws combinations was owed a pack");
 			Looks.claimIfNeeded(player, ovve);
-			assertThat(!Combos.isKnown(Chapter.TBAS, Piece.BOTTOM, whole), "the combination was queued for a pack because of a client that draws it");
+			assertThat(Combos.isKnown(Chapter.TBAS, Piece.BOTTOM, whole), "a combination sewn by a client that draws it was not queued for the others' pack");
+			assertThat(!Combos.claimedByForTest(player.getUUID()), "a client that draws combinations was claimed for a push");
 			assertThat(Combos.reload(player).contains("ovvar-client"), "/ovvar reload would push a pack: " + Combos.reload(player));
 
 			// A mob's garment is drawn from the dye for everyone, this client too.

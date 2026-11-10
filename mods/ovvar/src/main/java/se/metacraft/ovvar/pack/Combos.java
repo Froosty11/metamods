@@ -195,6 +195,13 @@ public final class Combos {
 		return player != null && DRAWS_COMBOS.contains(player);
 	}
 
+	/** Tests only: is this player waiting on a build to be pushed it, or owed a push? */
+	public static boolean claimedByForTest(UUID player) {
+		if (NEEDS_PUSH.contains(player)) return true;
+		for (Set<UUID> claimers : CLAIMED_BY.values()) if (claimers.contains(player)) return true;
+		return false;
+	}
+
 	/** Tests only: a (fake) player as if they had, or had not, handshaken. */
 	public static void setDrawsCombosForTest(UUID player, boolean draws) {
 		if (draws) DRAWS_COMBOS.add(player);
@@ -275,8 +282,13 @@ public final class Combos {
 	 * already does — since a sewing session is nowhere near a fight.
 	 */
 	public static void claim(ServerPlayer player, Chapter chapter, Piece piece, Combo combo) {
-		if (drawsCombos(player.getUUID())) return;   // their client draws it already: no push
 		KeyedCombo key = key(chapter, piece, combo);
+		if (drawsCombos(player.getUUID())) {
+			// Their client draws it already: no claim, no push. Still built at once, so whoever joins next
+			// without the mod has it in their pack, as if the sewer had been a vanilla client.
+			request(chapter, piece, combo, true);
+			return;
+		}
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
 			if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
 			return;

@@ -15,8 +15,9 @@ import java.util.Optional;
  * The names and the equipment definition of a patch combination, shared by ovvar (the server writes them
  * into the combination pack, {@code pack/ComboPack}) and by the ovvar-client mod (the client builds the
  * same definition from the asset's name alone, so the server need not push it the pack). Plain Java and
- * Gson, no Minecraft or ovvar classes: this directory is compiled into both jars, so the two can never
- * build a definition differently.
+ * Gson, no Minecraft or ovvar classes: this directory is compiled into both jars (the client's copy moved
+ * to se.metacraft.ovvarclient.combo, so the two never shadow each other on one classpath), so the two can
+ * never build a definition differently.
  *
  * <p>The client cannot ask ovvar's {@code Spot} enum which cell lies over which, so the cell table is
  * written out here ({@link #CELLS}); a game test checks it against {@code Spot} cell for cell, and the
