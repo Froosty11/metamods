@@ -123,7 +123,8 @@ Punkphöz is a wandering trader with his own stock, and the only survival source
 ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
 them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
 TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
-kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+kultur installed they are left out and logged once per config load), and, with Brewery, the Curse of the Spilled Drink's book for 16
+emeralds (one more pool candidate, not a config entry). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
 he sold lately from coming straight back.
 
 He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
@@ -165,7 +166,7 @@ a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`
 `MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
 patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
 `config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
-`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` is where Magpie (part 5) will raise the drop chance.
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` raises it for a killer wearing Magpie (see Enchantments).
 
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
@@ -251,6 +252,8 @@ under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come
 - **Magpie** (I-III): better odds of finding patches. A structure chest's patch chance is
   `PatchLoot.CHANCE + 0.03 x level` for an opener wearing it (III: 0.14); frack or ovve counts the same.
   Only loot patches (`PatchLoot.LOOT`) are affected; given-only patches never appear from a new source.
+  A mob ovve's patches drop at `patch_drop_chance + 0.10 x level` (capped at 1) when the killer
+  (`MobOvvar.killer`) wears Magpie: 0.5 becomes 0.8 at III. Without Magpie it is `patch_drop_chance`.
 - **Keepsake** (I): a Keepsake ovve anywhere in the inventory stays with you through death, pockets
   and all. On respawn it goes back to its slot; if that is taken, anywhere in the inventory; if the
   inventory is full, it drops at your feet. Nothing is deleted.
@@ -271,7 +274,8 @@ under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come
   still running. Pending doses are a persistent attachment: they survive logout and are lost on death.
   The cursed ovve also drips (6 `DRIPPING_WATER` particles at leg height) and squelches
   (`SLIME_SQUISH_SMALL`) about every `drip_interval_ticks` (200). It needs Brewery, like kultur's
-  drinks (see below).
+  drinks (see below). With Brewery, Punkphöz may sell its book for 16 emeralds (`SpilledDrink.WANDERER_PRICE`):
+  it is one more candidate among his `pool_picks` (`PunkphozStock.extras`), never without Brewery.
 
 ### The numbers
 
@@ -352,10 +356,8 @@ By vanilla method or Fabric event:
   inside a preview (so a preview never contains itself; Polymer encodes nested stacks on the network
   thread, after `getPolymerItemStack` returns, so a flag alone is not enough).
 
-Not wired yet: Magpie's mob-ovve bonus (`Magpie.mobOvvarDrop`, `patchDropBonus`) waits for part 2's
-patch-drop roll, and the Punkphöz curse book (`SpilledDrink.wandererBook`, `WANDERER_PRICE`) waits for
-part 4's stock pool. Mob ovve garments never carry enchantments: none of the six is in
-`#minecraft:on_mob_spawn_equipment` (test `mobSpawnEquipmentNeverEnchantsAnOvve`).
+Mob ovve garments never carry enchantments: none of the six is in `#minecraft:on_mob_spawn_equipment`
+and vanilla's spawn enchanting leaves a real mob garment alone (test `mobSpawnEquipmentNeverEnchantsAnOvve`).
 
 Tests: `EnchantmentTests`, `EnderPocketsTests` and `KeyringTests` (game tests, run plain and with
 `-PovvarBrewery`), and `OvvarEnchantmentClientTests` (screenshot; cloud only).

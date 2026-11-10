@@ -13,7 +13,6 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.predicates.DataComponentPredicates;
 import net.minecraft.core.component.predicates.EnchantmentsPredicate;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
@@ -34,7 +33,8 @@ import java.util.List;
 /**
  * Magpie (I-III): better odds of finding patches. A structure chest's patch pool is chosen by what its
  * opener ({@code THIS_ENTITY}) wears, using only vanilla loot conditions ({@link #chestCondition}), so no
- * loot condition type is registered. A mob ovve's patch drop rises through {@link #mobOvvarDrop}.
+ * loot condition type is registered. A mob ovve's patch drop rises through
+ * {@link se.metacraft.ovvar.content.MobOvvar#patchDropChance}, for a killer wearing it.
  */
 public final class Magpie {
 	private Magpie() {}
@@ -52,24 +52,6 @@ public final class Magpie {
 	/** The Magpie level the entity's worn garment acts on: 0 for null, a non-living entity, or Magpie switched off. */
 	public static int level(@Nullable Entity entity) {
 		return entity instanceof LivingEntity living ? OvveEnchantments.level(living, OvveEnchantments.MAGPIE) : 0;
-	}
-
-	/**
-	 * What Magpie adds to a mob ovve's patch drop chance for this killer, from the current config
-	 * (0 when it is off or absent). Part 2's drop roll should use {@link #mobOvvarDrop} instead.
-	 * TODO: wire when part 2 (mob ovvar) lands.
-	 */
-	public static float patchDropBonus(@Nullable Entity killer) {
-		return level(killer) * OvvarConfig.get().enchantments().magpie().mobOvvarChancePerLevel();
-	}
-
-	/**
-	 * The mob ovve's patch-drop roll with Magpie: true when {@code random} comes in under {@code base} raised for
-	 * the killer's Magpie level. Part 2's patch-drop roll should call this in place of its own comparison.
-	 * TODO: wire when part 2 (mob ovvar) lands.
-	 */
-	public static boolean mobOvvarDrop(RandomSource random, float base, @Nullable Entity killer, EnchantmentsConfig.Magpie cfg) {
-		return random.nextFloat() < mobOvvarChance(base, level(killer), cfg);
 	}
 
 	/**

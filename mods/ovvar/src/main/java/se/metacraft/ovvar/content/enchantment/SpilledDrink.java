@@ -40,8 +40,8 @@ import java.util.Optional;
  * persistent attachment, so they survive logout and are lost on death. The cursed ovve also drips now and then.
  * Needs Brewery ({@link OvveEnchantments#enabled}).
  *
- * <p>Part 4's wandering Punkphöz stock pool should add {@link #wandererBook} at {@link #WANDERER_PRICE}
- * (TODO: wire when part 4 lands).
+ * <p>Punkphöz sells {@link #wandererBook} at {@link #WANDERER_PRICE} among his pool picks
+ * ({@link se.metacraft.ovvar.content.entity.PunkphozStock#extras}), only with Brewery.
  */
 public final class SpilledDrink {
 	private SpilledDrink() {}

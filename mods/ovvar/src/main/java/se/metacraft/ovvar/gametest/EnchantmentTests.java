@@ -35,6 +35,7 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.EntityTypes;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.enchantment.Keepsake;
 import se.metacraft.ovvar.content.enchantment.SpilledDrink;
@@ -397,7 +398,11 @@ public final class EnchantmentTests {
 		helper.succeed();
 	}
 
-	/** Part 2's mob-ovvar patch-drop roll will call {@link Magpie#mobOvvarDrop}; this is that comparison. */
+	/**
+	 * Mob ovvar's patch drop (a real mob garment, {@link MobOvvar#patchDrops} at {@link MobOvvar#patchDropChance}) with a
+	 * roll that always comes in at {@code base + 0.05}: a killer in a plain ovve, or no killer, gets nothing; a killer in a
+	 * Magpie I ovve gets every patch. The chance is {@code base + 0.10 x level}, capped at 1, and unchanged without Magpie.
+	 */
 	@GameTest
 	public void magpieRaisesMobOvvarDrops(GameTestHelper helper) {
 		float base = 0.25f;
@@ -407,12 +412,20 @@ public final class EnchantmentTests {
 				return base + 0.05f;
 			}
 		};
+		se.metacraft.ovvar.MobOvvarConfig mob = new se.metacraft.ovvar.MobOvvarConfig(true, 0.05f, base);
 		EnchantmentsConfig.Magpie cfg = EnchantmentsConfig.Magpie.DEFAULT;
-		helper.assertFalse(Magpie.mobOvvarDrop(roll, base, standIn(helper, Chapter.DATA, 0), cfg), "a killer in a plain ovve got a drop");
-		helper.assertTrue(Magpie.mobOvvarDrop(roll, base, standIn(helper, Chapter.DATA, 1), cfg), "a killer in a Magpie I ovve got no drop");
-		helper.assertFalse(Magpie.mobOvvarDrop(roll, base, null, cfg), "no killer got a drop");
-		near(helper, Magpie.patchDropBonus(standIn(helper, Chapter.DATA, 2)), 0.20f, "patchDropBonus(Magpie II)");
-		near(helper, Magpie.patchDropBonus(null), 0f, "patchDropBonus(null)");
+		ItemStack garment = MobOvvar.garment(RandomSource.create(7), EquipmentSlot.LEGS, true);
+		helper.assertTrue(MobOvvar.is(garment), "a real mob garment");
+		int worn = SpotPlacements.asPlacementList(Looks.sewn(garment)).size();
+		helper.assertTrue(worn > 0, "the mob garment wears patches");
+		near(helper, MobOvvar.patchDropChance(mob, standIn(helper, Chapter.DATA, 0), cfg), base, "chance, plain ovve");
+		near(helper, MobOvvar.patchDropChance(mob, null, cfg), base, "chance, no killer");
+		near(helper, MobOvvar.patchDropChance(mob, standIn(helper, Chapter.DATA, 2), cfg), base + 0.20f, "chance, Magpie II");
+		near(helper, MobOvvar.patchDropChance(mob, standIn(helper, Chapter.MEDIA, 3), cfg), base + 0.30f, "chance, Magpie III frack");
+		near(helper, MobOvvar.patchDropChance(new se.metacraft.ovvar.MobOvvarConfig(true, 0.05f, 0.9f), standIn(helper, Chapter.DATA, 3), cfg), 1f, "chance capped at 1");
+		helper.assertValueEqual(MobOvvar.patchDrops(garment, roll, MobOvvar.patchDropChance(mob, standIn(helper, Chapter.DATA, 0), cfg)).size(), 0, "drops for a plain-ovve killer");
+		helper.assertValueEqual(MobOvvar.patchDrops(garment, roll, MobOvvar.patchDropChance(mob, null, cfg)).size(), 0, "drops without a killer");
+		helper.assertValueEqual(MobOvvar.patchDrops(garment, roll, MobOvvar.patchDropChance(mob, standIn(helper, Chapter.DATA, 1), cfg)).size(), worn, "drops for a Magpie I killer");
 		helper.succeed();
 	}
 
@@ -668,21 +681,44 @@ public final class EnchantmentTests {
 		helper.succeed();
 	}
 
-	/** Vanilla's mob-spawn equipment pass never enchants an ovve (Binding included); an iron helmet is the control. */
-	@GameTest
+	/**
+	 * Vanilla's mob-spawn equipment enchanting never enchants a mob's garment (Binding included). First the provider
+	 * itself on real mob ovves and fracks ({@link MobOvvar#garment}), an iron helmet the control; then the real spawn:
+	 * zombies spawned at mob_ovvar chance 1 through finalizeSpawn (which runs vanilla's enchant pass over every slot)
+	 * wear unenchanted garments, while some of their vanilla gear does get enchanted.
+	 */
+	@GameTest(maxTicks = 1200)
 	public void mobSpawnEquipmentNeverEnchantsAnOvve(GameTestHelper helper) {
 		var registries = helper.getLevel().registryAccess();
 		var difficulty = helper.getLevel().getCurrentDifficultyAt(helper.absolutePos(new BlockPos(1, 1, 1)));
 		int helmetsEnchanted = 0;
 		for (int seed = 0; seed < 1000; seed++) {
-			ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
-			EnchantmentHelper.enchantItemFromProvider(ovve, registries, VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, RandomSource.create(seed));
-			helper.assertTrue(ovve.getEnchantments().isEmpty(), "seed " + seed + " enchanted an ovve: " + ovve.getEnchantments());
+			for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.LEGS, EquipmentSlot.CHEST}) {
+				ItemStack garment = MobOvvar.garment(RandomSource.create(seed), slot, true);
+				helper.assertTrue(MobOvvar.is(garment), "seed " + seed + " gave no mob garment for " + slot);
+				EnchantmentHelper.enchantItemFromProvider(garment, registries, VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, RandomSource.create(seed));
+				helper.assertTrue(garment.getEnchantments().isEmpty(), "seed " + seed + " enchanted a mob " + slot + " garment: " + garment.getEnchantments());
+			}
 			ItemStack helmet = new ItemStack(Items.IRON_HELMET);
 			EnchantmentHelper.enchantItemFromProvider(helmet, registries, VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, RandomSource.create(seed));
 			if (!helmet.getEnchantments().isEmpty()) helmetsEnchanted++;
 		}
 		helper.assertTrue(helmetsEnchanted > 0, "the control (an iron helmet) was never enchanted, so the test proves nothing");
-		helper.succeed();
+		MobOvvarTests.withMobOvvar(helper, new se.metacraft.ovvar.MobOvvarConfig(true, 1f, 0.5f), () -> {
+			int garments = 0, vanillaEnchanted = 0;
+			for (net.minecraft.world.entity.Mob mob : MobOvvarTests.spawned(helper, EntityTypes.ZOMBIE, true)) {
+				for (EquipmentSlot slot : EquipmentSlot.values()) {
+					ItemStack worn = mob.getItemBySlot(slot);
+					if (MobOvvar.is(worn)) {
+						garments++;
+						if (!worn.getEnchantments().isEmpty()) helper.fail("a spawned zombie's " + slot + " garment is enchanted: " + worn.getEnchantments());
+					} else if (!worn.isEmpty() && !worn.getEnchantments().isEmpty()) {
+						vanillaEnchanted++;
+					}
+				}
+			}
+			if (garments == 0) helper.fail("no zombie spawned in a garment at chance 1");
+			if (vanillaEnchanted == 0) helper.fail("no spawned zombie's vanilla gear was enchanted, so the spawn pass proves nothing");
+		});
 	}
 }
