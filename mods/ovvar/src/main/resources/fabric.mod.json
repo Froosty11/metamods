@@ -32,7 +32,12 @@
 			"se.metacraft.ovvar.gametest.ShaderLayoutTests",
 			"se.metacraft.ovvar.gametest.EnchantmentTests",
 			"se.metacraft.ovvar.gametest.EnderPocketsTests",
-			"se.metacraft.ovvar.gametest.KeyringTests"
+			"se.metacraft.ovvar.gametest.KeyringTests",
+			"se.metacraft.ovvar.gametest.ChapterArtTests",
+			"se.metacraft.ovvar.gametest.ChapterTests",
+			"se.metacraft.ovvar.gametest.ChapterMigrationTests",
+			"se.metacraft.ovvar.gametest.MobOvvarTests",
+			"se.metacraft.ovvar.gametest.PunkphozTests"
 		],
 		"fabric-datagen": [
 			"se.metacraft.ovvar.datagen.OvvarDataGenerator"
@@ -53,7 +58,8 @@
 		"polymer-virtual-entity": "*",
 		"sgui": "*",
 		"metacraft-bundles": "*",
-		"booklet": "*"
+		"booklet": "*",
+		"bil": ">=2.0.5"
 	},
 	"suggests": {
 		"metacraft-resource-packs": "*"

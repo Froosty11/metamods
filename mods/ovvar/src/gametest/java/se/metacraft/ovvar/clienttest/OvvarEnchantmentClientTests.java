@@ -50,7 +50,7 @@ public final class OvvarEnchantmentClientTests implements FabricClientGameTest {
 		if (ClientTestSupport.skipUnderShaderpack("OvvarEnchantmentClientTests")) return;
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
-		props.setProperty("server-port", "25600");
+		props.setProperty("server-port", "25607");   // unique among the client tests
 		props.setProperty("level-type", "minecraft:flat");
 		props.setProperty("spawn-monsters", "false");
 		props.setProperty("spawn-animals", "false");

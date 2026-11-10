@@ -18,6 +18,7 @@ import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.Chapter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import se.metacraft.ovvar.pack.ShaderPatcher;
@@ -25,6 +26,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -36,6 +38,15 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import net.minecraft.client.gui.screens.inventory.MerchantScreen;
+import net.minecraft.world.entity.animal.equine.TraderLlama;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.MerchantMenu;
+import net.minecraft.network.protocol.game.ServerboundSelectTradePacket;
+import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.PunkphozConfig;
+import se.metacraft.ovvar.content.entity.Punkphoz;
+import se.metacraft.ovvar.content.entity.PunkphozEntities;
 
 /**
  * What a vanilla client sees of an ovve. A dedicated server runs in-process with ovvar; the test
@@ -207,6 +218,291 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				instantShot(ctx, server, conn, "instant_a_above", "tp Tester 6.5 -57.2 3.5 0 90");
 			}
 		}
+		everyChapterLineup(ctx);
+		punkphozShows(ctx);
+	}
+
+	// ---- Punkphöz
+
+	/**
+	 * What a vanilla client sees of Punkphöz: his model shows (the traders' IT trader, drawn by Polymer), a right-click opens
+	 * a trade screen with the configured number of offers, the first offer can be bought, and he is still fine, and the client
+	 * still connected, after being hurt once with a trader llama leashed to him. Compile-checked; runs in the cloud.
+	 */
+	private static void punkphozShows(ClientGameTestContext ctx) {
+		Properties props = new Properties();
+		props.setProperty("online-mode", "false");
+		props.setProperty("server-port", "25602");
+		props.setProperty("level-type", "minecraft:flat");
+		props.setProperty("spawn-monsters", "false");
+		props.setProperty("spawn-animals", "false");
+		props.setProperty("difficulty", "peaceful");
+		PunkphozConfig config = OvvarConfig.get().punkphoz();
+		// the pool is empty in this runtime, so no pool picks; kultur is not loaded, so no banner patterns
+		int offers = config.chapterOvves() + config.patches();
+		try (TestDedicatedServerContext server = ctx.worldBuilder().createServer(props)) {
+			try (TestDedicatedServerConnection conn = server.connect()) {
+				ClientTestSupport.acceptResourcePack(ctx);
+				conn.waitForChunksRender();
+				server.runCommand("gamerule advance_time false");
+				server.runCommand("time set noon");
+				server.runCommand("tp Tester 0.5 -60 0.5 0 0");
+				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(20);
+				BufferedImage empty = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_empty").withSize(1920, 1080)));
+
+				server.runCommand("summon ovvar:punkphoz 0.5 -60 3.5 {NoAI:1b,Rotation:[180f,0f]}");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				BufferedImage first = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_front").withSize(1920, 1080)));
+				int shown = differingInCrop(empty, first);
+				System.out.println("[ovvar-clienttest] punkphoz changed pixels=" + shown);
+				if (shown < 4000) throw new AssertionError("Punkphoz's model doesn't show: only " + shown + " pixels differ from the empty view");
+
+				// right-click him the way a player does, through the use key
+				ctx.getInput().pressKey(options -> options.keyUse);
+				ctx.waitFor(client -> client.gui.screen() instanceof MerchantScreen, 100);
+				ctx.waitTicks(10);
+				int count = ctx.computeOnClient(client -> client.player.containerMenu instanceof MerchantMenu menu ? menu.getOffers().size() : -1);
+				System.out.println("[ovvar-clienttest] punkphoz offers=" + count);
+				if (count != offers) throw new AssertionError("Punkphoz shows " + count + " offers, not " + offers);
+
+				// buy the first offer with the emeralds the server gives
+				server.runCommand("give Tester minecraft:emerald 24");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(5);
+				ctx.runOnClient(client -> {
+					client.getConnection().send(new ServerboundSelectTradePacket(0));
+					client.gameMode.handleContainerInput(client.player.containerMenu.containerId, 2, 0, ContainerInput.QUICK_MOVE, client.player);
+				});
+				ctx.waitTicks(10);
+				ctx.runOnClient(client -> client.player.closeContainer());
+				ctx.waitTicks(5);
+
+				// hurt once (no damage) with a trader llama leashed to him
+				server.runOnServer(mc -> {
+					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
+					Punkphoz punkphoz = level.getEntities(PunkphozEntities.PUNKPHOZ, p -> true).getFirst();
+					punkphoz.hurtServer(level, level.damageSources().generic(), 0f);
+					TraderLlama llama = new TraderLlama(EntityTypes.TRADER_LLAMA, level);
+					llama.setPos(4.5, -60, 3.5); // four blocks to the side: well outside the centre crop the model is measured in
+					level.addFreshEntity(llama);
+					llama.setLeashedTo(punkphoz, true);
+				});
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				if (!ctx.computeOnClient(client -> client.getConnection() != null && client.level != null)) throw new AssertionError("the client lost its connection");
+				BufferedImage second = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_hurt").withSize(1920, 1080)));
+				int after = differingInCrop(empty, second);
+				System.out.println("[ovvar-clienttest] punkphoz changed pixels after hurt and leash=" + after);
+				if (after < 4000) throw new AssertionError("Punkphoz is gone or unseen after being hurt: only " + after + " pixels differ from the empty view");
+			}
+		}
+	}
+
+	/**
+	 * How many pixels differ in a centre crop around Punkphöz (as the traders' client test measures its trader: 260 px wide, chest to
+	 * knees, in the middle of the view; the 4000-pixel threshold is the same as there). The leashed llama stands four blocks to the
+	 * side, about a thousand pixels from the middle, so it can't count towards the crop.
+	 */
+	private static int differingInCrop(BufferedImage a, BufferedImage b) {
+		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 4 / 10, w = 260, h = a.getHeight() * 3 / 10;
+		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
+	}
+
+	/** How many pixels of the two same-sized images differ noticeably. */
+	private static int differing(BufferedImage a, BufferedImage b) {
+		int n = 0;
+		for (int y = 0; y < a.getHeight(); y++) {
+			for (int x = 0; x < a.getWidth(); x++) {
+				int p = a.getRGB(x, y), q = b.getRGB(x, y);
+				int diff = Math.abs((p >> 16 & 255) - (q >> 16 & 255)) + Math.abs((p >> 8 & 255) - (q >> 8 & 255)) + Math.abs((p & 255) - (q & 255));
+				if (diff > 40) n++;
+			}
+		}
+		return n;
+	}
+
+	// ---- every chapter's ovve, in a row
+
+	/** Screen pixels per side of the colour crop. */
+	private static final int CROP = 6;
+	/** How far a crop's mean may stray from the shaded chapter colour, per channel. */
+	private static final int COLOUR_TOLERANCE = 48;
+	/**
+	 * Vertical field of view for the lineup: set, not assumed (OvvarDanseClientTests leaves it at 50).
+	 * The FOV effects (a flying spectator's ×1.1) are turned off with it, and the projection still
+	 * reads the camera's own FOV for the frame rather than trusting this.
+	 */
+	private static final int LINEUP_FOV = 70;
+	/** Mannequins per screenshot: six two blocks apart span ten blocks, well inside the frame from six blocks off. */
+	private static final int PER_SHOT = 6;
+	/**
+	 * Vanilla's entity lighting on a face turned horizontally to the camera, in full daylight:
+	 * ambient 0.4 plus 0.6 × the light that falls on it. The two level lights are (0.2, 1, -0.7) and
+	 * (-0.2, 1, 0.7), normalised; a north face (the mannequins face north, at the camera) catches
+	 * 0.7 / |(0.2, 1, -0.7)| = 0.566 of the first and none of the second: 0.4 + 0.6 × 0.566 = 0.74.
+	 * The cloth on screen is the chapter colour times this, so that is what the crops are held to.
+	 */
+	private static final double FRONT_SHADE = 0.74;
+	/** Avatars are drawn at 15/16 scale; one model unit is this many blocks. */
+	private static final double UNIT = 0.9375 / 16;
+
+	/** The top-up row stands six blocks south of the camera at z 0.5; the rolled-down row the same, twenty blocks further on, out of the first one's shots. */
+	private static final double UP_ROW_Z = 6.5;
+	private static final double DOWN_ROW_Z = 26.5;
+	/** The camera stands this far in front (north) of a row. */
+	private static final double LINEUP_DISTANCE = 6;
+
+	/**
+	 * One mannequin per chapter, top up and nothing sewn, in a row two blocks apart; then the rollable
+	 * ones again, rolled down, in a second row. Each row is photographed from six blocks in front, six
+	 * mannequins to a shot ({@code ovvar_chapters_up_1..3}, {@code ovvar_chapters_down_1..3}): the
+	 * 35-block row does not fit one frame from there. Every mannequin's cloth, read off a 6×6 crop at
+	 * the point its garment projects to, must be its chapter's colour (shaded, see FRONT_SHADE).
+	 */
+	private static void everyChapterLineup(ClientGameTestContext ctx) {
+		Properties props = new Properties();
+		props.setProperty("online-mode", "false");
+		props.setProperty("server-port", "25606");   // every ovvar client test has its own port (25598-25602, 25606, 25607)
+		props.setProperty("level-type", "minecraft:flat");
+		props.setProperty("spawn-monsters", "false");
+		props.setProperty("spawn-animals", "false");
+		props.setProperty("difficulty", "peaceful");
+		List<Chapter> up = List.of(Chapter.values());
+		List<Chapter> down = up.stream().filter(chapter -> chapter.rollable).toList();
+		int fovBefore = ctx.computeOnClient(client -> client.options.fov().get());
+		double fovEffectBefore = ctx.computeOnClient(client -> client.options.fovEffectScale().get());
+		try (TestDedicatedServerContext server = ctx.worldBuilder().createServer(props)) {
+			try (TestDedicatedServerConnection conn = server.connect()) {
+				ClientTestSupport.acceptResourcePack(ctx);
+				conn.waitForChunksRender();
+				server.runCommand("gamerule advance_time false");
+				server.runCommand("time set noon");
+				// A spectator draws no hand in first person, so the row's ends are not behind one.
+				server.runCommand("gamemode spectator Tester");
+				server.runCommand("tp Tester 5.5 -60 0.5 0 0");
+				server.runOnServer(mc -> {
+					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
+					for (int i = 0; i < up.size(); i++) lineupMannequin(level, up.get(i), true, lineupX(i), UP_ROW_Z);
+					for (int i = 0; i < down.size(); i++) lineupMannequin(level, down.get(i), false, lineupX(i), DOWN_ROW_Z);
+				});
+				conn.waitForClientboundPackets();
+				ClientTestSupport.acceptResourcePack(ctx);   // only to settle: nothing is sewn, so no combos and no new pack
+				// First person with the HUD hidden (F1): no hotbar or crosshair over the row either.
+				ctx.runOnClient(client -> {
+					client.options.setCameraType(CameraType.FIRST_PERSON);
+					client.options.fov().set(LINEUP_FOV);
+					client.options.fovEffectScale().set(0.0);
+					if (!client.gui.hud.isHidden()) client.gui.hud.toggle();
+				});
+				ctx.waitTicks(100);   // let the mannequins' spawn interpolation settle before the first shot
+				List<String> wrong = new ArrayList<>();
+				wrong.addAll(photographRow(ctx, server, conn, up, true, UP_ROW_Z, "ovvar_chapters_up"));
+				wrong.addAll(photographRow(ctx, server, conn, down, false, DOWN_ROW_Z, "ovvar_chapters_down"));
+				if (!wrong.isEmpty()) throw new AssertionError(wrong.size() + " mannequin(s) not in their chapter's colour:\n  " + String.join("\n  ", wrong));
+			}
+		} finally {
+			ctx.runOnClient(client -> {
+				client.options.fov().set(fovBefore);
+				client.options.fovEffectScale().set(fovEffectBefore);
+				if (client.gui.hud.isHidden()) client.gui.hud.toggle();
+			});
+		}
+	}
+
+	private static double lineupX(int i) {
+		return 0.5 + 2 * i;
+	}
+
+	/** The chapter's garment on a mannequin facing north: an ovve top up (its top in the chest slot) or rolled down (chest bare), a frack in the chest slot. Nothing sewn. */
+	private static void lineupMannequin(ServerLevel level, Chapter chapter, boolean topUp, double x, double z) {
+		ItemStack garment = new ItemStack(ModContent.ovve(chapter));
+		Mannequin m = new Mannequin(EntityTypes.MANNEQUIN, level);
+		m.setPos(x, -60, z);
+		m.setYRot(180); m.setYBodyRot(180); m.setYHeadRot(180);
+		if (chapter.slot == EquipmentSlot.LEGS) OvveItem.setTopUp(garment, topUp);
+		OvveItem.wear(m, garment);
+		if (OvveItem.needsCompanionTop(garment)) m.setItemSlot(EquipmentSlot.CHEST, new ItemStack(ModContent.top(chapter)));
+		level.addFreshEntity(m);
+	}
+
+	/** Photographs a row six mannequins at a time, the camera six blocks in front of each group's middle; returns what was off colour. */
+	private static List<String> photographRow(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn,
+			List<Chapter> row, boolean topUp, double rowZ, String name) {
+		List<String> wrong = new ArrayList<>();
+		for (int from = 0, shot = 1; from < row.size(); from += PER_SHOT, shot++) {
+			int to = Math.min(row.size(), from + PER_SHOT);
+			double camX = (lineupX(from) + lineupX(to - 1)) / 2;
+			BufferedImage img = instantShot(ctx, server, conn, name + "_" + shot,
+					"tp Tester " + camX + " -60 " + (rowZ - LINEUP_DISTANCE) + " 0 0");
+			Vec3 eye = ctx.computeOnClient(client -> client.player.getEyePosition());
+			// The FOV the frame was drawn with (vertical, degrees), FOV effects included.
+			double fov = ctx.computeOnClient(client -> (double) client.gameRenderer.mainCamera().getFov());
+			System.out.println("[ovvar-clienttest] lineup " + name + "_" + shot + ": camera fov " + fov + ", eye " + eye);
+			for (int i = from; i < to; i++) {
+				String off = chestColour(img, eye, fov, row.get(i), topUp, lineupX(i), rowZ, name + "_" + shot);
+				if (off != null) wrong.add(off);
+			}
+		}
+		return wrong;
+	}
+
+	/**
+	 * The mean of a 6×6 crop where this mannequin's cloth projects to, against its chapter's colour.
+	 * Top up (or a frack): the chest, texel row 2 of the body's front (above the pockets), on the
+	 * outer armour layer (one unit proud of the body). Its middle, except where that is not cloth:
+	 * CL's and Doktorand's placket and a frack's open front, which are read at the chest's left third
+	 * instead (texel column 1 of 8, the mannequin's right). Rolled down the chest is bare skin, so the
+	 * rolled-down ovve is read on its right thigh (leggings layer, half a unit proud; texel row 3, the
+	 * leg's middle). Returns null when it matches, else a line saying how it does not.
+	 */
+	private static String chestColour(BufferedImage img, Vec3 eye, double fov, Chapter chapter, boolean topUp,
+			double x, double z, String shot) {
+		double east, height, front;
+		if (topUp || chapter.slot == EquipmentSlot.CHEST) {
+			// The body box is 8 × 12 × 4 units, grown by 1 on every side: 10 wide over 8 texels, 14 tall
+			// over 12, its front 3 units ahead of the middle. Its top is 1 unit above the neck, which is
+			// 24 units (1.5 blocks, before the 15/16) above the feet.
+			boolean leftThird = chapter == Chapter.CL || chapter == Chapter.DOKTORAND || chapter.slot == EquipmentSlot.CHEST;
+			east = leftThird ? (5 - 1.5 * 10.0 / 8) * UNIT : 0;
+			height = (24 + 1 - 2.5 * 14.0 / 12) * UNIT;
+			front = 3 * UNIT;
+		} else {
+			// The right leg is 4 × 12 × 4 units, 1.9 units off the middle, grown by 0.5: 13 tall over 12
+			// texels, from 12.5 units above the feet; its front 2.5 units ahead of the leg's middle.
+			east = 1.9 * UNIT;
+			height = (12.5 - 3.5 * 13.0 / 12) * UNIT;
+			front = 2.5 * UNIT;
+		}
+		// The camera looks south (+z) level: east (+x) is screen left, up is screen up.
+		double dx = x + east - eye.x, dy = -60 + height - eye.y, dz = z - front - eye.z;
+		double focal = img.getHeight() / 2.0 / Math.tan(Math.toRadians(fov) / 2);
+		int cx = (int) Math.round(img.getWidth() / 2.0 - focal * dx / dz);
+		int cy = (int) Math.round(img.getHeight() / 2.0 - focal * dy / dz);
+		int x0 = cx - CROP / 2, y0 = cy - CROP / 2;
+		if (x0 < 0 || y0 < 0 || x0 + CROP > img.getWidth() || y0 + CROP > img.getHeight()) {
+			return chapter.id + " in " + shot + ": its crop at (" + cx + ", " + cy + ") is off the screenshot";
+		}
+		long r = 0, g = 0, b = 0;
+		for (int y = y0; y < y0 + CROP; y++) {
+			for (int px = x0; px < x0 + CROP; px++) {
+				int p = img.getRGB(px, y);
+				r += (p >> 16) & 255; g += (p >> 8) & 255; b += p & 255;
+			}
+		}
+		int n = CROP * CROP;
+		int[] mean = {(int) (r / n), (int) (g / n), (int) (b / n)};
+		int[] want = {
+				(int) Math.round(((chapter.colour >> 16) & 255) * FRONT_SHADE),
+				(int) Math.round(((chapter.colour >> 8) & 255) * FRONT_SHADE),
+				(int) Math.round((chapter.colour & 255) * FRONT_SHADE)};
+		String line = chapter.id + " in " + shot + " at (" + cx + ", " + cy + "): mean " + Arrays.toString(mean)
+				+ ", want " + Arrays.toString(want) + " (chapter colour " + String.format("#%06X", chapter.colour) + " shaded) ±" + COLOUR_TOLERANCE;
+		System.out.println("[ovvar-clienttest] lineup " + line);
+		for (int c = 0; c < 3; c++) if (Math.abs(mean[c] - want[c]) > COLOUR_TOLERANCE) return line;
+		return null;
 	}
 
 	/** A Data ovve with these placements, top up and its top in the chest slot, worn by a mannequin at (x, -60, 3.5). */

@@ -13,8 +13,11 @@
 		"KeyringBreakActionMixin",
 		"KeyringDiggingAccessor",
 		"KeyringLeaveMixin",
+		"MobOvvarMixin",
+		"PiglinOvvarMixin",
 		"ResourcePackResponseMixin",
-		"SpilledDrinkMixin"
+		"SpilledDrinkMixin",
+		"WanderingTraderSpawnerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -5,8 +5,12 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 ## What it adds
 
-One ovve per chapter — Data (cerise), IT (purple), the older silicon-blue IT — and the Media
-frack. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
+One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
+silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
+or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
+the wandering trader Punkphöz (below): Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Ingenjör, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
@@ -18,7 +22,7 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 The Media frack is the same item worn as a **chestplate** (`Chapter.slot`): a tailcoat is a top,
-and that is what sets it apart from the ovvar. Its pockets and its patches work as an ovve's, but
+and that is what sets it apart from the ovvar. The B-frack is the same cut without Media's emblem. Its pockets and its patches work as an ovve's, but
 there is no companion top (it is the top), nothing to roll up or down, no legs — only the top's
 cells take a patch, and the coat's tails in the overlay are not drawn — and no cuffs. Wherever
 the code asks what somebody wears it asks `OvveItem.worn`, which looks in whichever slot the
@@ -101,7 +105,7 @@ so each of the three paths that draw a seat has to mirror its half back — the 
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
 
-**Getting patches.** The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+**Getting patches.** Punkphöz, the wandering trader (below), sells loot patches for emeralds. The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
 on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
 a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
 three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
@@ -112,6 +116,56 @@ Structory's when it is installed, each get a pool with a 5 % chance of one patch
 them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
 another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
 `LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
+## The wandering Punkphöz
+
+Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
+ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
+them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
+kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+he sold lately from coming straight back.
+
+He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
+(`WanderingTraderSpawnerMixin`). On a cycle where vanilla's roll fails, he gets
+`ceil(players / players_per_roll)` rolls, so a busy server sees him more, and no more than
+`max_loaded` Punkphöz are loaded at once. His own spawn skips vanilla's 1-in-10 gate; his odds are set so
+`share` is his share of all wanderer visits. His model is the traders' IT trader: `processResources`
+copies `mods/traders/src/main/resources/model/traders/it_trader.bbmodel` in as `model/ovvar/punkphoz.bbmodel`
+at build time, so the two never drift apart and `mods/traders` stays untouched.
+
+Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes the defaults):
+
+- `enabled` (true): whether he turns up at all.
+- `share` (0.25, 0 to 0.5): his share of all wanderer visits.
+- `chapter_ovves` (3): how many chapters' ovvar are on offer per visit.
+- `ovve_price` (24): emeralds for one ovve.
+- `patches` (2): how many loot patches are on offer per visit.
+- `patch_price` (6): emeralds for one patch.
+- `pool_picks` (4): how many things from `pool` are on offer per visit.
+- `players_per_roll` (5): how many players online count as one more roll of his visit.
+- `max_loaded` (3): how many Punkphöz can be loaded at once.
+- `pool` (kultur's 19 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+  `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
+
+**Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
+chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
+`Mob.populateDefaultEquipmentSlots` (`MobOvvarMixin`, wrapping its `setItemSlot`) and
+`Piglin.maybeWearArmor` (`PiglinOvvarMixin`), because a piglin rolls its own gold. Only a slot vanilla
+was about to fill is touched, so each spawn roll is the chance that vanilla's piece becomes a garment
+(`MobOvvar.spawnPiece`); a mob that already wears one keeps it. The chapter is random among those that
+are worn in that slot (fracks are `Chapter.values()` with `slot == CHEST`), an ovve's top is up at
+random where the chapter can roll, and it carries one to three patches from `PatchLoot.LOOT` only,
+all of them instant looks, on cells that show (a frack's top, an ovve's top only when it is up and no
+chest piece covers it). It is unowned, marked `ovvar:mob_ovve`, and pushes no pack and builds no combo.
+The garment can never reach a player: its slot's drop chance is 0, `equipItemIfPossible` is cancelled
+for a slot that holds one (so a swap for better armour can't put it on the ground), `ALLOW_LOAD`
+rejects any item entity holding a marked stack, and the player tick deletes a marked garment found in
+a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`, the player being
+`MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
+patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
+`config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` is where Magpie (part 5) will raise the drop chance.
 
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
@@ -386,6 +440,10 @@ row 4   [ patch  ][ patch  ][ patch  ][ patch  ][ patch  ] | [prev][prev][prev][
 row 5   [take out][put in][sew][see in 3D][finish][ · ][ · ][help][close]
 ```
 
+The tab row holds seven tabs. Past seven chapters it shows six at a time, with column 6 a "more"
+tab that opens the next six (the last window's wraps round to the first); `WardrobeGui.tabWindow`
+picks the window, and the one holding the open chapter is the one on show.
+
 **The screen explains itself.** Every slot says what it is and, where it cannot be used, why not:
 
 - a tab is the chapter's *ovve*, named "Data ovve", the one on show glinting and its lore reading
@@ -535,9 +593,8 @@ its equipment on) — the guard against a copy of somebody's real, pocket-stuffe
 dupe machine.
 
 **Deviations from the design doc**, for the record:
-- The doc calls for 7 backgrounds; `Chapter` has 6 values (`DATA`, `IT`, `IT_KISEL`, `MEDIA`,
-  `DATA_POLYMITER`, `IT_POLYMITER`), so there are 6 — one per chapter, as the doc's own "one
-  background per chapter" says.
+- The doc calls for 7 backgrounds; `Chapter` has 18 values, so there are 18 — one per chapter, as
+  the doc's own "one background per chapter" says.
 - the doc's two piece toggles are gone altogether: the preview shows the whole garment, both halves
   at once, and the two buttons there now turn it instead. Where a half still has to be named it is
   "trousers", not "feet": the legs and waist are what a wearer sees, and the boots render channel
@@ -603,16 +660,11 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-`config/ovvar.json` → `server` (what this server calls itself):
+`config/ovvar.json` → `shaders` (players with a shaderpack):
 
-    name                     this server's name (default "METAcraft"; no longer used for the MOTD)
-    shader_patcher_url       the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders")
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default)
 
-ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
-the file: the defaults are the ones documented here, and a key only needs
-writing to change it.
-
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
+Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
 stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
 you would rather read the help there than here. Every block is always written, even one that is
@@ -626,13 +678,14 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar give [player] <chapter> [patches]   their stored design; with patches (all / cell.patch / ids) those replace it
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
+    /ovvar mob [ovve|frack]                    a persistent zombie at you in a mob ovvar ovve (default) or frack, to look at or kill
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: server.shader_patcher_url)
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -652,8 +705,8 @@ The file backend is fine for one server or a shared mount; a network of servers 
 `./gradlew :mods:ovvar:runServer` runs a dev server (set `online-mode=false` and turn on Polymer's
 pack host to join it with a plain vanilla client). Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. The
-game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
-with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
+game tests: `./gradlew :mods:ovvar:runGameTest` (its own world under `build/run/gameTest`, so a dev
+server holding `./run` doesn't get in the way) — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
 sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; that an
 empty-handed click on a stand's chest takes the whole ovve off
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
@@ -662,7 +715,7 @@ the stitching minigame played through with the clicks its dialog sends (stale cl
 sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
 to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
 finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
-a stand click left to vanilla's swap, and the seam sewing onto it. `WardrobeTests` runs the store
+a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his stock, his spawn odds and his config. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
@@ -676,14 +729,25 @@ read-only and driven by the other player's design.
 
 ## Adding a chapter
 
-Drop the chapter's 64×64 skin overlay (the same file the website uses; pure green = "erase the
-skin here") into `src/main/resources/art/ovvar/`, add a line to `Chapter.java` naming it and,
-optionally, its rolled-down (nercabbad) overlay and a tint colour, then `runDatagen`. The
-armour layers, equipment definitions, icons and names are derived from that. A chapter can
-instead name a ready-made 64×32 leggings texture for its rolled-down state (`nercabbadArmour`);
-it is shifted to the chapter's colour and used as it is. The `*_polymiter` chapters do this with
-PolymITer's hand-drawn ovve (`art/ovvar/polymiter/nercabbad.png`), there to compare the two
-styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data down`.
+The art is made by `tools/chapter_overlays.py` (`python3 mods/ovvar/tools/chapter_overlays.py`) and
+checked in under `src/main/resources/art/ovvar/`: `<id>.png` (top up), `<id>-nercabbad.png` (rolled
+down) and `icon_<id>.png`. Add the chapter to the tool's list with its colour, run it, and commit
+the PNGs. Then add a line to `Chapter.java` with the overlay names, the cloth `colour` (the
+wardrobe background is tinted with it), `fullName` and `svName` (the item's names in English and
+Swedish) and `wandererOnly` (true: no recipe and no loot, the wandering Punkphöz is the only
+survival source), and run `runDatagen`. The armour layers, equipment definitions, icons and names
+are derived from that. There is no `nercabbadArmour` any more. Trims are drawn by the tool into the
+overlay, not applied by `tint`; `tint` is only for IT's silicon blue.
+
+### Retired chapters
+
+A chapter that is removed goes in `Chapter.RETIRED`, from its old id to the chapter it now loads
+as (`data_polymiter` is IT, `it_polymiter` is the silicon-blue IT). Their items (`<id>_ovve`,
+`_ovve_top`, `_ovve_feet`) are registered as aliases of the successor's, and the aliases are kept
+forever: they cost nothing and an item saved anywhere, components and all, must keep loading.
+The wardrobe codec migrates a stored row by the same map, in order. A retired design becomes its
+successor's if the successor has none. If it has one, the retired design's patches go to the stash,
+one each, so none is lost or made.
 
 ## Adding a patch
 
@@ -792,6 +856,13 @@ last loaded; who gets pushed a new pack, and when, is in "Reloads only when aske
 once a client reports a pack loaded (a mixin on the resource-pack response) the equipment of
 every ovve it can see is sent again. Rebuilds are batched: a combination the dye colour can
 still show waits a minute and a half for company; one it cannot is built within two seconds.
+
+Combinations are per chapter: a line of `combos.json` is `chapter/piece:combo`, and a combination
+is built only for the chapter it was sewn on (its bottom twice on an ovve that rolls down, once
+otherwise), so the pack grows with what is sewn, not with the number of chapters. A line from
+before chapters were keyed (`piece:combo`) is read as that combination on each of the chapters
+there were then (Data, IT, Silicon-blue IT, Media) that has the half, so nothing drawn before the
+upgrade is lost; the file is written back in the new form.
 
 The dye colour carries patches without any pack change. Up to three placements per half ride in it
 — six on the legs when the wearer's feet slot carries the second channel (below), four on the top
@@ -947,6 +1018,11 @@ that shows the older state to them until they reload or rejoin (a joining player
 current pack). Every combination is still built in the background within 90 s so the pack is
 complete for whoever joins next.
 
+At startup every stored wardrobe design has its combinations added to the build (capped at 20 s;
+on a timeout or a store that cannot be read it logs a warning and falls back to building them as
+they are sewn). On a shared store, a design sewn on another server after this one started still
+triggers one push for its wearer, as for codes past the instant range.
+
 **This is the feature, not a gap in it.** It is tempting to push the new pack to everybody online
 the moment somebody's design outgrows the dye channels — the people looking at a wearer are the
 ones whose clients draw it, and until they reload they see only the instant part of it. It was
@@ -1010,7 +1086,7 @@ lets the base garment draw the left arm's top face from the mirror strip as well
 computed exactly once and every path reads that one bool, so no two of them can disagree about
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
 does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
-overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`server.shader_patcher_url`, default
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
 https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
 `OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
 `assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at
@@ -1071,7 +1147,8 @@ PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now 
 PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
 Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew by Millia; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
 original to this mod, cut from the chapter skin
-overlays on metacraft.se/style.
+overlays on metacraft.se/style. The chapters' colours are from the THS Reglemente 2021
+(9.5.11–9.5.22) and the chapters' own stadgar; the B-frack's art is the Media frack's.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
 the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be

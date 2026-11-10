@@ -3,7 +3,9 @@ package se.metacraft.ovvar.content;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.Trims;
+import se.metacraft.ovvar.content.item.OvveFeetItem;
 import se.metacraft.ovvar.content.item.OvveItem;
+import se.metacraft.ovvar.content.item.OvveTopItem;
 import se.metacraft.ovvar.content.item.OvveTop;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -145,6 +147,14 @@ public final class Looks {
 		return Boolean.TRUE.equals(stack.get(ModComponents.FEET_CHANNEL));
 	}
 
+	/** The chapter of an ovve, its top or its cuffs; null for anything else. */
+	public static @Nullable Chapter chapterOf(ItemStack stack) {
+		if (stack.getItem() instanceof OvveItem item) return item.chapter;
+		if (stack.getItem() instanceof OvveTopItem item) return item.chapter;
+		if (stack.getItem() instanceof OvveFeetItem item) return item.chapter;
+		return null;
+	}
+
 	/** @param player who the packet is for (their pack may be older than the current one), or null */
 	public static Look look(ItemStack stack, Piece piece, UUID player) {
 		return look(stack, piece, player, true);
@@ -154,21 +164,24 @@ public final class Looks {
 	 * @param requestCombo whether a patch set the pack does not yet hold should be queued for it. A
 	 *   view that only draws the dye's instant patches (the chestplate wrap in {@link OvveTop}) passes
 	 *   false, so wearing armour never triggers a pack build for the overflow it does not show.
+	 *   A mob's garment ({@link MobOvvar}) never queues one either: its patches all ride the dye.
 	 */
 	public static Look look(ItemStack stack, Piece piece, UUID player, boolean requestCombo) {
 		// On an armour stand the patches are display entities (StandDisplays); the armour draws none.
 		var all = Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND)) ? Optional.<SpotPlacements>empty() : sewn(stack, piece);
 		List<Placement> core = SpotPlacements.asPlacementList(all);
+		// Combinations are built per chapter; something that is not a garment has none built, and asks for none.
+		Chapter chapter = chapterOf(stack);
 
 		// The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
 		// if it fits there (few enough, designs the channel can name), else the pack must catch up.
 		int baked = core.size();
-		while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(core.subList(0, baked)), player)) baked--;
+		while (baked > 0 && (chapter == null || !Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player))) baked--;
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
-		if (requestCombo && baked < core.size()) Combos.request(piece, Placement.combo(core), urgent);
+		if (requestCombo && chapter != null && baked < core.size() && !MobOvvar.is(stack)) Combos.request(chapter, piece, Placement.combo(core), urgent);
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
 		// What the dye cannot take, the top's trim can, one placement, any design: the newest left over.
@@ -190,9 +203,12 @@ public final class Looks {
 	 * cannot be shown in full without a newer pack is claimed for them ({@link Combos#claim}).
 	 */
 	public static void claimIfNeeded(ServerPlayer player, ItemStack stack) {
+		if (MobOvvar.is(stack)) return;   // a mob's garment is always drawn in full: no pack push for it
+		Chapter chapter = chapterOf(stack);
+		if (chapter == null) return;
 		for (Piece piece : Piece.values()) {
 			if (!look(stack, piece, player.getUUID()).complete()) {
-				Combos.claim(player, piece, Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece))));
+				Combos.claim(player, chapter, piece, Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece))));
 			}
 		}
 	}

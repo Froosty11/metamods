@@ -4,19 +4,21 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.ovvar.compat.danse.DanseCompat;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModContent;
-import se.metacraft.ovvar.content.item.OvveFeet;
-import se.metacraft.ovvar.content.item.OvveTop;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 import se.metacraft.ovvar.content.Patches;
+import se.metacraft.ovvar.content.entity.PunkphozEntities;
+import se.metacraft.ovvar.content.item.OvveFeet;
+import se.metacraft.ovvar.content.item.OvveTop;
 import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.ShaderPatcher;
 import se.metacraft.ovvar.pack.WardrobeArt;
 import se.metacraft.ovvar.sewing.StandDisplays;
 import se.metacraft.ovvar.sewing.StandSewing;
-import se.metacraft.ovvar.sewing.WardrobeMannequin;
 import se.metacraft.ovvar.sewing.StashSession;
+import se.metacraft.ovvar.sewing.WardrobeMannequin;
 import se.metacraft.ovvar.store.Wardrobes;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -43,8 +45,10 @@ public class Ovvar implements ModInitializer {
 	public void onInitialize() {
 		OvvarConfig.get();
 		ModContent.register();
+		PunkphozEntities.init();
 		PatchLoot.init();
 		OvveEnchantments.init();
+		MobOvvar.init();
 		OvveTop.init();
 		OvveFeet.init();
 		StandSewing.init();
@@ -58,6 +62,8 @@ public class Ovvar implements ModInitializer {
 			int added = Combos.prebuild(Wardrobes.storedDesigns(Duration.ofSeconds(20)));
 			LOGGER.info("[ovvar] pre-built {} stored design combination(s)", added);
 		});
+		// Every mod's items are registered by now, so a pool item from a missing mod is logged at startup.
+		ServerLifecycleEvents.SERVER_STARTED.register(s -> PunkphozConfig.poolOnOffer());
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();

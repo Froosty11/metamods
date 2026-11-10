@@ -102,6 +102,10 @@ public final class ModComponents {
 	public static final DataComponentType<Unit> ENDER_NESTED = register("ender_nested",
 			DataComponentType.<Unit>builder().networkSynchronized(Unit.STREAM_CODEC));
 
+	/** On a mob's own ovve or frack: never dropped, never a player's, its look never builds a combo. */
+	public static final DataComponentType<Unit> MOB_OVVE = register("mob_ovve",
+			DataComponentType.<Unit>builder().persistent(Unit.CODEC));
+
 	private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
 		return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
 	}
@@ -109,6 +113,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED, MOB_OVVE);
 	}
 }

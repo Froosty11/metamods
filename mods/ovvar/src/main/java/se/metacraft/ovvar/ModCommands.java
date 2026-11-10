@@ -34,10 +34,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.decoration.Mannequin;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
@@ -62,6 +64,7 @@ import java.util.stream.Stream;
  *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
  *   <li>{@code showcase <chapter> [mannequin]} — a row of displays in front of you: top down, top up,
  *	   one per patch (on the chest), every cell filled; mannequins by default, {@code false} for armour stands;</li>
+ *   <li>{@code mob [ovve|frack]} — a persistent zombie at you in a mob ovvar ovve (legs, the default) or frack (chest);</li>
  *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
  *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json;</li>
  *   <li>{@code aimlog on|off} — log every click on a stand and every aim change with the numbers behind it (server log);</li>
@@ -153,6 +156,10 @@ public final class ModCommands {
 								.then(chapterArg().executes(ctx -> showcase(ctx, true))
 										.then(Commands.argument("mannequin", BoolArgumentType.bool())
 												.executes(ctx -> showcase(ctx, BoolArgumentType.getBool(ctx, "mannequin"))))))
+						.then(Commands.literal("mob").requires(GAMEMASTER)
+								.executes(ctx -> mob(ctx, EquipmentSlot.LEGS))
+								.then(Commands.literal("ovve").executes(ctx -> mob(ctx, EquipmentSlot.LEGS)))
+								.then(Commands.literal("frack").executes(ctx -> mob(ctx, EquipmentSlot.CHEST))))
 						.then(Commands.literal("stands").requires(GAMEMASTER)
 								.then(chapterArg().executes(ModCommands::stands)))
 						.then(Commands.literal("minigame").requires(GAMEMASTER)
@@ -264,8 +271,8 @@ public final class ModCommands {
 		}
 		Looks.claimIfNeeded(player, stack);   // before the inventory takes it (an emptied stack reads as bare)
 		if (!player.getInventory().add(stack)) player.drop(stack, false, Prediction.SERVER_ONLY);
-		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
-				+ " " + chapter.garmentWord() + (patchSpec.isEmpty() ? " (their stored design)" : " with " + patches.size() + " patch(es)")), true);
+		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.fullName
+				+ (patchSpec.isEmpty() ? " (their stored design)" : " with " + patches.size() + " patch(es)")), true);
 		return 1;
 	}
 
@@ -293,18 +300,17 @@ public final class ModCommands {
 
 	/**
 	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; players patch their
-	 * pack on a web page (the config's {@code server.shader_patcher_url}). Three lines: why, the link, how.
+	 * pack on a web page (the config's {@code shaders.patcher_url}). Three lines: why, the link, how.
 	 */
 	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		CommandSourceStack source = ctx.getSource();
 		source.getPlayerOrException();
-		String configured = OvvarConfig.get().server().shaderPatcherUrl();
-		String url = configured == null || configured.isBlank() ? ServerConfig.DEFAULT_SHADER_PATCHER_URL : configured.strip();
+		String url = OvvarConfig.get().shaders().patcherUrlOrDefault();
 		MutableComponent link = Component.translatableWithFallback(SHADERS_LINK, SHADERS_LINK_EN).withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE);
 		try {
 			link.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))).withHoverEvent(new HoverEvent.ShowText(Component.literal(url))));
 		} catch (IllegalArgumentException e) {
-			Ovvar.LOGGER.warn("[ovvar] server.shader_patcher_url \"{}\" is not a URL: {}", url, e.getMessage());
+			Ovvar.LOGGER.warn("[ovvar] shaders.patcher_url \"{}\" is not a URL: {}", url, e.getMessage());
 		}
 		source.sendSystemMessage(Component.translatableWithFallback(SHADERS_INTRO, SHADERS_INTRO_EN).withStyle(ChatFormatting.GOLD));
 		source.sendSystemMessage(link);
@@ -433,8 +439,29 @@ public final class ModCommands {
 		}
 		int count = looks.size();
 		String kind = mannequin ? "mannequins" : "stands";
-		ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.name + " " + kind), false);
+		ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.fullName + " " + kind), false);
 		return count;
+	}
+
+	/** A persistent zombie at the source in a mob ovvar garment for this slot, to look at or kill. */
+	private static int mob(CommandContext<CommandSourceStack> ctx, EquipmentSlot slot) {
+		CommandSourceStack source = ctx.getSource();
+		ServerLevel level = source.getLevel();
+		ItemStack garment = MobOvvar.garment(level.getRandom(), slot, true);
+		Zombie zombie = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+		if (garment.isEmpty() || zombie == null) {
+			source.sendFailure(Component.literal("Couldn't make a mob ovvar garment"));
+			return 0;
+		}
+		zombie.snapTo(source.getPosition());
+		zombie.setPersistenceRequired();
+		MobOvvar.wear(zombie, garment);
+		level.addFreshEntity(zombie);
+		int patches = SpotPlacements.asPlacementList(Looks.sewn(garment)).size();
+		Chapter chapter = ((OvveItem) garment.getItem()).chapter;
+		source.sendSuccess(() -> Component.literal("Summoned a zombie in a " + chapter.fullName
+				+ " with " + patches + " patch" + (patches == 1 ? "" : "es")), false);
+		return 1;
 	}
 
 	/** The companion top an ovve's item pass needs beside it (the top is up, and its patches), or null. */
