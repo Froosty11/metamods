@@ -29,6 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.saveddata.WanderingTraderData;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -547,19 +548,23 @@ public final class PunkphozTests {
 	 * The mixin's spawn path end to end: with {@code TARGET} set, the overworld's own {@code WanderingTraderSpawner}
 	 * runs vanilla's {@code spawn} for him. Five calls make five Punkphözes although vanilla's one-in-ten gate would
 	 * pass only one in ten of them, each near the player, with vanilla's despawn delay and its llamas, and the
-	 * spawner's chance and delay ({@code WanderingTraderData}) untouched. It spawns into the world around the test,
-	 * so it takes {@link WardrobeTests#BUSY} and discards all it made.
+	 * spawner's chance and delay ({@code WanderingTraderData}) untouched. It spawns into the world, on a {@link Ground}
+	 * of its own, so it takes {@link WardrobeTests#BUSY} and discards all it made.
 	 */
 	@GameTest(maxTicks = 400)
 	public void spawnerBringsPunkphoz(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
+		Ground ground = Ground.north(helper, 2048);
 		helper.startSequence()
+				.thenExecute(ground::force)
+				.thenWaitUntil(() -> WardrobeTests.assertThat(ground.ready(), "the spawn ground's chunks are not ticking entities yet"))
 				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
 				.thenExecute(() -> {
 					ServerPlayer player = helper.makeMockServerPlayerInLevel();
 					List<Entity> made = new ArrayList<>();
 					try {
-						BlockPos at = helper.absolutePos(new BlockPos(1, 1, 1));
+						ground.assertFlat();
+						BlockPos at = ground.surface();
 						player.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
 						WanderingTraderSpawner spawner = overworldSpawner(level);
 						WanderingTraderData data = traderData(spawner);
@@ -593,6 +598,7 @@ public final class PunkphozTests {
 					} finally {
 						made.forEach(Entity::discard);
 						level.getServer().getPlayerList().remove(player);
+						ground.release();
 						WardrobeTests.BUSY.set(false);
 					}
 				})
@@ -606,14 +612,18 @@ public final class PunkphozTests {
 	@GameTest(maxTicks = 400)
 	public void typeOnlySwapsWhileSpawning(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
+		Ground ground = Ground.north(helper, 2560);
 		helper.startSequence()
+				.thenExecute(ground::force)
+				.thenWaitUntil(() -> WardrobeTests.assertThat(ground.ready(), "the spawn ground's chunks are not ticking entities yet"))
 				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
 				.thenExecute(() -> {
 					ServerPlayer player = helper.makeMockServerPlayerInLevel();
 					List<Entity> made = new ArrayList<>();
 					try {
 						WardrobeTests.assertThat(PunkphozSpawning.TARGET.get() == null, "TARGET is set outside a spawn");
-						BlockPos at = helper.absolutePos(new BlockPos(1, 1, 1));
+						ground.assertFlat();
+						BlockPos at = ground.surface();
 						player.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
 						WanderingTraderSpawner spawner = overworldSpawner(level);
 						int calls = 0;
@@ -648,10 +658,68 @@ public final class PunkphozTests {
 					} finally {
 						made.forEach(Entity::discard);
 						level.getServer().getPlayerList().remove(player);
+						ground.release();
 						WardrobeTests.BUSY.set(false);
 					}
 				})
 				.thenSucceed();
+	}
+
+	/**
+	 * A flat patch of the test world, {@code north} blocks north of a test, for vanilla's spawn search: that picks x and z
+	 * each within 48 blocks of the player (and the llamas within 4 of the trader). Around the test's own spot the search
+	 * runs into other tests' barrier walls, where {@code hasEnoughSpace} fails and {@code spawn} returns false, and into
+	 * chunks that are loaded but do not tick entities, where the trader is added yet {@code getEntities} never sees it
+	 * (and nothing discards it). Its chunks are forced, so every one of them ticks entities, until {@link #release}.
+	 */
+	private record Ground(ServerLevel level, BlockPos centre, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) {
+		/** 48 blocks of search, 4 more for a llama, and a little over. */
+		private static final int REACH = 56;
+
+		static Ground north(GameTestHelper helper, int north) {
+			BlockPos centre = helper.absolutePos(BlockPos.ZERO).north(north);
+			return new Ground(helper.getLevel(), centre, (centre.getX() - REACH) >> 4, (centre.getX() + REACH) >> 4,
+					(centre.getZ() - REACH) >> 4, (centre.getZ() + REACH) >> 4);
+		}
+
+		void force() {
+			forced(true);
+		}
+
+		void release() {
+			forced(false);
+		}
+
+		private void forced(boolean on) {
+			for (int x = minChunkX; x <= maxChunkX; x++) {
+				for (int z = minChunkZ; z <= maxChunkZ; z++) level.setChunkForced(x, z, on);
+			}
+		}
+
+		boolean ready() {
+			for (int x = minChunkX; x <= maxChunkX; x++) {
+				for (int z = minChunkZ; z <= maxChunkZ; z++) {
+					if (!level.isPositionEntityTicking(new BlockPos(x << 4, centre.getY(), z << 4))) return false;
+				}
+			}
+			return true;
+		}
+
+		/** Where the player stands: on top of the ground at its centre. */
+		BlockPos surface() {
+			return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, centre);
+		}
+
+		/** Every column the search can land on has the centre's height: nobody else's test is standing here. */
+		void assertFlat() {
+			int y = surface().getY();
+			for (int x = minChunkX << 4; x < (maxChunkX + 1) << 4; x++) {
+				for (int z = minChunkZ << 4; z < (maxChunkZ + 1) << 4; z++) {
+					int h = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+					WardrobeTests.assertThat(h == y, "the spawn ground is not flat: " + h + " at " + x + ", " + z + ", not " + y);
+				}
+			}
+		}
 	}
 
 	private static List<WanderingTrader> traders(ServerLevel level) {
