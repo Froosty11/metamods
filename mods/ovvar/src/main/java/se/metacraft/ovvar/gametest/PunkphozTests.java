@@ -338,7 +338,8 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	private static final double VANILLA_RATE = 152.0 / 337;
+	/** Vanilla's visits per attempt: the 25/50/75 ramp, then spawn's one-in-ten gate. */
+	private static final double VANILLA_RATE = 1520.0 / 21487;
 
 	private static PunkphozConfig spawning(boolean enabled, double share, int playersPerRoll, int maxLoaded) {
 		var d = PunkphozConfig.DEFAULT;
@@ -362,8 +363,8 @@ public final class PunkphozTests {
 
 	@GameTest
 	public void quarterShareChance(GameTestHelper helper) {
-		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.25)), 0.2738739, 1e-6, "chance at share 0.25");
-		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.5)), 0.8216216, 1e-6, "chance at share 0.5");
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.25)), 0.0805896, 1e-6, "chance at share 0.25");
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.5)), 0.2417687, 1e-6, "chance at share 0.5");
 		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0)), 0, 0, "chance at share 0");
 		near(helper, PunkphozSpawning.chanceOnAFailedRoll(spawning(false, 0.5, 5, 3)), 0, 0, "chance when disabled");
 		helper.succeed();
@@ -379,7 +380,8 @@ public final class PunkphozTests {
 			return;
 		}
 		String message = result.error().get().message();
-		if (!message.contains("share")) helper.fail("the error doesn't name share: " + message);
+		// DFU's doubleRange: "Value 0.6 outside of range [0.0:0.5]".
+		if (!message.contains("0.6") || !message.contains("[0.0:0.5]")) helper.fail("the error names neither the value nor the range: " + message);
 		helper.succeed();
 	}
 
@@ -389,7 +391,7 @@ public final class PunkphozTests {
 		for (int chance : new int[] {25, 50, 75}) {
 			for (int roll = 0; roll < 100; roll++) {
 				var outcome = PunkphozSpawning.decide(chance, roll, share(0.5), random);
-				if ((outcome == PunkphozSpawning.Outcome.VANILLA) != (roll <= chance)) {
+				if ((outcome == PunkphozSpawning.Outcome.VANILLA_ROLL) != (roll <= chance)) {
 					helper.fail("chance " + chance + ", roll " + roll + ": " + outcome);
 					return;
 				}
@@ -402,7 +404,11 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	/** {vanilla visits, Punkphöz visits} over {@code attempts} of vanilla's ramp; with players, his visits from targets(). */
+	/**
+	 * {vanilla visits, Punkphöz visits} over {@code attempts} of vanilla's ramp; with players, his visits from targets().
+	 * A passing vanilla roll is a visit only through spawn's one-in-ten gate, and only a visit resets the ramp; his
+	 * spawns skip the gate.
+	 */
 	private static long[] simulate(PunkphozConfig config, long seed, int attempts, int players) {
 		RandomSource random = RandomSource.create(seed);
 		List<String> online = new ArrayList<>();
@@ -413,17 +419,13 @@ public final class PunkphozTests {
 			int chance = state;
 			state = Math.min(state + 25, 75);
 			int roll = random.nextInt(100);
-			if (players == 0) {
-				var outcome = PunkphozSpawning.decide(chance, roll, config, random);
-				if (outcome == PunkphozSpawning.Outcome.VANILLA) {
+			if (roll <= chance) {
+				if (random.nextInt(10) == 0) {
 					vanilla++;
 					state = 25;
-				} else if (outcome == PunkphozSpawning.Outcome.PUNKPHOZ) {
-					punkphoz++;
 				}
-			} else if (roll <= chance) {
-				vanilla++;
-				state = 25;
+			} else if (players == 0) {
+				if (PunkphozSpawning.decide(chance, roll, config, random) == PunkphozSpawning.Outcome.PUNKPHOZ) punkphoz++;
 			} else {
 				punkphoz += PunkphozSpawning.targets(online, 0, config, random).size();
 			}
@@ -433,15 +435,15 @@ public final class PunkphozTests {
 
 	@GameTest
 	public void vanillaRateIsUnchanged(GameTestHelper helper) {
-		int attempts = 200000;
+		int attempts = 1000000;
 		long[] quarter = simulate(share(0.25), 11, attempts, 0);
-		near(helper, (double) quarter[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt at share 0.25");
+		near(helper, (double) quarter[0] / attempts, VANILLA_RATE, 0.002, "vanilla visits/attempt at share 0.25");
 		near(helper, (double) quarter[1] / (quarter[0] + quarter[1]), 0.25, 0.01, "Punkphöz's share at 0.25");
 		long[] off = simulate(spawning(false, 0.25, 5, 3), 11, attempts, 0);
-		near(helper, (double) off[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt when disabled");
+		near(helper, (double) off[0] / attempts, VANILLA_RATE, 0.002, "vanilla visits/attempt when disabled");
 		helper.assertValueEqual(off[1], 0L, "Punkphöz visits when disabled");
 		long[] half = simulate(share(0.5), 11, attempts, 0);
-		near(helper, (double) half[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt at share 0.5");
+		near(helper, (double) half[0] / attempts, VANILLA_RATE, 0.002, "vanilla visits/attempt at share 0.5");
 		near(helper, (double) half[1] / (half[0] + half[1]), 0.5, 0.01, "Punkphöz's share at 0.5");
 		helper.succeed();
 	}
@@ -498,12 +500,12 @@ public final class PunkphozTests {
 
 	@GameTest
 	public void vanillaRateIsUnchangedWithPlayers(GameTestHelper helper) {
-		int attempts = 200000;
+		int attempts = 1000000;
 		var config = spawning(true, 0.25, 5, 20);
 		long[] visits = simulate(config, 11, attempts, 20);
-		near(helper, (double) visits[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt with 20 players");
+		near(helper, (double) visits[0] / attempts, VANILLA_RATE, 0.002, "vanilla visits/attempt with 20 players");
 		double x = PunkphozSpawning.chanceOnAFailedRoll(config);
-		near(helper, (double) visits[1] / attempts, 4 * x * (1 - VANILLA_RATE), 0.05, "Punkphöz visits/cycle with 20 players");
+		near(helper, (double) visits[1] / attempts, 4 * x * (1 - 10 * VANILLA_RATE), 0.01, "Punkphöz visits/attempt with 20 players");
 		helper.succeed();
 	}
 
@@ -511,7 +513,7 @@ public final class PunkphozTests {
 	public void spawnerMixinIsIn(GameTestHelper helper) {
 		Set<String> names = new HashSet<>();
 		for (var method : WanderingTraderSpawner.class.getDeclaredMethods()) names.add(method.getName());
-		for (String handler : List.of("punkphozRoll", "punkphozType", "punkphozNear")) {
+		for (String handler : List.of("punkphozRoll", "punkphozType", "punkphozNear", "punkphozGate")) {
 			if (names.stream().noneMatch(n -> n.contains(handler))) helper.fail("WanderingTraderSpawner has no " + handler + ": " + names);
 		}
 		helper.succeed();

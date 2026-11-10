@@ -22,7 +22,8 @@ import se.metacraft.ovvar.content.entity.PunkphozSpawning;
 
 /**
  * Punkphöz turns up on top of vanilla's wanderers, and every vanilla visit still happens: only on an attempt whose own roll
- * failed, through vanilla's {@code spawn} (llamas, despawn delay and home included), near each roll's player.
+ * failed, through vanilla's {@code spawn} (llamas, despawn delay and home included, its one-in-ten gate skipped),
+ * near each roll's player.
  */
 @Mixin(WanderingTraderSpawner.class)
 public abstract class WanderingTraderSpawnerMixin {
@@ -69,5 +70,15 @@ public abstract class WanderingTraderSpawnerMixin {
 	private ServerPlayer ovvar$punkphozNear(ServerLevel level, Operation<ServerPlayer> original) {
 		ServerPlayer target = PunkphozSpawning.TARGET.get();
 		return target != null ? target : original.call(level);
+	}
+
+	/**
+	 * Vanilla's one-in-ten gate ({@code nextInt(10) == 0}), passed for him. In 26.3 it is {@code spawn}'s only
+	 * {@code nextInt(I)I}; the position search's random calls are in {@code findSpawnPositionNear}.
+	 */
+	@WrapOperation(method = "spawn(Lnet/minecraft/server/level/ServerLevel;)Z", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/util/RandomSource;nextInt(I)I"))
+	private int ovvar$punkphozGate(RandomSource random, int bound, Operation<Integer> original) {
+		return PunkphozSpawning.TARGET.get() != null ? 0 : original.call(random, bound);
 	}
 }
