@@ -2,6 +2,7 @@ package metacraft.kultur;
 
 import com.google.gson.JsonParser;
 import se.metacraft.kultur.catalogue.Catalogue;
+import se.metacraft.kultur.datagen.ArtFiles;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -97,10 +99,27 @@ public class CatalogueTest {
 		Path root = Path.of("src/main/resources/art/kultur");
 		try (var files = Files.walk(root)) {
 			for (Path f : files.filter(f -> f.toString().endsWith(".png")).toList()) {
+				String name = f.getFileName().toString();
+				// A "_x.png" beside an "x.png" is ignored by datagen, so it cannot ship as art.
+				if (name.startsWith("_") && Files.exists(f.resolveSibling(name.substring(1)))) continue;
 				var img = ImageIO.read(f.toFile());
 				if (img != null && img.getRGB(0, 0) == 0xFFFF00FF) left.add(root.relativize(f).toString());
 			}
 		}
 		assertTrue(left.isEmpty(), "placeholder art still in: " + String.join(", ", left));
+	}
+
+	@Test
+	public void underscoreArtIsUsed() {
+		assertEquals("_x.png", ArtFiles.fileFor("x", Set.of("_x.png")::contains, m -> {}));
+		assertEquals(null, ArtFiles.fileFor("x", Set.of("y.png")::contains, m -> {}));
+	}
+
+	@Test
+	public void plainArtWinsOverUnderscore() {
+		List<String> logged = new ArrayList<>();
+		assertEquals("x.png", ArtFiles.fileFor("x", Set.of("x.png", "_x.png")::contains, logged::add));
+		assertEquals(1, logged.size());
+		assertTrue(logged.get(0).contains("_x.png is ignored"));
 	}
 }

@@ -163,18 +163,20 @@ public final class GeneratedAssets implements DataProvider {
 		return obj("replace", false, "values", strings(values));
 	}
 
-	/** A PNG from {@code art/kultur/<chapter>/<kind>/<id>.png}; null when absent and not required. */
+	/** A PNG from {@code art/kultur/<chapter>/<kind>/<id>.png} (or {@code _<id>.png}, see {@link ArtFiles}); null when absent and not required. */
 	private static BufferedImage art(String chapter, String kind, String id, boolean required) {
-		String resource = "/art/kultur/" + chapter + "/" + kind + "/" + id + ".png";
-		try (InputStream in = GeneratedAssets.class.getResourceAsStream(resource)) {
-			if (in == null) {
-				if (required) throw new IllegalStateException("missing art: src/main/resources" + resource);
-				return null;
-			}
+		String dir = "/art/kultur/" + chapter + "/" + kind + "/";
+		String file = ArtFiles.fileFor(id, name -> GeneratedAssets.class.getResource(dir + name) != null,
+				msg -> System.out.println("kultur art " + chapter + "/" + kind + "/" + msg));
+		if (file == null) {
+			if (required) throw new IllegalStateException("missing art: src/main/resources" + dir + id + ".png");
+			return null;
+		}
+		try (InputStream in = GeneratedAssets.class.getResourceAsStream(dir + file)) {
 			try {
 				return Masks.read(in);
 			} catch (UncheckedIOException e) {
-				throw new IllegalStateException("art/kultur/" + chapter + "/" + kind + "/" + id + ".png: not a PNG");
+				throw new IllegalStateException("art/kultur/" + chapter + "/" + kind + "/" + file + ": not a PNG");
 			}
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
