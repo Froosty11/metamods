@@ -37,6 +37,7 @@ metacraft-booklet
 metacraft-kultur
 moredyes
 metacraft-qol
+metacraft-skins
 pirkko
 traders
 
@@ -45,7 +46,7 @@ external leukocyte-plus https://github.com/METAcraft-KTH/LeukocytePlus/releases/
 
 #edvin forks
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.9/danse-2.6.0-metacraft.9%2B26.3.jar sha256:919f6c1449d8cf80ea3b9b38b596baae670a2d5f58e214623efcffa4a8cfa2f2
-external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
+external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3.metacraft.2/polydecorations-0.13.1+26.3.metacraft.2.jar sha256:d05cf8c798f931ae15d1909fbb6ff719489eb376adf17ba56b038f67106ed317
 
 #METAcraft forks
 external confnportal https://github.com/METAcraft-KTH/Configurable-Nether-Portals-Mod/releases/download/1.1.1-26.3/confnportal-1.1.1.jar sha256:4faf4835523092454ee1b4f86b14eeca1e18e0c99e579b8a1b39a0f06006cb36
@@ -88,6 +89,10 @@ external plan https://cdn.modrinth.com/data/wJQfHhxh/versions/cYAfbS0u/PlanFabri
 external unplugged_afk https://cdn.modrinth.com/data/VlR3taCz/versions/zxEWidsQ/unplugged_afk-v0.2.6-mc26.3.jar sha256:89b104ad2ce176541fc86e99918d298f8695e7224ec4bcf90ce9e0c2151d0531
 external banhammer https://cdn.modrinth.com/data/Wpqg0ciI/versions/1BJyGiA7/banhammer-0.19.0%2B26.3.jar sha256:5048f6116d9e9c7bab6d9c039c90138b2fbfe6d9f77bf6dc89c59bf03653813d
 external invsee https://cdn.modrinth.com/data/javU3y9N/versions/FU0X6jCW/invsee-fabric-26.3-1.2.2.jar sha256:3ca7e405ecda4d6e3db47862de2e633dad656e18916f3616dd82453017ba96c1
+
+external async https://cdn.modrinth.com/data/vEC2jm6I/versions/gcduhoHv/async-fabric-0.2.5%2Balpha-26.3.jar sha256:684e4e80b3a077e453cee79695f65ed2222a5d14cacc3b99820c8df79734771b
+external tt20 https://cdn.modrinth.com/data/YS3ZignI/versions/4v41bQe4/tt20-0.8.5%2Bmc26.3-fabric.jar sha256:20a7baf3d125724c7dedded5210e8d38bbd3b68ac8cf7c3b61185c14b7194ddd
+external servercore https://cdn.modrinth.com/data/4WWQxlQP/versions/LCG1Bm84/servercore-fabric-1.5.20%2B26.3.jar sha256:62fba7c2c7915b73f68af9cfa3a616473dd58865dc5c213b46ddd678b1aa9065
 
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
 external filament https://cdn.modrinth.com/data/yANxwqSX/versions/66G6ixmY/filament-1.8.5-hotfix.1%2B26.3.jar sha256:ab85427044d9c4036988fe652de364861ec445151d3ad9e03a1750f64a1cfea0
