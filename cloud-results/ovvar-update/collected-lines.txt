@@ -1,0 +1,244 @@
+=== first/ovvar.log
+275:[10:28:22] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+495:[10:28:35] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+638:[10:28:44] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+743:[10:29:03] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+849:[10:29:16] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+1039:[10:29:21] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+2201:java.lang.AssertionError: Timeout loading world
+2210:net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timeout loading world
+2216:Caused by: java.lang.AssertionError: Timeout loading world
+=== second/ovvar.log
+275:[10:31:21] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+482:[10:31:34] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+1651:java.lang.AssertionError: Timeout loading world
+1660:net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timeout loading world
+1666:Caused by: java.lang.AssertionError: Timeout loading world
+=== ovvar3.log
+275:[10:36:32] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+509:[10:36:46] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+653:[10:36:56] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+758:[10:37:14] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+862:[10:37:27] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+1052:[10:37:32] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+2216:java.lang.AssertionError: Timeout loading world
+2225:net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timeout loading world
+2231:Caused by: java.lang.AssertionError: Timeout loading world
+=== kultur.log
+231:[10:33:37] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+741:[10:33:46] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+800:[10:33:54] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0000_kultur_banner_shield_painting.png
+802:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: itk (no item) is not selectable with only a banner in the loom
+803:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: qmisk (no item) is not selectable with only a banner in the loom
+804:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: tmeit (no item) is not selectable with only a banner in the loom
+805:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: 3 pattern(s) without an item checked with a banner only (0 selectable)
+806:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+807:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+808:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: cl is not selectable with cl_banner_pattern in the pattern slot
+809:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: data is not selectable with data_banner_pattern in the pattern slot
+810:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+811:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+812:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: energi is not selectable with energi_banner_pattern in the pattern slot
+813:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+814:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+815:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+816:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+817:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: it is not selectable with it_banner_pattern in the pattern slot
+818:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+819:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+820:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: media is not selectable with media_banner_pattern in the pattern slot
+821:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: mit is not selectable with mit_banner_pattern in the pattern slot
+822:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: open is not selectable with open_banner_pattern in the pattern slot
+823:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+824:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+825:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: indek is not selectable with indek_banner_pattern in the pattern slot
+826:[10:33:54] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: 20 pattern item(s) checked
+827:[10:33:55] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0001_kultur_chapter_loom.png
+828:[10:33:56] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] chapter banners: 20 patterns in 4 shots
+838:[10:34:01] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0003_kultur_chapter_banners_1.png (patterns [arkitektur, bergs, cl, data, doktorand, elektro])
+845:[10:34:03] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0004_kultur_chapter_banners_2.png (patterns [energi, flyg, fysik, ingenjor, pirkko, it])
+852:[10:34:05] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0005_kultur_chapter_banners_3.png (patterns [kemi, maskin, media, mit, open, samhall])
+859:[10:34:07] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0006_kultur_chapter_banners_4.png (patterns [tbas, indek])
+863:[10:34:10] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0007_kultur_drinks.png
+878:java.lang.AssertionError: 23 kultur client check(s) failed:
+879: - loom: itk (no item) is not selectable with only a banner in the loom
+880: - loom: qmisk (no item) is not selectable with only a banner in the loom
+881: - loom: tmeit (no item) is not selectable with only a banner in the loom
+882: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+883: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+884: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+885: - loom: data is not selectable with data_banner_pattern in the pattern slot
+886: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+887: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+888: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+889: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+890: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+891: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+892: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+893: - loom: it is not selectable with it_banner_pattern in the pattern slot
+894: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+895: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+896: - loom: media is not selectable with media_banner_pattern in the pattern slot
+897: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+898: - loom: open is not selectable with open_banner_pattern in the pattern slot
+899: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+900: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+901: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+908:net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: 23 kultur client check(s) failed:
+909: - loom: itk (no item) is not selectable with only a banner in the loom
+910: - loom: qmisk (no item) is not selectable with only a banner in the loom
+911: - loom: tmeit (no item) is not selectable with only a banner in the loom
+912: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+913: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+914: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+915: - loom: data is not selectable with data_banner_pattern in the pattern slot
+916: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+917: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+918: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+919: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+920: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+921: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+922: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+923: - loom: it is not selectable with it_banner_pattern in the pattern slot
+924: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+925: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+926: - loom: media is not selectable with media_banner_pattern in the pattern slot
+927: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+928: - loom: open is not selectable with open_banner_pattern in the pattern slot
+929: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+930: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+931: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+937:Caused by: java.lang.AssertionError: 23 kultur client check(s) failed:
+938: - loom: itk (no item) is not selectable with only a banner in the loom
+939: - loom: qmisk (no item) is not selectable with only a banner in the loom
+940: - loom: tmeit (no item) is not selectable with only a banner in the loom
+941: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+942: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+943: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+944: - loom: data is not selectable with data_banner_pattern in the pattern slot
+945: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+946: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+947: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+948: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+949: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+950: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+951: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+952: - loom: it is not selectable with it_banner_pattern in the pattern slot
+953: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+954: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+955: - loom: media is not selectable with media_banner_pattern in the pattern slot
+956: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+957: - loom: open is not selectable with open_banner_pattern in the pattern slot
+958: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+959: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+960: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+=== kultur_nb.log
+227:[10:35:01] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+365:[10:35:10] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+422:[10:35:17] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0000_kultur_banner_shield_painting.png
+424:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: itk (no item) is not selectable with only a banner in the loom
+425:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: qmisk (no item) is not selectable with only a banner in the loom
+426:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: tmeit (no item) is not selectable with only a banner in the loom
+427:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: 3 pattern(s) without an item checked with a banner only (0 selectable)
+428:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+429:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+430:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: cl is not selectable with cl_banner_pattern in the pattern slot
+431:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: data is not selectable with data_banner_pattern in the pattern slot
+432:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+433:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+434:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: energi is not selectable with energi_banner_pattern in the pattern slot
+435:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+436:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+437:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+438:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+439:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: it is not selectable with it_banner_pattern in the pattern slot
+440:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+441:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+442:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: media is not selectable with media_banner_pattern in the pattern slot
+443:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: mit is not selectable with mit_banner_pattern in the pattern slot
+444:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: open is not selectable with open_banner_pattern in the pattern slot
+445:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+446:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+447:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: indek is not selectable with indek_banner_pattern in the pattern slot
+448:[10:35:17] [Server thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] loom: 20 pattern item(s) checked
+450:[10:35:19] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0001_kultur_chapter_loom.png
+451:[10:35:20] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] chapter banners: 20 patterns in 4 shots
+461:[10:35:24] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0003_kultur_chapter_banners_1.png (patterns [arkitektur, bergs, cl, data, doktorand, elektro])
+468:[10:35:27] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0004_kultur_chapter_banners_2.png (patterns [energi, flyg, fysik, ingenjor, pirkko, it])
+475:[10:35:29] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0005_kultur_chapter_banners_3.png (patterns [kemi, maskin, media, mit, open, samhall])
+482:[10:35:31] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0006_kultur_chapter_banners_4.png (patterns [tbas, indek])
+485:[10:35:34] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0007_drinks_vanilla_bottles.png
+488:[10:35:40] [Test thread/INFO] (Minecraft) [STDOUT]: [kultur-clienttest] screenshot: /home/user/metamods/mods/metacraft-kultur/build/run/clientGameTest/screenshots/0008_drinks_vanilla_inebriated.png
+503:java.lang.AssertionError: 23 kultur client check(s) failed:
+504: - loom: itk (no item) is not selectable with only a banner in the loom
+505: - loom: qmisk (no item) is not selectable with only a banner in the loom
+506: - loom: tmeit (no item) is not selectable with only a banner in the loom
+507: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+508: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+509: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+510: - loom: data is not selectable with data_banner_pattern in the pattern slot
+511: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+512: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+513: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+514: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+515: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+516: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+517: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+518: - loom: it is not selectable with it_banner_pattern in the pattern slot
+519: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+520: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+521: - loom: media is not selectable with media_banner_pattern in the pattern slot
+522: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+523: - loom: open is not selectable with open_banner_pattern in the pattern slot
+524: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+525: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+526: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+533:net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: 23 kultur client check(s) failed:
+534: - loom: itk (no item) is not selectable with only a banner in the loom
+535: - loom: qmisk (no item) is not selectable with only a banner in the loom
+536: - loom: tmeit (no item) is not selectable with only a banner in the loom
+537: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+538: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+539: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+540: - loom: data is not selectable with data_banner_pattern in the pattern slot
+541: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+542: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+543: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+544: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+545: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+546: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+547: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+548: - loom: it is not selectable with it_banner_pattern in the pattern slot
+549: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+550: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+551: - loom: media is not selectable with media_banner_pattern in the pattern slot
+552: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+553: - loom: open is not selectable with open_banner_pattern in the pattern slot
+554: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+555: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+556: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+562:Caused by: java.lang.AssertionError: 23 kultur client check(s) failed:
+563: - loom: itk (no item) is not selectable with only a banner in the loom
+564: - loom: qmisk (no item) is not selectable with only a banner in the loom
+565: - loom: tmeit (no item) is not selectable with only a banner in the loom
+566: - loom: arkitektur is not selectable with arkitektur_banner_pattern in the pattern slot
+567: - loom: bergs is not selectable with bergs_banner_pattern in the pattern slot
+568: - loom: cl is not selectable with cl_banner_pattern in the pattern slot
+569: - loom: data is not selectable with data_banner_pattern in the pattern slot
+570: - loom: doktorand is not selectable with doktorand_banner_pattern in the pattern slot
+571: - loom: elektro is not selectable with elektro_banner_pattern in the pattern slot
+572: - loom: energi is not selectable with energi_banner_pattern in the pattern slot
+573: - loom: flyg is not selectable with flyg_banner_pattern in the pattern slot
+574: - loom: fysik is not selectable with fysik_banner_pattern in the pattern slot
+575: - loom: ingenjor is not selectable with ingenjor_banner_pattern in the pattern slot
+576: - loom: pirkko is not selectable with pirkko_banner_pattern in the pattern slot
+577: - loom: it is not selectable with it_banner_pattern in the pattern slot
+578: - loom: kemi is not selectable with kemi_banner_pattern in the pattern slot
+579: - loom: maskin is not selectable with maskin_banner_pattern in the pattern slot
+580: - loom: media is not selectable with media_banner_pattern in the pattern slot
+581: - loom: mit is not selectable with mit_banner_pattern in the pattern slot
+582: - loom: open is not selectable with open_banner_pattern in the pattern slot
+583: - loom: samhall is not selectable with samhall_banner_pattern in the pattern slot
+584: - loom: tbas is not selectable with tbas_banner_pattern in the pattern slot
+585: - loom: indek is not selectable with indek_banner_pattern in the pattern slot
+rc: A1=1 A2=1 A3=1 B=1 C=1
