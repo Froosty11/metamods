@@ -1,4 +1,4 @@
-package se.metacraft.ovvarshaderpatch;
+package se.metacraft.ovvarclient;
 
 import metacraft.ovvar.shaderpatcher.PackPatch;
 import metacraft.ovvar.shaderpatcher.Patcher;
@@ -30,7 +30,7 @@ import java.util.zip.ZipFile;
 public final class StartupPatch {
 	private static final String SUFFIX = "+ovvar";
 	private static final String TMP_SUFFIX = ".ovvar-tmp";
-	private static final String PREFIX = "[ovvar-shaderpatch] ";
+	private static final String PREFIX = "[ovvar-client] ";
 
 	private StartupPatch() {
 	}

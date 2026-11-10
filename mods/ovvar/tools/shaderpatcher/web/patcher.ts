@@ -230,7 +230,7 @@ class PackPatch {
 			return null;
 		}
 
-		const helper = '\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar\n'
+		const helper = '\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in ovvar-client.jar\n'
 			+ uv.direction + ' vec4 ovvar_color;\n'
 			+ uv.direction + ' vec3 ovvar_pos;\n'
 			+ uv.direction + ' vec3 ovvar_normal;\n'

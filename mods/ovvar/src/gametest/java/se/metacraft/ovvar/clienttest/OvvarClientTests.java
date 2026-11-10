@@ -166,7 +166,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				String url = server.computeOnServer(s -> ShaderPatcher.url(s.getPlayerList().getPlayerByName("Tester"))
 						.orElseThrow(() -> new AssertionError("the server hosts no shader patcher")));
 				System.out.println("[ovvar-clienttest] shader patcher at " + url);
-				if (!url.endsWith("/ovvar-shader-patcher.jar")) throw new AssertionError("a browser would not save a .jar from " + url);
+				if (!url.endsWith("/ovvar-client.jar")) throw new AssertionError("a browser would not save a .jar from " + url);
 				byte[] served = download(url);
 				byte[] bundled = bundledPatcher();
 				if (!Arrays.equals(served, bundled)) throw new AssertionError(url + " served " + served.length + " bytes, not the " + bundled.length + "-byte patcher");

@@ -3,7 +3,7 @@ import metacraft.ovvar.shaderpatcher.PackPatch;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import se.metacraft.ovvarshaderpatch.StartupPatch;
+import se.metacraft.ovvarclient.StartupPatch;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

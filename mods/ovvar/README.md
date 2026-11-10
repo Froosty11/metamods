@@ -664,7 +664,8 @@ pure white, so the stitching reads the same on every chapter.
 
 `config/ovvar.json` → `shaders` (players with a shaderpack):
 
-    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default)
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default),
+                             where players patch a shaderpack or download ovvar-client.jar
 
 Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
@@ -687,7 +688,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: shaders.patcher_url)
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher and ovvar-client.jar (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -1089,11 +1090,13 @@ computed exactly once and every path reads that one bool, so no two of them can 
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
 does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
 overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
-https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
-`OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at
-`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, but no longer linked from
-the page: the website links its own copy): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or with `ovvar-client.jar`, the one
+optional client jar (`mods/ovvar-client`, which replaced both `OvvarShaderPatcher.jar` and the
+`ovvar-shaderpatch` mod). In the mods folder it patches the instance's packs at every start (see "The
+ovvar-client mod" below). Its Main-Class is the patcher from `tools/shaderpatcher` (compiled for Java 11+),
+shipped inside the resource pack at `assets/ovvar/shaderpatcher/ovvar-client.jar` and still served by Polymer's
+autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-client.jar`, though the
+page links the website's own copy. Double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
 several at once, Cancel does nothing) and writes a
 `+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
@@ -1120,18 +1123,19 @@ In the cloud (environment `Minecraft`):
 
 ```
 curl -L -o bsl.zip <BSL download URL from Modrinth>
-./gradlew :mods:ovvar:patcherJar
-java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 # writes bsl+ovvar.zip next to it
+./gradlew :mods:ovvar-client:jar
+java -jar mods/ovvar-client/build/libs/ovvar-client-*.jar bsl.zip              # writes bsl+ovvar.zip next to it
 ./gradlew :mods:ovvar:runClientGameTest                                        # vanilla, unchanged
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=checker
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
 ```
 
-Without hand patching, through the launcher mod (`mods/ovvar-shaderpatch`, which patches the instance's shaderpacks at
-`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote:
+Without hand patching, through the client mod (`mods/ovvar-client`, which patches the instance's shaderpacks at
+`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote
+(`-PshaderpatchMod` is the old name of `-PovvarClientMod` and still works):
 
 ```
-./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PshaderpatchMod
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PovvarClientMod
 ```
 
 Iris's log then names `bsl+ovvar.zip`, and `unpatchedPackShowsChecker` passes with `art`.

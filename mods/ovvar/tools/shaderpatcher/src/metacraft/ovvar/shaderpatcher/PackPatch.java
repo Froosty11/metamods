@@ -296,7 +296,7 @@ public final class PackPatch {
 
 		// Fragment: shadow both varyings, add the raw-colour varying and the shader code, set the
 		// shadows at the top of main. Edits are applied back to front so indices stay valid.
-		String helper = "\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar\n"
+		String helper = "\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in ovvar-client.jar\n"
 				+ uv.direction + " vec4 ovvar_color;\n"
 				+ uv.direction + " vec3 ovvar_pos;\n"
 				+ uv.direction + " vec3 ovvar_normal;\n"

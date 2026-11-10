@@ -25,7 +25,7 @@ import java.util.Properties;
 /**
  * Under an Iris shaderpack: an unpatched pack draws the magenta/black checker that fills the original
  * right-limb box of a garment texture (the ovvar shader reads the copy beside it), a pack patched by
- * OvvarShaderPatcher does not. Runs only with {@code -Dovvar.iris.expect=checker|art} (see the README,
+ * the shader patcher (the ovvar-client jar) does not. Runs only with {@code -Dovvar.iris.expect=checker|art} (see the README,
  * "Client test under a shaderpack"); otherwise it does nothing and the vanilla client run is unchanged.
  */
 public final class OvvarShaderpackClientTests implements FabricClientGameTest {

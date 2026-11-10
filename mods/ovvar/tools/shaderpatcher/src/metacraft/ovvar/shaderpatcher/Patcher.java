@@ -47,7 +47,8 @@ import java.util.zip.ZipOutputStream;
  *
  * Double-click: a file chooser (opening in the Minecraft shaderpacks folder) asks which packs, then a summary shows.
  * This is the fallback for the web patcher at https://metacraft.se/ovvar/shaders.
- * Command line: {@code java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]}.
+ * Command line: {@code java -jar ovvar-client.jar [pack.zip|folder ...] [--dry-run]} (the same jar is the
+ * optional ovvar client mod, mods/ovvar-client; this class is its Main-Class).
  */
 public final class Patcher {
 	private static final String SUFFIX = "+ovvar";
@@ -84,7 +85,7 @@ public final class Patcher {
 		Patcher patcher = new Patcher(dryRun);
 		if (packs.isEmpty()) {
 			if (chooser == null) {
-				System.out.println("Usage: java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]");
+				System.out.println("Usage: java -jar ovvar-client.jar [pack.zip|folder ...] [--dry-run]");
 				System.out.println("Or patch your pack on the web: https://metacraft.se/ovvar/shaders");
 				return 0;
 			}

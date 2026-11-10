@@ -1,4 +1,4 @@
-package se.metacraft.ovvarshaderpatch;
+package se.metacraft.ovvarclient;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -11,7 +11,7 @@ public class PreLaunch implements PreLaunchEntrypoint {
 			StartupPatch.run(FabricLoader.getInstance().getGameDir());
 		} catch (Throwable t) {
 			// StartupPatch.run does not throw; this is belt and braces. Startup never fails because of this mod.
-			System.err.println("[ovvar-shaderpatch] " + t);
+			System.err.println("[ovvar-client] " + t);
 		}
 	}
 }

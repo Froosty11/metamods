@@ -18,7 +18,7 @@ vec4 ovvar_raw_glColor() { return glColor; }
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorOut;
 
-// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar
+// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in ovvar-client.jar
 in vec4 ovvar_color;
 in vec3 ovvar_pos;
 in vec3 ovvar_normal;
