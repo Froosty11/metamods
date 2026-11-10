@@ -123,6 +123,17 @@ public class StartupPatchTest {
 	}
 
 	@Test
+	void unmarkedSingleFileProgramIsNeitherWrittenNorSelected() throws IOException {
+		Path pack = packs.resolve("nomarkers.zip");
+		Patcher.writeZip(pack, Patcher.readFolder(Paths.get("../ovvar/tools/shaderpatcher/fixtures/single-file-no-markers/in")));
+		Path props = iris("shaderPack=nomarkers.zip\n");
+		List<String> log = StartupPatch.run(game);
+		assertFalse(Files.exists(packs.resolve("nomarkers+ovvar.zip")));
+		assertEquals("shaderPack=nomarkers.zip\n", read(props));
+		assertTrue(log.stream().anyMatch(l -> l.startsWith("nomarkers.zip: a shaderpack, but nothing")));
+	}
+
+	@Test
 	void leavesIrisAloneWithoutCopy() throws IOException {
 		Path config = Files.createDirectories(game.resolve("config"));
 		Path props = config.resolve("iris.properties");
