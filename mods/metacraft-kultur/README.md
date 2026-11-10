@@ -178,6 +178,7 @@ folder `art/kultur/<chapter>/`.
   server game tests (`KulturGameTests`): every catalogue entry in its registry and tag, gated
   patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
   Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
+  `KulturLoomPacketTests` writes the loom's result with every pattern item as the packet a client gets.
 - The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
   runs (no recipe makes a drink, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
   once. Run both.
@@ -189,6 +190,8 @@ folder `art/kultur/<chapter>/`.
   the loom on both the server's menu and the client's own list (banner and dye in, every kultur
   pattern), with black dye and with More Dyes' Cerise: More Dyes is on the client-test runtime
   (needs `:mods:moredyes:runDatagen` first); `-PkulturNoMoredyes` leaves it out.
+  The client shares the server's JVM, so `SameJvmRegistriesMixin` keeps it from binding the shared
+  item components to its own registries (the loom result could not be sent otherwise).
 - `./gradlew :mods:metacraft-kultur:runServer` — a dev server with the pack auto-hosted; join with a
   vanilla client, `/give @s minecraft:loom`, `/give @s kultur:pirkko_banner_pattern`.
 
