@@ -1,0 +1,12 @@
+bsl.zip:
+  shaders/program/gbuffers_entities.glsl: 'texCoord' and 'color' shadowed, art via texture2D(texture), colour from gl_Color
+  shaders/program/gbuffers_entities.glsl: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/program/gbuffers_entities_glowing.glsl: 'texCoord' and 'color' shadowed, art via texture2D(texture), colour from gl_Color
+  shaders/program/gbuffers_entities_glowing.glsl: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/program/gbuffers_entities_translucent.glsl: 'texCoord' and 'color' shadowed, art via texture2D(texture), colour from gl_Color
+  shaders/program/gbuffers_entities_translucent.glsl: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/program/shadow.glsl: rifts cast no shadow
+  shaders/program/gbuffers_entities_translucent.glsl: chapter text colours (shaders/world-1/gbuffers_entities_translucent, shaders/world0/gbuffers_entities_translucent, shaders/world1/gbuffers_entities_translucent): gl_Color wrapped
+  -> bsl+ovvar.zip
+
+1 pack(s) patched, 0 skipped, 0 failed. Select the "+ovvar" copy in Iris.

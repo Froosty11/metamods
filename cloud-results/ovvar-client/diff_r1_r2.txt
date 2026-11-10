@@ -1,0 +1,5 @@
+0000_after.png px=2073600 nonzero=337799 >24=61685 (2.975%) bbox>24=[0,0..1156,403]
+0001_after_gesture_end.png px=2073600 nonzero=299809 >24=12141 (0.586%) bbox>24=[808,573..1110,784]
+0002_after_frack.png px=2073600 nonzero=178669 >24=19 (0.001%) bbox>24=[773,162..1145,391]
+0003_front_four_patches.png px=2073600 nonzero=893 >24=444 (0.021%) bbox>24=[806,572..1115,784]
+0004_front_four_patches_again.png px=2073600 nonzero=33109 >24=3041 (0.147%) bbox>24=[804,570..1117,785]

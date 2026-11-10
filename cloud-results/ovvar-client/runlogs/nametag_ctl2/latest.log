@@ -1,0 +1,1107 @@
+[16:12:21] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 26.3 with Fabric Loader 0.19.5
+[16:12:21] [main/INFO] (FabricLoader/Mappings) Mappings not present!
+[16:12:21] [main/INFO] (FabricLoader) Loading 84 mods:
+	- bil 2.2.0+26.3-rc-3
+	- booklet 0.4.0+26.3
+	   \-- placeholder-api 3.2.0+26.3
+	- danse 2.6.0-metacraft.9+26.3
+	   |-- dialogutils 1.8.4+26.1
+	   |-- map-canvas-api 0.9.1+26.2
+	   \-- placeholder-api 3.2.0+26.3
+	- fabric-advancement-api-v1 1.0.0+38c7a2d55d
+	- fabric-api 0.161.0+26.3
+	- fabric-api-base 2.0.6+fcdff87f5d
+	- fabric-api-lookup-api-v1 2.0.24+3434d6d95d
+	- fabric-biome-api-v1 20.0.9+74ed1ea55d
+	- fabric-block-api-v1 3.1.0+0ae6f9115d
+	- fabric-block-getter-api-v2 2.0.9+3434d6d95d
+	- fabric-client-gametest-api-v1 6.0.7+4be74c3f5d
+	- fabric-command-api-v2 3.1.2+fcdff87f5d
+	- fabric-content-registries-v0 15.0.4+74ed1ea55d
+	- fabric-convention-tags-v2 4.10.3+6b5b47fd5d
+	- fabric-crash-report-info-v1 1.0.7+fcdff87f5d
+	- fabric-creative-tab-api-v1 5.0.21+fcdff87f5d
+	- fabric-data-attachment-api-v1 2.2.30+3434d6d95d
+	- fabric-data-generation-api-v1 27.2.4+427eab975d
+	- fabric-debug-api-v1 1.0.4+3434d6d95d
+	- fabric-dimensions-v1 5.1.19+47f74c985d
+	- fabric-entity-events-v1 6.0.4+3434d6d95d
+	- fabric-events-interaction-v0 5.3.6+3434d6d95d
+	- fabric-game-rule-api-v1 4.0.10+3434d6d95d
+	- fabric-gametest-api-v1 4.0.32+3434d6d95d
+	- fabric-item-api-v1 14.7.0+cf6bc2db5d
+	- fabric-key-mapping-api-v1 2.0.8+3434d6d95d
+	- fabric-lifecycle-events-v1 4.1.9+ffef5f675d
+	- fabric-loot-api-v3 4.0.8+4068fd645d
+	- fabric-menu-api-v1 2.0.27+ed66f0a35d
+	- fabric-message-api-v1 7.0.10+3434d6d95d
+	- fabric-model-loading-api-v1 8.0.35+fcdff87f5d
+	- fabric-networking-api-v1 6.3.8+fcdff87f5d
+	- fabric-object-builder-api-v1 24.1.9+3434d6d95d
+	- fabric-particles-v1 5.0.24+3434d6d95d
+	- fabric-permission-api-v1 1.0.8+fcdff87f5d
+	- fabric-permissions-api-v0 0.7.0
+	- fabric-recipe-api-v1 10.0.8+fcdff87f5d
+	- fabric-registry-sync-v0 8.0.1+fcdff87f5d
+	- fabric-renderer-api-v1 17.0.15+79385d0b5d
+	- fabric-renderer-indigo 9.1.23+b9d63e335d
+	- fabric-rendering-fluids-v1 6.0.6+3434d6d95d
+	- fabric-rendering-v1 27.0.14+901a437c5d
+	- fabric-resource-conditions-api-v1 6.1.5+3434d6d95d
+	- fabric-resource-loader-v0 3.3.26+4fc5413f5d
+	- fabric-resource-loader-v1 3.0.4+fcdff87f5d
+	- fabric-screen-api-v1 5.2.4+48607d035d
+	- fabric-serialization-api-v1 2.0.7+74ed1ea55d
+	- fabric-sound-api-v1 2.0.7+3434d6d95d
+	- fabric-tag-api-v1 2.1.10+fcdff87f5d
+	- fabric-transfer-api-v1 8.0.25+fcdff87f5d
+	- fabric-transitive-access-wideners-v1 8.1.16+52268a0e5d
+	- fabricloader 0.19.5
+	- java 25
+	- metacraft-bundles 1.0.0
+	- metacraft-config 1.0.0
+	- metacraft-core 1.0.0
+	   |-- com_moulberry_mixinconstraints 1.0.9
+	   \-- org_apache_commons_commons-math3 3.6.1
+	- metacraft-lib 1.0.0
+	   |-- blue_endless_jankson 1.2.3
+	   |-- net_bytebuddy_byte-buddy 1.18.13
+	   \-- org_pcollections_pcollections 5.0.0
+	- metacraft-resource-packs 1.0.0
+	- minecraft 26.3
+	- mixinextras 0.5.5
+	- mixinsquared 0.3.7-beta.3
+	- ovvar 0.1.0
+	- ovvar-client 0.2.0
+	- ovvar-clienttest 1.0.0
+	- polymer-autohost 0.18.4+26.3
+	- polymer-blocks 0.18.4+26.3
+	- polymer-common 0.18.4+26.3
+	- polymer-core 0.18.4+26.3
+	- polymer-networking 0.18.4+26.3
+	- polymer-registry-sync-manipulator 0.18.4+26.3
+	- polymer-resource-pack 0.18.4+26.3
+	- polymer-resource-pack-extras 0.18.4+26.3
+	- polymer-sound-patcher 0.18.4+26.3
+	- polymer-virtual-entity 0.18.4+26.3
+	- server_translations_api 3.2.0+26.3
+	- sgui 2.2.0+26.3
+[16:12:21] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/root/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.17.4+mixin.0.8.7/5f66cc9f59b8efaa942155a3d5a30599bf6640dd/sponge-mixin-0.17.4+mixin.0.8.7.jar Service=Knot/Fabric Env=CLIENT
+[16:12:22] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.5).
+[16:12:24] [Datafixer Bootstrap #0/INFO] (Minecraft) 307 Datafixer optimizations took 462 milliseconds
+[16:12:31] [Render thread/INFO] (Minecraft) Environment: Environment[discoveryUrl=https://discovery.minecraftservices.com/minecraft/client, name=PROD]
+[16:12:31] [Render thread/INFO] (Minecraft) Setting user: Tester
+[16:12:31] [Download-2/ERROR] (Minecraft) Failed to fetch user properties
+com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401
+	at knot//com.mojang.authlib.exceptions.MinecraftClientHttpException.toAuthenticationException(MinecraftClientHttpException.java:70)
+	at knot//com.mojang.authlib.services.MinecraftServicesUserApiService.fetchProperties(MinecraftServicesUserApiService.java:168)
+	at knot//net.minecraft.client.Minecraft.lambda$new$1(Minecraft.java:451)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1789)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: MinecraftClientHttpException[type=HTTP_ERROR, status=401, response=ErrorResponse[path=/player/attributes, error=null, errorMessage=null, details=null]]
+	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.buildHttpException(MinecraftClient.java:170)
+	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.readServiceResponse(MinecraftClient.java:147)
+	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.getWithEtag(MinecraftClient.java:81)
+	at knot//com.mojang.authlib.minecraft.client.MinecraftClient.get(MinecraftClient.java:65)
+	at knot//com.mojang.authlib.services.MinecraftServicesUserApiService.fetchProperties(MinecraftServicesUserApiService.java:118)
+	... 5 more
+[16:12:33] [Render thread/INFO] (ovvar) [ovvar] wardrobe preview: 72 bare ovve glyph(s) (18 × 4 angles) and 870 patch glyph(s)
+[16:12:33] [Render thread/INFO] (ovvar) [ovvar] Danse is here: gestures will wear the ovve
+[16:12:33] [Render thread/INFO] (ovvar) [ovvar] 18 chapter(s), 30 patch(es)
+[16:12:34] [Render thread/INFO] (Indigo) [Indigo] Registering Indigo renderer!
+[16:12:34] [Render thread/ERROR] (Minecraft) Registry 'metacraft:message_handlers' was empty after loading
+[16:12:34] [Render thread/ERROR] (Minecraft) Illegal option value 0 for Anisotropic Filtering
+[16:12:34] [Render thread/INFO] (Minecraft) Backend library: LWJGL version 3.4.3-snapshot
+[16:12:34] [Render thread/INFO] (Minecraft) SDL [SYSTEM]: App name: Minecraft
+[16:12:34] [Render thread/INFO] (Minecraft) SDL [SYSTEM]: App version: 26.3
+[16:12:34] [Render thread/INFO] (Minecraft) SDL [SYSTEM]: App ID: com.mojang.minecraft
+[16:12:34] [Render thread/INFO] (Minecraft) SDL [SYSTEM]: SDL revision: SDL-3.4.14--128-NOTFOUND
+[16:12:34] [Render thread/INFO] (Minecraft) Using graphics backend OpenGL, using drivers: 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4
+[16:12:34] [Render thread/INFO] (Minecraft) Using graphics device: llvmpipe (LLVM 20.1.2, 256 bits) (Mesa)
+[16:12:34] [Render thread/INFO] (Minecraft) Using graphics device extensions: GL_ARB_multi_draw_indirect, GL_ARB_buffer_storage, GL_ARB_shader_draw_parameters, GL_ARB_base_instance, GL_KHR_debug, GL_ARB_draw_indirect, GL_ARB_clip_control, GL_ARB_vertex_attrib_binding, GL_ARB_direct_state_access, GL_EXT_texture_filter_anisotropic
+[16:12:34] [Render thread/INFO] (Minecraft) Created window using SDL video driver: x11
+[16:12:35] [Render thread/INFO] (ovvar) [ovvar] wardrobe font: 972 static glyph(s)
+[16:12:35] [Render thread/INFO] (ovvar) [ovvar] wardrobe art: 18 background(s), font ovvar:wardrobe
+[16:12:37] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip
+[16:12:37] [Download-1/INFO] (Minecraft) Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: FabricMC
+[16:12:37] [Download-1/ERROR] (Minecraft) Failed to fetch Realms feature flags
+com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: FabricMC'
+	at knot//com.mojang.realmsclient.client.RealmsClient.execute(RealmsClient.java:625)
+	at knot//com.mojang.realmsclient.client.RealmsClient.fetchFeatureFlags(RealmsClient.java:204)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1789)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+[16:12:38] [Worker-Main-3/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:12:38] [Worker-Main-1/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:12:38] [Worker-Main-3/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:12:40] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.runAllTasks(BlockableEventLoop.java:127)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:12:40] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:12:40] [Download-1/INFO] (Minecraft) Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: FabricMC
+[16:12:40] [Download-1/ERROR] (Minecraft) Couldn't connect to realms
+com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: FabricMC'
+	at knot//com.mojang.realmsclient.client.RealmsClient.execute(RealmsClient.java:625)
+	at knot//com.mojang.realmsclient.client.RealmsClient.clientCompatible(RealmsClient.java:354)
+	at knot//com.mojang.realmsclient.RealmsAvailability.lambda$check$0(RealmsAvailability.java:48)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1789)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+[16:12:44] [Worker-Main-3/INFO] (Minecraft) Loaded 1866 advancements
+[16:12:44] [ForkJoinPool.commonPool-worker-2/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:12:44] [Thread-2/INFO] (Minecraft) Environment: Environment[discoveryUrl=https://discovery.minecraftservices.com/minecraft/client, name=PROD]
+[16:12:44] [Worker-Main-2/INFO] (Minecraft) Loaded 1866 advancements
+[16:12:44] [ForkJoinPool.commonPool-worker-2/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:12:44] [Thread-2/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 67 new biomes in 1.230 ms
+[16:12:44] [IO-Worker-1/INFO] (Minecraft) System chat: [Polymer] Starting resource pack generation...
+[16:12:44] [Server thread/INFO] (ovvar) [ovvar] 0 patch combination(s) known
+[16:12:44] [Server thread/INFO] (ovvar) [ovvar] wardrobes: file /home/user/metamods/mods/ovvar/build/run/clientGameTest/./world/./ovvar/wardrobes
+[16:12:44] [Server thread/INFO] (ovvar) [ovvar] pre-built 0 stored design combination(s)
+[16:12:44] [Server thread/INFO] (Minecraft) Starting minecraft server version 26.3
+[16:12:44] [Server thread/INFO] (Minecraft) Loading properties
+[16:12:44] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[16:12:44] [Server thread/INFO] (Minecraft) Generating keypair
+[16:12:44] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25597
+[16:12:45] [IO-Worker-1/INFO] (ovvar) [ovvar] wardrobe font: 972 static glyph(s)
+[16:12:45] [IO-Worker-1/INFO] (ovvar) [ovvar] wardrobe art: 18 background(s), font ovvar:wardrobe
+[16:12:45] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[16:12:45] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[16:12:45] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[16:12:45] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[16:12:45] [Server thread/INFO] (Minecraft) Preparing level "world"
+[16:12:45] [Server thread/INFO] (Minecraft) Selecting global world spawn...
+[16:12:45] [Server thread/INFO] (Minecraft) Loading 0 persistent chunks...
+[16:12:45] [Server thread/INFO] (Minecraft) Preparing spawn area: 100%
+[16:12:45] [Server thread/INFO] (Minecraft) Time elapsed: 538 ms
+[16:12:45] [Server thread/INFO] (Minecraft) Done (0.847s)! For help, type "help"
+[16:12:45] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:12:46] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:12:46] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:arkitektur_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:bergs_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:cl_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:data_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:doktorand_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:elektro_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:energi_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:flyg_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:fysik_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:ingenjor_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:it_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:kemi_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:maskin_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:media_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:mit_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:open_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:samhall_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:tbas_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:indek_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (ovvar) Punkphöz: leaving out kultur:pirkko_banner_pattern from the pool: it isn't registered
+[16:12:46] [Server thread/WARN] (TranslationConventionLogWarnings) 
+	Dev warning - Untranslated Item Tags detected. Please translate your item tags so other mods such as recipe viewers can properly display your tag's name.
+	The format desired is tag.item.<namespace>.<path> for the translation key with slashes in path turned into periods.
+	To disable this message, set this system property in your runs: `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=SILENCED`.
+	To see individual untranslated item tags found, set the system property to `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=VERBOSE`.
+	Default is `SHORT`.
+
+[16:12:46] [Server thread/INFO] (ovvar) [ovvar] combination pack 4b8ca8858db651f61a9283a8f9112992bd30b0ae: 0 combination(s), 248 bytes
+[16:12:46] [Server thread/INFO] (ovvar) [ovvar] pack generation 1: 0 combination(s); 0 player(s) to update
+[16:12:46] [Render thread/INFO] (Minecraft) Connecting to localhost, 25597
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:46] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Server thread/INFO] (Minecraft) System chat: [Polymer] Resource pack created successfully! You can find it in game folder as polymer/resource_pack.zip
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Netty Epoll IO #2/INFO] (ovvar) [ovvar] Tester draws patch combinations on their client (ovvar-client): no combination pack for them
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:47] [Download-1/WARN] (Minecraft) Existing file /home/user/metamods/mods/ovvar/build/run/clientGameTest/downloads/77a7e2af-1537-48f9-8699-b33bb4c0699e/5e72b31bbb7611178024efac1ef096dc391ea3b3 not found or had mismatched hash
+[16:12:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:48] [Render thread/INFO] (ovvar) [ovvar] wardrobe font: 972 static glyph(s)
+[16:12:48] [Render thread/INFO] (ovvar) [ovvar] wardrobe art: 18 background(s), font ovvar:wardrobe
+[16:12:49] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources, server/00000000/77a7e2af-1537-48f9-8699-b33bb4c0699e
+[16:12:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Worker-Main-3/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:12:50] [Worker-Main-1/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Worker-Main-3/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:12:51] [Worker-Main-1/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:12:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:51] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.runAllTasks(BlockableEventLoop.java:127)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:12:51] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:12:52] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+[16:12:52] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:12:52] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:12:52] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:12:52] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:52] [Server thread/INFO] (Minecraft) Tester[/127.0.0.1:47020] logged in with entity id 1 at (0.5, -60.0, 0.5)
+[16:12:52] [Server thread/INFO] (Minecraft) System chat: Tester joined the game
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@73e23ae5
+[16:12:53] [Render thread/INFO] (Minecraft) Loaded 2 advancements
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/WARN] (Minecraft) Requested post effect does not exist: minecraft:end_of_frame
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Dynamic Transforms UBO, capacity limit of 2 reached during a single frame. New capacity will be 4.
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Dynamic Transforms UBO, capacity limit of 4 reached during a single frame. New capacity will be 8.
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Dynamic Transforms UBO, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@162090bf
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Command Buffer, capacity limit of 2 reached during a single frame. New capacity will be 8.
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Instanced, capacity limit of 2 reached during a single frame. New capacity will be 8.
+[16:12:53] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: null
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Command Buffer, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Instanced, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[16:12:53] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 4280ms or 85 ticks behind
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Command Buffer, capacity limit of 16 reached during a single frame. New capacity will be 32.
+[16:12:53] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Instanced, capacity limit of 16 reached during a single frame. New capacity will be 32.
+[16:12:54] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Command Buffer, capacity limit of 32 reached during a single frame. New capacity will be 64.
+[16:12:54] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Instanced, capacity limit of 32 reached during a single frame. New capacity will be 64.
+[16:12:55] [Server thread/INFO] (Minecraft) System chat: Game rule advance_time is already set to false
+[16:12:55] [Server thread/INFO] (Minecraft) System chat: Set minecraft:overworld to time marker minecraft:noon
+[16:12:55] [Server thread/INFO] (Minecraft) System chat: Teleported Tester to 0.500000, -60.000000, 0.500000
+[16:12:55] [Render thread/INFO] (Minecraft) [STDOUT]: [nametag] resource packs selected: [vanilla, file/chapter-text-colors.zip]
+[16:12:55] [Render thread/INFO] (Minecraft) [STDOUT]: [nametag] repo selected: [vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources, server/00000000/77a7e2af-1537-48f9-8699-b33bb4c0699e]
+[16:12:57] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Command Buffer, capacity limit of 64 reached during a single frame. New capacity will be 128.
+[16:12:57] [Render thread/INFO] (Minecraft) Resizing Chunk Sections Instanced, capacity limit of 64 reached during a single frame. New capacity will be 128.
+[16:12:57] [Server thread/INFO] (Minecraft) System chat: No entity was found
+[16:12:57] [Server thread/INFO] (Minecraft) System chat: Summoned new Tester2
+[16:12:59] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] nametag dark_purple: 144 diff px (topY=184), brightest 7 mean rgb = (0,85,0)
+[16:12:59] [Server thread/INFO] (Minecraft) System chat: Killed Tester2
+[16:12:59] [Server thread/INFO] (Minecraft) System chat: Summoned new Tester2
+[16:13:01] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] nametag dark_blue: 24 diff px (topY=112), brightest 1 mean rgb = (135,168,226)
+[16:13:01] [Server thread/INFO] (Minecraft) System chat: Killed Tester2
+[16:13:01] [Server thread/INFO] (Minecraft) System chat: Summoned new Tester2
+[16:13:03] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] nametag light_purple: 8610 diff px (topY=112), brightest 430 mean rgb = (156,190,253)
+[16:13:03] [Server thread/INFO] (Minecraft) System chat: Killed Tester2
+[16:13:03] [Server thread/INFO] (Minecraft) System chat: Summoned new Tester2
+[16:13:05] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] nametag blue: 10606 diff px (topY=100), brightest 530 mean rgb = (155,190,253)
+[16:13:05] [Server thread/INFO] (Minecraft) System chat: Killed Tester2
+[16:13:06] [Render thread/INFO] (Minecraft) [System] [CHAT] Tester2
+[16:13:06] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] chat dark_purple: NO differing pixels found
+[16:13:06] [Render thread/INFO] (Minecraft) [System] [CHAT] Tester2
+[16:13:07] [Test thread/INFO] (Minecraft) [STDOUT]: [nametag] chat dark_blue(both lines): NO differing pixels found
+[16:13:07] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources
+[16:13:07] [Server thread/INFO] (Minecraft) Tester lost connection: Disconnected
+[16:13:07] [Server thread/INFO] (Minecraft) System chat: Tester left the game
+[16:13:07] [Worker-Main-2/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:13:07] [Worker-Main-3/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:13:07] [Server thread/INFO] (Minecraft) Stopping server
+[16:13:07] [Server thread/INFO] (Minecraft) Saving players
+[16:13:07] [Server thread/INFO] (Minecraft) Saving worlds
+[16:13:08] [Worker-Main-3/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:08] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:09] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:13:09] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:13:09] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:13:10] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.managedBlock(BlockableEventLoop.java:156)
+	at knot//net.minecraft.client.gui.screens.worldselection.CreateWorldScreen.openCreateWorldScreen(CreateWorldScreen.java:377)
+	at knot//net.minecraft.client.gui.screens.worldselection.CreateWorldScreen.openFresh(CreateWorldScreen.java:315)
+	at knot//net.minecraft.client.gui.screens.worldselection.CreateWorldScreen.openFresh(CreateWorldScreen.java:297)
+	at knot//net.fabricmc.fabric.impl.client.gametest.world.TestWorldBuilderImpl.lambda$navigateCreateWorldScreen$0(TestWorldBuilderImpl.java:115)
+	at knot//net.fabricmc.fabric.impl.client.gametest.context.ClientGameTestContextImpl.lambda$computeOnClient$0(ClientGameTestContextImpl.java:550)
+	at knot//net.fabricmc.fabric.impl.client.gametest.threading.ThreadingImpl.runTaskOnThisThread(ThreadingImpl.java:229)
+	at knot//net.fabricmc.fabric.impl.client.gametest.threading.ThreadingImpl.lambda$runTaskOnOtherThread$0(ThreadingImpl.java:210)
+	at knot//net.minecraft.client.Minecraft.postRunTasks(Minecraft.java:4808)
+	at knot//net.minecraft.client.Minecraft.handler$zni000$fabric-client-gametest-api-v1$postRunTasksHook(Minecraft.java:4760)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:13:10] [Worker-Main-1/INFO] (Minecraft) Loaded 1866 advancements
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:13:10] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:13:10] [ForkJoinPool.commonPool-worker-1/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:13:10] [Thread-4/INFO] (Minecraft) Environment: Environment[discoveryUrl=https://discovery.minecraftservices.com/minecraft/client, name=PROD]
+[16:13:10] [Worker-Main-1/INFO] (Minecraft) Loaded 1866 advancements
+[16:13:10] [ForkJoinPool.commonPool-worker-1/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:13:10] [Thread-4/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 67 new biomes in 247.2 μs
+[16:13:10] [Server thread/INFO] (ovvar) [ovvar] 0 patch combination(s) known
+[16:13:10] [Server thread/INFO] (ovvar) [ovvar] wardrobes: file /home/user/metamods/mods/ovvar/build/run/clientGameTest/./world/./ovvar/wardrobes
+[16:13:10] [Server thread/INFO] (ovvar) [ovvar] pre-built 0 stored design combination(s)
+[16:13:10] [IO-Worker-4/INFO] (Minecraft) System chat: [Polymer] Starting resource pack generation...
+[16:13:10] [Server thread/INFO] (Minecraft) Starting minecraft server version 26.3
+[16:13:10] [Server thread/INFO] (Minecraft) Loading properties
+[16:13:10] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[16:13:10] [Server thread/INFO] (Minecraft) Generating keypair
+[16:13:10] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25600
+[16:13:10] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[16:13:10] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[16:13:10] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[16:13:10] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[16:13:10] [Server thread/INFO] (Minecraft) Preparing level "world"
+[16:13:10] [Server thread/INFO] (Minecraft) Selecting global world spawn...
+[16:13:11] [IO-Worker-4/INFO] (ovvar) [ovvar] wardrobe font: 972 static glyph(s)
+[16:13:11] [IO-Worker-4/INFO] (ovvar) [ovvar] wardrobe art: 18 background(s), font ovvar:wardrobe
+[16:13:11] [Server thread/INFO] (Minecraft) Loading 0 persistent chunks...
+[16:13:11] [Server thread/INFO] (Minecraft) Preparing spawn area: 100%
+[16:13:11] [Server thread/INFO] (Minecraft) Time elapsed: 145 ms
+[16:13:11] [Server thread/INFO] (Minecraft) Done (0.159s)! For help, type "help"
+[16:13:11] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:13:11] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:13:11] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:13:11] [Server thread/WARN] (TranslationConventionLogWarnings) 
+	Dev warning - Untranslated Item Tags detected. Please translate your item tags so other mods such as recipe viewers can properly display your tag's name.
+	The format desired is tag.item.<namespace>.<path> for the translation key with slashes in path turned into periods.
+	To disable this message, set this system property in your runs: `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=SILENCED`.
+	To see individual untranslated item tags found, set the system property to `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=VERBOSE`.
+	Default is `SHORT`.
+
+[16:13:11] [Server thread/INFO] (ovvar) [ovvar] combination pack 4b8ca8858db651f61a9283a8f9112992bd30b0ae: 0 combination(s), 248 bytes
+[16:13:11] [Server thread/INFO] (ovvar) [ovvar] pack generation 1: 0 combination(s); 0 player(s) to update
+[16:13:11] [Render thread/INFO] (Minecraft) Connecting to localhost, 25600
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:11] [Netty Epoll IO #6/INFO] (ovvar) [ovvar] Tester draws patch combinations on their client (ovvar-client): no combination pack for them
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3291dc31
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3291dc31
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@48263b7d
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@48263b7d
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@72619940
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@72619940
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@2c09b490
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@2c09b490
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@6f7cf165
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@6f7cf165
+[16:13:11] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@72b95ab9
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@72b95ab9
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@773584a8
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@773584a8
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4cba3fb3
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4cba3fb3
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@531c147b
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@531c147b
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@782a52ce
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@782a52ce
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4561bd60
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4561bd60
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@cdc84b6
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@cdc84b6
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3c787a44
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3c787a44
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3a107aa
+[16:13:12] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@3a107aa
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@2140aad6
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@2140aad6
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@740b52b3
+[16:13:13] [Server thread/INFO] (Minecraft) System chat: [Polymer] Resource pack created successfully! You can find it in game folder as polymer/resource_pack.zip
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Download-1/INFO] (Minecraft) Returning cached file since actual hash matches requested
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources, server/00000001/77a7e2af-1537-48f9-8699-b33bb4c0699e
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Worker-Main-3/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:13:13] [Worker-Main-2/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Worker-Main-3/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:13] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:14] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:14] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.runAllTasks(BlockableEventLoop.java:127)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:13:15] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:15] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@57b5c8fd
+[16:13:16] [Server thread/INFO] (Minecraft) Tester[/127.0.0.1:44900] logged in with entity id 7 at (0.5, -60.0, 0.5)
+[16:13:16] [Server thread/INFO] (Minecraft) System chat: Tester joined the game
+[16:13:16] [Render thread/INFO] (Minecraft) Loaded 2 advancements
+[16:13:16] [Render thread/WARN] (Minecraft) Requested post effect does not exist: minecraft:end_of_frame
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@3848cc1d
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@3848cc1d
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@3848cc1d
+[16:13:16] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: null
+[16:13:18] [Server thread/INFO] (Minecraft) System chat: Game rule advance_time is already set to false
+[16:13:18] [Server thread/INFO] (Minecraft) System chat: Set minecraft:overworld to time marker minecraft:noon
+[16:13:18] [Server thread/INFO] (Minecraft) System chat: Set Tester's game mode to Creative Mode
+[16:13:18] [Server thread/INFO] (Minecraft) System chat: Teleported Tester to 0.500000, -60.000000, 0.500000
+[16:13:18] [Render thread/INFO] (Minecraft) [System] [CHAT] Your game mode has been updated to Creative Mode
+[16:13:32] [Server thread/WARN] (ovvar) [ovvar] wardrobes: the frack's test design for f3d28cb0-7225-3cb1-baeb-2dadd2be89ae queued until the store is back
+[16:13:40] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 2100ms or 42 ticks behind
+[16:13:43] [Server thread/INFO] (ovvar) [ovvar] wardrobes: f3d28cb0-7225-3cb1-baeb-2dadd2be89ae caught up with the store
+[16:13:44] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources
+[16:13:44] [Worker-Main-1/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:13:44] [Worker-Main-2/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:13:44] [Worker-Main-1/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:13:45] [Server thread/INFO] (Minecraft) Tester lost connection: Disconnected
+[16:13:45] [Server thread/INFO] (Minecraft) System chat: Tester left the game
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:45] [Worker-Main-2/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:45] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.runAllTasks(BlockableEventLoop.java:127)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:13:45] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:13:46] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+[16:13:46] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:13:46] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:13:46] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:13:46] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:13:46] [Server thread/INFO] (Minecraft) Stopping server
+[16:13:46] [Server thread/INFO] (Minecraft) Saving players
+[16:13:46] [Server thread/INFO] (Minecraft) Saving worlds
+[16:13:46] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:13:46] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:13:46] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:13:46] [Worker-Main-2/INFO] (Minecraft) Loaded 1866 advancements
+[16:13:46] [ForkJoinPool.commonPool-worker-1/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:13:46] [Thread-6/INFO] (Minecraft) Environment: Environment[discoveryUrl=https://discovery.minecraftservices.com/minecraft/client, name=PROD]
+[16:13:47] [Worker-Main-2/INFO] (Minecraft) Loaded 1866 advancements
+[16:13:47] [ForkJoinPool.commonPool-worker-1/INFO] (ServerTranslations) Loaded 1 translation keys
+[16:13:47] [Thread-6/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 67 new biomes in 243.9 μs
+[16:13:47] [Server thread/INFO] (ovvar) [ovvar] 0 patch combination(s) known
+[16:13:47] [Server thread/INFO] (ovvar) [ovvar] wardrobes: file /home/user/metamods/mods/ovvar/build/run/clientGameTest/./world/./ovvar/wardrobes
+[16:13:47] [IO-Worker-2/INFO] (Minecraft) System chat: [Polymer] Starting resource pack generation...
+[16:13:47] [Server thread/INFO] (ovvar) [ovvar] pre-built 0 stored design combination(s)
+[16:13:47] [Server thread/INFO] (Minecraft) Starting minecraft server version 26.3
+[16:13:47] [Server thread/INFO] (Minecraft) Loading properties
+[16:13:47] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[16:13:47] [Server thread/INFO] (Minecraft) Generating keypair
+[16:13:47] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25599
+[16:13:47] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[16:13:47] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[16:13:47] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[16:13:47] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[16:13:47] [Server thread/INFO] (Minecraft) Preparing level "world"
+[16:13:47] [Server thread/INFO] (Minecraft) Selecting global world spawn...
+[16:13:47] [IO-Worker-2/INFO] (ovvar) [ovvar] wardrobe font: 972 static glyph(s)
+[16:13:47] [IO-Worker-2/INFO] (ovvar) [ovvar] wardrobe art: 18 background(s), font ovvar:wardrobe
+[16:13:47] [Server thread/INFO] (Minecraft) Loading 0 persistent chunks...
+[16:13:47] [Server thread/INFO] (Minecraft) Preparing spawn area: 100%
+[16:13:47] [Server thread/INFO] (Minecraft) Time elapsed: 163 ms
+[16:13:47] [Server thread/INFO] (Minecraft) Done (0.193s)! For help, type "help"
+[16:13:47] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:13:47] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:13:47] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:13:47] [Server thread/WARN] (TranslationConventionLogWarnings) 
+	Dev warning - Untranslated Item Tags detected. Please translate your item tags so other mods such as recipe viewers can properly display your tag's name.
+	The format desired is tag.item.<namespace>.<path> for the translation key with slashes in path turned into periods.
+	To disable this message, set this system property in your runs: `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=SILENCED`.
+	To see individual untranslated item tags found, set the system property to `-Dfabric-tag-conventions-v2.missingTagTranslationWarning=VERBOSE`.
+	Default is `SHORT`.
+
+[16:13:47] [Server thread/INFO] (ovvar) [ovvar] combination pack 4b8ca8858db651f61a9283a8f9112992bd30b0ae: 0 combination(s), 248 bytes
+[16:13:47] [Server thread/INFO] (ovvar) [ovvar] pack generation 1: 0 combination(s); 0 player(s) to update
+[16:13:47] [Render thread/INFO] (Minecraft) Connecting to localhost, 25599
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:47] [Netty Epoll IO #1/INFO] (ovvar) [ovvar] Tester draws patch combinations on their client (ovvar-client): no combination pack for them
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@2a3db418
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@174122b2
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@174122b2
+[16:13:47] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@74046684
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@74046684
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@29d0a515
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@29d0a515
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4861ec29
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4861ec29
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@1e25f1bf
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@1e25f1bf
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@5274b9fd
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@5274b9fd
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@108e7621
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@108e7621
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@69601a25
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@69601a25
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@5976c3f2
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@5976c3f2
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4d407272
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@4d407272
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@14ae987
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@14ae987
+[16:13:48] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@468a6ca2
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@468a6ca2
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@44d1e104
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@44d1e104
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@56d79672
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.dialog.SimpleDialogScreen@56d79672
+[16:13:49] [Server thread/INFO] (Minecraft) System chat: [Polymer] Resource pack created successfully! You can find it in game folder as polymer/resource_pack.zip
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Download-2/INFO] (Minecraft) Returning cached file since actual hash matches requested
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources, server/00000002/77a7e2af-1537-48f9-8699-b33bb4c0699e
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:49] [Worker-Main-3/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:13:49] [Worker-Main-2/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:13:49] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Worker-Main-3/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:13:50] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:50] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/ERROR] (Minecraft) Error starting SoundSystem. Turning off sounds & music
+java.lang.IllegalStateException: Failed to open OpenAL device
+	at knot//com.mojang.blaze3d.audio.Library.openDeviceOrFallback(Library.java:274)
+	at knot//com.mojang.blaze3d.audio.Library.init(Library.java:149)
+	at knot//net.minecraft.client.sounds.SoundEngine.loadLibrary(SoundEngine.java:121)
+	at knot//net.minecraft.client.sounds.SoundEngine.reload(SoundEngine.java:110)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:122)
+	at knot//net.minecraft.client.sounds.SoundManager.apply(SoundManager.java:41)
+	at knot//net.minecraft.server.packs.resources.SimplePreparableReloadListener.lambda$reload$1(SimplePreparableReloadListener.java:15)
+	at java.base/java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:739)
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(CompletableFuture.java:503)
+	at knot//net.minecraft.server.packs.resources.SimpleReloadInstance.lambda$prepareTasks$3(SimpleReloadInstance.java:59)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.doRunTask(BlockableEventLoop.java:173)
+	at knot//net.minecraft.util.thread.ReentrantBlockableEventLoop.doRunTask(ReentrantBlockableEventLoop.java:23)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.pollTask(BlockableEventLoop.java:147)
+	at knot//net.minecraft.util.thread.BlockableEventLoop.runAllTasks(BlockableEventLoop.java:127)
+	at knot//net.minecraft.client.Minecraft.runTick(Minecraft.java:1240)
+	at knot//net.minecraft.client.Minecraft.run$mixinextras$wrapped$274(Minecraft.java:967)
+	at knot//net.minecraft.client.Minecraft.mixinextras$bridge$run$mixinextras$wrapped$274$275(Minecraft.java)
+	at knot//net.minecraft.client.Minecraft.wrapMethod$zni000$fabric-client-gametest-api-v1$onRun(Minecraft.java:4728)
+	at knot//net.minecraft.client.Minecraft.run(Minecraft.java)
+	at knot//net.minecraft.client.main.Main.main(Main.java:292)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:517)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 4096x2048x0 minecraft:textures/atlas/items.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[16:13:51] [Render thread/INFO] (Minecraft) Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:51] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.ConnectScreen@734df3cc
+[16:13:52] [Server thread/INFO] (Minecraft) Tester[/127.0.0.1:33944] logged in with entity id 85 at (0.5, -60.0, 0.5)
+[16:13:52] [Server thread/INFO] (Minecraft) System chat: Tester joined the game
+[16:13:52] [Render thread/INFO] (Minecraft) Loaded 2 advancements
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@4d226fad
+[16:13:52] [Render thread/WARN] (Minecraft) Requested post effect does not exist: minecraft:end_of_frame
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@4d226fad
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@4d226fad
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: net.minecraft.client.gui.screens.LevelLoadingScreen@4d226fad
+[16:13:52] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: ClientLevel screen: null
+[16:13:54] [Server thread/INFO] (Minecraft) System chat: Game rule advance_time is already set to false
+[16:13:54] [Server thread/INFO] (Minecraft) System chat: Set minecraft:overworld to time marker minecraft:noon
+[16:13:54] [Server thread/INFO] (Minecraft) System chat: Teleported Tester to 0.500000, -60.000000, 0.500000
+[16:13:56] [Server thread/INFO] (Minecraft) System chat: Your client draws every patch combination itself (ovvar-client): there is no pack to reload
+[16:14:01] [Test thread/INFO] (Minecraft) [STDOUT]: [ovvar-clienttest] ovvar-client: no combination pack; server packs pushed: [77a7e2af-1537-48f9-8699-b33bb4c0699e]
+[16:14:01] [Server thread/INFO] (Minecraft) System chat: Teleported Tester to 0.500000, -60.000000, 0.500000
+[16:14:06] [Render thread/INFO] (Minecraft) [STDOUT]: [ovvar-clienttest] client legs: 0 minecraft:air equippable=null dye=null
+[16:14:06] [Render thread/INFO] (Minecraft) [STDOUT]: [ovvar-clienttest] client chest: 0 minecraft:air equippable=null dye=null
+[16:14:06] [Server thread/INFO] (Minecraft) [STDOUT]: [ovvar-clienttest] server legs: 0 minecraft:air {}
+[16:14:06] [Render thread/INFO] (Minecraft) Resizing Dynamic Transforms UBO, capacity limit of 16 reached during a single frame. New capacity will be 32.
+[16:14:06] [Render thread/INFO] (Minecraft) Reloading ResourceManager: vanilla, vanilla, bil, booklet, danse, dialogutils, fabric-advancement-api-v1, fabric-api, fabric-api-base, fabric-api-lookup-api-v1, fabric-biome-api-v1, fabric-block-api-v1, fabric-block-getter-api-v2, fabric-client-gametest-api-v1, fabric-command-api-v2, fabric-content-registries-v0, fabric-convention-tags-v2, fabric-crash-report-info-v1, fabric-creative-tab-api-v1, fabric-data-attachment-api-v1, fabric-data-generation-api-v1, fabric-debug-api-v1, fabric-dimensions-v1, fabric-entity-events-v1, fabric-events-interaction-v0, fabric-game-rule-api-v1, fabric-gametest-api-v1, fabric-item-api-v1, fabric-key-mapping-api-v1, fabric-lifecycle-events-v1, fabric-loot-api-v3, fabric-menu-api-v1, fabric-message-api-v1, fabric-model-loading-api-v1, fabric-networking-api-v1, fabric-object-builder-api-v1, fabric-particles-v1, fabric-permission-api-v1, fabric-recipe-api-v1, fabric-registry-sync-v0, fabric-renderer-api-v1, fabric-renderer-indigo, fabric-rendering-fluids-v1, fabric-rendering-v1, fabric-resource-conditions-api-v1, fabric-resource-loader-v0, fabric-resource-loader-v1, fabric-screen-api-v1, fabric-serialization-api-v1, fabric-sound-api-v1, fabric-tag-api-v1, fabric-transfer-api-v1, fabric-transitive-access-wideners-v1, fabricloader, metacraft-bundles, metacraft-config, metacraft-core, metacraft-lib, metacraft-resource-packs, org_apache_commons_commons-math3, ovvar, placeholder-api, polymer-blocks, polymer-core, polymer-resource-pack, file/chapter-text-colors.zip, $polymer-resources
+[16:14:07] [Worker-Main-2/INFO] (Minecraft) Found unifont_all_no_pua-17.0.01.hex, loading
+[16:14:07] [Worker-Main-3/INFO] (Minecraft) Found unifont_pua-17.0.01.hex, loading
+[16:14:07] [Worker-Main-2/INFO] (Minecraft) Found unifont_jp_patch-17.0.01.hex, loading
+[16:14:07] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 2041ms or 40 ticks behind
+[16:14:07] [Server thread/INFO] (Minecraft) Tester lost connection: Disconnected
+[16:14:07] [Server thread/INFO] (Minecraft) System chat: Tester left the game
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_df2da85c-f396-f94b-853d-472c71aa5f3d:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_62d258aa-e77a-9589-e4f5-87a035365225:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_b522cf51-cf32-1c4c-e8e9-f07236ba65c7:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes_vanilla_rig/emotes_vanilla_rig_59f5fe3c-c27b-497f-861d-f07e5370caad:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_85b25f12-0ad8-c2d1-d99d-ee79dd1282ad:
+    #1
+    particle
+[16:14:07] [Worker-Main-3/WARN] (Minecraft) Missing texture references in model bil:item/emotes/emotes_cfc7929c-7303-99d3-8211-bd428729ee3d:
+    #1
+    particle
+[16:14:07] [Server thread/INFO] (Minecraft) Stopping server
+[16:14:07] [Server thread/INFO] (Minecraft) Saving players
+[16:14:07] [Server thread/INFO] (Minecraft) Saving worlds
+[16:14:08] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:overworld
+[16:14:08] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_nether
+[16:14:08] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[New World]'/minecraft:the_end
+[16:14:08] [Test thread/ERROR] (fabric-client-gametest-api-v1) Client gametests failed with an exception
+java.lang.AssertionError: 901 pixel(s) over the mannequin flickered by more than a step between two still frames (budget 675)
+	at knot//se.metacraft.ovvar.clienttest.OvvarClientTests.runTest(OvvarClientTests.java:165)
+	at knot//net.fabricmc.fabric.impl.client.gametest.FabricClientGameTestRunner.lambda$start$0(FabricClientGameTestRunner.java:54)
+	at knot//net.fabricmc.fabric.impl.client.gametest.threading.ThreadingImpl.lambda$runTestThread$0(ThreadingImpl.java:139)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+[16:14:08] [Render thread/ERROR] (FabricLoader) Minecraft has crashed!
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: 901 pixel(s) over the mannequin flickered by more than a step between two still frames (budget 675)
+	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:63)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:519)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+Caused by: java.lang.AssertionError: 901 pixel(s) over the mannequin flickered by more than a step between two still frames (budget 675)
+	at knot//se.metacraft.ovvar.clienttest.OvvarClientTests.runTest(OvvarClientTests.java:165)
+	at knot//net.fabricmc.fabric.impl.client.gametest.FabricClientGameTestRunner.lambda$start$0(FabricClientGameTestRunner.java:54)
+	at knot//net.fabricmc.fabric.impl.client.gametest.threading.ThreadingImpl.lambda$runTestThread$0(ThreadingImpl.java:139)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
