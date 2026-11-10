@@ -100,6 +100,17 @@ public final class PatcherRunTest {
 		check("text colours: a colour read in an include counts", true,
 				new String(included.files().get("shaders/gbuffers_entities.vsh"), StandardCharsets.UTF_8).contains("#define gl_Color metacraft_text_gl_Color()"));
 
+		// A compatibility pack that only mentions vaColor in a comment: gl_Color is its input, and nothing else is wrapped.
+		String commented = new String(PackPatch.patch(readPack(fixtures.resolve("text-colors-comment/in"))).files()
+				.get("shaders/gbuffers_entities.vsh"), StandardCharsets.UTF_8);
+		check("text colours: gl_Color wrapped in a compatibility pack", true, commented.contains("#define gl_Color metacraft_text_gl_Color()"));
+		check("text colours: a vaColor in a comment is no input", false, commented.contains("metacraft_text_vaColor"));
+
+		// A text program with no .vsh: Iris gives it a vertex stage of its own, so the fallback is never used.
+		PackPatch.Result unified = PackPatch.patch(readPack(fixtures.resolve("text-colors-unified/in")));
+		check("text colours: a .fsh-only text program is skipped, not passed over", true,
+				unified.log().stream().anyMatch(l -> l.contains("world-2/gbuffers_entities_translucent") && l.contains("no .vsh")));
+
 		PackPatch.Result only = PackPatch.patch(readPack(fixtures.resolve("text-only/in")));
 		check("text colours alone do not make a patched pack", PackPatch.Status.NOTHING_PATCHED, only.status());
 	}

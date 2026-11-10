@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,14 +73,15 @@ public final class PackPatch {
 	private static final String TEXT_COLORS_GLSL = utf8(TEXT_COLORS_BYTES);
 	private static final String TEXT_TAG = "metacraft_text_tint";
 	/**
-	 * The program Iris (1.11, Minecraft 26.3) draws world text with (nametags; ShaderKey TEXT and TEXT_INTENSITY,
-	 * for the TEXT, TEXT_SEE_THROUGH, TEXT_POLYGON_OFFSET and TEXT_GRAYSCALE pipelines) is entities_translucent,
-	 * and when a program folder lacks it, the first of its fallbacks there. There is no gbuffers_text.
+	 * The program Iris (1.11, Minecraft 26.3) draws text in the entity phase with (nametags; ShaderKey TEXT and
+	 * TEXT_INTENSITY, for the TEXT, TEXT_SEE_THROUGH, TEXT_POLYGON_OFFSET and TEXT_GRAYSCALE pipelines) is
+	 * entities_translucent, and when a program folder lacks it, the first of its fallbacks there. There is no
+	 * gbuffers_text. Not covered: sign text (TEXT_BE, block_translucent and its fallbacks) and hand text (hand).
 	 */
 	private static final List<String> TEXT_PROGRAMS = Arrays.asList(
 			"gbuffers_entities_translucent", "gbuffers_entities", "gbuffers_textured_lit", "gbuffers_textured", "gbuffers_basic");
-	/** The vertex colour inputs a pack reads: compatibility profile, and Iris's core profile. */
-	private static final List<String> COLOR_INPUTS = Arrays.asList("gl_Color", "vaColor");
+	/** GLSL comments, blanked out before looking for what a shader reads. */
+	private static final Pattern COMMENT = Pattern.compile("(?s)//[^\\n]*|/\\*.*?\\*/");
 	/** Folders Iris loads programs from besides shaders/ itself: world0, world-1, ... and dimension.properties' own. */
 	private static final Pattern WORLD_FOLDER = Pattern.compile("shaders/world-?\\d+/");
 	private static final Pattern DIMENSION_FOLDER = Pattern.compile("(?m)^\\s*dimension\\.([^\\s=:/]+)\\s*[=:]");
@@ -561,8 +563,9 @@ public final class PackPatch {
 	 * Chapter text colours on world nametags: vanilla draws text with core/text.fsh, which the chapter-text-colors
 	 * resource pack overrides; under a shaderpack Iris draws it with the pack's own program (see TEXT_PROGRAMS), so
 	 * in each program folder that program's vertex stage gets its colour input wrapped: from the top of main() on,
-	 * gl_Color (or vaColor) reads through metacraft_text_tint, which swaps the two exact colours and passes the rest.
-	 * Whatever else the pack draws with that program sees the same swap. Returns the log lines (not logged yet).
+	 * gl_Color (or vaColor, in a core-profile pack) reads through metacraft_text_tint, which swaps the two exact
+	 * colours and passes the rest. Whatever else the pack draws with that program sees the same swap. Only the first
+	 * main() of the vertex stage is wrapped, as in the ovvar pass. Returns the log lines (not logged yet).
 	 */
 	private List<String> patchTextColors(Map<String, byte[]> files) {
 		List<String> out = new ArrayList<>();
@@ -576,27 +579,37 @@ public final class PackPatch {
 			Matcher m = DIMENSION_FOLDER.matcher(text(files, "shaders/dimension.properties"));
 			while (m.find()) dirs.add("shaders/" + m.group(1) + "/");
 		}
-		Set<String> done = new HashSet<>();
+		// The code file of each folder's text program, with every folder using it (several share one in most packs).
+		Map<String, List<String>> programs = new LinkedHashMap<>();
+		Map<String, Boolean> unifiedOf = new HashMap<>();
 		for (String dir : dirs) {
 			String name = null;
 			for (String candidate : TEXT_PROGRAMS) {
-				if (files.containsKey(dir + candidate + ".vsh") && files.containsKey(dir + candidate + ".fsh")) {
+				if (files.containsKey(dir + candidate + ".fsh")) {
 					name = candidate;
 					break;
 				}
 			}
 			if (name == null) continue;
+			if (!files.containsKey(dir + name + ".vsh")) {
+				// Iris then uses a vertex stage of its own for it, and never falls back further.
+				out.add("  " + dir + name + ".fsh: chapter text colours: no .vsh, Iris draws it with its own vertex stage; skipped");
+				continue;
+			}
 			String prog = program(files, dir + name + ".vsh");
-			if (!done.add(prog)) continue;
+			programs.computeIfAbsent(prog, k -> new ArrayList<>()).add(dir + name);
+			unifiedOf.putIfAbsent(prog, prog.equals(program(files, dir + name + ".fsh")));
+		}
+		for (Map.Entry<String, List<String>> entry : programs.entrySet()) {
+			String prog = entry.getKey();
 			String text = text(files, prog);
-			boolean unified = prog.equals(program(files, dir + name + ".fsh"));
-			boolean markers = FRAGMENT_MARKER.matcher(text).find() && VERTEX_MARKER.matcher(text).find();
-			String where = "  " + prog + ": chapter text colours (" + dir + name + ")";
-			if (unified && !markers) {
+			boolean unified = unifiedOf.get(prog);
+			String where = "  " + prog + ": chapter text colours (" + String.join(", ", entry.getValue()) + ")";
+			if (unified && (!FRAGMENT_MARKER.matcher(text).find() || !VERTEX_MARKER.matcher(text).find())) {
 				out.add(where + ": one file for both stages, but no #ifdef FSH/VSH-style stage markers found; skipped");
 				continue;
 			}
-			int[] vr = markers ? region(text, VERTEX_MARKER, FRAGMENT_MARKER) : new int[]{0, text.length()};
+			int[] vr = unified ? region(text, VERTEX_MARKER, FRAGMENT_MARKER) : new int[]{0, text.length()};
 			String vert = text.substring(vr[0], vr[1]);
 			if (vert.contains(TEXT_TAG)) continue;
 			Matcher main = MAIN.matcher(vert);
@@ -604,38 +617,35 @@ public final class PackPatch {
 				out.add(where + ": no void main(); skipped");
 				continue;
 			}
+			// Chosen as the ovvar and rift passes choose theirs, but ignoring comments: Iris gives a core-profile
+			// program vaColor, a compatibility one gl_Color, never both.
+			String code = COMMENT.matcher(vert).replaceAll(" ");
+			String input = code.contains("vaColor") || code.contains("vaPosition") ? "vaColor" : "gl_Color";
 			// Only reads from main() on see the #define: in main, below it, or in a file included there (MakeUp).
-			List<String> inputs = new ArrayList<>();
-			for (String input : COLOR_INPUTS) {
-				if (reads(files, prog, vert.substring(main.start()), Pattern.compile("\\b" + input + "\\b"), new HashSet<>(), 0)) inputs.add(input);
-			}
-			if (inputs.isEmpty()) {
-				out.add(where + ": main() never reads gl_Color or vaColor; skipped");
+			Matcher codeMain = MAIN.matcher(code);
+			if (!codeMain.find() || !reads(files, prog, code.substring(codeMain.start()), Pattern.compile("\\b" + input + "\\b"), new HashSet<>(), 0)) {
+				out.add(where + ": main() never reads " + input + "; skipped");
 				continue;
 			}
-			StringBuilder helper = new StringBuilder("\n// --- Metacraft chapter text colours (metacraft.se): nametags in the chapters' colours, as the\n"
-					+ "// chapter-text-colors resource pack draws them without a shaderpack\n").append(TEXT_COLORS_GLSL);
-			StringBuilder defines = new StringBuilder();
-			StringBuilder undefines = new StringBuilder();
-			for (String input : inputs) {
-				helper.append("vec4 metacraft_text_").append(input).append("() { return ").append(TEXT_TAG).append("(").append(input).append("); }\n");
-				defines.append("\n#define ").append(input).append(" metacraft_text_").append(input).append("()");
-				undefines.append("#undef ").append(input).append("\n");
-			}
-			helper.append("// --- end chapter text colours\n\n");
-			String newVert = vert.substring(0, main.start()) + helper + vert.substring(main.start(), main.end()) + defines + vert.substring(main.end())
-					+ (markers ? "\n" + undefines : "");
+			String helper = "\n// --- Metacraft chapter text colours (metacraft.se): nametags in the chapters' colours, as the\n"
+					+ "// chapter-text-colors resource pack draws them without a shaderpack\n" + TEXT_COLORS_GLSL
+					+ "vec4 metacraft_text_" + input + "() { return " + TEXT_TAG + "(" + input + "); }\n"
+					+ "// --- end chapter text colours\n\n";
+			String newVert = vert.substring(0, main.start()) + helper + vert.substring(main.start(), main.end())
+					+ "\n#define " + input + " metacraft_text_" + input + "()" + vert.substring(main.end())
+					+ (unified ? "\n#undef " + input + "\n" : "");
 			files.put(prog, (text.substring(0, vr[0]) + newVert + text.substring(vr[1])).getBytes(StandardCharsets.UTF_8));
-			out.add(where + ": " + String.join(" and ", inputs) + " wrapped");
+			out.add(where + ": " + input + " wrapped");
 		}
 		return out;
 	}
 
-	/** Whether the text, or a file it includes (to a depth of 4), matches. */
+	/** Whether the text, or a file it includes (to a depth of 4), matches outside comments. */
 	private static boolean reads(Map<String, byte[]> files, String path, String text, Pattern input, Set<String> seen, int depth) {
-		if (input.matcher(text).find()) return true;
+		String code = COMMENT.matcher(text).replaceAll(" ");
+		if (input.matcher(code).find()) return true;
 		if (depth > 4 || !seen.add(path)) return false;
-		Matcher inc = INCLUDE.matcher(text);
+		Matcher inc = INCLUDE.matcher(code);
 		while (inc.find()) {
 			String resolved = resolveInclude(path, inc.group(1));
 			if (files.containsKey(resolved) && reads(files, resolved, text(files, resolved), input, seen, depth + 1)) return true;

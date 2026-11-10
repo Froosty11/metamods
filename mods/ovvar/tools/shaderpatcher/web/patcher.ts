@@ -14,7 +14,7 @@ const RIFT_TAG = 'metacraft_rift_sample';
 const TEXT_TAG = 'metacraft_text_tint';
 // The program Iris draws world text (nametags) with, then its fallbacks: see TEXT_PROGRAMS in PackPatch.java.
 const TEXT_PROGRAMS = ['gbuffers_entities_translucent', 'gbuffers_entities', 'gbuffers_textured_lit', 'gbuffers_textured', 'gbuffers_basic'];
-const COLOR_INPUTS = ['gl_Color', 'vaColor'];
+const COMMENT = /\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
 
 const RIFT_UNIFORMS: string[][] = [
 	['metacraftRiftTime', 'uniform.float.metacraftRiftTime = frameTimeCounter'],
@@ -440,22 +440,29 @@ class PackPatch {
 			for (const m of findAll(DIMENSION_FOLDER, text(files, 'shaders/dimension.properties'))) dirSet.add('shaders/' + m.g[1] + '/');
 		}
 		const dirs = [...dirSet].sort();
-		const done = new Set<string>();
+		const programs = new Map<string, string[]>();
+		const unifiedOf = new Map<string, boolean>();
 		for (const dir of dirs) {
-			const name = TEXT_PROGRAMS.find((c) => files.has(dir + c + '.vsh') && files.has(dir + c + '.fsh'));
+			const name = TEXT_PROGRAMS.find((c) => files.has(dir + c + '.fsh'));
 			if (name === undefined) continue;
+			if (!files.has(dir + name + '.vsh')) {
+				out.push('  ' + dir + name + '.fsh: chapter text colours: no .vsh, Iris draws it with its own vertex stage; skipped');
+				continue;
+			}
 			const prog = this.program(files, dir + name + '.vsh');
-			if (done.has(prog)) continue;
-			done.add(prog);
+			if (!programs.has(prog)) programs.set(prog, []);
+			programs.get(prog)!.push(dir + name);
+			if (!unifiedOf.has(prog)) unifiedOf.set(prog, prog === this.program(files, dir + name + '.fsh'));
+		}
+		for (const [prog, labels] of programs) {
 			const t = text(files, prog);
-			const unified = prog === this.program(files, dir + name + '.fsh');
-			const markers = find(FRAGMENT_MARKER, t) !== null && find(VERTEX_MARKER, t) !== null;
-			const where = '  ' + prog + ': chapter text colours (' + dir + name + ')';
-			if (unified && !markers) {
+			const unified = unifiedOf.get(prog)!;
+			const where = '  ' + prog + ': chapter text colours (' + labels.join(', ') + ')';
+			if (unified && (find(FRAGMENT_MARKER, t) === null || find(VERTEX_MARKER, t) === null)) {
 				out.push(where + ': one file for both stages, but no #ifdef FSH/VSH-style stage markers found; skipped');
 				continue;
 			}
-			const vr = markers ? region(t, VERTEX_MARKER, FRAGMENT_MARKER) : [0, t.length];
+			const vr = unified ? region(t, VERTEX_MARKER, FRAGMENT_MARKER) : [0, t.length];
 			const vert = t.substring(vr[0], vr[1]);
 			if (vert.includes(TEXT_TAG)) continue;
 			const main = find(MAIN, vert);
@@ -463,27 +470,22 @@ class PackPatch {
 				out.push(where + ': no void main(); skipped');
 				continue;
 			}
-			// Only reads from main() on see the #define: in main, below it, or in a file included there (MakeUp).
-			const fromMain = vert.substring(main.start);
-			const inputs = COLOR_INPUTS.filter((input) => reads(files, prog, fromMain, new RegExp('\\b' + input + '\\b'), new Set(), 0));
-			if (inputs.length === 0) {
-				out.push(where + ': main() never reads gl_Color or vaColor; skipped');
+			const code = vert.replace(COMMENT, ' ');
+			const input = code.includes('vaColor') || code.includes('vaPosition') ? 'vaColor' : 'gl_Color';
+			const codeMain = find(MAIN, code);
+			if (!codeMain || !reads(files, prog, code.substring(codeMain.start), new RegExp('\\b' + input + '\\b'), new Set(), 0)) {
+				out.push(where + ': main() never reads ' + input + '; skipped');
 				continue;
 			}
-			let helper = "\n// --- Metacraft chapter text colours (metacraft.se): nametags in the chapters' colours, as the\n"
-				+ '// chapter-text-colors resource pack draws them without a shaderpack\n' + this.TEXT_COLORS_GLSL;
-			let defines = '';
-			let undefines = '';
-			for (const input of inputs) {
-				helper += 'vec4 metacraft_text_' + input + '() { return ' + TEXT_TAG + '(' + input + '); }\n';
-				defines += '\n#define ' + input + ' metacraft_text_' + input + '()';
-				undefines += '#undef ' + input + '\n';
-			}
-			helper += '// --- end chapter text colours\n\n';
-			const newVert = vert.substring(0, main.start) + helper + vert.substring(main.start, main.end) + defines + vert.substring(main.end)
-				+ (markers ? '\n' + undefines : '');
+			const helper = "\n// --- Metacraft chapter text colours (metacraft.se): nametags in the chapters' colours, as the\n"
+				+ '// chapter-text-colors resource pack draws them without a shaderpack\n' + this.TEXT_COLORS_GLSL
+				+ 'vec4 metacraft_text_' + input + '() { return ' + TEXT_TAG + '(' + input + '); }\n'
+				+ '// --- end chapter text colours\n\n';
+			const newVert = vert.substring(0, main.start) + helper + vert.substring(main.start, main.end)
+				+ '\n#define ' + input + ' metacraft_text_' + input + '()' + vert.substring(main.end)
+				+ (unified ? '\n#undef ' + input + '\n' : '');
 			files.set(prog, bytes(t.substring(0, vr[0]) + newVert + t.substring(vr[1])));
-			out.push(where + ': ' + inputs.join(' and ') + ' wrapped');
+			out.push(where + ': ' + input + ' wrapped');
 		}
 		return out;
 	}
@@ -572,12 +574,13 @@ function albedoSampler(files: Files, path: string, t: string, seen: Set<string>,
 	return null;
 }
 
-/** Whether the text, or a file it includes (to a depth of 4), matches. */
+/** Whether the text, or a file it includes (to a depth of 4), matches outside comments. */
 function reads(files: Files, path: string, t: string, input: RegExp, seen: Set<string>, depth: number): boolean {
-	if (input.test(t)) return true;
+	const code = t.replace(COMMENT, ' ');
+	if (input.test(code)) return true;
 	if (depth > 4 || seen.has(path)) return false;
 	seen.add(path);
-	for (const inc of findAll(INCLUDE, t)) {
+	for (const inc of findAll(INCLUDE, code)) {
 		const resolved = resolveInclude(path, inc.g[1]);
 		if (files.has(resolved) && reads(files, resolved, text(files, resolved), input, seen, depth + 1)) return true;
 	}
