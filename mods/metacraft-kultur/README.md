@@ -185,7 +185,10 @@ folder `art/kultur/<chapter>/`.
   screenshots a banner, a shield and the painting, and the drinks, into
   `build/run/clientGameTest/screenshots/`. With `-PkulturNoBrewery` it screenshots Kultur's own
   bottles (`drinks_vanilla_bottles.png`) and the inventory at 55 alcohol, Inebriated IV with weakness
-  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test.
+  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test. It also checks
+  the loom on both the server's menu and the client's own list (banner and dye in, every kultur
+  pattern), with black dye and with More Dyes' Cerise: More Dyes is on the client-test runtime
+  (needs `:mods:moredyes:runDatagen` first); `-PkulturNoMoredyes` leaves it out.
 - `./gradlew :mods:metacraft-kultur:runServer` — a dev server with the pack auto-hosted; join with a
   vanilla client, `/give @s minecraft:loom`, `/give @s kultur:pirkko_banner_pattern`.
 
