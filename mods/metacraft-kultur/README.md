@@ -140,6 +140,10 @@ effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the
    `src/main/generated` is a build artefact, not something to commit — everyone regenerates it
    locally, and the build refuses to package until `runDatagen` has run.
 
+AI-drawn art: files starting with `_` (`_<id>.png`) are AI-drawn drafts and are used as the art for `<id>`.
+To replace one, save your drawing as `<id>.png` beside it and delete the `_` file (if both exist, the
+plain file wins and datagen says it ignores the `_` one).
+
 Placeholder art: every chapter's logo ships as a placeholder, a white frame with pixel (0,0) set to
 opaque magenta (`#FF00FF`). Datagen clears everything outside the banner face, so the marker never
 shows on a banner, only on the placeholder icon. Draw over the whole PNG, marker included. Run the unit
