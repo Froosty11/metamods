@@ -43,3 +43,8 @@ processResources {
 		}
 	}
 }
+
+// -PkulturRelease turns on the release-only test that fails while any placeholder art (pixel (0,0) magenta) remains.
+test {
+	systemProperty 'kultur.release', project.hasProperty('kulturRelease')
+}

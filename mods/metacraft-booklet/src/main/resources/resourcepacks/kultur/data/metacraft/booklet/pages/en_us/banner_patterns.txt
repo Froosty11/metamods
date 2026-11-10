@@ -13,7 +13,10 @@ order=20
 ### Header: Pirkko
 The <bold>Pirkko</bold> pattern needs its pattern item, the <citem 'kultur:pirkko_banner_pattern'>, in the loom, like the flower or creeper pattern. The item is not used up. It can't be found in survival yet.
 
+### Header: Chapter patterns
+Every chapter has a pattern of its own, with its own pattern item for the <citem 'minecraft:loom'>. You find them in structure chests, or buy them from Punkphöz, a wandering trader who turns up now and then.
+
 ### Header: The painting
 Hang a <citem 'minecraft:painting'> on a wall with room for one 3 wide and 4 high and you may get IT's own: <bold>The Guardian of Kistan</bold>, by Emelie Stark.<nl>
 
-<gray>All of these are IT's. Data and Media have none yet.</gray>
+<gray>The first four and the painting are IT's. Each chapter's own pattern is its logo.</gray>

@@ -3,6 +3,13 @@ package metacraft.kultur;
 import com.google.gson.JsonParser;
 import se.metacraft.kultur.catalogue.Catalogue;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 
 import java.util.List;
 
@@ -15,12 +22,10 @@ public class CatalogueTest {
 	@Test
 	public void shippedCatalogueLoads() {
 		Catalogue c = Catalogue.load();
-		assertEquals(List.of("it", "data", "media"), c.chapters().stream().map(Catalogue.Chapter::id).toList());
-		var patterns = c.patterns();
-		assertEquals(List.of("itk", "qmisk", "tmeit", "pirkko"), patterns.stream().map(o -> o.value().id()).toList());
-		assertTrue(patterns.stream().allMatch(o -> o.chapter().id().equals("it")));
-		assertFalse(patterns.get(0).value().item(), "itk is free in the loom");
-		assertTrue(patterns.get(3).value().item(), "pirkko needs its item");
+		var itPatterns = c.chapters().stream().filter(x -> x.id().equals("it")).findFirst().orElseThrow().patterns();
+		assertEquals(List.of("itk", "qmisk", "tmeit", "pirkko", "it"), itPatterns.stream().map(Catalogue.Pattern::id).toList());
+		assertFalse(itPatterns.get(0).item(), "itk is free in the loom");
+		assertTrue(itPatterns.get(3).item(), "pirkko needs its item");
 		var paintings = c.paintings();
 		assertEquals(1, paintings.size());
 		Catalogue.Painting draken = paintings.getFirst().value();
@@ -60,5 +65,42 @@ public class CatalogueTest {
 				{"chapters": [{"id": "x", "name": "X", "patterns": [{"id": "Släggan", "name": "S"}]}]}""")));
 		assertThrows(IllegalStateException.class, () -> Catalogue.parse(JsonParser.parseString("""
 				{"chapters": [{"id": "x", "name": "X", "paintings": [{"id": "p", "title": "T", "author": "A", "width": 0, "height": 1}]}]}""")));
+	}
+
+	@Test
+	public void lootNeedsItem() {
+		var e = assertThrows(IllegalStateException.class, () -> Catalogue.parse(JsonParser.parseString("""
+				{"chapters": [{"id": "x", "name": "X", "patterns": [{"id": "x", "name": "X", "loot": true}]}]}""")));
+		assertTrue(e.getMessage().contains("has loot but no item"), e.getMessage());
+	}
+
+	@Test
+	public void everyChapterHasItsGatedLootedLogo() {
+		Catalogue c = Catalogue.load();
+		List<String> ids = List.of("arkitektur", "bergs", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik",
+				"ingenjor", "it", "kemi", "maskin", "media", "mit", "open", "samhall", "tbas", "indek");
+		assertEquals(ids.stream().sorted().toList(), c.chapters().stream().map(Catalogue.Chapter::id).sorted().toList());
+		for (Catalogue.Chapter chapter : c.chapters()) {
+			Catalogue.Pattern logo = chapter.patterns().stream().filter(p -> p.id().equals(chapter.id())).findFirst().orElse(null);
+			assertTrue(logo != null, chapter.id() + " has no pattern of its own id");
+			assertTrue(logo.item(), chapter.id() + " logo is not gated");
+			assertTrue(logo.loot(), chapter.id() + " logo is not loot");
+		}
+		Catalogue.Pattern pirkko = c.patterns().stream().map(Catalogue.Owned::value).filter(p -> p.id().equals("pirkko")).findFirst().orElseThrow();
+		assertFalse(pirkko.loot(), "pirkko stays out of loot");
+	}
+
+	@Test
+	@EnabledIfSystemProperty(named = "kultur.release", matches = "true")
+	public void noPlaceholderArt() throws IOException {
+		List<String> left = new ArrayList<>();
+		Path root = Path.of("src/main/resources/art/kultur");
+		try (var files = Files.walk(root)) {
+			for (Path f : files.filter(f -> f.toString().endsWith(".png")).toList()) {
+				var img = ImageIO.read(f.toFile());
+				if (img != null && img.getRGB(0, 0) == 0xFFFF00FF) left.add(root.relativize(f).toString());
+			}
+		}
+		assertTrue(left.isEmpty(), "placeholder art still in: " + String.join(", ", left));
 	}
 }
