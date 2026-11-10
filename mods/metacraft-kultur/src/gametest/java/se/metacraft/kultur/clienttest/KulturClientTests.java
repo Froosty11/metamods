@@ -2,34 +2,34 @@ package se.metacraft.kultur.clienttest;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
-import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerConnection;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
-import se.metacraft.kultur.drinks.DrinkKind;
-import se.metacraft.kultur.drinks.DrinkPotions;
-import se.metacraft.kultur.drinks.DrunkTicker;
-import se.metacraft.kultur.drinks.Drunkenness;
-import se.metacraft.kultur.drinks.KulturDrinks;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.inventory.ContainerLevelAccess;
-import net.minecraft.world.inventory.LoomMenu;
-import net.minecraft.world.item.Items;
-import se.metacraft.kultur.catalogue.Catalogue;
-import se.metacraft.kultur.content.ModContent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.LoomMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import se.metacraft.kultur.catalogue.Catalogue;
+import se.metacraft.kultur.content.ModContent;
+import se.metacraft.kultur.drinks.DrinkKind;
+import se.metacraft.kultur.drinks.DrinkPotions;
+import se.metacraft.kultur.drinks.DrunkTicker;
+import se.metacraft.kultur.drinks.Drunkenness;
+import se.metacraft.kultur.drinks.KulturDrinks;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -87,8 +87,10 @@ public final class KulturClientTests implements FabricClientGameTest {
 				Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("kultur_banner_shield_painting").withSize(1920, 1080));
 				System.out.println("[kultur-clienttest] screenshot: " + shot);
 
-				chapterLoom(ctx, server, conn);
-				chapterBanners(ctx, server, conn);
+				// A failed check is collected, not thrown, so the shots after it still get taken.
+				List<String> failures = new ArrayList<>();
+				chapterLoom(ctx, server, conn, failures);
+				chapterBanners(ctx, server, conn, failures);
 
 				if (FabricLoader.getInstance().isModLoaded("brewery")) {
 					// The drinks, each in a frame on a wall of their own behind the camera, close up: PolymITer's
@@ -104,8 +106,16 @@ public final class KulturClientTests implements FabricClientGameTest {
 				} else {
 					drinksWithoutBrewery(ctx, server, conn);
 				}
+				if (!failures.isEmpty()) {
+					throw new AssertionError(failures.size() + " kultur client check(s) failed:\n - " + String.join("\n - ", failures));
+				}
 			}
 		}
+	}
+
+	private static void fail(List<String> failures, String what) {
+		System.out.println("[kultur-clienttest] " + what);
+		failures.add(what);
 	}
 
 	/** Every catalogue pattern that is gated by an item, in catalogue order: the chapter patterns. */
@@ -117,19 +127,28 @@ public final class KulturClientTests implements FabricClientGameTest {
 		return out;
 	}
 
+	private static boolean offers(LoomMenu menu, Identifier want) {
+		return menu.getSelectablePatterns().stream()
+				.anyMatch(h -> h.unwrapKey().map(k -> k.identifier().equals(want)).orElse(false));
+	}
+
 	/**
-	 * A loom with a chapter pattern item in its pattern slot and a white banner in the banner slot.
-	 * The menu's selectable patterns must offer the chapter pattern: that is the "shows in the loom"
-	 * check, and the screenshot is the same thing seen by a vanilla client.
+	 * The loom, checked on the server-side {@code LoomMenu} for every kultur pattern, old and new: with
+	 * only a banner in the slot every pattern without an item must be selectable (the old ungated
+	 * ones), and with its pattern item in the pattern slot every pattern with an item must be. Failures
+	 * go into {@code failures}. The screenshot is the same thing seen by a vanilla client, with the
+	 * ITK pattern item in the slot.
 	 */
-	private static void chapterLoom(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn) {
-		List<Catalogue.Pattern> patterns = chapterPatterns();
-		if (patterns.isEmpty()) throw new AssertionError("the catalogue has no gated chapter pattern");
-		Catalogue.Pattern chosen = patterns.getFirst();
-		for (Catalogue.Pattern p : patterns) {
-			if (p.id().equals("it")) chosen = p;
+	private static void chapterLoom(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn, List<String> failures) {
+		List<Catalogue.Pattern> all = new ArrayList<>();
+		for (Catalogue.Owned<Catalogue.Pattern> owned : Catalogue.load().patterns()) all.add(owned.value());
+		List<Catalogue.Pattern> gated = chapterPatterns();
+		if (gated.isEmpty()) fail(failures, "loom: the catalogue has no pattern with an item");
+		Catalogue.Pattern shown = gated.isEmpty() ? null : gated.getFirst();
+		for (Catalogue.Pattern p : gated) {
+			if (p.id().equals("it")) shown = p;
 		}
-		Catalogue.Pattern pattern = chosen;
+		Catalogue.Pattern showPattern = shown;
 		server.runCommand("setblock 5 -60 -2 minecraft:loom");
 		server.runOnServer(s -> {
 			ServerPlayer player = s.getPlayerList().getPlayerByName("Tester");
@@ -137,16 +156,37 @@ public final class KulturClientTests implements FabricClientGameTest {
 			player.openMenu(new SimpleMenuProvider((id, inv, p) -> {
 				LoomMenu menu = new LoomMenu(id, inv, ContainerLevelAccess.create(level, new BlockPos(5, -60, -2)));
 				menu.getBannerSlot().set(new ItemStack(Items.BANNER.white()));
-				menu.getPatternSlot().set(new ItemStack(ModContent.patternItem(pattern.id())));
 				return menu;
 			}, Component.translatable("block.minecraft.loom")));
-			if (!(player.containerMenu instanceof LoomMenu menu)) throw new AssertionError("the loom menu did not open");
-			Identifier want = Identifier.fromNamespaceAndPath("kultur", pattern.id());
-			boolean offered = menu.getSelectablePatterns().stream()
-					.anyMatch(h -> h.unwrapKey().map(k -> k.identifier().equals(want)).orElse(false));
-			System.out.println("[kultur-clienttest] loom offers " + want + ": " + offered
-					+ " (" + menu.getSelectablePatterns().size() + " selectable)");
-			if (!offered) throw new AssertionError("the loom does not offer " + want + " with " + pattern.itemPath() + " in the pattern slot");
+			if (!(player.containerMenu instanceof LoomMenu menu)) {
+				fail(failures, "loom: the loom menu did not open");
+				return;
+			}
+			// Banner only: every pattern without an item.
+			int ungated = 0;
+			for (Catalogue.Pattern p : all) {
+				if (p.item()) continue;
+				ungated++;
+				Identifier want = Identifier.fromNamespaceAndPath("kultur", p.id());
+				if (!offers(menu, want)) fail(failures, "loom: " + p.id() + " (no item) is not selectable with only a banner in the loom");
+			}
+			System.out.println("[kultur-clienttest] loom: " + ungated + " pattern(s) without an item checked with a banner only ("
+					+ menu.getSelectablePatterns().size() + " selectable)");
+			// Each pattern with an item, with that item in the pattern slot.
+			for (Catalogue.Pattern p : gated) {
+				var item = ModContent.patternItem(p.id());
+				if (item == null) {
+					fail(failures, "loom: " + p.id() + " has no pattern item registered (" + p.itemPath() + ")");
+					continue;
+				}
+				menu.getPatternSlot().set(new ItemStack(item));
+				Identifier want = Identifier.fromNamespaceAndPath("kultur", p.id());
+				if (!offers(menu, want)) fail(failures, "loom: " + p.id() + " is not selectable with " + p.itemPath() + " in the pattern slot");
+			}
+			System.out.println("[kultur-clienttest] loom: " + gated.size() + " pattern item(s) checked");
+			// Leave the shown pattern's item in the slot for the screenshot.
+			var showItem = showPattern == null ? null : ModContent.patternItem(showPattern.id());
+			menu.getPatternSlot().set(showItem == null ? ItemStack.EMPTY : new ItemStack(showItem));
 		});
 		conn.waitForClientboundPackets();
 		ctx.waitTicks(30);
@@ -161,7 +201,7 @@ public final class KulturClientTests implements FabricClientGameTest {
 	 * to a shot so each is legible. An empty view from the same spot is shot first; each banner shot
 	 * has to differ from it.
 	 */
-	private static void chapterBanners(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn) {
+	private static void chapterBanners(ClientGameTestContext ctx, TestDedicatedServerContext server, TestDedicatedServerConnection conn, List<String> failures) {
 		final int perShot = 6;
 		List<Catalogue.Pattern> patterns = chapterPatterns();
 		int shots = (patterns.size() + perShot - 1) / perShot;
@@ -189,9 +229,9 @@ public final class KulturClientTests implements FabricClientGameTest {
 			System.out.println("[kultur-clienttest] screenshot: " + path + " (patterns "
 					+ patterns.subList(from, to).stream().map(Catalogue.Pattern::id).toList() + ")");
 			try {
-				if (Files.mismatch(empty, path) == -1L) throw new AssertionError(name + " is identical to the empty view");
+				if (Files.mismatch(empty, path) == -1L) fail(failures, "banners: " + name + " is identical to the empty view");
 			} catch (IOException e) {
-				throw new AssertionError("could not compare " + name + " with the empty view", e);
+				fail(failures, "banners: could not compare " + name + " with the empty view: " + e);
 			}
 		}
 	}
