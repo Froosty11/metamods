@@ -141,7 +141,8 @@ public final class SpilledDrink {
 	 * switched off) or not in the registry. Silent: no log, no throw.
 	 */
 	public static Optional<ItemStack> wandererBook(HolderLookup.Provider registries, EnchantmentsConfig cfg, boolean brewery) {
-		Optional<Holder.Reference<Enchantment>> holder = registries.lookupOrThrow(Registries.ENCHANTMENT).get(OvveEnchantments.SPILLED_DRINK_CURSE);
+		Optional<Holder.Reference<Enchantment>> holder = registries.lookup(Registries.ENCHANTMENT)
+				.flatMap(lookup -> lookup.get(OvveEnchantments.SPILLED_DRINK_CURSE));
 		if (holder.isEmpty() || !OvveEnchantments.offered(holder.get(), cfg, brewery)) return Optional.empty();
 		ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
 		ItemEnchantments.Mutable stored = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);

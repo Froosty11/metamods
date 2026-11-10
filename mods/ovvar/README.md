@@ -179,12 +179,18 @@ apply: not Unbreaking, not Mending, not any Protection. Ovves and fracks have en
 under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come from datagen.
 
 - **Ender Pockets** (I): the pockets are the ender chest of whoever uses them, worn or carried.
-  Clicking an item onto it puts the item in the clicking player's ender chest, an empty-cursor
-  right-click takes a whole stack out, and using it opens the ender chest screen (it does not empty
-  anything on the floor). Whatever was in its own pockets when it was enchanted is thrown on the ground,
+  Clicking an item onto it puts the item in the clicking player's ender chest, right-clicking it with
+  an empty cursor takes a whole stack out, and using it from the hand opens the ender chest screen (it
+  does not empty anything on the floor). With the ovve on the cursor, a click on a stack puts as much
+  of it as fits in the chest, and a right-click on an empty slot puts the selected (or newest) stack
+  there, if the slot takes it. Whatever was in its own pockets when it was enchanted is thrown on the ground,
   never moved into an ender chest. The client is shown the viewer's ender chest as the bundle's
   contents, newest slot first, with a fill bar over the chest's 27 slots. An Ender Pockets ovve inside
-  the preview (in the ender chest, or in a shulker box or bundle there) shows empty pockets.
+  the preview (in the ender chest, or in a shulker box or bundle there) shows empty pockets. The
+  server's ovve does not change when the chest does, so the slot sync would never resend it: at the end
+  of every tick the ender chest of a player with one in an open menu or on the cursor is compared with
+  last tick's copy, and on a change (or a preview read that tore) those slots are resent and the
+  selection is cleared.
 - **Patchwork Protection** (I): protection that grows with the patches sewn on, linearly up to
   `patches_for_max` (16), where it is `max_protection` (4.0, Protection IV). Nothing is consumed and
   the look does not change. It ignores what Protection ignores (`#minecraft:bypasses_invulnerability`).
@@ -258,13 +264,17 @@ the enchanting table, random loot (`enchant_with_levels`, `enchant_randomly`) an
 offering it, but the entry stays in the registry, because removing it would make items lose their
 enchantments. A missing registry entry also means level 0, never an exception.
 
+Ender Pockets off: the ovve has ordinary pockets again, so turning it back on throws whatever they
+gathered meanwhile on the ground (the same spill as on enchanting). Magpie's chest bonus is built when
+loot tables load, so a change to its block needs `/reload` or a restart.
+
 ### Hooks
 
 By vanilla method or Fabric event:
 
 - Overrides: `BundleItem.overrideStackedOnOther`, `overrideOtherStackedOnMe` and `use` (`OvveItem`, for
   Ender Pockets), `PolymerItem.getPolymerItemStack` (the preview, the glint), `Item.inventoryTick`
-  (spill, drips, the Keyring timer's owner).
+  (Ender Pockets' spill, Spilled Drink's drips).
 - Mixins (`se.metacraft.ovvar.mixin`): `BundleItem.toggleSelectedItem` (Ender Pockets'
   selection), `EnchantmentHelper.getDamageProtection` (Patchwork Protection adds to the sum),
   `EnchantmentHelper.getAvailableEnchantmentResults` (the table skips what is off),
@@ -278,7 +288,8 @@ By vanilla method or Fabric event:
 - Events: `ServerPlayerEvents.AFTER_RESPAWN` (Keepsake restores; `COPY_FROM` fires before the new
   player is placed, so a full-inventory drop would land at the origin), `PlayerBlockBreakEvents.AFTER`
   (Keyring checks the floor), `ServerLivingEntityEvents.AFTER_DEATH` (Keyring drops its state, nothing
-  is lost), `ServerTickEvents.END_SERVER_TICK` (Keyring timer, Spilled Drink doses),
+  is lost), `ServerTickEvents.END_SERVER_TICK` (Keyring's swap-back timer, Spilled Drink doses,
+  Ender Pockets' preview resend),
   `LootTableEvents.MODIFY` (Magpie's chest condition, built from vanilla loot conditions on the
   opener, so no custom condition type), `PolymerItemUtils.ITEM_MODIFICATION_EVENT` (Ender Pockets'
   fill bar).

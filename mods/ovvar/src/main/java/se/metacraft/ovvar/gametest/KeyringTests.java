@@ -151,6 +151,27 @@ public final class KeyringTests {
 		});
 	}
 
+	/** Swapped mid-swap for a garment without Keyring (pockets that also hold torches): nothing is filed into it. */
+	@GameTest
+	public void swapBackNeedsKeyringOnTheGarment(GameTestHelper helper) {
+		ServerPlayer player = miner(helper);
+		act(helper, player, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, 1);
+		assertStack(helper, player.getInventory().getItem(0), Items.IRON_PICKAXE, 1, "the hand after START");
+		ItemStack keyring = OvveItem.takeOff(player);
+		ItemStack plain = new ItemStack(ModContent.ovve(Chapter.DATA));
+		BundleContents.Mutable contents = plain.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).asMutable();
+		contents.tryInsert(new ItemStack(Items.TORCH, 5));
+		plain.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+		player.setItemSlot(EquipmentSlot.LEGS, plain);
+		Keyring.swapBack(player);
+		assertStack(helper, player.getInventory().getItem(0), Items.IRON_PICKAXE, 1, "the tool stays in hand");
+		assertPockets(helper, player, Items.TORCH, 5);
+		helper.assertTrue(Keyring.swapOf(player) == null, "the swap is dropped");
+		List<ItemStack> kept = pockets(keyring);
+		helper.assertTrue(kept.size() == 1 && kept.getFirst().is(Items.TORCH) && kept.getFirst().getCount() == 5, "the Keyring ovve still holds the torches: " + kept);
+		helper.succeed();
+	}
+
 	@GameTest
 	public void belowFloorSwapsBack(GameTestHelper helper) {
 		ServerPlayer player = miner(helper);

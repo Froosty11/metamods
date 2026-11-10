@@ -221,8 +221,9 @@ public final class Keyring {
 		if (swap.inventorySlot() < 0 || swap.inventorySlot() >= inventory.getContainerSize()) return;
 		ItemStack tool = inventory.getItem(swap.inventorySlot());
 		if (tool.isEmpty() || !tool.is(swap.tool())) return;
+		// The tool goes only into a garment that still has Keyring, as intact checks: anything else keeps it.
 		ItemStack garment = OvveItem.worn(player);
-		if (garment.isEmpty() || EnderPockets.has(garment)) return;
+		if (OvveEnchantments.level(garment, OvveEnchantments.KEYRING) <= 0 || EnderPockets.has(garment)) return;
 		List<ItemStack> pockets = pocketsOf(garment);
 		List<ItemStack> after = new ArrayList<>(pockets);
 		ItemStack original;

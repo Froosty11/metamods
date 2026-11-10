@@ -577,6 +577,8 @@ public final class WardrobeTests {
 		JsonObject enchantments = root.getAsJsonObject("enchantments");
 		assertEveryKey(helper, enchantments, se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.class, "enchantments");
 		if (enchantments != null) {
+			assertEveryKey(helper, enchantments.getAsJsonObject("ender_pockets"), se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.Toggle.class, "enchantments.ender_pockets");
+			assertEveryKey(helper, enchantments.getAsJsonObject("keepsake"), se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.Toggle.class, "enchantments.keepsake");
 			assertEveryKey(helper, enchantments.getAsJsonObject("patchwork_protection"), se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.Patchwork.class, "enchantments.patchwork_protection");
 			assertEveryKey(helper, enchantments.getAsJsonObject("magpie"), se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.Magpie.class, "enchantments.magpie");
 			assertEveryKey(helper, enchantments.getAsJsonObject("keyring"), se.metacraft.ovvar.content.enchantment.EnchantmentsConfig.Keyring.class, "enchantments.keyring");

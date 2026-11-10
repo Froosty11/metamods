@@ -77,9 +77,9 @@ public record EnchantmentsConfig(Toggle enderPockets, Patchwork patchworkProtect
 			Keyring.DEFAULT, SpilledDrink.DEFAULT);
 
 	public static final MapCodec<EnchantmentsConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			ConfigFields.field(Toggle.CODEC.codec(), "ender_pockets", DEFAULT.enderPockets, "Ender Pockets: the pockets are the wearer's ender chest.").forGetter(EnchantmentsConfig::enderPockets),
+			ConfigFields.field(Toggle.CODEC.codec(), "ender_pockets", DEFAULT.enderPockets, "Ender Pockets: the pockets are the wearer's ender chest. While it is off they are ordinary pockets, and turning it back on throws whatever they gathered meanwhile on the ground.").forGetter(EnchantmentsConfig::enderPockets),
 			ConfigFields.field(Patchwork.CODEC.codec(), "patchwork_protection", DEFAULT.patchworkProtection, "Patchwork Protection: protection that grows with the patches sewn on.").forGetter(EnchantmentsConfig::patchworkProtection),
-			ConfigFields.field(Magpie.CODEC.codec(), "magpie", DEFAULT.magpie, "Magpie (I-III): better odds of finding patches.").forGetter(EnchantmentsConfig::magpie),
+			ConfigFields.field(Magpie.CODEC.codec(), "magpie", DEFAULT.magpie, "Magpie (I-III): better odds of finding patches. The chest bonus is built when loot tables load: a change here needs /reload or a restart.").forGetter(EnchantmentsConfig::magpie),
 			ConfigFields.field(Toggle.CODEC.codec(), "keepsake", DEFAULT.keepsake, "Keepsake: the ovve, pockets and all, stays with you when you die.").forGetter(EnchantmentsConfig::keepsake),
 			ConfigFields.field(Keyring.CODEC.codec(), "keyring", DEFAULT.keyring, "Keyring: the right tool from the pockets comes to hand while mining.").forGetter(EnchantmentsConfig::keyring),
 			ConfigFields.field(SpilledDrink.CODEC.codec(), "spilled_drink_curse", DEFAULT.spilledDrink, "Curse of the Spilled Drink: every drink comes back a little later, weaker. Needs Brewery.").forGetter(EnchantmentsConfig::spilledDrink)

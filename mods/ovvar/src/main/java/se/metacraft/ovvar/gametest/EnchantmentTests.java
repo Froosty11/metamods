@@ -385,6 +385,18 @@ public final class EnchantmentTests {
 		helper.succeed();
 	}
 
+	/** A /give'n Magpie IV (above the max) counts as III; Magpie on anything but an ovve or frack counts for nothing. */
+	@GameTest
+	public void magpieAboveMaxAndOffGarment(GameTestHelper helper) {
+		share(helper, patchShare(helper, standIn(helper, Chapter.DATA, 4)), 0.12, 0.16, "Magpie IV opener");
+		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(2, 1, 2));
+		ItemStack leggings = new ItemStack(Items.IRON_LEGGINGS);
+		leggings.enchant(holder(helper, MAGPIE), 3);
+		stand.setItemSlot(EquipmentSlot.LEGS, leggings);
+		share(helper, patchShare(helper, stand), 0.035, 0.065, "Magpie III iron leggings opener");
+		helper.succeed();
+	}
+
 	/** Part 2's mob-ovvar patch-drop roll will call {@link Magpie#mobOvvarDrop}; this is that comparison. */
 	@GameTest
 	public void magpieRaisesMobOvvarDrops(GameTestHelper helper) {
