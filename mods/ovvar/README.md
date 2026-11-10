@@ -7,10 +7,10 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
 silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
-or from the Ovvar creative tab. Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Ingenjör, Kemi, Medicinsk teknik,
-OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour; they come
-only from the wandering trader (Punkphöz). There is also the
-Media frack and the B-frack, the black frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
+or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
+the wandering trader Punkphöz (below): Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Ingenjör, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
@@ -121,8 +121,8 @@ another mod's changes to a chest stay. Which is which is two lists in `PatchLoot
 
 Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
 ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
-them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never Rivals '26,
-TMEIT Marshal or METAcrew), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
+them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
 kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
 he sold lately from coming straight back.
 

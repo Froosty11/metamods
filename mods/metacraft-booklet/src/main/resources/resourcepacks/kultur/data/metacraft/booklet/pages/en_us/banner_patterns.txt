@@ -11,7 +11,7 @@ order=20
 <bold>ITK</bold>, <bold>QMISK</bold> and <bold>TMEIT</bold> need no pattern item. Put a banner and a dye in any loom and pick them from the list.
 
 ### Header: Pirkko
-The <bold>Pirkko</bold> pattern needs its pattern item, the <citem 'kultur:pirkko_banner_pattern'>, in the loom, like the flower or creeper pattern. The item is not used up. It can't be found in survival yet.
+The <bold>Pirkko</bold> pattern needs its pattern item, the <citem 'kultur:pirkko_banner_pattern'>, in the loom, like the flower or creeper pattern. The item is not used up. It is in no chest; Punkphöz, the wandering trader, has it now and then.
 
 ### Header: Chapter patterns
 Every chapter has a pattern of its own, with its own pattern item for the <citem 'minecraft:loom'>. You find them in structure chests, or buy them from Punkphöz, a wandering trader who turns up now and then.
