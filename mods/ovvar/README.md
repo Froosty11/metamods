@@ -5,10 +5,11 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 ## What it adds
 
-One ovve per chapter. Data (cerise), IT (purple) and the older silicon-blue IT are made as before;
-Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Ingenjör, Kemi, Medicinsk teknik,
-OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour. They have no
-recipe and no loot: new chapters come only from the wandering trader (Punkphöz). There is also the
+One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
+silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
+or from the Ovvar creative tab. Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Ingenjör, Kemi, Medicinsk teknik,
+OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour; they come
+only from the wandering trader (Punkphöz). There is also the
 Media frack and the B-frack, the black frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
@@ -104,7 +105,7 @@ so each of the three paths that draw a seat has to mirror its half back — the 
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
 
-**Getting patches.** The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+**Getting patches.** Punkphöz, the wandering trader (below), sells loot patches for emeralds. The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
 on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
 a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
 three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
@@ -115,6 +116,37 @@ Structory's when it is installed, each get a pool with a 5 % chance of one patch
 them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
 another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
 `LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
+## The wandering Punkphöz
+
+Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
+ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
+them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never Rivals '26,
+TMEIT Marshal or METAcrew), plus whatever is in the config's `pool` (empty until the kultur banner
+patterns are added to it). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+he sold lately from coming straight back.
+
+He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
+(`WanderingTraderSpawnerMixin`). On a cycle where vanilla's roll fails, he gets
+`ceil(players / players_per_roll)` rolls, so a busy server sees him more, and no more than
+`max_loaded` Punkphöz are loaded at once. His own spawn skips vanilla's 1-in-10 gate; his odds are set so
+`share` is his share of all wanderer visits. His model is the traders' IT trader: `processResources`
+copies `mods/traders/src/main/resources/model/traders/it_trader.bbmodel` in as `model/ovvar/punkphoz.bbmodel`
+at build time, so the two never drift apart and `mods/traders` stays untouched.
+
+Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes the defaults):
+
+- `enabled` (true): whether he turns up at all.
+- `share` (0.25, 0 to 0.5): his share of all wanderer visits.
+- `chapter_ovves` (3): how many chapters' ovvar are on offer per visit.
+- `ovve_price` (24): emeralds for one ovve.
+- `patches` (2): how many loot patches are on offer per visit.
+- `patch_price` (6): emeralds for one patch.
+- `pool_picks` (4): how many things from `pool` are on offer per visit.
+- `players_per_roll` (5): how many players online count as one more roll of his visit.
+- `max_loaded` (3): how many Punkphöz can be loaded at once.
+- `pool` (empty): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+  `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
 
 **Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
 chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
@@ -547,7 +579,7 @@ the stitching minigame played through with the clicks its dialog sends (stale cl
 sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
 to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
 finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
-a stand click left to vanilla's swap, and the seam sewing onto it. `WardrobeTests` runs the store
+a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his stock, his spawn odds and his config. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
