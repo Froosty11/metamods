@@ -117,6 +117,12 @@ class PackPatch {
 				this.say('  ' + frag + ': no matching vertex program found; skipped');
 				continue;
 			}
+			// Both stages in one file: without both stage markers there is no telling where one ends, and the
+			// vertex code would land in the fragment main().
+			if (vert === frag && (find(FRAGMENT_MARKER, fragText) === null || find(VERTEX_MARKER, fragText) === null)) {
+				this.say('  ' + frag + ': one file for both stages, but no #ifdef FSH/VSH-style stage markers found; skipped');
+				continue;
+			}
 			let changed = false;
 			const program = this.patchProgram(files, frag, fragText, vert, vertText!);
 			if (program !== null) {
