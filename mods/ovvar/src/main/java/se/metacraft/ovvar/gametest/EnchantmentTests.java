@@ -24,6 +24,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.providers.VanillaEnchantmentProviders;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -652,6 +653,24 @@ public final class EnchantmentTests {
 				EnchantmentsConfig.Toggle.ON, EnchantmentsConfig.Keyring.DEFAULT, new EnchantmentsConfig.SpilledDrink(false, 100, 0.5f, 0.5f, 200));
 		helper.assertTrue(SpilledDrink.wandererBook(registries, off, true).isEmpty(), "a book with the curse disabled");
 		helper.assertValueEqual(SpilledDrink.WANDERER_PRICE, 16, "price");
+		helper.succeed();
+	}
+
+	/** Vanilla's mob-spawn equipment pass never enchants an ovve (Binding included); an iron helmet is the control. */
+	@GameTest
+	public void mobSpawnEquipmentNeverEnchantsAnOvve(GameTestHelper helper) {
+		var registries = helper.getLevel().registryAccess();
+		var difficulty = helper.getLevel().getCurrentDifficultyAt(helper.absolutePos(new BlockPos(1, 1, 1)));
+		int helmetsEnchanted = 0;
+		for (int seed = 0; seed < 1000; seed++) {
+			ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+			EnchantmentHelper.enchantItemFromProvider(ovve, registries, VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, RandomSource.create(seed));
+			helper.assertTrue(ovve.getEnchantments().isEmpty(), "seed " + seed + " enchanted an ovve: " + ovve.getEnchantments());
+			ItemStack helmet = new ItemStack(Items.IRON_HELMET);
+			EnchantmentHelper.enchantItemFromProvider(helmet, registries, VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, RandomSource.create(seed));
+			if (!helmet.getEnchantments().isEmpty()) helmetsEnchanted++;
+		}
+		helper.assertTrue(helmetsEnchanted > 0, "the control (an iron helmet) was never enchanted, so the test proves nothing");
 		helper.succeed();
 	}
 }
