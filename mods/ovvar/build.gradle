@@ -103,11 +103,12 @@ if (project.hasProperty('withKultur')) {
 }
 
 // The shader code the patcher splices in, read by the patcher as resources: the very code the vanilla
-// override uses (so patched packs and vanilla never drift apart) and metacraft-shaders' rifts, the code
-// its item shader includes. The jar and the fixtures see the same files.
+// override uses (so patched packs and vanilla never drift apart), metacraft-shaders' rifts, the code
+// its item shader includes, and the chapter text colours. The jar and the fixtures see the same files.
 def patcherResources = tasks.register('patcherResources', Sync) {
 	into layout.buildDirectory.dir('patcher-resources')
 	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
+	from('tools/shaderpatcher/chapter_text_colors.glsl')
 	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
 		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
 	}

@@ -42,8 +42,10 @@ import java.util.zip.ZipOutputStream;
  * </ul>
  * It does the same for metacraft-shaders' rifts (rift_common/void_rift/nether_rift.glsl, bundled
  * too): see {@link PackPatch}. Rifts also drop out of the pack's shadow pass, and
- * shaders.properties gains four custom uniforms. Nothing else in the pack is touched; originals
- * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
+ * shaders.properties gains four custom uniforms. The program Iris draws world text with gets
+ * the chapter text colours (chapter_text_colors.glsl): dark purple and dark blue nametags draw as the
+ * chapter-text-colors resource pack draws them without a shaderpack. Nothing else in the pack is
+ * touched; originals are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
  *
  * Double-click: a file chooser (opening in the Minecraft shaderpacks folder) asks which packs, then a summary shows.
  * This is the fallback for the web patcher at https://metacraft.se/ovvar/shaders.

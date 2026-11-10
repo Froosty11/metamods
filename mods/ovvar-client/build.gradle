@@ -40,6 +40,7 @@ tasks.withType(JavaCompile).configureEach {
 // (same set, same paths), and the patcher's README.txt for whoever opens the jar.
 tasks.named('processResources') {
 	from(project(':mods:ovvar').file('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl'))
+	from(project(':mods:ovvar').file('tools/shaderpatcher/chapter_text_colors.glsl'))
 	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
 		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
 	}

@@ -25,7 +25,8 @@ Re-run it when you install or update a shaderpack, and after ovvar updates.
 From a terminal: java -jar ovvar-client.jar [pack.zip|folder ...] [--dry-run]
 
 The patch splices Ovvar's and the rifts' shader code into the pack's entity program, keeps rifts
-out of the pack's shadows, and adds four custom uniforms to shaders.properties; everything else is
-copied as-is. Tested with BSL, Bliss, Complementary Reimagined/Unbound, MakeUp Ultra Fast,
+out of the pack's shadows, adds four custom uniforms to shaders.properties, and makes nametags in
+dark purple or dark blue show the chapter colours (cerise, laserviolet) that the chapter-text-colors
+resource pack gives them without a shaderpack; everything else is copied as-is. Tested with BSL, Bliss, Complementary Reimagined/Unbound, MakeUp Ultra Fast,
 Solas, Photon and Super Duper Vanilla. If a pack reports "skipped" or "nothing patched",
 tell the METAcraft project group which pack and version.
