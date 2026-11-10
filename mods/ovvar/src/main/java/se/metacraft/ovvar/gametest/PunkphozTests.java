@@ -11,6 +11,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
@@ -18,11 +19,14 @@ import net.minecraft.world.entity.ai.goal.TradeWithPlayerGoal;
 import net.minecraft.world.entity.ai.goal.UseItemGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.phys.AABB;
 
 import com.mojang.serialization.JsonOps;
 import se.metacraft.ovvar.PunkphozConfig;
@@ -34,6 +38,7 @@ import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.entity.Punkphoz;
 import se.metacraft.ovvar.content.entity.PunkphozEntities;
 import se.metacraft.ovvar.content.entity.PunkphozHistory;
+import se.metacraft.ovvar.content.entity.PunkphozSpawning;
 import se.metacraft.ovvar.content.entity.PunkphozStock;
 
 import java.io.IOException;
@@ -41,6 +46,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -329,6 +335,206 @@ public final class PunkphozTests {
 		int before = PunkphozConfig.warningsLogged();
 		for (int i = 0; i < 50; i++) PunkphozConfig.poolOnOffer(config);
 		helper.assertValueEqual(PunkphozConfig.warningsLogged() - before, 2, "warnings logged over 50 calls");
+		helper.succeed();
+	}
+
+	private static final double VANILLA_RATE = 152.0 / 337;
+
+	private static PunkphozConfig spawning(boolean enabled, double share, int playersPerRoll, int maxLoaded) {
+		var d = PunkphozConfig.DEFAULT;
+		return new PunkphozConfig(enabled, share, d.chapterOvves(), d.ovvePrice(), d.patches(), d.patchPrice(),
+				d.poolPicks(), playersPerRoll, maxLoaded, List.of());
+	}
+
+	private static PunkphozConfig share(double share) {
+		return spawning(true, share, PunkphozConfig.DEFAULT.playersPerRoll(), PunkphozConfig.DEFAULT.maxLoaded());
+	}
+
+	private static void near(GameTestHelper helper, double actual, double expected, double tolerance, String what) {
+		if (Math.abs(actual - expected) > tolerance) helper.fail(what + ": " + actual + ", expected " + expected + " ± " + tolerance);
+	}
+
+	@GameTest
+	public void vanillaRateIsTheRamp(GameTestHelper helper) {
+		near(helper, PunkphozSpawning.vanillaRate(), VANILLA_RATE, 1e-9, "vanillaRate()");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void quarterShareChance(GameTestHelper helper) {
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.25)), 0.2738739, 1e-6, "chance at share 0.25");
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0.5)), 0.8216216, 1e-6, "chance at share 0.5");
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(share(0)), 0, 0, "chance at share 0");
+		near(helper, PunkphozSpawning.chanceOnAFailedRoll(spawning(false, 0.5, 5, 3)), 0, 0, "chance when disabled");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void shareIsCappedInConfig(GameTestHelper helper) {
+		JsonObject json = new JsonObject();
+		json.addProperty("share", 0.6);
+		var result = PunkphozConfig.CODEC.codec().parse(JsonOps.INSTANCE, json);
+		if (result.error().isEmpty()) {
+			helper.fail("share 0.6 decoded without an error: " + result);
+			return;
+		}
+		String message = result.error().get().message();
+		if (!message.contains("share")) helper.fail("the error doesn't name share: " + message);
+		helper.succeed();
+	}
+
+	@GameTest
+	public void vanillaRollIsUntouched(GameTestHelper helper) {
+		RandomSource random = RandomSource.create(5);
+		for (int chance : new int[] {25, 50, 75}) {
+			for (int roll = 0; roll < 100; roll++) {
+				var outcome = PunkphozSpawning.decide(chance, roll, share(0.5), random);
+				if ((outcome == PunkphozSpawning.Outcome.VANILLA) != (roll <= chance)) {
+					helper.fail("chance " + chance + ", roll " + roll + ": " + outcome);
+					return;
+				}
+				if (roll <= chance && outcome == PunkphozSpawning.Outcome.PUNKPHOZ) {
+					helper.fail("Punkphöz on vanilla's passing roll: chance " + chance + ", roll " + roll);
+					return;
+				}
+			}
+		}
+		helper.succeed();
+	}
+
+	/** {vanilla visits, Punkphöz visits} over {@code attempts} of vanilla's ramp; with players, his visits from targets(). */
+	private static long[] simulate(PunkphozConfig config, long seed, int attempts, int players) {
+		RandomSource random = RandomSource.create(seed);
+		List<String> online = new ArrayList<>();
+		for (int i = 0; i < players; i++) online.add("p" + i);
+		long vanilla = 0, punkphoz = 0;
+		int state = 25;
+		for (int i = 0; i < attempts; i++) {
+			int chance = state;
+			state = Math.min(state + 25, 75);
+			int roll = random.nextInt(100);
+			if (players == 0) {
+				var outcome = PunkphozSpawning.decide(chance, roll, config, random);
+				if (outcome == PunkphozSpawning.Outcome.VANILLA) {
+					vanilla++;
+					state = 25;
+				} else if (outcome == PunkphozSpawning.Outcome.PUNKPHOZ) {
+					punkphoz++;
+				}
+			} else if (roll <= chance) {
+				vanilla++;
+				state = 25;
+			} else {
+				punkphoz += PunkphozSpawning.targets(online, 0, config, random).size();
+			}
+		}
+		return new long[] {vanilla, punkphoz};
+	}
+
+	@GameTest
+	public void vanillaRateIsUnchanged(GameTestHelper helper) {
+		int attempts = 200000;
+		long[] quarter = simulate(share(0.25), 11, attempts, 0);
+		near(helper, (double) quarter[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt at share 0.25");
+		near(helper, (double) quarter[1] / (quarter[0] + quarter[1]), 0.25, 0.01, "Punkphöz's share at 0.25");
+		long[] off = simulate(spawning(false, 0.25, 5, 3), 11, attempts, 0);
+		near(helper, (double) off[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt when disabled");
+		helper.assertValueEqual(off[1], 0L, "Punkphöz visits when disabled");
+		long[] half = simulate(share(0.5), 11, attempts, 0);
+		near(helper, (double) half[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt at share 0.5");
+		near(helper, (double) half[1] / (half[0] + half[1]), 0.5, 0.01, "Punkphöz's share at 0.5");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void rollsPerPlayers(GameTestHelper helper) {
+		var five = spawning(true, 0.25, 5, 3);
+		int[] players = {0, 1, 5, 6, 20};
+		int[] expected = {0, 1, 1, 2, 4};
+		for (int i = 0; i < players.length; i++) {
+			helper.assertValueEqual(PunkphozSpawning.rolls(players[i], five), expected[i], "rolls for " + players[i] + " players");
+		}
+		helper.assertValueEqual(PunkphozSpawning.rolls(3, spawning(true, 0.25, 1, 3)), 3, "rolls for 3 players at 1 per roll");
+		helper.assertValueEqual(PunkphozSpawning.rolls(20, spawning(false, 0.25, 5, 3)), 0, "rolls when disabled");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void distinctTargets(GameTestHelper helper) {
+		List<String> players = new ArrayList<>();
+		for (int i = 0; i < 20; i++) players.add("p" + i);
+		var config = spawning(true, 0.5, 5, 20);
+		RandomSource random = RandomSource.create(3);
+		Set<String> picked = new HashSet<>();
+		for (int i = 0; i < 1000; i++) {
+			List<String> targets = PunkphozSpawning.targets(players, 0, config, random);
+			if (new HashSet<>(targets).size() != targets.size()) {
+				helper.fail("a player picked twice: " + targets);
+				return;
+			}
+			if (targets.size() > 4) {
+				helper.fail("more than 4 targets: " + targets);
+				return;
+			}
+			picked.addAll(targets);
+		}
+		helper.assertValueEqual(picked.size(), 20, "players ever picked");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void capRespected(GameTestHelper helper) {
+		List<String> players = new ArrayList<>();
+		for (int i = 0; i < 20; i++) players.add("p" + i);
+		var config = spawning(true, 0.25, 1, 3);
+		int[] loaded = {0, 2, 3, 5};
+		int[] expected = {3, 1, 0, 0};
+		for (int i = 0; i < loaded.length; i++) {
+			int size = PunkphozSpawning.targets(players, loaded[i], config, 1.0, RandomSource.create(i)).size();
+			helper.assertValueEqual(size, expected[i], "targets with " + loaded[i] + " loaded");
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void vanillaRateIsUnchangedWithPlayers(GameTestHelper helper) {
+		int attempts = 200000;
+		var config = spawning(true, 0.25, 5, 20);
+		long[] visits = simulate(config, 11, attempts, 20);
+		near(helper, (double) visits[0] / attempts, VANILLA_RATE, 0.005, "vanilla visits/attempt with 20 players");
+		double x = PunkphozSpawning.chanceOnAFailedRoll(config);
+		near(helper, (double) visits[1] / attempts, 4 * x * (1 - VANILLA_RATE), 0.05, "Punkphöz visits/cycle with 20 players");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void spawnerMixinIsIn(GameTestHelper helper) {
+		Set<String> names = new HashSet<>();
+		for (var method : WanderingTraderSpawner.class.getDeclaredMethods()) names.add(method.getName());
+		for (String handler : List.of("punkphozRoll", "punkphozType", "punkphozNear")) {
+			if (names.stream().noneMatch(n -> n.contains(handler))) helper.fail("WanderingTraderSpawner has no " + handler + ": " + names);
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void typeOnlySwapsWhileSpawning(GameTestHelper helper) {
+		if (PunkphozSpawning.TARGET.get() != null) helper.fail("TARGET is set outside a spawn");
+		var level = helper.getLevel();
+		BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
+		var source = level.getServer().createCommandSourceStack().withLevel(level).withSuppressedOutput();
+		level.getServer().getCommands().performPrefixedCommand(source,
+				"summon minecraft:wandering_trader " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
+		var traders = level.getEntities(EntityTypeTest.forClass(WanderingTrader.class), new AABB(pos).inflate(2), e -> true);
+		if (traders.isEmpty()) {
+			helper.fail("/summon made no wandering trader");
+			return;
+		}
+		for (WanderingTrader trader : traders) {
+			if (trader instanceof Punkphoz) helper.fail("/summon wandering_trader made a Punkphöz");
+			helper.assertValueEqual(trader.getType(), EntityTypes.WANDERING_TRADER, "the summoned trader's type");
+			trader.discard();
+		}
 		helper.succeed();
 	}
 
