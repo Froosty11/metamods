@@ -79,6 +79,14 @@ sourceSets {
 tasks.withType(JavaCompile).configureEach {
 	if (it.name == 'compilePatcherJava' || it.name == 'compilePatcherTestJava') it.options.release = 11
 }
+// -PwithKultur: kultur in the dev/game-test runtime, so Punkphöz's default pool (its banner patterns) resolves.
+// Dev runtime only, never a `depends`; kultur's runDatagen must have run (./gradlew :mods:metacraft-kultur:runDatagen).
+if (project.hasProperty('withKultur')) {
+	dependencies {
+		runtimeOnly project(path: ':mods:metacraft-kultur')
+	}
+}
+
 // The shader code the patcher splices in, read by the patcher as resources: the very code the vanilla
 // override uses (so patched packs and vanilla never drift apart) and metacraft-shaders' rifts, the code
 // its item shader includes. The jar and the fixtures see the same files.

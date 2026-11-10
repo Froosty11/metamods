@@ -3,6 +3,7 @@ package se.metacraft.ovvar.gametest;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -326,6 +327,23 @@ public final class PunkphozTests {
 				"Punkphöz: leaving out ovvar:patch_rivals from the pool: patch 'rivals' is given-only (PatchLoot.NON_LOOT)",
 				"Punkphöz: leaving out ovvar:patch_tmeit-marshal from the pool: patch 'tmeit-marshal' is given-only (PatchLoot.NON_LOOT)",
 				"Punkphöz: leaving out ovvar:patch_metacrew from the pool: patch 'metacrew' is given-only (PatchLoot.NON_LOOT)"), "warnings");
+		helper.succeed();
+	}
+
+	/** The default pool is kultur's 19 chapter patterns plus Pirkko: all there with kultur loaded, all warned about without. */
+	@GameTest
+	public void defaultPoolMatchesKultur(GameTestHelper helper) {
+		var resolved = PunkphozConfig.resolve(PunkphozConfig.DEFAULT);
+		if (FabricLoader.getInstance().isModLoaded("metacraft-kultur")) {
+			helper.assertValueEqual(resolved.entries().size(), 20, "entries with kultur");
+			helper.assertValueEqual(resolved.warnings(), List.<String>of(), "warnings with kultur");
+		} else {
+			helper.assertValueEqual(resolved.entries().size(), 0, "entries without kultur");
+			helper.assertValueEqual(resolved.warnings().size(), 20, "warnings without kultur");
+			for (String warning : resolved.warnings()) {
+				if (!warning.contains("kultur:")) helper.fail("a warning that names no kultur id: " + warning);
+			}
+		}
 		helper.succeed();
 	}
 

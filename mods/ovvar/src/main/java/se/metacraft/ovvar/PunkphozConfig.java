@@ -12,6 +12,7 @@ import se.metacraft.ovvar.content.PatchLoot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 /**
  * The {@code punkphoz} block of {@code config/ovvar.json}: the wandering trader Punkphöz. Every key has a default.
@@ -29,7 +30,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public record PunkphozConfig(boolean enabled, double share, int chapterOvves, int ovvePrice, int patches, int patchPrice,
 			int poolPicks, int playersPerRoll, int maxLoaded, List<PoolEntry> pool) {
-	public static final PunkphozConfig DEFAULT = new PunkphozConfig(true, 0.25, 3, 24, 2, 6, 4, 5, 3, List.of());
+	public static final PunkphozConfig DEFAULT = new PunkphozConfig(true, 0.25, 3, 24, 2, 6, 4, 5, 3, kulturPatterns());
+
+	/** The 19 chapters' banner patterns of kultur (its catalogue order), then Pirkko: 4 emeralds each, once per visit. */
+	private static List<PoolEntry> kulturPatterns() {
+		return Stream.of("arkitektur", "bergs", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik", "ingenjor",
+						"it", "kemi", "maskin", "media", "mit", "open", "samhall", "tbas", "indek", "pirkko")
+				.map(id -> new PoolEntry(Identifier.fromNamespaceAndPath("kultur", id + "_banner_pattern"), 4, 1, 1))
+				.toList();
+	}
 
 	/** One thing in his pool: {@code count} of {@code item} for {@code price} emeralds, {@code maxUses} times. */
 	public record PoolEntry(Identifier item, int price, int count, int maxUses) {
