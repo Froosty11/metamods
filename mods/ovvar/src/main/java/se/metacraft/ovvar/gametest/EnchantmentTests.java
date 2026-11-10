@@ -5,12 +5,16 @@ import com.google.gson.JsonParser;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.EnchantmentTags;
@@ -20,6 +24,7 @@ import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
@@ -214,6 +219,41 @@ public final class EnchantmentTests {
 		helper.assertTrue(offered(holder(helper, Enchantments.PROTECTION), cfg, BREWERY), "protection offered");
 		helper.assertFalse(enabled(KEYRING, cfg, BREWERY), "keyring enabled while off");
 		helper.succeed();
+	}
+
+	/**
+	 * What a vanilla client reads on an ovve with Ender Pockets and the curse: Polymer sends the server's tooltip as lore,
+	 * each line wrapped in a white, non-italic parent, so the colour that shows is the one on the enchantment's own
+	 * text inside it: red for the curse, gray for Ender Pockets, as vanilla draws them.
+	 */
+	@GameTest
+	public void theCurseIsRedAndEnderPocketsGrayOnTheClientStack(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		ovve.enchant(holder(helper, ENDER_POCKETS), 1);
+		ovve.enchant(holder(helper, SPILLED_DRINK_CURSE), 1);
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(ovve, player.connection.getPacketContext(), helper.getLevel().registryAccess());
+		List<Component> lore = client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
+		List<String> wrong = new ArrayList<>();
+		checkShownColour(lore, "Curse of the Spilled Drink", ChatFormatting.RED, wrong);
+		checkShownColour(lore, "Ender Pockets", ChatFormatting.GRAY, wrong);
+		helper.assertTrue(wrong.isEmpty(), String.join("; ", wrong));
+		helper.succeed();
+	}
+
+	/** The colour each piece of a lore line's text is drawn in, parents' styles applied, as the client resolves it. */
+	private static void checkShownColour(List<Component> lore, String name, ChatFormatting want, List<String> wrong) {
+		Optional<Component> line = lore.stream().filter(l -> l.getString().contains(name)).findFirst();
+		if (line.isEmpty()) {
+			wrong.add("no lore line names " + name + ": " + lore.stream().map(Component::getString).toList());
+			return;
+		}
+		Set<TextColor> shown = new HashSet<>();
+		line.get().visit((style, text) -> {
+			if (!text.isBlank()) shown.add(style.getColor());
+			return Optional.empty();
+		}, Style.EMPTY);
+		if (!shown.equals(Set.of(TextColor.fromLegacyFormat(want)))) wrong.add(name + " shows in " + shown + ", wanted " + want);
 	}
 
 	@GameTest

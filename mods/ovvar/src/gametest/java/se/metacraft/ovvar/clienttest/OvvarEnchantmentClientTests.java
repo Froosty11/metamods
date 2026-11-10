@@ -11,6 +11,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -82,8 +83,15 @@ public final class OvvarEnchantmentClientTests implements FabricClientGameTest {
 						throw new AssertionError("the tooltip does not name Ender Pockets: " + tooltip);
 					Component curse = tooltip.stream().filter(line -> line.getString().contains("Curse of the Spilled Drink")).findFirst()
 							.orElseThrow(() -> new AssertionError("the tooltip does not name the curse: " + tooltip));
-					if (!java.util.Objects.equals(curse.getStyle().getColor(), Style.EMPTY.withColor(ChatFormatting.RED).getColor()))
-						throw new AssertionError("the curse is not red: " + curse.getStyle());
+					// Polymer sends the server tooltip as lore, each line a white, non-italic parent around the
+					// enchantment's own (red) name, so the colour that shows is the one the text resolves to.
+					java.util.Set<TextColor> shown = new java.util.HashSet<>();
+					curse.visit((style, text) -> {
+						if (!text.isBlank()) shown.add(style.getColor());
+						return java.util.Optional.empty();
+					}, Style.EMPTY);
+					if (!shown.equals(java.util.Set.of(TextColor.fromLegacyFormat(ChatFormatting.RED))))
+						throw new AssertionError("the curse is not red: drawn in " + shown + ", line " + curse);
 					int diamonds = count(held, Items.DIAMOND);
 					if (diamonds != 5) throw new AssertionError("the client's pockets hold " + diamonds + " diamonds, expected 5");
 				});
