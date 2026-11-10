@@ -76,6 +76,11 @@ if (project.hasProperty('ovvarBrewery')) {
 // get is the ovvar-client mod's own jar (mods/ovvar-client, Main-Class = the patcher), shipped inside the
 // resource pack at assets/ovvar/shaderpatcher/ovvar-client.jar. These source sets only run the fixtures.
 sourceSets {
+	// The combination asset names and JSON (src/combo, package se.metacraft.ovvar.combo): plain Java and Gson,
+	// compiled into this mod and into mods/ovvar-client, so the server's pack and a client's own build agree.
+	main {
+		java.srcDir 'src/combo/java'
+	}
 	patcher {
 		java.srcDir 'tools/shaderpatcher/src'
 	}
@@ -172,6 +177,13 @@ loom {
 			runDir = project.findProperty('runDir') ?: 'run'
 		}
 	}
+}
+
+// The client's golden combinations (ComboAssetsParityTests): the game tests compare the combination pack to
+// src/combo/goldens.json, which mods/ovvar-client's unit test reads; -PupdateComboGoldens rewrites it.
+tasks.matching { it.name == 'runGameTest' || it.name == 'runServer' }.configureEach {
+	jvmArgs "-Dovvar.comboGoldens=${file('src/combo/goldens.json').absolutePath}"
+	if (project.hasProperty('updateComboGoldens')) jvmArgs '-Dovvar.comboGoldens.update=true'
 }
 
 // A dev tool: the wardrobe screen composited to a PNG (WardrobeSheet), so the paper doll can be

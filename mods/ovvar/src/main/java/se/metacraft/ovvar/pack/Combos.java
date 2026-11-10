@@ -10,6 +10,7 @@ import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.compat.resource_packs.ResourcePacksCompat;
 import se.metacraft.ovvar.content.Chapter;
@@ -22,7 +23,10 @@ import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.server.MinecraftServer;
@@ -48,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * The combinations of patches the resource pack knows how to draw. Every combination ever
@@ -66,6 +71,11 @@ import java.util.function.BiConsumer;
  * With metacraft-resource-packs installed the combinations go into a small pack of their own
  * ({@link ComboPack}) instead of the Polymer pack, so sewing leaves the big pack (and every
  * client's cached copy of it) alone. Generations, claims and pushes work the same either way.
+ *
+ * A player with the ovvar-client mod builds every combination's asset on their own client
+ * ({@link #drawsCombos}, learnt from a handshake before their join packs go out): they are sent
+ * whole combinations, never the combination pack, and never a push for it. Everyone else, and
+ * anyone whose client is on another {@link ComboAssets#PROTOCOL}, gets exactly the above.
  */
 public final class Combos {
 	private Combos() {}
@@ -101,6 +111,10 @@ public final class Combos {
 	private static final Map<KeyedCombo, Set<UUID>> CLAIMED_BY = new ConcurrentHashMap<>();
 	/** Who asked to reload while a build was pending: they get the pack once it is built. */
 	private static final Set<UUID> RELOADING = ConcurrentHashMap.newKeySet();
+	/** Whose client draws every combination itself (ovvar-client on this protocol): no combination pack, ever. */
+	private static final Set<UUID> DRAWS_COMBOS = ConcurrentHashMap.newKeySet();
+	/** The ovvar-client handshake: a client that can receive on it builds combinations itself. Nothing is sent on it. */
+	public static final Identifier DRAWS_COMBOS_CHANNEL = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ComboAssets.CHANNEL_PATH);
 
 	public static void init() {
 		ServerLifecycleEvents.SERVER_STARTING.register(s -> {
@@ -130,9 +144,29 @@ public final class Combos {
 			Set<KeyedCombo> snapshot = building;
 			server.execute(() -> built(snapshot));
 		});
+		// Fabric has the client's channels by now (it holds configuration back until they arrive), and the
+		// join packs are only chosen after this, in addOptionalTasks. In doubt, no handshake: the pack goes out.
+		ServerConfigurationConnectionEvents.CONFIGURE.register((handler, s) -> {
+			UUID id = handler.getOwner().id();
+			boolean draws;
+			try {
+				draws = handshake(channel -> ServerConfigurationNetworking.canSend(handler, channel));
+			} catch (RuntimeException e) {
+				Ovvar.LOGGER.warn("[ovvar] could not read {}'s channels; sending them the combination pack", handler.getOwner().name(), e);
+				draws = false;
+			}
+			if (draws) {
+				DRAWS_COMBOS.add(id);
+				Ovvar.LOGGER.info("[ovvar] {} draws patch combinations on their client (ovvar-client): no combination pack for them", handler.getOwner().name());
+			} else {
+				DRAWS_COMBOS.remove(id);
+			}
+		});
+		ServerConfigurationConnectionEvents.DISCONNECT.register((handler, s) -> DRAWS_COMBOS.remove(handler.getOwner().id()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, s) -> {
-			// The pack they got while connecting is the current one.
+			// The pack they got while connecting is the current one (a client that draws combinations got none).
 			UUID id = handler.player.getUUID();
+			if (DRAWS_COMBOS.contains(id)) return;
 			PUSHED.put(id, generation);
 			LOADED.put(id, generation);
 		});
@@ -143,12 +177,29 @@ public final class Combos {
 			NEEDS_PUSH.remove(id);
 			LAST_PUSH.remove(id);
 			RELOADING.remove(id);
+			DRAWS_COMBOS.remove(id);
 			for (Set<UUID> claimers : CLAIMED_BY.values()) claimers.remove(id);
 		});
 		ServerTickEvents.END_SERVER_TICK.register(Combos::tick);
 	}
 
 	// ---- what a player can draw
+
+	/** Does this client handshake, given which channels it can receive on? Only on this server's own protocol. */
+	public static boolean handshake(Predicate<Identifier> canReceive) {
+		return canReceive.test(DRAWS_COMBOS_CHANNEL);
+	}
+
+	/** Does this player's client build every combination's asset itself (ovvar-client)? Any thread; false for null. */
+	public static boolean drawsCombos(@Nullable UUID player) {
+		return player != null && DRAWS_COMBOS.contains(player);
+	}
+
+	/** Tests only: a (fake) player as if they had, or had not, handshaken. */
+	public static void setDrawsCombosForTest(UUID player, boolean draws) {
+		if (draws) DRAWS_COMBOS.add(player);
+		else DRAWS_COMBOS.remove(player);
+	}
 
 	/** Does the pack a player has hold this combination? {@code player} null: the current pack. */
 	public static boolean isBuilt(Chapter chapter, Piece piece, Combo combo, @Nullable UUID player) {
@@ -224,6 +275,7 @@ public final class Combos {
 	 * already does — since a sewing session is nowhere near a fight.
 	 */
 	public static void claim(ServerPlayer player, Chapter chapter, Piece piece, Combo combo) {
+		if (drawsCombos(player.getUUID())) return;   // their client draws it already: no push
 		KeyedCombo key = key(chapter, piece, combo);
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
 			if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
@@ -239,6 +291,7 @@ public final class Combos {
 	 */
 	public static String reload(ServerPlayer player) {
 		UUID id = player.getUUID();
+		if (drawsCombos(id)) return "Your client draws every patch combination itself (ovvar-client): there is no pack to reload";
 		boolean pending = generating || !BUILT.getOrDefault(generation, Set.of()).containsAll(KNOWN);
 		if (pending) {
 			RELOADING.add(id);
@@ -317,7 +370,7 @@ public final class Combos {
 		if (NEEDS_PUSH.isEmpty()) return;
 		for (UUID id : List.copyOf(NEEDS_PUSH)) {
 			ServerPlayer player = s.getPlayerList().getPlayer(id);
-			if (player == null || PUSHED.getOrDefault(id, 0) >= generation) {
+			if (player == null || drawsCombos(id) || PUSHED.getOrDefault(id, 0) >= generation) {
 				NEEDS_PUSH.remove(id);
 				continue;
 			}
@@ -498,18 +551,9 @@ public final class Combos {
 			return String.join("-", placements.stream().sorted().map(Placement::key).toList());
 		}
 
-		/**
-		 * A key split back into its {@code spot.patch} keys. Patch ids may hold a '-' themselves
-		 * (tmeit-marshal) but never a '.', and spot ids neither, so a piece without a '.' is the
-		 * rest of the patch id before it.
-		 */
+		/** A key split back into its {@code spot.patch} keys ({@link ComboAssets#placementKeys}, shared with ovvar-client). */
 		static List<String> placementKeys(String key) {
-			List<String> out = new ArrayList<>();
-			for (String part : key.split("-")) {
-				if (!out.isEmpty() && part.indexOf('.') < 0) out.set(out.size() - 1, out.getLast() + "-" + part);
-				else out.add(part);
-			}
-			return out;
+			return ComboAssets.placementKeys(key);
 		}
 
 		public boolean isEmpty() {

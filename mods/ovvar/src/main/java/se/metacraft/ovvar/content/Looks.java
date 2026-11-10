@@ -1,6 +1,7 @@
 package se.metacraft.ovvar.content;
 
 import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.content.item.OvveFeetItem;
@@ -173,10 +174,14 @@ public final class Looks {
 		// Combinations are built per chapter; something that is not a garment has none built, and asks for none.
 		Chapter chapter = chapterOf(stack);
 
+		// A viewer with ovvar-client builds any combination from its asset name: the whole of it, no
+		// dye bits, nothing to claim (Combos#drawsCombos). A mob's garment stays on the dye for them
+		// too, the one way it is drawn for everybody.
+		boolean drawsAll = Combos.drawsCombos(player) && !MobOvvar.is(stack);
 		// The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
 		// if it fits there (few enough, designs the channel can name), else the pack must catch up.
 		int baked = core.size();
-		while (baked > 0 && (chapter == null || !Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player))) baked--;
+		while (baked > 0 && (chapter == null || !(drawsAll || Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player)))) baked--;
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
@@ -256,7 +261,7 @@ public final class Looks {
 	}
 
 	public static String assetPath(Chapter chapter, Piece piece, boolean nercabbad, String combo) {
-		return chapter.id + "/" + piece.id + (nercabbad ? "_nercabbad" : "") + (combo.isEmpty() ? "" : "/" + combo);
+		return ComboAssets.assetPath(chapter.id, piece.id, nercabbad, combo);
 	}
 
 	// ---- the dye bits

@@ -21,6 +21,8 @@ import se.metacraft.ovvar.content.Chapter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import se.metacraft.ovvar.pack.ComboPack;
+import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.ShaderPatcher;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerLevel;
@@ -55,7 +57,8 @@ import se.metacraft.ovvar.content.entity.PunkphozEntities;
  * patches' colours leave, and by two frames of the still scene being identical.
  *
  * Run: {@code ./gradlew :mods:ovvar:runClientGameTest} (opens a window). Screenshots land in
- * {@code build/run/clientGameTest/screenshots}.
+ * {@code build/run/clientGameTest/screenshots}. With {@code -PovvarClientMod} the client has the
+ * ovvar-client mod: no combination pack is pushed, and the same patches must show (built client-side).
  */
 public final class OvvarClientTests implements FabricClientGameTest {
 	/** Four patches on the front of the top: more than the dye colours carry, so the rest must come from the pack or the post pass. */
@@ -114,8 +117,20 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// the mannequins' equipment has gone out and so queued their combos.
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(20);
-				ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
-						"the pack with the ovve's and the frack's combos");
+				if (FabricLoader.getInstance().isModLoaded("ovvar-client")) {
+					// -PovvarClientMod: this client draws the combos itself. The server saw the handshake, never
+					// sends it the combination pack, and the same screenshots below must still find every patch.
+					boolean draws = server.computeOnServer(s -> Combos.drawsCombos(s.getPlayerList().getPlayerByName("Tester").getUUID()));
+					if (!draws) throw new AssertionError("the server did not see the ovvar-client handshake");
+					server.runCommand("execute as Tester run ovvar reload");
+					ctx.waitTicks(100);
+					if (ServerPackActivity.ids().contains(ComboPack.ID)) throw new AssertionError("a client with ovvar-client was sent the combination pack");
+					System.out.println("[ovvar-clienttest] ovvar-client: no combination pack; server packs pushed: " + ServerPackActivity.ids());
+				} else {
+					ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
+							"the pack with the ovve's and the frack's combos");
+					if (ComboPack.ACTIVE && !ServerPackActivity.ids().contains(ComboPack.ID)) throw new AssertionError("a vanilla client got no combination pack");
+				}
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();

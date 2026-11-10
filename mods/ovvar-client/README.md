@@ -16,7 +16,17 @@ launch; the copy starts with the original's Iris settings (`shaderpacks/<pack>.t
 
 Nothing here can fail startup: every error is logged (`[ovvar-client]`) and swallowed.
 
-No Polymer, no Fabric API dependency in `fabric.mod.json`. It is client-only and on no server deploy list;
+**Ovvar's combinations.** On an ovvar server it builds every patch combination's equipment asset itself, from
+the asset's name (`ClientCombos`, a mixin on `EquipmentAssetManager.get`, only for `ovvar:` assets no pack holds),
+with the code the server builds its combination pack with (`mods/ovvar/src/combo`, compiled into both jars). It
+tells the server with a handshake: a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
+(`Handshake`, nothing is ever sent on it). The server then skips the combination pack for this player, on join
+and mid-play, and sends whole combinations. The Polymer pack still comes from the server. On a server without
+ovvar it does nothing; on one with another protocol, or if the hook did not load, there is no handshake and the
+server pushes the pack as for vanilla. See "The ovvar-client mod" in `mods/ovvar/README.md`.
+
+No Polymer. Fabric API is recommended, not required: without it the handshake is off (the shaderpacks are still
+patched). It is client-only and on no server deploy list;
 the `dist` bundle skips it.
 
 ## Double-clicked (`java -jar`)
@@ -29,6 +39,9 @@ embeds this jar at `assets/ovvar/shaderpatcher/ovvar-client.jar` for autohost to
 
 ## Tests
 
-`./gradlew :mods:ovvar-client:test -x :mods:metacraft-lib:test`: `StartupPatchTest` (the startup patch) and
-`StandaloneJarTest` (builds the jar and runs it with `java -jar` on a fixture pack). Cloud check: "Client test
-under a shaderpack" in `mods/ovvar/README.md` (`-PovvarClientMod`).
+`./gradlew :mods:ovvar-client:test -x :mods:metacraft-lib:test`: `StartupPatchTest` (the startup patch),
+`StandaloneJarTest` (builds the jar and runs it with `java -jar` on a fixture pack) and `ComboAssetsTest` (every
+combination in `mods/ovvar/src/combo/goldens.json`, which ovvar's game tests compare to the real pack, builds byte
+for byte from its name; the mixin under Knot; the protocol pin). Cloud check (a real client):
+`./gradlew :mods:ovvar:runClientGameTest -PovvarClientMod`, and "Client test under a shaderpack" in
+`mods/ovvar/README.md`.

@@ -728,7 +728,9 @@ its highlight, the empty-state notices, the four angles and that every visible c
 its own on the one angle that draws it, that a placement is drawn by that glyph on the angle that
 shows it and by nothing on the angles that do not, the rotation buttons, the title's length and the stats readout's place, what each mode
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
-read-only and driven by the other player's design.
+read-only and driven by the other player's design. `ComboAssetsParityTests` and `ClientHandshakeTests` hold
+the ovvar-client mod's side ("The ovvar-client mod" below): the client's name-only build is byte for byte the
+pack's, and a player who handshook gets no combination pack and whole combinations while others do not.
 
 ## Adding a chapter
 
@@ -1044,6 +1046,36 @@ stays the same until the mods change; a push is a few kilobytes. Who gets pushed
 exactly as above. Each build is kept under its SHA-1 and the last three stay downloadable, so a
 player pushed one still gets it if a newer build lands before their download starts. Without the
 mod, everything goes into the Polymer pack as before.
+
+### The ovvar-client mod: no combination pack at all
+
+A player with the optional client mod (`mods/ovvar-client`, `ovvar-client.jar`) never needs the combination
+pack: an equipment asset's name spells out the whole combination, every texture it stacks is already in the
+Polymer pack, and the mod builds any `ovvar:<chapter>/<piece>[_nercabbad]/<combo>` asset its packs lack from the
+name (a mixin on `EquipmentAssetManager.get`). The names and the JSON come from `src/combo`
+(`se.metacraft.ovvar.combo.ComboAssets`, plain Java and Gson), which this mod and the client mod both compile,
+so the two cannot build a definition differently; `ComboAssetsParityTests` checks the client's name-only build
+against `ComboPack`'s bytes, and the cell table it carries against `Spot`.
+
+The handshake: the client registers a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
+(nothing is sent on it). Fabric holds configuration back until it has the client's channels, so on
+`ServerConfigurationConnectionEvents.CONFIGURE`, before the join packs are chosen, `Combos` knows. Such a
+player then gets no `ComboPack` among their join packs, is sent whole combinations (`Looks.look`: the full
+combo as the asset, no dye bits, no trim, nothing owed), is never claimed for or pushed a pack, and
+`/ovvar reload` tells them there is nothing to reload. A mob's garment stays on the dye for them, as for
+everybody. The chestplate wrap is unchanged (with the whole combination on the legs and top it carries no dye,
+the same as for a vanilla client whose pack holds the combination).
+
+The protocol is `ComboAssets.PROTOCOL`, in the channel's name: a server and a client on different protocols
+never handshake, and that client is pushed the pack as before. So is a vanilla client, a client whose hook
+did not load (its mixin config is not required; no hook, no handshake), and a client without Fabric API. Bump
+the protocol whenever a name could mean something else or build different JSON; `ComboAssetsTest` in the
+client mod pins a hash of the cell table and recipe to catch that, and reads `src/combo/goldens.json`, which
+the game tests compare to the pack (`-PupdateComboGoldens` rewrites it).
+
+What a modded player still gets: the Polymer pack on join (its loading screen stays, it holds every texture),
+and, without metacraft-resource-packs, the combinations are in that Polymer pack anyway, so what goes away
+there are the pushes mid-play. With metacraft-resource-packs the combination pack is skipped on join too.
 
 ## Square pixels
 

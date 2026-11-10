@@ -14,6 +14,8 @@ sourceSets {
 		java.srcDir '../ovvar/tools/shaderpatcher/src'
 	}
 	main {
+		// ovvar's combination names and JSON (mods/ovvar/src/combo), the very source the server builds its pack from
+		java.srcDir '../ovvar/src/combo/java'
 		compileClasspath += patcher.output
 		runtimeClasspath += patcher.output
 	}
