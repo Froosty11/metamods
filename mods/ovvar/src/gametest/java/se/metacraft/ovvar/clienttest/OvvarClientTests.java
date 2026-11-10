@@ -256,7 +256,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(40);
 				BufferedImage first = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_front").withSize(1920, 1080)));
-				int shown = differing(empty, first);
+				int shown = differingInCrop(empty, first);
 				System.out.println("[ovvar-clienttest] punkphoz changed pixels=" + shown);
 				if (shown < 4000) throw new AssertionError("Punkphoz's model doesn't show: only " + shown + " pixels differ from the empty view");
 
@@ -286,7 +286,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					Punkphoz punkphoz = level.getEntities(PunkphozEntities.PUNKPHOZ, p -> true).getFirst();
 					punkphoz.hurtServer(level, level.damageSources().generic(), 0f);
 					TraderLlama llama = new TraderLlama(EntityTypes.TRADER_LLAMA, level);
-					llama.setPos(2.5, -60, 3.5);
+					llama.setPos(4.5, -60, 3.5); // four blocks to the side: well outside the centre crop the model is measured in
 					level.addFreshEntity(llama);
 					llama.setLeashedTo(punkphoz, true);
 				});
@@ -294,11 +294,21 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				ctx.waitTicks(40);
 				if (!ctx.computeOnClient(client -> client.getConnection() != null && client.level != null)) throw new AssertionError("the client lost its connection");
 				BufferedImage second = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_hurt").withSize(1920, 1080)));
-				int after = differing(empty, second);
+				int after = differingInCrop(empty, second);
 				System.out.println("[ovvar-clienttest] punkphoz changed pixels after hurt and leash=" + after);
 				if (after < 4000) throw new AssertionError("Punkphoz is gone or unseen after being hurt: only " + after + " pixels differ from the empty view");
 			}
 		}
+	}
+
+	/**
+	 * How many pixels differ in a centre crop around Punkphöz (as the traders' client test measures its trader: 260 px wide, chest to
+	 * knees, in the middle of the view; the 4000-pixel threshold is the same as there). The leashed llama stands four blocks to the
+	 * side, about a thousand pixels from the middle, so it can't count towards the crop.
+	 */
+	private static int differingInCrop(BufferedImage a, BufferedImage b) {
+		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 4 / 10, w = 260, h = a.getHeight() * 3 / 10;
+		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
 	}
 
 	/** How many pixels of the two same-sized images differ noticeably. */
