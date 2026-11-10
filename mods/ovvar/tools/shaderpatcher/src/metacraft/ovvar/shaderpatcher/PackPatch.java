@@ -161,6 +161,12 @@ public final class PackPatch {
 				say("  " + frag + ": no matching vertex program found; skipped");
 				continue;
 			}
+			// Both stages in one file: without both stage markers there is no telling where one ends, and the
+			// vertex code would land in the fragment main().
+			if (vert.equals(frag) && (!FRAGMENT_MARKER.matcher(fragText).find() || !VERTEX_MARKER.matcher(fragText).find())) {
+				say("  " + frag + ": one file for both stages, but no #ifdef FSH/VSH-style stage markers found; skipped");
+				continue;
+			}
 			boolean changed = false;
 			String[] program = patchProgram(files, frag, fragText, vert, vertText);
 			if (program != null) {
