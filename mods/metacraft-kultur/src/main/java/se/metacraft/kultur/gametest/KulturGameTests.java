@@ -26,6 +26,12 @@ import net.minecraft.tags.BannerPatternTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.PaintingVariantTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.decoration.painting.PaintingVariant;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BannerPattern;
@@ -228,6 +234,45 @@ public final class KulturGameTests {
 			helper.fail("building the pack failed: " + e);
 			return null;
 		}
+	}
+
+	/** Rolls a loot table {@code rolls} times and counts the kultur pattern items it hands out, by pattern id. */
+	private static Map<String, Integer> rollPatterns(GameTestHelper helper, net.minecraft.resources.ResourceKey<LootTable> key, int rolls) {
+		LootTable table = helper.getLevel().getServer().reloadableRegistries().getLootTable(key);
+		LootParams params = new LootParams.Builder(helper.getLevel())
+				.withParameter(LootContextParams.ORIGIN, helper.absoluteVec(new Vec3(1, 1, 1)))
+				.create(LootContextParamSets.CHEST);
+		Map<String, Integer> found = new HashMap<>();
+		for (int i = 0; i < rolls; i++) {
+			table.getRandomItems(params).forEach(stack -> {
+				if (!(stack.getItem() instanceof PatternItem item)) return;
+				for (Map.Entry<String, PatternItem> e : ModContent.items().entrySet()) {
+					if (e.getValue() == item) found.merge(e.getKey(), 1, Integer::sum);
+				}
+			});
+		}
+		return found;
+	}
+
+	@GameTest
+	public void structureChestsHoldChapterPatterns(GameTestHelper helper) {
+		Map<String, Integer> found = rollPatterns(helper, BuiltInLootTables.SIMPLE_DUNGEON, 4000);
+		int total = found.values().stream().mapToInt(Integer::intValue).sum();
+		Kultur.LOGGER.info("[kultur-test] 4000 dungeon rolls held {} pattern item(s): {}", total, found);
+		helper.assertTrue(total >= 40, "4000 dungeon chests held only " + total + " pattern items: " + found);
+		for (String id : found.keySet()) {
+			boolean loot = Kultur.catalogue().patterns().stream().anyMatch(o -> o.value().id().equals(id) && o.value().loot());
+			helper.assertTrue(loot, "a dungeon chest held " + id + ", which is not loot");
+		}
+		helper.assertFalse(found.containsKey("pirkko"), "a dungeon chest held the pirkko pattern");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void bonusChestHoldsNone(GameTestHelper helper) {
+		Map<String, Integer> found = rollPatterns(helper, BuiltInLootTables.SPAWN_BONUS_CHEST, 2000);
+		helper.assertTrue(found.isEmpty(), "the bonus chest held " + found);
+		helper.succeed();
 	}
 
 	private static JsonObject lang(Map<String, byte[]> pack, String language) {
