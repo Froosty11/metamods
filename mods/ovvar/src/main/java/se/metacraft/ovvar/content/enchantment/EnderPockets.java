@@ -3,12 +3,14 @@ package se.metacraft.ovvar.content.enchantment;
 import com.mojang.authlib.GameProfile;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.network.Connection;
+import net.minecraft.network.HashedStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket;
@@ -47,7 +49,13 @@ import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.item.OvveItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -63,6 +71,11 @@ import java.util.function.Supplier;
  * handed over marked {@link ModComponents#ENDER_NESTED} and shows empty pockets. A marker, not only a
  * flag for the duration of the call, because Polymer turns nested stacks into client stacks later,
  * while the packet is encoded on the network thread, after {@link #clientStack} has returned.
+ *
+ * The server's ovve does not change when the ender chest does, so the menus' slot sync (vanilla's, and
+ * Polymer's, which compares server stacks once a slot has been sent) never resends it by itself. So
+ * {@link #tick} keeps a copy of the ender chest of every player who has an Ender Pockets ovve in an open
+ * menu or on the cursor, and when it differs, or a preview read tore, resends those slots ({@link #resend}).
  */
 public final class EnderPockets {
 	private EnderPockets() {}
@@ -77,9 +90,15 @@ public final class EnderPockets {
 	/** The view a client stack is being built with, while {@link #clientStack} runs on this thread; null otherwise. */
 	private static final ThreadLocal<BundleContents> BUILDING = new ThreadLocal<>();
 
+	/** Server thread only: the ender chest as last seen, for each player who has an Ender Pockets ovve to keep current. */
+	private static final Map<UUID, List<ItemStack>> SEEN = new HashMap<>();
+	/** Players whose preview read tore on the network thread ({@link #view}): resent at the end of the tick. */
+	private static final Set<UUID> TORN = ConcurrentHashMap.newKeySet();
+
 	public static void init() {
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.addPhaseOrdering(Event.DEFAULT_PHASE, FILL_BAR_PHASE);
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(FILL_BAR_PHASE, EnderPockets::fillBar);
+		ServerTickEvents.END_SERVER_TICK.register(EnderPockets::tick);
 	}
 
 	public static boolean has(ItemStack ovve) {
@@ -122,9 +141,10 @@ public final class EnderPockets {
 				if (!stack.isEmpty()) items.add(ItemStackTemplate.fromNonEmptyStack(forView(stack, 0)));
 			}
 		} catch (RuntimeException e) {
-			// The network thread builds client stacks while the server thread may be changing the chest; the
-			// next sync shows the settled state, so a torn read shows nothing rather than failing the packet.
+			// The network thread builds client stacks while the server thread may be changing the chest: a torn
+			// read shows nothing rather than failing the packet, and the slot is resent at the end of the tick.
 			Ovvar.LOGGER.debug("[{}] ender pockets: reading {}'s ender chest: {}", Ovvar.MOD_ID, viewer.getUUID(), e.toString());
+			TORN.add(viewer.getUUID());
 			return BundleContents.EMPTY;
 		}
 		BundleContents view = new BundleContents(items);
@@ -204,11 +224,17 @@ public final class EnderPockets {
 			return true;
 		}
 		if (action == ClickAction.SECONDARY && other.isEmpty()) {
-			ItemStack removed = takeOut(player, ovve);
-			if (!removed.isEmpty()) {
+			Container ender = player.getEnderChestInventory();
+			int from = takeOutSlot(ender, ovve);
+			// A slot that refuses the stack (an armour slot, a result slot) leaves it where it is in the chest.
+			if (from >= 0 && slot.mayPlace(ender.getItem(from))) {
+				ItemStack removed = takeOut(player, ovve);
 				ItemStack rest = slot.safeInsert(removed);
-				if (rest.isEmpty()) playRemoveOne(player);
-				else putBack(player, rest);
+				if (rest.getCount() < removed.getCount()) playRemoveOne(player);
+				putBack(player, rest);
+			} else {
+				ovve.remove(ModComponents.ENDER_SELECTED);
+				playInsertFail(player);
 			}
 			afterClick(player, slot);
 			return true;
@@ -273,15 +299,27 @@ public final class EnderPockets {
 		return room;
 	}
 
-	/** Takes the whole selected stack (or the newest, with none selected) out of the ender chest; clears the selection like the bundle does. */
+	/**
+	 * The ender slot {@link #takeOut} would empty: the selected one, or, with nothing selected or a selection
+	 * that no longer maps to a stack, the newest. Never the ovve itself (it may sit in the ender chest, and is
+	 * not something to take out of its own pockets): then the newest other stack. −1 if there is none.
+	 */
+	private static int takeOutSlot(Container ender, ItemStack ovve) {
+		int slot = slotIn(ender, ovve.getOrDefault(ModComponents.ENDER_SELECTED, -1));
+		if (slot >= 0 && ender.getItem(slot) != ovve) return slot;
+		for (int i = ender.getContainerSize() - 1; i >= 0; i--) {
+			ItemStack there = ender.getItem(i);
+			if (!there.isEmpty() && there != ovve) return i;
+		}
+		return -1;
+	}
+
+	/** Takes the whole selected stack (see {@link #takeOutSlot}) out of the ender chest; clears the selection like the bundle does. */
 	private static ItemStack takeOut(Player player, ItemStack ovve) {
-		int selected = ovve.getOrDefault(ModComponents.ENDER_SELECTED, -1);
-		ovve.remove(ModComponents.ENDER_SELECTED);
 		Container ender = player.getEnderChestInventory();
-		int slot = slotIn(ender, selected);
-		if (slot < 0) slot = slotIn(ender, 0);
-		// The ovve itself sitting in the ender chest is not something to take out of its own pockets.
-		if (slot < 0 || ender.getItem(slot) == ovve) return ItemStack.EMPTY;
+		int slot = takeOutSlot(ender, ovve);
+		ovve.remove(ModComponents.ENDER_SELECTED);
+		if (slot < 0) return ItemStack.EMPTY;
 		ItemStack taken = ender.getItem(slot);
 		ender.setItem(slot, ItemStack.EMPTY);
 		return taken;
@@ -329,6 +367,100 @@ public final class EnderPockets {
 			p.connection.send(new ClientboundContainerSetSlotPacket(menu.containerId, menu.incrementStateId(), slot.index, slot.getItem().copy()));
 			p.connection.send(new ClientboundSetCursorItemPacket(menu.getCarried().copy()));
 		});
+	}
+
+	// ---- keeping the preview current
+
+	/**
+	 * END_SERVER_TICK: for every player with an Ender Pockets ovve in an open menu or on the cursor, compares the
+	 * ender chest with its copy from the last tick and, if it changed (a block's screen, the screen {@link #open}
+	 * opens, a second ovve, a command) or a preview read tore, resends those slots. Players without one cost a
+	 * scan of their menus' slots; nothing here throws.
+	 */
+	private static void tick(MinecraftServer server) {
+		List<ServerPlayer> players = server.getPlayerList().getPlayers();
+		if (SEEN.size() > players.size() || TORN.size() > players.size()) {
+			Set<UUID> online = new HashSet<>();
+			for (ServerPlayer player : players) online.add(player.getUUID());
+			SEEN.keySet().retainAll(online);
+			TORN.retainAll(online);
+		}
+		for (ServerPlayer player : players) {
+			try {
+				refresh(player);
+			} catch (RuntimeException e) {
+				Ovvar.LOGGER.debug("[{}] ender pockets: keeping {}'s preview current: {}", Ovvar.MOD_ID, player.getUUID(), e.toString());
+			}
+		}
+	}
+
+	private static void refresh(ServerPlayer player) {
+		UUID id = player.getUUID();
+		if (!carries(player)) {
+			SEEN.remove(id);
+			TORN.remove(id);
+			return;
+		}
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		List<ItemStack> seen = SEEN.get(id);
+		boolean changed = seen != null && !same(seen, ender);
+		if (seen == null || changed) SEEN.put(id, snapshot(ender));
+		// The first time a player has one, its slot was just sent with the chest as it is.
+		if (TORN.remove(id) || changed) resend(player);
+	}
+
+	private static boolean carries(ServerPlayer player) {
+		AbstractContainerMenu open = player.containerMenu;
+		if (anyIn(open)) return true;
+		return open != player.inventoryMenu && anyIn(player.inventoryMenu);
+	}
+
+	private static boolean anyIn(AbstractContainerMenu menu) {
+		if (isEnderOvve(menu.getCarried())) return true;
+		for (Slot slot : menu.slots) if (isEnderOvve(slot.getItem())) return true;
+		return false;
+	}
+
+	private static boolean isEnderOvve(ItemStack stack) {
+		return stack.getItem() instanceof OvveItem && has(stack);
+	}
+
+	private static boolean same(List<ItemStack> seen, Container ender) {
+		if (seen.size() != ender.getContainerSize()) return false;
+		for (int i = 0; i < seen.size(); i++) if (!ItemStack.matches(seen.get(i), ender.getItem(i))) return false;
+		return true;
+	}
+
+	private static List<ItemStack> snapshot(Container ender) {
+		List<ItemStack> copy = new ArrayList<>(ender.getContainerSize());
+		for (int i = 0; i < ender.getContainerSize(); i++) copy.add(ender.getItem(i).copy());
+		return copy;
+	}
+
+	/**
+	 * Makes the menus believe the client has nothing in each slot (and cursor) holding an Ender Pockets ovve,
+	 * so their next {@code broadcastChanges} sends it with the chest as it is now, and sends the open menu's
+	 * at once. The inventory menu behind an open screen goes when it is back in front (its armour and offhand
+	 * slots; the rest the open menu has just sent). A selection made in the old view is cleared, since its
+	 * index may now point at a different stack.
+	 */
+	private static void resend(ServerPlayer player) {
+		forget(player.containerMenu);
+		if (player.containerMenu != player.inventoryMenu) forget(player.inventoryMenu);
+		player.containerMenu.broadcastChanges();
+	}
+
+	private static void forget(AbstractContainerMenu menu) {
+		for (int i = 0; i < menu.slots.size(); i++) {
+			ItemStack stack = menu.slots.get(i).getItem();
+			if (!isEnderOvve(stack)) continue;
+			stack.remove(ModComponents.ENDER_SELECTED);
+			menu.setRemoteSlot(i, ItemStack.EMPTY);
+		}
+		if (isEnderOvve(menu.getCarried())) {
+			menu.getCarried().remove(ModComponents.ENDER_SELECTED);
+			menu.setRemoteCarried(HashedStack.EMPTY);
+		}
 	}
 
 	// ---- use

@@ -220,6 +220,177 @@ public final class EnderPocketsTests {
 		helper.succeed();
 	}
 
+	// ---- the ovve on the cursor (stackedOnOther), every item counted before and after
+
+	/** Every item of {@code item} the player has anywhere: inventory, cursor, ender chest, and on the ground near them since {@code before}. */
+	private static int total(GameTestHelper helper, ServerPlayer player, net.minecraft.world.item.Item item, Set<UUID> before) {
+		int n = player.inventoryMenu.getCarried().is(item) ? player.inventoryMenu.getCarried().getCount() : 0;
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			ItemStack s = player.getInventory().getItem(i);
+			if (s.is(item)) n += s.getCount();
+		}
+		for (ItemStack s : player.getEnderChestInventory().getItems()) if (s.is(item)) n += s.getCount();
+		for (ItemEntity e : newItemsNear(helper, player, 4, before)) if (e.getItem().is(item)) n += e.getItem().getCount();
+		return n;
+	}
+
+	@GameTest
+	public void cursorPrimaryMovesOnlyWhatFits(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		for (int slot = 1; slot < ender.getContainerSize(); slot++) ender.setItem(slot, new ItemStack(Items.STONE, 64));
+		ender.setItem(0, new ItemStack(Items.DIRT, 40));
+		player.getInventory().setItem(9, new ItemStack(Items.DIRT, 64));
+		player.inventoryMenu.setCarried(enderOvve(helper));
+		Set<UUID> before = itemIds(helper, player, 4);
+		int dirt = total(helper, player, Items.DIRT, before), stone = total(helper, player, Items.STONE, before);
+		player.inventoryMenu.clicked(9, 0, ContainerInput.PICKUP, player);
+		assertStack(helper, ender.getItem(0), Items.DIRT, 64, "ender slot 0 filled up");
+		assertStack(helper, player.getInventory().getItem(9), Items.DIRT, 40, "the rest stays in the slot");
+		helper.assertTrue(EnderPockets.has(player.inventoryMenu.getCarried()), "the ovve is still on the cursor: " + player.inventoryMenu.getCarried());
+		helper.assertValueEqual(total(helper, player, Items.DIRT, before), dirt, "dirt conserved");
+		helper.assertValueEqual(total(helper, player, Items.STONE, before), stone, "stone conserved");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void cursorSecondaryTakesTheSelectedStack(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(2, new ItemStack(Items.APPLE, 3));
+		ender.setItem(5, new ItemStack(Items.STONE, 10));
+		Set<UUID> before = itemIds(helper, player, 4);
+		int apples = total(helper, player, Items.APPLE, before), stone = total(helper, player, Items.STONE, before);
+
+		// Nothing selected: the newest (ender slot 5) lands in the empty slot.
+		player.inventoryMenu.setCarried(enderOvve(helper));
+		player.inventoryMenu.clicked(10, 1, ContainerInput.PICKUP, player);
+		assertStack(helper, player.getInventory().getItem(10), Items.STONE, 10, "the newest stack in slot 10");
+		helper.assertTrue(ender.getItem(5).isEmpty(), "ender slot 5 emptied");
+
+		// The view is [dirt (slot 5), apples (slot 2)]: index 1 selects the apples.
+		player.getEnderChestInventory().setItem(5, new ItemStack(Items.DIRT, 1));
+		player.inventoryMenu.getCarried().set(ModComponents.ENDER_SELECTED, 1);
+		player.inventoryMenu.clicked(11, 1, ContainerInput.PICKUP, player);
+		assertStack(helper, player.getInventory().getItem(11), Items.APPLE, 3, "the selected stack in slot 11");
+		helper.assertTrue(ender.getItem(2).isEmpty(), "ender slot 2 emptied");
+		assertStack(helper, ender.getItem(5), Items.DIRT, 1, "the unselected stack stays");
+		helper.assertFalse(player.inventoryMenu.getCarried().has(ModComponents.ENDER_SELECTED), "the selection is cleared");
+		helper.assertTrue(EnderPockets.has(player.inventoryMenu.getCarried()), "the ovve is still on the cursor");
+		helper.assertValueEqual(total(helper, player, Items.APPLE, before), apples, "apples conserved");
+		helper.assertValueEqual(total(helper, player, Items.STONE, before), stone, "stone conserved");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void cursorSecondaryStaleSelectionFallsBack(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(4, new ItemStack(Items.APPLE, 2));
+		ItemStack ovve = enderOvve(helper);
+		// Selected in a view that had more entries than the chest has now.
+		ovve.set(ModComponents.ENDER_SELECTED, 5);
+		player.inventoryMenu.setCarried(ovve);
+		player.inventoryMenu.clicked(10, 1, ContainerInput.PICKUP, player);
+		assertStack(helper, player.getInventory().getItem(10), Items.APPLE, 2, "the newest stack instead");
+		helper.assertTrue(ender.isEmpty(), "the ender chest is empty");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void cursorOntoARefusingSlotMovesNothing(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(5, new ItemStack(Items.STONE, 10));
+		Set<UUID> before = itemIds(helper, player, 4);
+		int stone = total(helper, player, Items.STONE, before);
+
+		// The feet slot (inventory menu slot 8) refuses stone.
+		player.inventoryMenu.setCarried(enderOvve(helper));
+		player.inventoryMenu.clicked(8, 1, ContainerInput.PICKUP, player);
+		helper.assertTrue(player.getItemBySlot(EquipmentSlot.FEET).isEmpty(), "the feet slot stays empty: " + player.getItemBySlot(EquipmentSlot.FEET));
+		assertStack(helper, ender.getItem(5), Items.STONE, 10, "the stone stays in ender slot 5");
+		helper.assertTrue(EnderPockets.has(player.inventoryMenu.getCarried()), "the ovve is still on the cursor");
+		helper.assertValueEqual(total(helper, player, Items.STONE, before), stone, "stone conserved");
+
+		// The crafting result slot (inventory menu slot 0) takes nothing put in.
+		player.inventoryMenu.clicked(0, 1, ContainerInput.PICKUP, player);
+		helper.assertTrue(player.inventoryMenu.getSlot(0).getItem().isEmpty(), "the result slot stays empty: " + player.inventoryMenu.getSlot(0).getItem());
+		assertStack(helper, ender.getItem(5), Items.STONE, 10, "the ender chest unchanged");
+		helper.assertValueEqual(total(helper, player, Items.STONE, before), stone, "stone still conserved");
+		helper.assertValueEqual((int) ender.getItems().stream().filter(s -> !s.isEmpty()).count(), 1, "one stack in the ender chest");
+		helper.succeed();
+	}
+
+	// ---- the preview follows the ender chest
+
+	private static io.netty.channel.embedded.EmbeddedChannel channel(GameTestHelper helper, ServerPlayer player) {
+		try {
+			var field = net.minecraft.network.Connection.class.getDeclaredField("channel");
+			field.setAccessible(true);
+			var connection = net.minecraft.server.network.ServerCommonPacketListenerImpl.class.getDeclaredField("connection");
+			connection.setAccessible(true);
+			return (io.netty.channel.embedded.EmbeddedChannel) field.get(connection.get(player.connection));
+		} catch (ReflectiveOperationException | ClassCastException | NullPointerException e) {
+			helper.fail("can't reach the mock player's channel: " + e);
+			return null;
+		}
+	}
+
+	/** The slot packets for {@code slot} of menu {@code containerId} sent since the last call, as the client would see them. */
+	private static List<ItemStack> sentSlots(GameTestHelper helper, ServerPlayer player, io.netty.channel.embedded.EmbeddedChannel channel, int containerId, int slot) {
+		List<ItemStack> sent = new java.util.ArrayList<>();
+		channel.runPendingTasks();
+		Object packet;
+		while ((packet = channel.readOutbound()) != null) {
+			if (packet instanceof net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket set && set.getContainerId() == containerId && set.getSlot() == slot) {
+				sent.add(PolymerItemUtils.getPolymerItemStack(set.getItem(), player.connection.getPacketContext(), helper.getLevel().registryAccess()));
+			}
+		}
+		return sent;
+	}
+
+	private static int shown(ItemStack client, net.minecraft.world.item.Item item) {
+		BundleContents shown = client.get(DataComponents.BUNDLE_CONTENTS);
+		if (shown == null) return 0;
+		int n = 0;
+		for (ItemStackTemplate t : shown.items()) if (t.item().value() == item) n += t.count();
+		return n;
+	}
+
+	/**
+	 * The server's ovve never changes when the ender chest does, so vanilla's (and Polymer's) slot sync never
+	 * resends it on its own: EnderPockets watches the chests of players carrying one and resends those slots.
+	 */
+	@GameTest(maxTicks = 40)
+	public void enderChangesReachThePreview(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		player.getInventory().setItem(9, enderOvve(helper));
+		player.setItemSlot(EquipmentSlot.LEGS, enderOvve(helper));
+		var channel = channel(helper, player);
+		player.containerMenu.broadcastChanges();
+		sentSlots(helper, player, channel, 0, 9);
+		helper.runAfterDelay(2, () -> {
+			player.containerMenu.broadcastChanges();
+			sentSlots(helper, player, channel, 0, 9);
+			player.getEnderChestInventory().setItem(1, new ItemStack(Items.EMERALD, 3));
+			int[] seen = new int[2];
+			helper.succeedWhen(() -> {
+				channel.runPendingTasks();
+				Object packet;
+				while ((packet = channel.readOutbound()) != null) {
+					if (packet instanceof net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket set && set.getContainerId() == 0) {
+						ItemStack client = PolymerItemUtils.getPolymerItemStack(set.getItem(), player.connection.getPacketContext(), helper.getLevel().registryAccess());
+						if (set.getSlot() == 9 && shown(client, Items.EMERALD) == 3) seen[0] = 1;
+						if (set.getSlot() == 7 && shown(client, Items.EMERALD) == 3) seen[1] = 1;
+					}
+				}
+				helper.assertTrue(seen[0] == 1, "the carried ovve's slot was resent with the emeralds");
+				helper.assertTrue(seen[1] == 1, "the worn ovve's slot was resent with the emeralds");
+			});
+		});
+	}
+
 	@GameTest
 	public void useOpensTheEnderChest(GameTestHelper helper) {
 		ServerPlayer player = survivor(helper);
