@@ -9,8 +9,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
@@ -19,12 +22,14 @@ import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.TradeWithPlayerGoal;
 import net.minecraft.world.entity.ai.goal.UseItemGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
+import net.minecraft.world.entity.animal.equine.TraderLlama;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.saveddata.WanderingTraderData;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
@@ -46,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -537,25 +543,158 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	@GameTest
+	/**
+	 * The mixin's spawn path end to end: with {@code TARGET} set, the overworld's own {@code WanderingTraderSpawner}
+	 * runs vanilla's {@code spawn} for him. Five calls make five Punkphözes although vanilla's one-in-ten gate would
+	 * pass only one in ten of them, each near the player, with vanilla's despawn delay and its llamas, and the
+	 * spawner's chance and delay ({@code WanderingTraderData}) untouched. It spawns into the world around the test,
+	 * so it takes {@link WardrobeTests#BUSY} and discards all it made.
+	 */
+	@GameTest(maxTicks = 400)
+	public void spawnerBringsPunkphoz(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		helper.startSequence()
+				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
+				.thenExecute(() -> {
+					ServerPlayer player = helper.makeMockServerPlayerInLevel();
+					List<Entity> made = new ArrayList<>();
+					try {
+						BlockPos at = helper.absolutePos(new BlockPos(1, 1, 1));
+						player.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+						WanderingTraderSpawner spawner = overworldSpawner(level);
+						WanderingTraderData data = traderData(spawner);
+						int chance = data.spawnChance(), delay = data.spawnDelay();
+						for (int i = 0; i < 5; i++) {
+							Set<WanderingTrader> before = new HashSet<>(traders(level));
+							PunkphozSpawning.TARGET.set(player);
+							boolean spawned;
+							try {
+								spawned = spawn(spawner, level);
+							} finally {
+								PunkphozSpawning.TARGET.remove();
+							}
+							List<WanderingTrader> fresh = traders(level).stream().filter(t -> !before.contains(t)).toList();
+							made.addAll(fresh);
+							for (WanderingTrader trader : fresh) made.addAll(llamasOf(level, trader));
+							WardrobeTests.assertThat(spawned, "spawn " + i + " returned false (gate or no room)");
+							WardrobeTests.assertThat(fresh.size() == 1, "spawn " + i + " made " + fresh.size() + " traders");
+							WanderingTrader trader = fresh.getFirst();
+							WardrobeTests.assertThat(trader instanceof Punkphoz, "spawn " + i + " made a " + trader.getType() + ", not Punkphöz");
+							WardrobeTests.assertThat(trader.getType() == PunkphozEntities.PUNKPHOZ, "spawn " + i + "'s type " + trader.getType());
+							// Vanilla picks x and z each within 48 blocks of the player (no meeting point here).
+							double dx = Math.abs(trader.getX() - player.getX()), dz = Math.abs(trader.getZ() - player.getZ());
+							WardrobeTests.assertThat(dx <= 49 && dz <= 49, "spawn " + i + " landed " + dx + ", " + dz + " blocks from the player");
+							WardrobeTests.assertThat(trader.getDespawnDelay() == 48000, "spawn " + i + "'s despawn delay " + trader.getDespawnDelay());
+							WardrobeTests.assertThat(!llamasOf(level, trader).isEmpty(), "spawn " + i + " brought no llama");
+						}
+						WardrobeTests.assertThat(data.spawnChance() == chance, "spawn chance moved: " + chance + " -> " + data.spawnChance());
+						WardrobeTests.assertThat(data.spawnDelay() == delay, "spawn delay moved: " + delay + " -> " + data.spawnDelay());
+						WardrobeTests.assertThat(traderData(spawner) == data, "the spawner's trader data was replaced");
+					} finally {
+						made.forEach(Entity::discard);
+						level.getServer().getPlayerList().remove(player);
+						WardrobeTests.BUSY.set(false);
+					}
+				})
+				.thenSucceed();
+	}
+
+	/**
+	 * With {@code TARGET} unset the same {@code spawn} is vanilla's: it keeps calling until vanilla's gate lets one
+	 * through, and every trader that comes is a plain wandering trader. {@code /summon} makes a plain one too.
+	 */
+	@GameTest(maxTicks = 400)
 	public void typeOnlySwapsWhileSpawning(GameTestHelper helper) {
-		if (PunkphozSpawning.TARGET.get() != null) helper.fail("TARGET is set outside a spawn");
-		var level = helper.getLevel();
-		BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
-		var source = level.getServer().createCommandSourceStack().withLevel(level).withSuppressedOutput();
-		level.getServer().getCommands().performPrefixedCommand(source,
-				"summon minecraft:wandering_trader " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
-		var traders = level.getEntities(EntityTypeTest.forClass(WanderingTrader.class), new AABB(pos).inflate(2), e -> true);
-		if (traders.isEmpty()) {
-			helper.fail("/summon made no wandering trader");
-			return;
+		ServerLevel level = helper.getLevel();
+		helper.startSequence()
+				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
+				.thenExecute(() -> {
+					ServerPlayer player = helper.makeMockServerPlayerInLevel();
+					List<Entity> made = new ArrayList<>();
+					try {
+						WardrobeTests.assertThat(PunkphozSpawning.TARGET.get() == null, "TARGET is set outside a spawn");
+						BlockPos at = helper.absolutePos(new BlockPos(1, 1, 1));
+						player.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+						WanderingTraderSpawner spawner = overworldSpawner(level);
+						int calls = 0;
+						// Vanilla's gate passes one in ten; 300 calls all failing is about 2e-14.
+						while (calls < 300 && made.isEmpty()) {
+							Set<WanderingTrader> before = new HashSet<>(traders(level));
+							spawn(spawner, level);
+							calls++;
+							for (WanderingTrader trader : traders(level)) {
+								if (before.contains(trader)) continue;
+								made.add(trader);
+								made.addAll(llamasOf(level, trader));
+							}
+						}
+						WardrobeTests.assertThat(!made.isEmpty(), "no trader came in " + calls + " vanilla spawns");
+						for (Entity entity : made) {
+							if (!(entity instanceof WanderingTrader trader)) continue;
+							WardrobeTests.assertThat(!(trader instanceof Punkphoz), "vanilla's spawn made a Punkphöz");
+							WardrobeTests.assertThat(trader.getType() == EntityTypes.WANDERING_TRADER, "vanilla's spawn made a " + trader.getType());
+						}
+
+						var source = level.getServer().createCommandSourceStack().withLevel(level).withSuppressedOutput();
+						level.getServer().getCommands().performPrefixedCommand(source,
+								"summon minecraft:wandering_trader " + at.getX() + " " + at.getY() + " " + at.getZ());
+						var summoned = level.getEntities(EntityTypeTest.forClass(WanderingTrader.class), new AABB(at).inflate(2), e -> !made.contains(e));
+						made.addAll(summoned);
+						WardrobeTests.assertThat(!summoned.isEmpty(), "/summon made no wandering trader");
+						for (WanderingTrader trader : summoned) {
+							WardrobeTests.assertThat(!(trader instanceof Punkphoz), "/summon wandering_trader made a Punkphöz");
+							WardrobeTests.assertThat(trader.getType() == EntityTypes.WANDERING_TRADER, "the summoned trader's type " + trader.getType());
+						}
+					} finally {
+						made.forEach(Entity::discard);
+						level.getServer().getPlayerList().remove(player);
+						WardrobeTests.BUSY.set(false);
+					}
+				})
+				.thenSucceed();
+	}
+
+	private static List<WanderingTrader> traders(ServerLevel level) {
+		return new ArrayList<>(level.getEntities(EntityTypeTest.forClass(WanderingTrader.class), e -> true));
+	}
+
+	private static List<TraderLlama> llamasOf(ServerLevel level, WanderingTrader trader) {
+		return level.getEntities(EntityTypeTest.forClass(TraderLlama.class), trader.getBoundingBox().inflate(16),
+				llama -> llama.getLeashHolder() == trader);
+	}
+
+	/** The overworld's {@code WanderingTraderSpawner}, from {@code ServerLevel.customSpawners}. */
+	private static WanderingTraderSpawner overworldSpawner(ServerLevel level) {
+		try {
+			Field field = ServerLevel.class.getDeclaredField("customSpawners");
+			field.setAccessible(true);
+			for (Object spawner : (List<?>) field.get(level.getServer().overworld())) {
+				if (spawner instanceof WanderingTraderSpawner wandering) return wandering;
+			}
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("ServerLevel.customSpawners", e);
 		}
-		for (WanderingTrader trader : traders) {
-			if (trader instanceof Punkphoz) helper.fail("/summon wandering_trader made a Punkphöz");
-			helper.assertValueEqual(trader.getType(), EntityTypes.WANDERING_TRADER, "the summoned trader's type");
-			trader.discard();
+		throw new IllegalStateException("the overworld has no WanderingTraderSpawner");
+	}
+
+	private static WanderingTraderData traderData(WanderingTraderSpawner spawner) {
+		try {
+			Method method = WanderingTraderSpawner.class.getDeclaredMethod("getTraderData");
+			method.setAccessible(true);
+			return (WanderingTraderData) method.invoke(spawner);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("WanderingTraderSpawner.getTraderData", e);
 		}
-		helper.succeed();
+	}
+
+	private static boolean spawn(WanderingTraderSpawner spawner, ServerLevel level) {
+		try {
+			Method method = WanderingTraderSpawner.class.getDeclaredMethod("spawn", ServerLevel.class);
+			method.setAccessible(true);
+			return (boolean) method.invoke(spawner, level);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("WanderingTraderSpawner.spawn", e);
+		}
 	}
 
 	private static List<String> describe(MerchantOffers offers) {
