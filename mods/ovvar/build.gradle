@@ -235,17 +235,18 @@ if (clientMod) {
 	}
 }
 // -PtextColours: NametagColoursClientTests runs (chapter colours on nametags). The test copy of the
-// chapter-text-colors resource pack goes into the client run dir's resourcepacks, and the test turns it on
-// itself (options.txt is left alone). Meant with -Piris=<pack> (and -PovvarClientMod, which patches it);
-// without -Piris it is the no-shader control, where the resource pack alone must recolour the tags.
-if (project.hasProperty('textColours')) {
-	tasks.matching { it.name == 'runClientGameTest' }.configureEach {
-		def runDir = file('build/run/clientGameTest')
-		jvmArgs '-Dovvar.textColours=chapter-text-colors'
-		doFirst {
-			delete "$runDir/resourcepacks/chapter-text-colors"
-			project.copy { from 'tools/shaderpatcher/test-packs/chapter-text-colors'; into "$runDir/resourcepacks/chapter-text-colors" }
-		}
+// chapter-text-colors resource pack goes into the client run dir's resourcepacks, and the test selects it
+// itself (the client writes that to options.txt) and deselects it when done. Meant with -Piris=<pack> (and
+// -PovvarClientMod, which patches it); without -Piris it is the no-shader control, where the resource pack
+// alone must recolour the tags. Every run first removes the pack from the run dir, so a -PtextColours run that
+// was killed before deselecting it cannot leave it recolouring text in the next, ordinary run.
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	def textPack = file('build/run/clientGameTest/resourcepacks/chapter-text-colors')
+	def textColours = project.hasProperty('textColours')
+	if (textColours) jvmArgs '-Dovvar.textColours=chapter-text-colors'
+	doFirst {
+		delete textPack
+		if (textColours) project.copy { from 'tools/shaderpatcher/test-packs/chapter-text-colors'; into textPack }
 	}
 }
 if (project.hasProperty('ovvar.iris.expect')) {

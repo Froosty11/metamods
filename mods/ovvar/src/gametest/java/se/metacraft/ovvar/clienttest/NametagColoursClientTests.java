@@ -55,7 +55,6 @@ public final class NametagColoursClientTests implements FabricClientGameTest {
 			repo.addPack(packId);
 			client.options.updateResourcePacks(repo);
 		});
-		ctx.waitTicks(5);   // the reload's overlay goes up on a later frame
 		ctx.waitFor(client -> client.gui.overlay() == null, 20 * 60);
 		ctx.waitTicks(20);
 		ctx.runOnClient(client -> {
@@ -72,8 +71,7 @@ public final class NametagColoursClientTests implements FabricClientGameTest {
 				repo.removePack(packId);
 				client.options.updateResourcePacks(repo);
 			});
-			ctx.waitTicks(5);   // the reload's overlay goes up on a later frame
-		ctx.waitFor(client -> client.gui.overlay() == null, 20 * 60);
+			ctx.waitFor(client -> client.gui.overlay() == null, 20 * 60);
 		}
 	}
 

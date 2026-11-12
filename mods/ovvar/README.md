@@ -1190,14 +1190,17 @@ and in dark blue in front of a white wall. Each one must draw much closer to its
 (`#E83D84` cerise, `#CC99FF` laserviolet) than to its stock colour one step off (`#AB00AB`, `#0000AB`, which no
 patch touches). The test compares the tags with each other rather than with fixed RGB because a shaderpack lights
 and tone-maps text: under BSL, a correctly recoloured tag is pale and tinted towards the sky. It runs before
-`OvvarShaderpackClientTests`, so a failing leg check there does not hide it.
+`OvvarShaderpackClientTests`, so a failing leg check there does not hide it. The other way round, a failure here
+stops the run, so `OvvarShaderpackClientTests`, `OvvarEnchantmentClientTests` and `MobOvvarClientTests` don't run
+(this only happens under `-PtextColours`). The client writes the selection to the run dir's `options.txt`. Every
+`runClientGameTest` first deletes the copied pack, so a killed run cannot leave the pack switched on.
 
 ```
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -PovvarClientMod -PtextColours   # the patched shaderpack
 ./gradlew :mods:ovvar:runClientGameTest -PtextColours                                        # control: the resource pack alone
 ```
 
-Screenshots: `text_colours_*.png`. The log lines `[ovvar-clienttest] text colours:` give each glyph colour.
+Screenshots: `build/run/clientGameTest/screenshots/text_colours_*.png`. The log lines `[ovvar-clienttest] text colours:` give each glyph colour.
 
 ## Credits
 
