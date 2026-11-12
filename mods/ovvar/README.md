@@ -131,9 +131,26 @@ He comes on top of vanilla's wanderers and never replaces one; vanilla's own spa
 (`WanderingTraderSpawnerMixin`). On a cycle where vanilla's roll fails, he gets
 `ceil(players / players_per_roll)` rolls, so a busy server sees him more, and no more than
 `max_loaded` Punkphöz are loaded at once. His own spawn skips vanilla's 1-in-10 gate; his odds are set so
-`share` is his share of all wanderer visits. His model is the traders' IT trader: `processResources`
-copies `mods/traders/src/main/resources/model/traders/it_trader.bbmodel` in as `model/ovvar/punkphoz.bbmodel`
-at build time, so the two never drift apart and `mods/traders` stays untouched.
+`share` is his share of all wanderer visits.
+
+His model, `src/main/resources/model/ovvar/punkphoz.bbmodel` (Blockbench, played by BIL), is the vanilla villager rig in
+Dante's look. The rig is the CEM Template Loader's `wandering_trader` template (its `villager` model), nested the way
+`VillagerModel.createBodyModel()` nests it (head > hat, nose; body > jacket; arms; legs) with vanilla's exact arm pose
+(`offsetAndRotation(0, 3, -1, -0.75, 0, 0)`) and no hat rim (a wandering trader paints none). The texture and the beanie,
+antenna and trouser cuff are Dante's, from the traders' IT trader (`mods/traders/.../it_trader.bbmodel`, left as it is); his
+UVs fit the rig's boxes unchanged. Two things differ from the traders' model: the arms cross in front, as a villager's do (there
+they sat at -47° and crossed behind the back), and the nose, beanie and antenna are under the head, so they turn with it.
+
+He moves as a vanilla villager does (`VillagerModel.setupAnim`), from the server (`PunkphozAnimations`). BIL turns the `head`
+bone and everything under it with his look, but re-poses a model only while one of its animations plays, so `idle` (the rest
+pose) always plays under the others. `walk` swings the legs, `±cos(walkAnimationPos * 0.6662) * 0.7 * walkAnimationSpeed`:
+baked as 10 speed bands of a 20-frame stride, and every tick the frame for his walk speed and position is picked, so swing and
+stride follow his movement; under walk speed 0.05 he stands still. `shake` is the unhappy "no", head down 0.4 rad and rolling
+`0.3 * sin(0.45 * ticks)`: asked to trade while sold out (no offers, or all out of stock) he says no
+(`WANDERING_TRADER_NO`) and shakes for 40 ticks, as a villager without offers does (vanilla's wandering trader never shakes);
+its loop is 56 ticks, four periods of the roll, so a shake kept going by more asks doesn't jump.
+His look stays level while he shakes, as vanilla's shake replaces the look's pitch. BIL plays one animation at a time, so the
+shake stills his legs.
 
 Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes the defaults):
 
@@ -717,7 +734,7 @@ the stitching minigame played through with the clicks its dialog sends (stale cl
 sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
 to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
 finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
-a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his stock, his spawn odds and his config. `WardrobeTests` runs the store
+a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his model and its walk and shake, his stock, his spawn odds and his config. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
@@ -1151,6 +1168,9 @@ Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and MET
 original to this mod, cut from the chapter skin
 overlays on metacraft.se/style. The chapters' colours are from the THS Reglemente 2021
 (9.5.11–9.5.22) and the chapters' own stadgar; the B-frack's art is the Media frack's.
+
+Punkphöz: Dante's look (texture, beanie, antenna) from the traders' IT trader in `mods/traders` by ripsquid; the rig from
+Ewan Howell's CEM Template Loader (Blockbench plugin, `wandering_trader` template), after Mojang's villager model.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
 the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be
