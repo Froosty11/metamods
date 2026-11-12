@@ -72,6 +72,28 @@ if (project.hasProperty('ovvarBrewery')) {
 	}
 }
 
+// -PwithPerfMods puts the deploy lists' performance mods (async, tt20, servercore, lithium, c2me, ferritecore, krypton, scalablelux,
+// alternate-current, structure-layout-optimizer, adaptiveview, debugify, vmp; versions as in deploy/test.txt) on
+// the dev/test runtime, to run the game tests the way the servers run. Never a dependency of the shipped mod.
+if (project.hasProperty('withPerfMods')) {
+	dependencies {
+		runtimeOnly("maven.modrinth:async:gcduhoHv")
+		runtimeOnly("maven.modrinth:tt20:4v41bQe4")
+		runtimeOnly("maven.modrinth:servercore:LCG1Bm84")
+		runtimeOnly("maven.modrinth:lithium:xS0Q8LSi")
+		runtimeOnly("maven.modrinth:c2me-fabric:gKKkuSYc")
+		runtimeOnly("maven.modrinth:ferrite-core:d5ddUdiB")
+		runtimeOnly("maven.modrinth:krypton:UugdIYJw")
+		runtimeOnly("maven.modrinth:scalablelux:g4eqNSKd")
+		runtimeOnly("maven.modrinth:alternate-current:nSBWPz6x")
+		runtimeOnly("maven.modrinth:structure-layout-optimizer:crWm7jXS")
+		runtimeOnly("maven.modrinth:resourceful-config:t3odHyFJ")
+		runtimeOnly("maven.modrinth:adaptiveview:3QGoy50k")
+		runtimeOnly("maven.modrinth:debugify:FMaS2nZn")
+		runtimeOnly("maven.modrinth:vmp-fabric:2TFDVjDf")
+	}
+}
+
 // The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from
 // tools/shaderpatcher and shipped inside the resource pack at assets/ovvar/shaderpatcher/.
 sourceSets {
