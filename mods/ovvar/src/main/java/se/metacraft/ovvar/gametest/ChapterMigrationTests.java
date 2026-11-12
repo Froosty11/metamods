@@ -41,7 +41,7 @@ import java.util.UUID;
 
 /**
  * The two PolymITer chapters are retired: Data (PolymITer) became IT, IT (PolymITer) became
- * Silicon-blue IT. An old item, wherever it was saved (a chunk, a player, another ovve's pockets),
+ * Silicon-blue IT; Ingenjör was renamed Bygg. An old item, wherever it was saved (a chunk, a player, another ovve's pockets),
  * loads as its successor with every component it had, and a stored design moves to the successor
  * — or, if the successor already has one, its patches go to the stash, none lost or made.
  */
@@ -56,6 +56,9 @@ public final class ChapterMigrationTests {
 		reloadAs(helper, wrong, loaded(helper, ModContent.ovve(Chapter.IT_KISEL)), "it_polymiter_ovve", ModContent.ovve(Chapter.IT_KISEL));
 		reloadAs(helper, wrong, new ItemStack(ModContent.top(Chapter.IT)), "data_polymiter_ovve_top", ModContent.top(Chapter.IT));
 		reloadAs(helper, wrong, new ItemStack(ModContent.feet(Chapter.IT_KISEL)), "it_polymiter_ovve_feet", ModContent.feet(Chapter.IT_KISEL));
+		reloadAs(helper, wrong, loaded(helper, ModContent.ovve(Chapter.BYGG)), "ingenjor_ovve", ModContent.ovve(Chapter.BYGG));
+		reloadAs(helper, wrong, new ItemStack(ModContent.top(Chapter.BYGG)), "ingenjor_ovve_top", ModContent.top(Chapter.BYGG));
+		reloadAs(helper, wrong, new ItemStack(ModContent.feet(Chapter.BYGG)), "ingenjor_ovve_feet", ModContent.feet(Chapter.BYGG));
 		if (!wrong.isEmpty()) helper.fail("retired items: " + wrong);
 		helper.succeed();
 	}
@@ -114,14 +117,15 @@ public final class ChapterMigrationTests {
 	@GameTest
 	public void retiredDesignMovesToItsSuccessor(GameTestHelper helper) {
 		Wardrobe w = Wardrobe.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
-				"{\"designs\":{\"data_polymiter\":[\"front_top_left.itk\"],\"it_polymiter\":[\"back_big.it\"]},\"stash\":{\"spiken\":1},\"version\":7}"))
+				"{\"designs\":{\"data_polymiter\":[\"front_top_left.itk\"],\"it_polymiter\":[\"back_big.it\"],\"ingenjor\":[\"front_top_left.it\"]},\"stash\":{\"spiken\":1},\"version\":7}"))
 				.getOrThrow();
 		helper.assertValueEqual(keys(w, Chapter.IT), List.of("front_top_left.itk"), "IT's design");
 		helper.assertValueEqual(keys(w, Chapter.IT_KISEL), List.of("back_big.it"), "Silicon-blue IT's design");
+		helper.assertValueEqual(keys(w, Chapter.BYGG), List.of("front_top_left.it"), "Bygg's design (saved as Ingenjör)");
 		helper.assertValueEqual(w.stash(), Map.of("spiken", 1), "the stash");
 		helper.assertValueEqual(w.version(), 7L, "the version");
 		JsonObject again = Wardrobe.CODEC.encodeStart(JsonOps.INSTANCE, w).getOrThrow().getAsJsonObject();
-		helper.assertValueEqual(List.copyOf(again.getAsJsonObject("designs").keySet()), List.of("it", "it_kisel"), "the re-encoded design keys");
+		helper.assertValueEqual(List.copyOf(again.getAsJsonObject("designs").keySet()), List.of("bygg", "it", "it_kisel"), "the re-encoded design keys");
 		helper.succeed();
 	}
 

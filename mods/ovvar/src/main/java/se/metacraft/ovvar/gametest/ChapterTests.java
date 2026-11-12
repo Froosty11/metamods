@@ -81,7 +81,7 @@ public final class ChapterTests {
 	public void theNewChaptersAreTheWanderersStock(GameTestHelper helper) {
 		List<String> ids = new ArrayList<>();
 		for (Chapter c : Chapter.wandererStock()) ids.add(c.id);
-		List<String> want = List.of("arkitektur", "cl", "doktorand", "elektro", "energi", "fysik", "indek", "ingenjor",
+		List<String> want = List.of("arkitektur", "bygg", "cl", "doktorand", "elektro", "energi", "fysik", "indek",
 				"kemi", "mit", "open", "samhall", "tbas", "b");
 		if (!ids.equals(want)) helper.fail("the wanderer's stock is " + ids + ", not " + want);
 		for (Chapter c : List.of(Chapter.DATA, Chapter.IT, Chapter.IT_KISEL, Chapter.MEDIA)) {
