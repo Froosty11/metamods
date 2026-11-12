@@ -30,13 +30,14 @@ public enum Chapter {
 	MEDIA("media", "Media", "Media frack", "Media-frack", 0x1B1B1B, "mediafrack", null, null, false, EquipmentSlot.CHEST, false),
 	// The rest of KTH's chapters: pre-coloured art (tools/chapter_overlays.py), no recipe — their only survival source is the wandering Punkphöz.
 	ARKITEKTUR("arkitektur", "Arkitektur", "Arkitektur ovve", "Arkitektur-ovve", 0xA43AA8, "arkitektur", "arkitektur-nercabbad", null, true, EquipmentSlot.LEGS, true),
+	/** Ingenjör until 2026-11: the chapter is called Bygg nowadays ({@link #RETIRED} maps the old id). */
+	BYGG("bygg", "Bygg", "Bygg ovve", "Bygg-ovve", 0xA0522D, "bygg", "bygg-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	CL("cl", "CL", "CL ovve", "CL-ovve", 0x1A1A1A, "cl", "cl-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	DOKTORAND("doktorand", "Doktorand", "Doktorand ovve", "Doktorand-ovve", 0x1A1A1A, "doktorand", "doktorand-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	ELEKTRO("elektro", "Elektro", "Elektro ovve", "Elektro-ovve", 0xF5F5F5, "elektro", "elektro-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	ENERGI("energi", "Energi och miljö", "Energi och miljö ovve", "Energi och miljö-ovve", 0x006B71, "energi", "energi-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	FYSIK("fysik", "Fysik", "Fysik ovve", "Fysik-ovve", 0xFF642B, "fysik", "fysik-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	INDEK("indek", "Indek", "Indek ovve", "Indek-ovve", 0x4A2C1D, "indek", "indek-nercabbad", null, true, EquipmentSlot.LEGS, true),
-	INGENJOR("ingenjor", "Ingenjör", "Ingenjör ovve", "Ingenjör-ovve", 0xA0522D, "ingenjor", "ingenjor-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	KEMI("kemi", "Kemi", "Kemi ovve", "Kemi-ovve", 0xFFCB05, "kemi", "kemi-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	MIT("mit", "Medicinsk teknik", "Medicinsk teknik ovve", "Medicinsk teknik-ovve", 0x8EC9EB, "mit", "mit-nercabbad", null, true, EquipmentSlot.LEGS, true),
 	OPEN("open", "OPEN", "OPEN ovve", "OPEN-ovve", 0xC62C22, "open", "open-nercabbad", null, true, EquipmentSlot.LEGS, true),
@@ -55,6 +56,7 @@ public enum Chapter {
 		Map<String, Chapter> retired = new LinkedHashMap<>();
 		retired.put("data_polymiter", IT);
 		retired.put("it_polymiter", IT_KISEL);
+		retired.put("ingenjor", BYGG);
 		RETIRED = Collections.unmodifiableMap(retired);
 	}
 

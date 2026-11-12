@@ -8,8 +8,8 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
 silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
 or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
-the wandering trader Punkphöz (below): Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik,
-Indek, Ingenjör, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+the wandering trader Punkphöz (below): Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
 frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
