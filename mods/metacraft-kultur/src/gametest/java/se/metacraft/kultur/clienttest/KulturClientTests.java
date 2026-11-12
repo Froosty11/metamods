@@ -120,8 +120,17 @@ public final class KulturClientTests implements FabricClientGameTest {
 		failures.add(what);
 	}
 
-	/** Every catalogue pattern that is gated by an item, in catalogue order: the chapter patterns. */
+	/** Every chapter's own pattern (its logo, free in the loom), in catalogue order. */
 	private static List<Catalogue.Pattern> chapterPatterns() {
+		List<Catalogue.Pattern> out = new ArrayList<>();
+		for (Catalogue.Owned<Catalogue.Pattern> owned : Catalogue.load().patterns()) {
+			if (owned.value().id().equals(owned.chapter().id())) out.add(owned.value());
+		}
+		return out;
+	}
+
+	/** Every catalogue pattern that is gated by an item, in catalogue order: the IT clubs' and Pirkko. */
+	private static List<Catalogue.Pattern> gatedPatterns() {
 		List<Catalogue.Pattern> out = new ArrayList<>();
 		for (Catalogue.Owned<Catalogue.Pattern> owned : Catalogue.load().patterns()) {
 			if (owned.value().item()) out.add(owned.value());
@@ -161,11 +170,14 @@ public final class KulturClientTests implements FabricClientGameTest {
 		for (Catalogue.Owned<Catalogue.Pattern> owned : Catalogue.load().patterns()) {
 			if (!owned.value().item()) ungated.add(owned.value());
 		}
-		List<Catalogue.Pattern> gated = chapterPatterns();
+		List<Catalogue.Pattern> gated = gatedPatterns();
 		if (gated.isEmpty()) fail(failures, "loom: the catalogue has no pattern with an item");
 		Catalogue.Pattern shown = gated.isEmpty() ? null : gated.getFirst();
 		for (Catalogue.Pattern p : gated) {
-			if (p.id().equals("it")) shown = p;
+			if (p.id().equals("itk")) shown = p;
+		}
+		for (Catalogue.Pattern p : chapterPatterns()) {
+			if (p.item()) fail(failures, "loom: chapter pattern " + p.id() + " needs an item; the chapter logos are free");
 		}
 		List<Identifier> dyes = new ArrayList<>();
 		dyes.add(Identifier.withDefaultNamespace("black_dye"));

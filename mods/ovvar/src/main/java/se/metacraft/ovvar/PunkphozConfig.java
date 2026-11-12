@@ -32,11 +32,11 @@ public record PunkphozConfig(boolean enabled, double share, int chapterOvves, in
 			int poolPicks, int playersPerRoll, int maxLoaded, List<PoolEntry> pool) {
 	public static final PunkphozConfig DEFAULT = new PunkphozConfig(true, 0.25, 3, 24, 2, 6, 4, 5, 3, kulturPatterns());
 
-	/** The 20 chapters' banner patterns of kultur (its catalogue order), then Pirkko: 4 emeralds each, once per visit. */
+	/** Kultur's banner patterns that need an item (its catalogue order): the IT clubs' and Pirkko, 4 emeralds each, once per visit. */
 	private static List<PoolEntry> kulturPatterns() {
-		// Mirrors kultur's kultur.json (its loot patterns plus Pirkko); checked by defaultPoolMatchesKultur under -PwithKultur.
-		return Stream.of("arkitektur", "bergs", "bygg", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik",
-						"it", "kemi", "maskin", "media", "mit", "open", "produktion", "samhall", "tbas", "indek", "pirkko")
+		// Every kultur pattern with an item; the chapter logos are free in the loom, so none of theirs. With
+		// pool_picks 4 he offers all four each visit. Checked by defaultPoolMatchesKultur under -PwithKultur.
+		return Stream.of("itk", "qmisk", "tmeit", "pirkko")
 				.map(id -> new PoolEntry(Identifier.fromNamespaceAndPath("kultur", id + "_banner_pattern"), 4, 1, 1))
 				.toList();
 	}

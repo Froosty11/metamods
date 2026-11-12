@@ -26,8 +26,8 @@ public class CatalogueTest {
 		Catalogue c = Catalogue.load();
 		var itPatterns = c.chapters().stream().filter(x -> x.id().equals("it")).findFirst().orElseThrow().patterns();
 		assertEquals(List.of("itk", "qmisk", "tmeit", "pirkko", "it"), itPatterns.stream().map(Catalogue.Pattern::id).toList());
-		assertFalse(itPatterns.get(0).item(), "itk is free in the loom");
-		assertTrue(itPatterns.get(3).item(), "pirkko needs its item");
+		for (int i = 0; i < 4; i++) assertTrue(itPatterns.get(i).item(), itPatterns.get(i).id() + " needs its item");
+		assertFalse(itPatterns.get(4).item(), "it is free in the loom");
 		var paintings = c.paintings();
 		assertEquals(1, paintings.size());
 		Catalogue.Painting draken = paintings.getFirst().value();
@@ -76,8 +76,9 @@ public class CatalogueTest {
 		assertTrue(e.getMessage().contains("has loot but no item"), e.getMessage());
 	}
 
+	/** Edvin, 2026-11: every chapter's logo is free in the loom; only the IT clubs' patterns and Pirkko have an item, none in chests. */
 	@Test
-	public void everyChapterHasItsGatedLootedLogo() {
+	public void everyChapterHasItsFreeLogo() {
 		Catalogue c = Catalogue.load();
 		List<String> ids = List.of("arkitektur", "bergs", "bygg", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik",
 				"it", "kemi", "maskin", "media", "mit", "open", "produktion", "samhall", "tbas", "indek");
@@ -85,11 +86,11 @@ public class CatalogueTest {
 		for (Catalogue.Chapter chapter : c.chapters()) {
 			Catalogue.Pattern logo = chapter.patterns().stream().filter(p -> p.id().equals(chapter.id())).findFirst().orElse(null);
 			assertTrue(logo != null, chapter.id() + " has no pattern of its own id");
-			assertTrue(logo.item(), chapter.id() + " logo is not gated");
-			assertTrue(logo.loot(), chapter.id() + " logo is not loot");
+			assertFalse(logo.item(), chapter.id() + " logo needs an item");
 		}
-		Catalogue.Pattern pirkko = c.patterns().stream().map(Catalogue.Owned::value).filter(p -> p.id().equals("pirkko")).findFirst().orElseThrow();
-		assertFalse(pirkko.loot(), "pirkko stays out of loot");
+		List<String> withItem = c.patterns().stream().map(Catalogue.Owned::value).filter(Catalogue.Pattern::item).map(Catalogue.Pattern::id).toList();
+		assertEquals(List.of("itk", "qmisk", "tmeit", "pirkko"), withItem);
+		assertTrue(c.patterns().stream().noneMatch(p -> p.value().loot()), "no pattern is in chests for now");
 	}
 
 	@Test
