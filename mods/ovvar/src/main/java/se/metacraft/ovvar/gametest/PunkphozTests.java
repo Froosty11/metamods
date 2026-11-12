@@ -1,7 +1,10 @@
 package se.metacraft.ovvar.gametest;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import de.tomalbrc.bil.core.model.Animation;
+import de.tomalbrc.bil.core.model.Model;
+import de.tomalbrc.bil.core.model.Node;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
@@ -13,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
@@ -26,6 +30,8 @@ import net.minecraft.world.entity.animal.equine.TraderLlama;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.entity.EntityTypeTest;
@@ -43,26 +49,31 @@ import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.entity.Punkphoz;
+import se.metacraft.ovvar.content.entity.PunkphozAnimations;
 import se.metacraft.ovvar.content.entity.PunkphozEntities;
 import se.metacraft.ovvar.content.entity.PunkphozHistory;
 import se.metacraft.ovvar.content.entity.PunkphozSpawning;
 import se.metacraft.ovvar.content.entity.PunkphozStock;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
-/** Punkphöz: a wandering trader wearing the traders' model, with no invisibility potion to drink. */
+/** Punkphöz: a wandering trader in the villager rig with Dante's look, who walks and shakes his head like a villager and drinks no invisibility potion. */
 public final class PunkphozTests {
 
 	@GameTest
@@ -74,35 +85,144 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	/** The model is the traders' IT trader, copied in at build time; in its format 5 file the outliner names groups by uuid. */
+	/**
+	 * The model is the vanilla villager rig (head > hat, nose, beanie, antenna; body > jacket; arms; legs) with the walk and the
+	 * shake, bundled once: it is ovvar's own file, no longer a copy of the traders' model made at build time.
+	 */
 	@GameTest
-	public void modelIsTheTradersPunkphoz(GameTestHelper helper) {
-		try (InputStream in = Punkphoz.class.getResourceAsStream("/model/ovvar/punkphoz.bbmodel")) {
-			if (in == null) {
-				helper.fail("no /model/ovvar/punkphoz.bbmodel");
-				return;
-			}
-			JsonObject model = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
-			Map<String, String> groupNames = new HashMap<>();
-			if (model.has("groups")) {
-				for (var group : model.getAsJsonArray("groups")) {
-					var g = group.getAsJsonObject();
-					groupNames.put(g.get("uuid").getAsString(), g.get("name").getAsString());
-				}
-			}
-			boolean head = false;
-			for (var entry : model.getAsJsonArray("outliner")) {
-				if (!entry.isJsonObject()) continue;
-				var group = entry.getAsJsonObject();
-				String name = group.has("name") ? group.get("name").getAsString() : groupNames.get(group.get("uuid").getAsString());
-				if ("head".equals(name)) head = true;
-			}
-			if (!head) helper.fail("the model's outliner has no group named head");
+	public void modelIsTheVillagerRig(GameTestHelper helper) {
+		try {
+			List<URL> copies = Collections.list(Punkphoz.class.getClassLoader().getResources("model/ovvar/punkphoz.bbmodel"));
+			helper.assertValueEqual(copies.size(), 1, "copies of model/ovvar/punkphoz.bbmodel on the classpath " + copies);
 		} catch (IOException e) {
-			helper.fail("reading the model: " + e);
+			helper.fail("listing the model: " + e);
 		}
-		if (PunkphozEntities.model() == null) helper.fail("PunkphozEntities.model() is null");
+		Model model = PunkphozEntities.model();
+		if (model == null) {
+			helper.fail("PunkphozEntities.model() is null");
+			return;
+		}
+		Map<String, Node> nodes = new HashMap<>();
+		for (Node node : model.nodeMap().values()) nodes.put(node.name(), node);
+		for (String name : List.of("head", "hat", "nose", "beanie", "antenna", "body", "jacket", "arms", "right_leg", "left_leg")) {
+			if (!nodes.containsKey(name)) helper.fail("the model has no bone " + name + ", only " + nodes.keySet());
+		}
+		helper.assertValueEqual(nodes.get("head").tag(), Node.NodeTag.HEAD, "the head's tag (BIL turns it with his look)");
+		for (String name : List.of("hat", "nose", "beanie", "antenna")) {
+			helper.assertValueEqual(nodes.get(name).parent(), nodes.get("head"), name + "'s parent");
+			helper.assertValueEqual(nodes.get(name).tag(), Node.NodeTag.HEAD_CHILD, name + "'s tag (turns with the head)");
+		}
+		helper.assertValueEqual(nodes.get("jacket").parent(), nodes.get("body"), "the jacket's parent");
+		Animation walk = model.animations().get(PunkphozAnimations.WALK);
+		Animation shake = model.animations().get(PunkphozAnimations.SHAKE);
+		if (walk == null || shake == null) {
+			helper.fail("the model's animations are " + model.animations().keySet() + ", not walk and shake");
+			return;
+		}
+		helper.assertValueEqual(walk.duration(), PunkphozAnimations.SPEED_BANDS * PunkphozAnimations.STRIDE_FRAMES, "walk frames");
+		helper.assertValueEqual(shake.duration(), Punkphoz.UNHAPPY_TICKS + 1, "shake frames");
 		helper.succeed();
+	}
+
+	/**
+	 * Polymer's pack carries BIL's parts of his model once each: his texture and one item model per bone under {@code bil:punkphoz}
+	 * (ten: head, hat, nose, beanie, antenna, body, jacket, arms and the legs).
+	 */
+	@GameTest(maxTicks = 400)
+	public void packCarriesHisModelOnce(GameTestHelper helper) {
+		Map<String, Integer> entries = new HashMap<>();
+		try {
+			Path pack = Files.createTempFile("ovvar-punkphoz-pack", ".zip");
+			try {
+				// hadIssues covers every mod's assets, so it is not judged here; his entries are
+				PolymerResourcePackUtils.getInstance().build(pack);
+				try (ZipFile zip = new ZipFile(pack.toFile())) {
+					zip.stream().map(ZipEntry::getName).filter(n -> n.contains("punkphoz") && !n.endsWith("/")).forEach(n -> entries.merge(n, 1, Integer::sum));
+				}
+			} finally {
+				Files.deleteIfExists(pack);
+			}
+		} catch (IOException | ExecutionException | InterruptedException e) {
+			helper.fail("building the pack: " + e);
+			return;
+		}
+		entries.forEach((name, count) -> {
+			if (count != 1) helper.fail(name + " is in the pack " + count + " times");
+		});
+		if (!entries.containsKey("assets/bil/textures/item/punkphoz/punkphoz.png")) helper.fail("no texture in the pack's punkphoz entries " + entries.keySet());
+		for (Node node : PunkphozEntities.model().nodeMap().values()) {
+			if (node.modelData() == null) continue;
+			// BIL's ids: item bil:punkphoz_punkphoz_<bone uuid>, its model bil:item/punkphoz/punkphoz_<bone uuid>
+			String item = "assets/bil/items/" + node.modelData().getPath() + ".json";
+			String part = "assets/bil/models/item/punkphoz/" + node.modelData().getPath().substring("punkphoz_".length()) + ".json";
+			if (!entries.containsKey(item) || !entries.containsKey(part)) {
+				helper.fail("the " + node.name() + " bone lacks " + item + " or " + part + " in " + entries.keySet());
+			}
+		}
+		long models = entries.keySet().stream().filter(n -> n.startsWith("assets/bil/models/item/punkphoz/") && n.endsWith(".json")).count();
+		helper.assertValueEqual(models, 10L, "item models under bil:punkphoz, one per bone");
+		helper.succeed();
+	}
+
+	/** walkFrame: the speed band, then the stride phase of walkAnimationPos * 0.6662 within it. */
+	@GameTest
+	public void walkFrameFollowsSpeedAndStride(GameTestHelper helper) {
+		float halfStride = (float) (Math.PI / 0.6662);
+		helper.assertValueEqual(PunkphozAnimations.walkFrame(1f, 0f), 180, "full speed, stride start");
+		helper.assertValueEqual(PunkphozAnimations.walkFrame(1f, halfStride), 190, "full speed, half a stride");
+		helper.assertValueEqual(PunkphozAnimations.walkFrame(0.5f, halfStride / 2), 85, "half speed, a quarter stride");
+		helper.assertValueEqual(PunkphozAnimations.walkFrame(0.06f, 2 * halfStride), 0, "slowest band, a whole stride");
+		helper.assertValueEqual(PunkphozAnimations.walkFrame(3f, 0f), 180, "faster than 1 is the top band");
+		helper.succeed();
+	}
+
+	/** Moving, he plays the walk; once his walk speed has run down he stands in the default pose again. */
+	@GameTest(maxTicks = 60)
+	public void walksWhileMoving(GameTestHelper helper) {
+		Punkphoz punkphoz = helper.spawn(PunkphozEntities.PUNKPHOZ, new BlockPos(1, 1, 1));
+		punkphoz.walkAnimation.setSpeed(1f);
+		helper.runAfterDelay(1, () -> {
+			if (!punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.WALK)) {
+				helper.fail("no walk at walk speed " + punkphoz.walkAnimation.speed());
+			}
+		});
+		helper.runAfterDelay(30, () -> {
+			if (punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.WALK)) {
+				helper.fail("still walking at walk speed " + punkphoz.walkAnimation.speed());
+			}
+			helper.succeed();
+		});
+	}
+
+	/** Asked to trade while sold out, he shakes his head for the villager's 40 ticks, looking level, then stops. */
+	@GameTest(maxTicks = 100)
+	public void soldOutShakesHisHead(GameTestHelper helper) {
+		Punkphoz punkphoz = helper.spawn(PunkphozEntities.PUNKPHOZ, new BlockPos(1, 1, 1));
+		punkphoz.getOffers().forEach(MerchantOffer::setToOutOfStock);
+		punkphoz.mobInteract(helper.makeMockServerPlayerInLevel(), InteractionHand.MAIN_HAND);
+		helper.assertValueEqual(punkphoz.getUnhappyCounter(), Punkphoz.UNHAPPY_TICKS, "the unhappy counter after a sold-out ask");
+		helper.runAfterDelay(2, () -> {
+			if (!punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.SHAKE)) helper.fail("no shake while unhappy");
+			helper.assertValueEqual(punkphoz.getXRot(), 0f, "his look's pitch while shaking");
+		});
+		helper.runAfterDelay(Punkphoz.UNHAPPY_TICKS + 5, () -> {
+			helper.assertValueEqual(punkphoz.getUnhappyCounter(), 0, "the unhappy counter after the shake");
+			if (punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.SHAKE)) helper.fail("still shaking after the counter ran out");
+			helper.succeed();
+		});
+	}
+
+	/** With something left to sell he trades without a shake. */
+	@GameTest
+	public void inStockNoShake(GameTestHelper helper) {
+		Punkphoz punkphoz = helper.spawn(PunkphozEntities.PUNKPHOZ, new BlockPos(1, 1, 1));
+		punkphoz.getOffers().add(new MerchantOffer(new ItemCost(Items.EMERALD, 1), new ItemStack(Items.APPLE), 1, 0, 0.05f));
+		punkphoz.mobInteract(helper.makeMockServerPlayerInLevel(), InteractionHand.MAIN_HAND);
+		helper.assertValueEqual(punkphoz.getUnhappyCounter(), 0, "the unhappy counter after asking a stocked Punkphöz");
+		helper.runAfterDelay(2, () -> {
+			if (punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.SHAKE)) helper.fail("shaking with stock to sell");
+			helper.succeed();
+		});
 	}
 
 	@GameTest
