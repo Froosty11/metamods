@@ -79,8 +79,8 @@ public class CatalogueTest {
 	@Test
 	public void everyChapterHasItsGatedLootedLogo() {
 		Catalogue c = Catalogue.load();
-		List<String> ids = List.of("arkitektur", "bergs", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik",
-				"ingenjor", "it", "kemi", "maskin", "media", "mit", "open", "samhall", "tbas", "indek");
+		List<String> ids = List.of("arkitektur", "bergs", "bygg", "cl", "data", "doktorand", "elektro", "energi", "flyg", "fysik",
+				"it", "kemi", "maskin", "media", "mit", "open", "produktion", "samhall", "tbas", "indek");
 		assertEquals(ids.stream().sorted().toList(), c.chapters().stream().map(Catalogue.Chapter::id).sorted().toList());
 		for (Catalogue.Chapter chapter : c.chapters()) {
 			Catalogue.Pattern logo = chapter.patterns().stream().filter(p -> p.id().equals(chapter.id())).findFirst().orElse(null);

@@ -9,8 +9,10 @@ comes from); the ovvar and patches from there live in `mods/ovvar`.
 ## What is here, and what is not
 
 Every chapter has a banner pattern of its own, its logo: gated (it needs its pattern item in the loom),
-found in structure chests and sold by Punkphöz, a wandering trader who turns up now and then. The art for
-most of them is a placeholder for now (below).
+found in structure chests and sold by Punkphöz, a wandering trader who turns up now and then. Their
+banner and shield art is Edvin's, hand-drawn; the pattern items' icons are still AI drafts (below).
+Bygg was called Ingenjör until 2026-11 (an old `kultur:ingenjor_banner_pattern` loads as Bygg's);
+Produktion has a pattern but no ovve.
 
 IT's content besides its logo: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko
 pattern behind a pattern item ("gated", below — `kultur:pirkko_banner_pattern`, sold by Punkphöz by
@@ -18,7 +20,7 @@ default and never in chests), Emelie Stark's painting "The Guardian of Kistan" (
 four drinks (below). Data and Media have their logo pattern, as every chapter does, and nothing else
 yet.
 
-Not here yet, on purpose: the real art for the chapter patterns.
+Not here yet: hand-drawn icons for the chapter pattern items.
 
 With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet: its dyes
 work in the vanilla loom; nothing in this module knows about that. A Cerise Pirkko needs the Pirkko

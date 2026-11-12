@@ -1,6 +1,7 @@
 package se.metacraft.kultur.content;
 
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
+import net.fabricmc.fabric.api.event.registry.FabricRegistry;
 import se.metacraft.kultur.Kultur;
 import se.metacraft.kultur.catalogue.Catalogue;
 import net.minecraft.core.Registry;
@@ -48,6 +49,11 @@ public final class ModContent {
 					.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, lookup -> lookup.getOrThrow(tag));
 			PatternItem item = Registry.register(BuiltInRegistries.ITEM, itemId, new PatternItem(props, itemId));
 			ITEMS.put(p.id(), item);
+		}
+		// Bygg was called Ingenjör until 2026-11: its old pattern items load as Bygg's.
+		if (ITEMS.containsKey("bygg")) {
+			((FabricRegistry) BuiltInRegistries.ITEM).addAlias(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "ingenjor_banner_pattern"),
+					Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "bygg_banner_pattern"));
 		}
 		if (!ITEMS.isEmpty()) registerCreativeTab();
 	}
