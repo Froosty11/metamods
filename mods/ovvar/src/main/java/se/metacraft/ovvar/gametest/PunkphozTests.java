@@ -510,16 +510,16 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	/** The default pool is kultur's 19 chapter patterns plus Pirkko: all there with kultur loaded, all warned about without. */
+	/** The default pool is kultur's 20 chapter patterns plus Pirkko: all there with kultur loaded, all warned about without. */
 	@GameTest
 	public void defaultPoolMatchesKultur(GameTestHelper helper) {
 		var resolved = PunkphozConfig.resolve(PunkphozConfig.DEFAULT);
 		if (FabricLoader.getInstance().isModLoaded("metacraft-kultur")) {
-			helper.assertValueEqual(resolved.entries().size(), 20, "entries with kultur");
+			helper.assertValueEqual(resolved.entries().size(), 21, "entries with kultur");
 			helper.assertValueEqual(resolved.warnings(), List.<String>of(), "warnings with kultur");
 		} else {
 			helper.assertValueEqual(resolved.entries().size(), 0, "entries without kultur");
-			helper.assertValueEqual(resolved.warnings().size(), 20, "warnings without kultur");
+			helper.assertValueEqual(resolved.warnings().size(), 21, "warnings without kultur");
 			for (String warning : resolved.warnings()) {
 				if (!warning.contains("kultur:")) helper.fail("a warning that names no kultur id: " + warning);
 			}

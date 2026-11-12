@@ -6,6 +6,9 @@
 		{ "id": "bergs", "name": "Bergs", "patterns": [
 			{ "id": "bergs", "name": "Bergs", "item": true, "loot": true }
 		], "paintings": [] },
+		{ "id": "bygg", "name": "Bygg", "patterns": [
+			{ "id": "bygg", "name": "Bygg", "item": true, "loot": true }
+		], "paintings": [] },
 		{ "id": "cl", "name": "CL", "patterns": [
 			{ "id": "cl", "name": "CL", "item": true, "loot": true }
 		], "paintings": [] },
@@ -26,9 +29,6 @@
 		], "paintings": [] },
 		{ "id": "fysik", "name": "Fysik", "patterns": [
 			{ "id": "fysik", "name": "Fysik", "item": true, "loot": true }
-		], "paintings": [] },
-		{ "id": "ingenjor", "name": "Ingenjörssektionen", "patterns": [
-			{ "id": "ingenjor", "name": "Ingenjörssektionen", "item": true, "loot": true }
 		], "paintings": [] },
 		{
 			"id": "it",
@@ -58,6 +58,9 @@
 		], "paintings": [] },
 		{ "id": "open", "name": "OPEN", "patterns": [
 			{ "id": "open", "name": "OPEN", "item": true, "loot": true }
+		], "paintings": [] },
+		{ "id": "produktion", "name": "Produktion", "patterns": [
+			{ "id": "produktion", "name": "Produktion", "item": true, "loot": true }
 		], "paintings": [] },
 		{ "id": "samhall", "name": "Samhällsbyggnad", "patterns": [
 			{ "id": "samhall", "name": "Samhällsbyggnad", "item": true, "loot": true }

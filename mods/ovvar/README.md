@@ -163,7 +163,7 @@ Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes 
 - `pool_picks` (4): how many things from `pool` are on offer per visit.
 - `players_per_roll` (5): how many players online count as one more roll of his visit.
 - `max_loaded` (3): how many Punkphöz can be loaded at once.
-- `pool` (kultur's 19 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+- `pool` (kultur's 20 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
   `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
 
 **Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a

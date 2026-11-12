@@ -51,6 +51,14 @@ import java.util.Map;
  * {@code JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:metacraft-kultur:runServer}.
  */
 public final class KulturGameTests {
+	/** Bygg was Ingenjör: an old {@code kultur:ingenjor_banner_pattern} loads as Bygg's pattern item. */
+	@GameTest
+	public void ingenjorPatternItemIsBygg(GameTestHelper helper) {
+		var old = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, "ingenjor_banner_pattern"));
+		helper.assertTrue(old == ModContent.patternItem("bygg"), "kultur:ingenjor_banner_pattern resolves to " + old);
+		helper.succeed();
+	}
+
 	@GameTest
 	public void everyPatternIsRegisteredAndTagged(GameTestHelper helper) {
 		Registry<BannerPattern> registry = helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
