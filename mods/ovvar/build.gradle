@@ -91,6 +91,11 @@ sourceSets {
 		runtimeClasspath += sourceSets.patcher.output
 	}
 }
+// The client tests' screenshot measures (src/gametest .../clienttest/ShotMeasures, plain JDK) are pinned by a unit test
+// over saved real-GPU frames (src/test, ShotMeasuresTest). Only the gametest classes, not its resources: its
+// fabric.mod.json would make the unit test's Fabric loader load the client test mod.
+sourceSets.test.compileClasspath += sourceSets.gametest.output.classesDirs
+sourceSets.test.runtimeClasspath += sourceSets.gametest.output.classesDirs
 tasks.withType(JavaCompile).configureEach {
 	if (it.name == 'compilePatcherJava' || it.name == 'compilePatcherTestJava') it.options.release = 11
 }

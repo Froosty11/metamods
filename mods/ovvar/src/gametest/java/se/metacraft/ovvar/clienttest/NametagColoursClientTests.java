@@ -12,8 +12,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -30,18 +28,16 @@ import java.util.Properties;
  * where it would land unchanged, since the exact match leaves these alone). It must be much nearer the first. A white
  * wall behind the tags keeps the translucent plate's background still (no clouds drifting through it).
  *
- * <p>The glyph colour is the mean of the tag's pixels farthest from its plate (the box's median colour). Not a
- * saturation measure: under BSL the bluish plate is more saturated than the pale glyphs.
+ * <p>The measure is {@link ShotMeasures#nametag} (pinned on real BSL frames by ShotMeasuresTest): the plate is the
+ * connected region that changed from the frame without a tag, spans the centre and darkens the wall (a toast that
+ * slides in is another region); the glyph colour is the median of the plate's pixels farthest from its own colour;
+ * colours are compared by chroma, not brightness, since BSL dims and tints the glyphs.
  */
 public final class NametagColoursClientTests implements FabricClientGameTest {
 	/** The cases: the chapter colour, what it should draw like, and its stock colour one step off. */
 	private static final List<String[]> CASES = List.of(
 			new String[]{"dark_purple", "#E83D84", "#AB00AB"},
 			new String[]{"dark_blue", "#CC99FF", "#0000AB"});
-	/** The chapter tag must be at least this many times nearer its target than its stock neighbour. */
-	private static final int MARGIN = 3;
-	/** The two references must differ by at least this (max channel) or the shot cannot tell them apart. */
-	private static final int MIN_SPREAD = 20;
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
@@ -98,82 +94,30 @@ public final class NametagColoursClientTests implements FabricClientGameTest {
 				ctx.waitTicks(60);
 				BufferedImage base = shot(ctx, "text_colours_base");
 				for (String[] c : CASES) {
-					int[] chapter = glyph(ctx, server, base, c[0]);
-					int[] target = glyph(ctx, server, base, c[1]);
-					int[] stock = glyph(ctx, server, base, c[2]);
-					int toTarget = distance(chapter, target), toStock = distance(chapter, stock), spread = distance(target, stock);
-					System.out.println("[ovvar-clienttest] text colours: " + c[0] + " glyph " + Arrays.toString(chapter) + ", like " + c[1]
-							+ " " + Arrays.toString(target) + " (" + toTarget + " off), stock " + c[2] + " " + Arrays.toString(stock) + " (" + toStock + " off)");
-					if (spread < MIN_SPREAD) {
-						throw new AssertionError("the references " + c[1] + " and " + c[2] + " drew only " + spread + " apart: the shot cannot judge " + c[0]);
-					}
-					if (toTarget * MARGIN > toStock) {
-						throw new AssertionError("a " + c[0] + " nametag draws like its stock colour, not like " + c[1] + ": " + toTarget
-								+ " from " + c[1] + ", " + toStock + " from " + c[2] + " (glyph " + Arrays.toString(chapter) + ")");
-					}
+					BufferedImage chapter = tag(ctx, server, c[0]), target = tag(ctx, server, c[1]), stock = tag(ctx, server, c[2]);
+					ShotMeasures.Nametag n = ShotMeasures.nametag(base, chapter, target, stock, middle(base));
+					System.out.println("[ovvar-clienttest] text colours: " + c[0] + " like " + c[1] + ", not " + c[2] + ": " + n);
+					String failure = n.failure();
+					if (failure != null) throw new AssertionError("a " + c[0] + " nametag (" + c[1] + " vs stock " + c[2] + "): " + failure + "; " + n);
 				}
 				server.runCommand("kill @e[type=armor_stand]");
 			}
 		}
 	}
 
-	/** A nametag in {@code colour} (a name or #RRGGBB) on an invisible armour stand three blocks ahead, its glyph colour. */
-	private static int[] glyph(ClientGameTestContext ctx, TestDedicatedServerContext server, BufferedImage base, String colour) {
+	/** A frame with a nametag in {@code colour} (a name or #RRGGBB) on an invisible armour stand three blocks ahead. */
+	private static BufferedImage tag(ClientGameTestContext ctx, TestDedicatedServerContext server, String colour) {
 		server.runCommand("kill @e[type=armor_stand]");
 		server.runCommand("summon armor_stand 0.5 -60 3.5 {Invisible:1b,NoGravity:1b,CustomNameVisible:1b,CustomName:{text:\"Tester2\",color:\""
 				+ colour + "\"}}");
 		ctx.waitTicks(30);
-		BufferedImage img = shot(ctx, "text_colours_" + colour.replace("#", "hex_"));
-		int[] box = changed(base, img);
-		if (box == null) throw new AssertionError("no nametag drew for " + colour);
-		List<int[]> px = new ArrayList<>();
-		for (int y = box[1]; y <= box[3]; y++) {
-			for (int x = box[0]; x <= box[2]; x++) {
-				int p = img.getRGB(x, y);
-				px.add(new int[]{(p >> 16) & 255, (p >> 8) & 255, p & 255});
-			}
-		}
-		px.sort((a, b) -> Integer.compare(a[0] + a[1] + a[2], b[0] + b[1] + b[2]));
-		int[] plate = px.get(px.size() / 2);
-		px.sort((a, b) -> Integer.compare(distance(b, plate), distance(a, plate)));
-		int n = Math.max(1, px.size() / 10);
-		long r = 0, g = 0, b = 0;
-		for (int i = 0; i < n; i++) {
-			r += px.get(i)[0];
-			g += px.get(i)[1];
-			b += px.get(i)[2];
-		}
-		return new int[]{(int) (r / n), (int) (g / n), (int) (b / n)};
+		return shot(ctx, "text_colours_" + colour.replace("#", "hex_"));
 	}
 
-	/**
-	 * The bounding box {x0, y0, x1, y1} of the pixels that changed by more than 40 in a channel, or null. Only the
-	 * middle of the frame (the tag sits above its centre, on the wall), clear of the sky at the wall's sides and
-	 * of the player's hand.
-	 */
-	private static int[] changed(BufferedImage a, BufferedImage b) {
-		int w = a.getWidth(), h = a.getHeight();
-		int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = -1, y1 = -1;
-		for (int y = h / 8; y < h * 5 / 8; y++) {
-			for (int x = w * 3 / 10; x < w * 7 / 10; x++) {
-				if (distance(rgb(a.getRGB(x, y)), rgb(b.getRGB(x, y))) > 40) {
-					x0 = Math.min(x0, x);
-					y0 = Math.min(y0, y);
-					x1 = Math.max(x1, x);
-					y1 = Math.max(y1, y);
-				}
-			}
-		}
-		return x1 < 0 ? null : new int[]{x0, y0, x1, y1};
-	}
-
-	private static int[] rgb(int p) {
-		return new int[]{(p >> 16) & 255, (p >> 8) & 255, p & 255};
-	}
-
-	/** The largest channel difference. */
-	private static int distance(int[] a, int[] b) {
-		return Math.max(Math.abs(a[0] - b[0]), Math.max(Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])));
+	/** Where the tag is searched: the middle of the frame (it sits above its centre, on the wall), clear of the sky and the hand. */
+	private static ShotMeasures.Rect middle(BufferedImage img) {
+		int w = img.getWidth(), h = img.getHeight();
+		return new ShotMeasures.Rect(w * 3 / 10, h / 8, w * 7 / 10, h * 5 / 8);
 	}
 
 	private static BufferedImage shot(ClientGameTestContext ctx, String name) {
