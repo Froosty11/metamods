@@ -3,8 +3,10 @@ package se.metacraft.ovvar.gametest;
 import com.google.gson.JsonObject;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import de.tomalbrc.bil.core.model.Animation;
+import de.tomalbrc.bil.core.model.Frame;
 import de.tomalbrc.bil.core.model.Model;
 import de.tomalbrc.bil.core.model.Node;
+import de.tomalbrc.bil.core.model.Pose;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
@@ -40,6 +42,8 @@ import net.minecraft.world.level.saveddata.WanderingTraderData;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 import com.mojang.serialization.JsonOps;
 import se.metacraft.ovvar.PunkphozConfig;
@@ -123,6 +127,53 @@ public final class PunkphozTests {
 		helper.assertValueEqual(walk.duration(), PunkphozAnimations.SPEED_BANDS * PunkphozAnimations.STRIDE_FRAMES, "walk frames");
 		// four periods of the roll, 0.45 rad a tick: 4 * 2 pi / 0.45 = 55.85 ticks
 		helper.assertValueEqual(shake.duration(), 56, "shake frames");
+		helper.succeed();
+	}
+
+	/**
+	 * His hands are behind his back, as in Dante's traders model: the arms bone pivots at (0, 21.05, -0.05) and is tipped -47°
+	 * about x, and no animation moves it, so every frame of idle, walk and shake holds the arms at their rest pose.
+	 */
+	@GameTest
+	public void handsStayBehindHisBack(GameTestHelper helper) {
+		Model model = PunkphozEntities.model();
+		if (model == null) {
+			helper.fail("PunkphozEntities.model() is null");
+			return;
+		}
+		Node arms = null;
+		for (Node node : model.nodeMap().values()) if (node.name().equals("arms")) arms = node;
+		if (arms == null) {
+			helper.fail("the model has no arms bone");
+			return;
+		}
+		// BIL keeps the file's rotation in degrees and the pivot in blocks (pixels / 16)
+		Vector3fc rotation = arms.transform().rotation();
+		if (!rotation.equals(new Vector3f(-47, 0, 0), 1e-3f)) {
+			helper.fail("the arms bone's rotation is " + rotation + ", not -47° about x (hands behind his back)");
+		}
+		Vector3fc origin = arms.transform().origin();
+		if (!origin.equals(new Vector3f(0, 21.05f, -0.05f).div(16), 1e-5f)) {
+			helper.fail("the arms bone's pivot is " + origin + ", not (0, 21.05, -0.05) / 16");
+		}
+		Pose rest = model.defaultPose().get(arms.uuid());
+		for (String name : List.of(PunkphozAnimations.IDLE, PunkphozAnimations.WALK, PunkphozAnimations.SHAKE)) {
+			Animation animation = model.animations().get(name);
+			if (animation == null) {
+				helper.fail("the model has no animation " + name);
+				return;
+			}
+			for (Frame frame : animation.frames()) {
+				Pose pose = frame.poses().get(arms.uuid());
+				if (pose == null) continue;
+				if (rest == null || !pose.readOnlyTranslation().equals(rest.readOnlyTranslation(), 1e-4f)
+						|| !pose.readOnlyLeftRotation().equals(rest.readOnlyLeftRotation(), 1e-4f)
+						|| !pose.readOnlyRightRotation().equals(rest.readOnlyRightRotation(), 1e-4f)
+						|| !pose.readOnlyScale().equals(rest.readOnlyScale(), 1e-4f)) {
+					helper.fail(name + " moves the arms at " + frame.time() + ": " + pose + ", rest " + rest);
+				}
+			}
+		}
 		helper.succeed();
 	}
 
