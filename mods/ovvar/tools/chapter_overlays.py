@@ -31,13 +31,13 @@ GREEN = (0, 255, 0, 255)
 # id, name, garment, colour, source
 CHAPTERS = [
     ("arkitektur", "Arkitektur (A)", "ovve", 0xA43AA8, "NCS S 3055-R50B, saturated to pop"),
+    ("bygg", "Bygg (IsB / IsF / TT)", "ovve", 0xA0522D, "red ochre, estimate"),
     ("bfrack", "B-frack (Flyg, Maskin, Bergs)", "bfrack", 0x302C2C, "Media frack, black, no logo"),
     ("cl", "Civing & Lärare (CL)", "ovve", 0x1A1A1A, "black, red stripes + cuffs"),
     ("doktorand", "Doktorand (Dr)", "ovve", 0x1A1A1A, "black, gold front placket + cuffs"),
     ("elektro", "Elektro (E)", "ovve", 0xF5F5F5, "white, estimate"),
     ("fysik", "Fysik (F)", "ovve", 0xFF642B, "NCS S 0565-Y70R / CMYK"),
     ("indek", "Industriell ekonomi (I)", "ovve", 0x4A2C1D, "porter brown, estimate"),
-    ("ingenjor", "IsB / IsF / TT", "ovve", 0xA0522D, "red ochre, estimate"),
     ("kemi", "Kemi (K)", "ovve", 0xFFCB05, "Edvin, NCS S 0580-Y10R"),
     ("mit", "Medicinsk teknik (MiT)", "ovve", 0x8EC9EB, "light blue, estimate"),
     ("open", "Öppen ingång (OPEN)", "ovve", 0xC62C22, "NCS S 1580-Y80R"),

@@ -8,8 +8,8 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
 silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
 or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
-the wandering trader Punkphöz (below): Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik,
-Indek, Ingenjör, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+the wandering trader Punkphöz (below): Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
 frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
@@ -164,7 +164,7 @@ Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes 
 - `pool_picks` (4): how many things from `pool` are on offer per visit.
 - `players_per_roll` (5): how many players online count as one more roll of his visit.
 - `max_loaded` (3): how many Punkphöz can be loaded at once.
-- `pool` (kultur's 19 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+- `pool` (kultur's 20 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
   `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
 
 **Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
