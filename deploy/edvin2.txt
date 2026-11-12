@@ -1,6 +1,6 @@
 # edvin2 (branch edvin-test): Edvin Private 2, 00c79c6f. edvin.txt without Terralith: Tectonic alone,
 # on the same seed as Edvin Private, to compare the two worldgens. Keep the rest in step with
-# edvin.txt (test.txt plus the extras; no kth-auth, no ovvar-client, see edvin.txt).
+# edvin.txt (test.txt plus the extras; no kth-auth, no discord-mc-chat, no ovvar-client, see edvin.txt).
 # BlueMapPolymerPatch is on the server by hand until it has a release to pin.
 # Structory is here only (not in edvin.txt or test.txt), on trial for the S6 world.
 # One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <name> <url> sha256:<hex>
@@ -80,7 +80,6 @@ external puzzleslib https://cdn.modrinth.com/data/QAGBst4M/versions/vbwu116x/puz
 external forgeconfigapiport https://cdn.modrinth.com/data/ohNO6lps/versions/JpKvrr9J/ForgeConfigAPIPort-v26.3.1-mc26.3.x-Fabric.jar sha256:95cc2bd7a943f910a54baf2f65acde301dcfb3d8aeff2c989c04c416d5a4a1cd
 external debugify https://cdn.modrinth.com/data/QwxR6Gcd/versions/FMaS2nZn/debugify-26.3.0.0.jar sha256:88c86804997207a6438782fe4d42467cc797bec7de6e6a051cf8e2026a828f63
 external vmp https://cdn.modrinth.com/data/wnEe9KBa/versions/2TFDVjDf/vmp-fabric-mc26.3-0.2.0%2Bbeta.7.238-all.jar sha256:cd36d2943458042e7be1d1ac04e50c2275a01a713ca891bd45294e9225689a0a
-external discord-mc-chat https://cdn.modrinth.com/data/D0sHdnXY/versions/49RyYYsL/Discord-MC-Chat-2.7.1.jar sha256:8c91893cdf94b34a87774d7fd9d1525b7b8777fe404e08735d653ebcf924e7c9
 external disconnect-packet-fix https://cdn.modrinth.com/data/rd9rKuJT/versions/TXsGBFkk/disconnect-packet-fix-fabric-2.3.0.jar sha256:7f00b3ff9ad47e1d9db6adeb7929ac134c2aceab4fd4d2e337269a3de84e421c
 external recipecooldown https://cdn.modrinth.com/data/7LEWYKTV/versions/v7KRefAi/RecipeCooldown-1.1.0%2B26.2.jar sha256:6ac033f7bb1a6e9cb5b948a791ae752d31796c9e68e2f98296fc219e0fbafb56
 external servux https://cdn.modrinth.com/data/zQhsx8KF/versions/azA4UG3T/servux-fabric-26.3-0.12.2.jar sha256:ef7d39903ccd75550776bb58bb1ec2689fedc6a6a30205dc7f6246e63a993f97
