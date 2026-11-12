@@ -27,7 +27,7 @@ public record Catalogue(List<Chapter> chapters) {
 
 	/**
 	 * A banner pattern; {@code item} means the loom wants a pattern item for it (the vanilla globe / flower mechanic).
-	 * {@code loot} puts that item in structure chests and the wandering trader's pool; it needs {@code item}.
+	 * {@code loot} puts that item in structure chests (no pattern has it for now); it needs {@code item}.
 	 */
 	public record Pattern(String id, String name, boolean item, boolean loot) {
 		public static final Codec<Pattern> CODEC = RecordCodecBuilder.create(i -> i.group(

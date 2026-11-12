@@ -122,7 +122,7 @@ another mod's changes to a chest stay. Which is which is two lists in `PatchLoot
 Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
 ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
 them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
-TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds each, all four every visit; without
 kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
 he sold lately from coming straight back.
 
@@ -163,7 +163,7 @@ Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes 
 - `pool_picks` (4): how many things from `pool` are on offer per visit.
 - `players_per_roll` (5): how many players online count as one more roll of his visit.
 - `max_loaded` (3): how many Punkphöz can be loaded at once.
-- `pool` (kultur's 20 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+- `pool` (kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
   `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
 
 **Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
