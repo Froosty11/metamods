@@ -234,6 +234,20 @@ if (clientMod) {
 		gametestRuntimeOnly project(path: ':mods:ovvar-client')
 	}
 }
+// -PtextColours: NametagColoursClientTests runs (chapter colours on nametags). The test copy of the
+// chapter-text-colors resource pack goes into the client run dir's resourcepacks, and the test turns it on
+// itself (options.txt is left alone). Meant with -Piris=<pack> (and -PovvarClientMod, which patches it);
+// without -Piris it is the no-shader control, where the resource pack alone must recolour the tags.
+if (project.hasProperty('textColours')) {
+	tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+		def runDir = file('build/run/clientGameTest')
+		jvmArgs '-Dovvar.textColours=chapter-text-colors'
+		doFirst {
+			delete "$runDir/resourcepacks/chapter-text-colors"
+			project.copy { from 'tools/shaderpatcher/test-packs/chapter-text-colors'; into "$runDir/resourcepacks/chapter-text-colors" }
+		}
+	}
+}
 if (project.hasProperty('ovvar.iris.expect')) {
 	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -Povvar.iris.expect needs -Piris=<shaderpack .zip>')
 	tasks.matching { it.name == 'runClientGameTest' }.configureEach {

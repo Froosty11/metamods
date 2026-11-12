@@ -1181,6 +1181,24 @@ background, so `art` cannot pass on a crop that missed the leg.
 
 Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
 
+### Chapter text colours on nametags (`-PtextColours`)
+
+`NametagColoursClientTests` runs only with `-PtextColours`. The build copies the test copy of the
+chapter-text-colors resource pack (`tools/shaderpatcher/test-packs/chapter-text-colors`) into
+`build/run/clientGameTest/resourcepacks/`, and the test selects it itself. Then it summons a nametag in dark purple
+and in dark blue in front of a white wall. Each one must draw much closer to its chapter colour drawn literally
+(`#E83D84` cerise, `#CC99FF` laserviolet) than to its stock colour one step off (`#AB00AB`, `#0000AB`, which no
+patch touches). The test compares the tags with each other rather than with fixed RGB because a shaderpack lights
+and tone-maps text: under BSL, a correctly recoloured tag is pale and tinted towards the sky. It runs before
+`OvvarShaderpackClientTests`, so a failing leg check there does not hide it.
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -PovvarClientMod -PtextColours   # the patched shaderpack
+./gradlew :mods:ovvar:runClientGameTest -PtextColours                                        # control: the resource pack alone
+```
+
+Screenshots: `text_colours_*.png`. The log lines `[ovvar-clienttest] text colours:` give each glyph colour.
+
 ## Credits
 
 Patch art: ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
