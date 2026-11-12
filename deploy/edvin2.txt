@@ -122,10 +122,4 @@ external universal-graves https://cdn.modrinth.com/data/yn9u3ypm/versions/r9hY06
 # Patbox's recipe viewer (/polydex); the booklet's Recipes page points to it
 external polydex https://cdn.modrinth.com/data/m5NB7FJE/versions/hUejnkI9/polydex-1.11.0%2B26.3-rc-1.jar sha256:73065baf2493f24b44893b0c34ea658c0cb0100f11fc12e75629c44e179592cf
 
-# Johan's Vanilla Tweaks datapacks (Silence Mobs is metacraft-qol's)
-datapack vt_anti_enderman_grief vanillatweaks:26.3/gameplay%20changes/anti%20enderman%20grief sha256:0cbd1bc8ec748f5ba09fd108f42b8272175e59f4504697b1f699be0f1427365f
-datapack vt_husks_drop_sand vanillatweaks:26.3/gameplay%20changes/husks%20drop%20sand sha256:54b7ff921d506eb43b953d3dd7ac3e51fc6cd75768758dba3d930ec901e72831
-datapack vt_armor_statues vanillatweaks:26.3/decorative%2Fcosmetic/armor%20statues sha256:e3e6a2428241d513868fd98c7d8c6a80a7c5186c03461ebbaf332fe3c3cf5488
-datapack vt_more_mob_heads vanillatweaks:26.3/decorative%2Fcosmetic/more%20mob%20heads sha256:0d393660372f81fa7a885e5e22632a8ecf0921aa26239e14ce064eb354c14e84
-datapack vt_player_head_drops vanillatweaks:26.3/decorative%2Fcosmetic/player%20head%20drops sha256:b616fa81c642238996fef71adce2ab09df68b9a3c28980f2e978f2c6b7ac25d6
-datapack vt_wandering_trades vanillatweaks:26.3/decorative%2Fcosmetic/wandering%20trades sha256:7c931000269ce9d7b716f8f142eed2e3e99966960141e1d236bf11a2af8533d5
+# No Vanilla Tweaks datapacks here: their site 403s GitHub's runners (Cloudflare), so CI can't fetch them.
