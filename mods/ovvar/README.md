@@ -141,11 +141,13 @@ UVs fit the rig's boxes unchanged. Two things differ from the traders' model: th
 they sat at -47° and crossed behind the back), and the nose, beanie and antenna are under the head, so they turn with it.
 
 He moves as a vanilla villager does (`VillagerModel.setupAnim`), from the server (`PunkphozAnimations`). BIL turns the `head`
-bone and everything under it with his look. `walk` swings the legs, `±cos(walkAnimationPos * 0.6662) * 0.7 * walkAnimationSpeed`:
+bone and everything under it with his look, but re-poses a model only while one of its animations plays, so `idle` (the rest
+pose) always plays under the others. `walk` swings the legs, `±cos(walkAnimationPos * 0.6662) * 0.7 * walkAnimationSpeed`:
 baked as 10 speed bands of a 20-frame stride, and every tick the frame for his walk speed and position is picked, so swing and
 stride follow his movement; under walk speed 0.05 he stands still. `shake` is the unhappy "no", head down 0.4 rad and rolling
 `0.3 * sin(0.45 * ticks)`: asked to trade while sold out (no offers, or all out of stock) he says no
-(`WANDERING_TRADER_NO`) and shakes for 40 ticks, as a villager without offers does (vanilla's wandering trader never shakes).
+(`WANDERING_TRADER_NO`) and shakes for 40 ticks, as a villager without offers does (vanilla's wandering trader never shakes);
+its loop is 56 ticks, four periods of the roll, so a shake kept going by more asks doesn't jump.
 His look stays level while he shakes, as vanilla's shake replaces the look's pitch. BIL plays one animation at a time, so the
 shake stills his legs.
 

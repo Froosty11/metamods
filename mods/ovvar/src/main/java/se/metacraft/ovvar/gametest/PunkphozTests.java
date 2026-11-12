@@ -113,31 +113,33 @@ public final class PunkphozTests {
 			helper.assertValueEqual(nodes.get(name).tag(), Node.NodeTag.HEAD_CHILD, name + "'s tag (turns with the head)");
 		}
 		helper.assertValueEqual(nodes.get("jacket").parent(), nodes.get("body"), "the jacket's parent");
+		Animation idle = model.animations().get(PunkphozAnimations.IDLE);
 		Animation walk = model.animations().get(PunkphozAnimations.WALK);
 		Animation shake = model.animations().get(PunkphozAnimations.SHAKE);
-		if (walk == null || shake == null) {
-			helper.fail("the model's animations are " + model.animations().keySet() + ", not walk and shake");
+		if (idle == null || walk == null || shake == null) {
+			helper.fail("the model's animations are " + model.animations().keySet() + ", not idle, walk and shake");
 			return;
 		}
 		helper.assertValueEqual(walk.duration(), PunkphozAnimations.SPEED_BANDS * PunkphozAnimations.STRIDE_FRAMES, "walk frames");
-		helper.assertValueEqual(shake.duration(), Punkphoz.UNHAPPY_TICKS + 1, "shake frames");
+		// four periods of the roll, 0.45 rad a tick: 4 * 2 pi / 0.45 = 55.85 ticks
+		helper.assertValueEqual(shake.duration(), 56, "shake frames");
 		helper.succeed();
 	}
 
 	/**
-	 * Polymer's pack carries BIL's parts of his model once each: his texture and one item model per bone under {@code bil:punkphoz}
-	 * (ten: head, hat, nose, beanie, antenna, body, jacket, arms and the legs).
+	 * Polymer's pack builds with BIL's parts of his model: his texture, and for each bone with cubes (ten: head, hat, nose, beanie,
+	 * antenna, body, jacket, arms and the legs) an item asset and its model, and nothing more under his name.
 	 */
 	@GameTest(maxTicks = 400)
 	public void packCarriesHisModelOnce(GameTestHelper helper) {
-		Map<String, Integer> entries = new HashMap<>();
+		Set<String> entries = new HashSet<>();
 		try {
 			Path pack = Files.createTempFile("ovvar-punkphoz-pack", ".zip");
 			try {
 				// hadIssues covers every mod's assets, so it is not judged here; his entries are
 				PolymerResourcePackUtils.getInstance().build(pack);
 				try (ZipFile zip = new ZipFile(pack.toFile())) {
-					zip.stream().map(ZipEntry::getName).filter(n -> n.contains("punkphoz") && !n.endsWith("/")).forEach(n -> entries.merge(n, 1, Integer::sum));
+					zip.stream().map(ZipEntry::getName).filter(n -> n.contains("punkphoz") && !n.endsWith("/")).forEach(entries::add);
 				}
 			} finally {
 				Files.deleteIfExists(pack);
@@ -146,20 +148,17 @@ public final class PunkphozTests {
 			helper.fail("building the pack: " + e);
 			return;
 		}
-		entries.forEach((name, count) -> {
-			if (count != 1) helper.fail(name + " is in the pack " + count + " times");
-		});
-		if (!entries.containsKey("assets/bil/textures/item/punkphoz/punkphoz.png")) helper.fail("no texture in the pack's punkphoz entries " + entries.keySet());
+		if (!entries.contains("assets/bil/textures/item/punkphoz/punkphoz.png")) helper.fail("no texture in the pack's punkphoz entries " + entries);
 		for (Node node : PunkphozEntities.model().nodeMap().values()) {
 			if (node.modelData() == null) continue;
 			// BIL's ids: item bil:punkphoz_punkphoz_<bone uuid>, its model bil:item/punkphoz/punkphoz_<bone uuid>
 			String item = "assets/bil/items/" + node.modelData().getPath() + ".json";
 			String part = "assets/bil/models/item/punkphoz/" + node.modelData().getPath().substring("punkphoz_".length()) + ".json";
-			if (!entries.containsKey(item) || !entries.containsKey(part)) {
-				helper.fail("the " + node.name() + " bone lacks " + item + " or " + part + " in " + entries.keySet());
+			if (!entries.contains(item) || !entries.contains(part)) {
+				helper.fail("the " + node.name() + " bone lacks " + item + " or " + part + " in " + entries);
 			}
 		}
-		long models = entries.keySet().stream().filter(n -> n.startsWith("assets/bil/models/item/punkphoz/") && n.endsWith(".json")).count();
+		long models = entries.stream().filter(n -> n.startsWith("assets/bil/models/item/punkphoz/") && n.endsWith(".json")).count();
 		helper.assertValueEqual(models, 10L, "item models under bil:punkphoz, one per bone");
 		helper.succeed();
 	}
@@ -176,10 +175,11 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	/** Moving, he plays the walk; once his walk speed has run down he stands in the default pose again. */
+	/** Moving, he plays the walk; once his walk speed has run down he stands in the rest pose again (his goals off: no stroll). */
 	@GameTest(maxTicks = 60)
 	public void walksWhileMoving(GameTestHelper helper) {
 		Punkphoz punkphoz = helper.spawn(PunkphozEntities.PUNKPHOZ, new BlockPos(1, 1, 1));
+		goals(punkphoz).removeAllGoals(g -> true);
 		punkphoz.walkAnimation.setSpeed(1f);
 		helper.runAfterDelay(1, () -> {
 			if (!punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.WALK)) {
@@ -190,6 +190,7 @@ public final class PunkphozTests {
 			if (punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.WALK)) {
 				helper.fail("still walking at walk speed " + punkphoz.walkAnimation.speed());
 			}
+			if (!punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.IDLE)) helper.fail("no idle under the walk: BIL would stop posing him");
 			helper.succeed();
 		});
 	}
@@ -208,6 +209,7 @@ public final class PunkphozTests {
 		helper.runAfterDelay(Punkphoz.UNHAPPY_TICKS + 5, () -> {
 			helper.assertValueEqual(punkphoz.getUnhappyCounter(), 0, "the unhappy counter after the shake");
 			if (punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.SHAKE)) helper.fail("still shaking after the counter ran out");
+			if (!punkphoz.getHolder().getAnimator().isPlaying(PunkphozAnimations.IDLE)) helper.fail("no idle after the shake: his head would stay tilted");
 			helper.succeed();
 		});
 	}

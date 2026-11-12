@@ -270,6 +270,10 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				System.out.println("[ovvar-clienttest] punkphoz shake changed head pixels=" + shook);
 				if (shook < 800) throw new AssertionError("Punkphoz's head doesn't shake: only " + shook + " head pixels changed");
 				ctx.waitTicks(Punkphoz.UNHAPPY_TICKS + 10);
+				// and back at rest once it has run out (the idle under it re-poses him)
+				int rested = differingInHeadCrop(first, read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_shake").withSize(1920, 1080))));
+				System.out.println("[ovvar-clienttest] punkphoz head pixels changed after the shake=" + rested);
+				if (rested * 2 > shook) throw new AssertionError("Punkphoz's head didn't come back to rest: " + rested + " head pixels still differ (" + shook + " while shaking)");
 
 				// right-click him the way a player does, through the use key
 				ctx.getInput().pressKey(options -> options.keyUse);

@@ -54,7 +54,8 @@ public class Punkphoz extends WanderingTrader implements AnimatedEntity {
 	/** Asked to trade while sold out (no offers, or every one out of stock), he shakes his head and says no, then trades as before. */
 	@Override
 	public InteractionResult mobInteract(Player player, InteractionHand hand) {
-		if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && isAlive() && !isTrading() && !isBaby() && soldOut()) {
+		if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && !player.getItemInHand(hand).is(Items.VILLAGER_SPAWN_EGG)
+				&& isAlive() && !isTrading() && !isBaby() && soldOut()) {
 			setUnhappyCounter(UNHAPPY_TICKS);
 			makeSound(SoundEvents.WANDERING_TRADER_NO);
 		}
