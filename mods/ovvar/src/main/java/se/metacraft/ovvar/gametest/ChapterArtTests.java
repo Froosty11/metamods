@@ -21,13 +21,13 @@ public final class ChapterArtTests {
 	/** The 13 new ovvar, in the plan's table order, with their cloth colours. */
 	private static final List<New> NEW = List.of(
 			new New("arkitektur", 0xA43AA8),
+			new New("bygg", 0xA0522D),
 			new New("cl", 0x1A1A1A),
 			new New("doktorand", 0x1A1A1A),
 			new New("elektro", 0xF5F5F5),
 			new New("energi", 0x006B71),
 			new New("fysik", 0xFF642B),
 			new New("indek", 0x4A2C1D),
-			new New("ingenjor", 0xA0522D),
 			new New("kemi", 0xFFCB05),
 			new New("mit", 0x8EC9EB),
 			new New("open", 0xC62C22),

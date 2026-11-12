@@ -6,7 +6,7 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 ## What it adds
 
 One ovve per chapter. Data (cerise), IT (purple) and the older silicon-blue IT are made as before;
-Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Ingenjör, Kemi, Medicinsk teknik,
+Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik,
 OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour. They have no
 recipe and no loot: new chapters come only from the wandering trader (Punkphöz). There is also the
 Media frack and the B-frack, the black frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
