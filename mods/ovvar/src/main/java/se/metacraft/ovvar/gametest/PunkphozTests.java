@@ -564,16 +564,24 @@ public final class PunkphozTests {
 		helper.succeed();
 	}
 
-	/** The default pool is kultur's 20 chapter patterns plus Pirkko: all there with kultur loaded, all warned about without. */
+	/**
+	 * The default pool is every kultur pattern that has an item (ITK, QMISK, TMEIT and Pirkko; the chapter logos
+	 * are free in the loom), loot-flagged or not: all there with kultur loaded, all warned about without.
+	 */
 	@GameTest
 	public void defaultPoolMatchesKultur(GameTestHelper helper) {
 		var resolved = PunkphozConfig.resolve(PunkphozConfig.DEFAULT);
 		if (FabricLoader.getInstance().isModLoaded("metacraft-kultur")) {
-			helper.assertValueEqual(resolved.entries().size(), 21, "entries with kultur");
+			helper.assertValueEqual(resolved.entries().size(), 4, "entries with kultur");
 			helper.assertValueEqual(resolved.warnings(), List.<String>of(), "warnings with kultur");
+			var patternItems = BuiltInRegistries.ITEM.keySet().stream()
+					.filter(id -> id.getNamespace().equals("kultur") && id.getPath().endsWith("_banner_pattern"))
+					.map(Identifier::toString).sorted().toList();
+			var pool = PunkphozConfig.DEFAULT.pool().stream().map(e -> e.item().toString()).sorted().toList();
+			helper.assertValueEqual(pool, patternItems, "the default pool against kultur's pattern items");
 		} else {
 			helper.assertValueEqual(resolved.entries().size(), 0, "entries without kultur");
-			helper.assertValueEqual(resolved.warnings().size(), 21, "warnings without kultur");
+			helper.assertValueEqual(resolved.warnings().size(), 4, "warnings without kultur");
 			for (String warning : resolved.warnings()) {
 				if (!warning.contains("kultur:")) helper.fail("a warning that names no kultur id: " + warning);
 			}

@@ -1,75 +1,75 @@
 {
 	"chapters": [
 		{ "id": "arkitektur", "name": "Arkitektur", "patterns": [
-			{ "id": "arkitektur", "name": "Arkitektur", "item": true, "loot": true }
+			{ "id": "arkitektur", "name": "Arkitektur" }
 		], "paintings": [] },
 		{ "id": "bergs", "name": "Bergs", "patterns": [
-			{ "id": "bergs", "name": "Bergs", "item": true, "loot": true }
+			{ "id": "bergs", "name": "Bergs" }
 		], "paintings": [] },
 		{ "id": "bygg", "name": "Bygg", "patterns": [
-			{ "id": "bygg", "name": "Bygg", "item": true, "loot": true }
+			{ "id": "bygg", "name": "Bygg" }
 		], "paintings": [] },
 		{ "id": "cl", "name": "CL", "patterns": [
-			{ "id": "cl", "name": "CL", "item": true, "loot": true }
+			{ "id": "cl", "name": "CL" }
 		], "paintings": [] },
 		{ "id": "data", "name": "Data", "patterns": [
-			{ "id": "data", "name": "Data", "item": true, "loot": true }
+			{ "id": "data", "name": "Data" }
 		], "paintings": [] },
 		{ "id": "doktorand", "name": "Doktorand", "patterns": [
-			{ "id": "doktorand", "name": "Doktorand", "item": true, "loot": true }
+			{ "id": "doktorand", "name": "Doktorand" }
 		], "paintings": [] },
 		{ "id": "elektro", "name": "Elektro", "patterns": [
-			{ "id": "elektro", "name": "Elektro", "item": true, "loot": true }
+			{ "id": "elektro", "name": "Elektro" }
 		], "paintings": [] },
 		{ "id": "energi", "name": "W", "patterns": [
-			{ "id": "energi", "name": "W", "item": true, "loot": true }
+			{ "id": "energi", "name": "W" }
 		], "paintings": [] },
 		{ "id": "flyg", "name": "Flyg", "patterns": [
-			{ "id": "flyg", "name": "Flyg", "item": true, "loot": true }
+			{ "id": "flyg", "name": "Flyg" }
 		], "paintings": [] },
 		{ "id": "fysik", "name": "Fysik", "patterns": [
-			{ "id": "fysik", "name": "Fysik", "item": true, "loot": true }
+			{ "id": "fysik", "name": "Fysik" }
 		], "paintings": [] },
 		{
 			"id": "it",
 			"name": "IT",
 			"patterns": [
-				{ "id": "itk", "name": "ITK" },
-				{ "id": "qmisk", "name": "QMISK" },
-				{ "id": "tmeit", "name": "TMEIT" },
+				{ "id": "itk", "name": "ITK", "item": true },
+				{ "id": "qmisk", "name": "QMISK", "item": true },
+				{ "id": "tmeit", "name": "TMEIT", "item": true },
 				{ "id": "pirkko", "name": "Pirkko", "item": true },
-				{ "id": "it", "name": "IT", "item": true, "loot": true }
+				{ "id": "it", "name": "IT" }
 			],
 			"paintings": [
 				{ "id": "draken", "title": "The Guardian of Kistan", "author": "Emelie Stark", "width": 3, "height": 4 }
 			]
 		},
 		{ "id": "kemi", "name": "Kemi", "patterns": [
-			{ "id": "kemi", "name": "Kemi", "item": true, "loot": true }
+			{ "id": "kemi", "name": "Kemi" }
 		], "paintings": [] },
 		{ "id": "maskin", "name": "Maskin", "patterns": [
-			{ "id": "maskin", "name": "Maskin", "item": true, "loot": true }
+			{ "id": "maskin", "name": "Maskin" }
 		], "paintings": [] },
 		{ "id": "media", "name": "Media", "patterns": [
-			{ "id": "media", "name": "Media", "item": true, "loot": true }
+			{ "id": "media", "name": "Media" }
 		], "paintings": [] },
 		{ "id": "mit", "name": "MiT", "patterns": [
-			{ "id": "mit", "name": "MiT", "item": true, "loot": true }
+			{ "id": "mit", "name": "MiT" }
 		], "paintings": [] },
 		{ "id": "open", "name": "OPEN", "patterns": [
-			{ "id": "open", "name": "OPEN", "item": true, "loot": true }
+			{ "id": "open", "name": "OPEN" }
 		], "paintings": [] },
 		{ "id": "produktion", "name": "Produktion", "patterns": [
-			{ "id": "produktion", "name": "Produktion", "item": true, "loot": true }
+			{ "id": "produktion", "name": "Produktion" }
 		], "paintings": [] },
 		{ "id": "samhall", "name": "Samhällsbyggnad", "patterns": [
-			{ "id": "samhall", "name": "Samhällsbyggnad", "item": true, "loot": true }
+			{ "id": "samhall", "name": "Samhällsbyggnad" }
 		], "paintings": [] },
 		{ "id": "tbas", "name": "TBas", "patterns": [
-			{ "id": "tbas", "name": "TBas", "item": true, "loot": true }
+			{ "id": "tbas", "name": "TBas" }
 		], "paintings": [] },
 		{ "id": "indek", "name": "Indek", "patterns": [
-			{ "id": "indek", "name": "Indek", "item": true, "loot": true }
+			{ "id": "indek", "name": "Indek" }
 		], "paintings": [] }
 	]
 }

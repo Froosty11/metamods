@@ -12,8 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Where a chapter's banner pattern comes from: a structure's chest, now and then. Every pattern
- * the catalogue flags {@code loot} (and gives an item) is one of the candidates, at even odds.
+ * A pattern item in a structure's chest, now and then. Every pattern the catalogue flags
+ * {@code loot} (and gives an item) is one of the candidates, at even odds. None is flagged for now
+ * (the gated patterns come only from Punkphöz), and with none flagged no table is touched.
  * Added to the tables as they load, so a datapack that changes a chest keeps its change.
  */
 public final class PatternLoot {
