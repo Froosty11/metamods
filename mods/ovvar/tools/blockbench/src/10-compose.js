@@ -249,10 +249,8 @@ OVVAR.compose.baked = function (m, art) {
 
 /**
  * GeneratedAssets.placed: the art (at texture resolution: see `baked`) on a garment texture at
- * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
- * strip -- past the outer face of a limb lies its back face. A cell on a box's top face (the
- * shoulders) is clipped to the face both ways instead, since the top face has no neighbour in
- * the layout to continue onto.
+ * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side
+ * rows and wrapped round the part's strip -- past the outer face of a limb lies its back face.
  *
  * Returns null instead of throwing when the art lands entirely off the cell -- datagen's
  * `require` is a build failure there, but a plugin has a panel to warn in and a model to keep
@@ -263,18 +261,6 @@ OVVAR.compose.placed = function (m, cell, art, x) {
   var y = cell.v * D + Math.trunc((cell.h * D - art.h) / 2);
   var out = OVVAR.tex.blank(W, H);
   var any = false, ax, row, p;
-  if (cell.top) {
-    var x0 = cell.u * D, x1 = x0 + cell.w * D, y0 = m.topRow * D, y1 = m.faceRow * D;
-    for (ax = 0; ax < art.w; ax++) {
-      var column = x + ax;
-      if (column < x0 || column >= x1) continue;
-      for (row = Math.max(y, y0); row < Math.min(y + art.h, y1); row++) {
-        p = OVVAR.tex.get(art, ax, row - y);
-        if (p !== 0) { OVVAR.tex.set(out, column, row, p); any = true; }
-      }
-    }
-    return any ? out : null;
-  }
   var stripStart = cell.stripStart * D, stripWidth = cell.stripWidth * D;
   if (art.w > stripWidth) throw new Error('patch art is wider than the ' + cell.id + " cell's part");
   for (ax = 0; ax < art.w; ax++) {
@@ -475,6 +461,27 @@ OVVAR.compose.withLeft = function (m, tex, box, skin, leftBox) {
 };
 
 /**
+ * GeneratedAssets.withLimbCopies: withLeft, then the right-limb box copied unchanged to
+ * (rightCopyX, box y - mirrorShift), then every box texel the copy has cloth on turned into the
+ * checkerA/checkerB checker that an unpatched shaderpack shows. Here so buildBase is the
+ * generator's pixels; the plugin draws the right limb from the copy (rightCopy).
+ */
+OVVAR.compose.withLimbCopies = function (m, tex, box, skin, leftBox) {
+  var out = OVVAR.compose.withLeft(m, tex, box, skin, leftBox);
+  if (!m.hasRightCopy) return out;
+  var x = box[0], y = box[1], w = box[2], h = box[3], cx = m.rightCopyX, cy = y - m.mirrorShift;
+  out = OVVAR.tex.blit(out, out, x, y, w, h, cx, cy);
+  for (var ty = y; ty < y + h; ty++) {
+    for (var tx = x; tx < x + w; tx++) {
+      var cloth = OVVAR.tex.a(OVVAR.tex.get(out, cx + tx - x, cy + ty - y)) > 0;
+      var even = (Math.floor(tx / m.checkerSquare) + Math.floor(ty / m.checkerSquare)) % 2 === 0;
+      OVVAR.tex.set(out, tx, ty, cloth ? (even ? m.checkerA : m.checkerB) : 0);
+    }
+  }
+  return out;
+};
+
+/**
  * The chapter's cloth, cut out of its website overlay the way GeneratedAssets does it. The
  * plugin itself loads the committed layer texture instead (ctx.base) -- it is the same pixels,
  * and it costs nothing for a chapter whose cloth is tinted or hand-drawn. This is here so the
@@ -500,15 +507,28 @@ OVVAR.compose.buildBase = function (ctx, chapterId, piece, nercabbad) {
   }
   if (piece === 'top') {
     var over = overlay(chapter.art);
-    return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(over, [boxes.body, boxes.rightArm]), boxes.rightArm, over, boxes.leftArm), D);
+    return OVVAR.tex.scale(OVVAR.compose.withLimbCopies(m, cut(over, [boxes.body, boxes.rightArm]), boxes.rightArm, over, boxes.leftArm), D);
   }
   if (!nercabbad) {
     var o2 = overlay(chapter.art);
-    return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(o2, [boxes.rightLeg, boxes.waist]), boxes.rightLeg, o2, boxes.leftLeg), D);
+    return OVVAR.tex.scale(OVVAR.compose.withLimbCopies(m, cut(o2, [boxes.rightLeg, boxes.waist]), boxes.rightLeg, o2, boxes.leftLeg), D);
   }
   // Rolled down: the legs plus the top hanging at the waist, all on the legs slot's layer.
   var rolled = overlay(chapter.nercabbad);
-  return OVVAR.tex.scale(OVVAR.compose.withLeft(m, cut(rolled, [boxes.rightLeg, boxes.body]), boxes.rightLeg, rolled, boxes.leftLeg), D);
+  return OVVAR.tex.scale(OVVAR.compose.withLimbCopies(m, cut(rolled, [boxes.rightLeg, boxes.body]), boxes.rightLeg, rolled, boxes.leftLeg), D);
+};
+
+/**
+ * Texture A: the right limb's copy (rightCopyX) put back on the limb rows, so a plain cube reading
+ * the standard strip shows the right limb's art, not the checker the box holds for unpatched
+ * shaderpacks. Only the limb this piece owns has a copy.
+ */
+OVVAR.compose.rightCopy = function (m, piece, im) {
+  if (!m.hasRightCopy) return OVVAR.tex.copy(im);
+  var D = m.detail;
+  var box = piece === 'top' ? m.skinBoxes.rightArm : m.skinBoxes.rightLeg;
+  var cy = box[1] - m.mirrorShift;
+  return OVVAR.tex.copyRect(im, im, m.rightCopyX * D, cy * D, box[2] * D, box[3] * D, box[0] * D, box[1] * D);
 };
 
 /**
@@ -544,13 +564,11 @@ OVVAR.compose.stacked = function (m, placements) {
  * A: the cloth, plus every BODY and RIGHT placement. B: the cloth with the mirror strip copied
  * down, plus every LEFT placement. The seat is one patch cut in half, `_r` on A and `_l` on B.
  *
- * A side cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat:
- * the game does the squeeze in the shader, Blockbench has no shader, and this is what makes art
- * bend round the chest's and the sleeve's corners the way it does in game. A top-face cell (the
- * shoulders) is never squeezed -- the top face is not on the strip's perimeter -- so it stays
- * `placed`. Mirroring a limb's art and then wrapping is the same as wrapping and then mirroring,
- * because the squeeze is symmetric about the anchor face's centre and a limb cell is that whole
- * face.
+ * A cell's art is baked through the squeeze (`placedWrapped`) rather than laid on flat: the game
+ * does the squeeze in the shader, Blockbench has no shader, and this is what makes art bend round
+ * the chest's and the sleeve's corners the way it does in game. Mirroring a limb's art and then
+ * wrapping is the same as wrapping and then mirroring, because the squeeze is symmetric about the
+ * anchor face's centre and a limb cell is that whole face.
  */
 OVVAR.compose.composePiece = function (ctx, piece, design) {
   var m = ctx.m;
@@ -559,7 +577,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
   // placement on a leg cell has nowhere to go.
   var legless = piece === 'bottom' && !OVVAR.compose.hasPiece(chapter, piece);
   var base = legless ? OVVAR.tex.blank(m.texture[0], m.texture[1]) : ctx.base(design.chapter, piece, piece === 'bottom' && !!design.nercabbad);
-  var A = OVVAR.tex.copy(base);
+  var A = OVVAR.compose.rightCopy(m, piece, base);
   var B = OVVAR.compose.mirrorStrip(m, piece, base);
   var placements = OVVAR.compose.stacked(m, design.placements || []);
   for (var i = 0; i < placements.length; i++) {
@@ -581,9 +599,7 @@ OVVAR.compose.composePiece = function (ctx, piece, design) {
     for (var s = 0; s < sides.length; s++) {
       var side = sides[s];
       var drawn = OVVAR.compose.placementArt(ctx, cell, patch, side);
-      var tex = cell.top
-        ? OVVAR.compose.placed(m, cell, drawn.art, drawn.x)
-        : OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
+      var tex = OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x);
       if (tex === null) {
         ctx.warnings.push(patch.name + ' lands entirely off ' + cell.label + '; not drawn');
         continue;

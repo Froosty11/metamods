@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 public record SingleValueEditor<T>(
-	Object value, CodecDialog.Type type, Codec<T> codec, Optional<ParentInfo> parent, Optional<Component> tooltip
+	T value, CodecDialog.Type type, Codec<T> codec, Optional<ParentInfo> parent, Optional<Component> tooltip
 ) implements ValueEditor<T> {
 
 	public static final String VALUE = "value";
@@ -41,17 +41,16 @@ public record SingleValueEditor<T>(
 
 	@Override
 	public MessageUpdate updateFromMessage(ServerPlayer player, CompoundTag tag) {
+		//noinspection unchecked
 		return MessageUpdate.dataResult(
 			type.parse(player.registryAccess(), tag.get(VALUE)),
-			result -> new SingleValueEditor<>(result, type, codec, parent, tooltip),
+			result -> new SingleValueEditor<>((T) result, type, codec, parent, tooltip),
 			this
 		);
 	}
 
 	@Override
 	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
-		return codec.parse(
-			lookup.createSerializationContext(JavaOps.INSTANCE), value
-		).map(Optional::of);
+		return DataResult.success(Optional.of(value));
 	}
 }

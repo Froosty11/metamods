@@ -8,12 +8,17 @@ comes from); the ovvar and patches from there live in `mods/ovvar`.
 
 ## What is here, and what is not
 
-IT's content: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko pattern behind a
-pattern item ("gated", below — `kultur:pirkko_banner_pattern`, from creative or `/give` for now),
-Emelie Stark's painting "The Guardian of Kistan" (3×4), and PolymITer's four drinks (below). Data
-and Media have their places in the catalogue and nothing in them yet — that is what this file is for.
+Every chapter has a banner pattern of its own, its logo: gated (it needs its pattern item in the loom),
+found in structure chests and sold by Punkphöz, a wandering trader who turns up now and then. The art for
+most of them is a placeholder for now (below).
 
-Not here yet, on purpose: loot tables for the pattern items, any Data or Media art.
+IT's content besides its logo: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko
+pattern behind a pattern item ("gated", below — `kultur:pirkko_banner_pattern`, sold by Punkphöz by
+default and never in chests), Emelie Stark's painting "The Guardian of Kistan" (3×4), and PolymITer's
+four drinks (below). Data and Media have their logo pattern, as every chapter does, and nothing else
+yet.
+
+Not here yet, on purpose: the real art for the chapter patterns.
 
 With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet: its dyes
 work in the vanilla loom; nothing in this module knows about that. A Cerise Pirkko needs the Pirkko
@@ -21,9 +26,9 @@ pattern item in the loom, as a white one does.
 
 ## The drinks
 
-PolymITer's four IT drinks come two ways, depending on whether
-[Patbox's Brewery](https://modrinth.com/mod/brewery) is on the server. Kultur never depends on it; it
-looks once, at start-up, and only one of the two is ever active.
+PolymITer's four IT drinks are made with [Patbox's Brewery](https://modrinth.com/mod/brewery), and only
+with it: without Brewery on the server there is no way to make them. Kultur never depends on it; it
+looks once, at start-up, and only one of the two modes below is ever active.
 
 ### With Brewery
 
@@ -58,14 +63,18 @@ loaded, and can go when Brewery fixes it.
 
 ### Without Brewery
 
-Kultur brews them itself (`metacraft.kultur.drinks`), PolymITer's way: in a brewing stand.
+Kultur registers the drinks itself (`metacraft.kultur.drinks`), but **nothing makes them**: no
+brewing-stand recipe and no crafting recipe. Season 6 brings the drinks with Brewery, at an event;
+until then they exist only through `/give` and the creative tab. (PolymITer brewed them in a brewing
+stand — water bottle + potato, then sweet berries or suspicious stew — and crafted Nyckeln from an
+apple and a water bottle. Those recipes are gone; the alcohol values below are what the drinks carry.)
 
-| drink | made by | alcohol |
-| --- | --- | --- |
-| Alcoholic Beverage | brewing stand: water bottle + potato | 20 |
-| Spiken Patch Drink | brewing stand: Alcoholic Beverage + sweet berries | 30 |
-| Släggan Patch Drink | brewing stand: Alcoholic Beverage + suspicious stew | 35 |
-| Nyckeln Patch Drink | crafting: apple + water bottle | 0 |
+| drink | alcohol |
+| --- | --- |
+| Alcoholic Beverage | 20 |
+| Spiken Patch Drink | 30 |
+| Släggan Patch Drink | 35 |
+| Nyckeln Patch Drink | 0 |
 
 Drinking one puts its alcohol on your meter, Brewery's: it adds the drink's value (and never leaves
 you below it), drains about 14 a minute, and comes down 3 for a slice of bread and 10 for a bucket of
@@ -104,7 +113,7 @@ than replace them. Vanilla's own Luck (a creative-only potion) shows as Inebriat
 the bottles, and arrows tipped in a lingering one, from the potion: Kultur's lang has
 `item.minecraft.{potion,splash_potion,lingering_potion,tipped_arrow}.effect.kultur_<drink>`.
 
-None of this registers with Brewery on the server: no potions, recipes (`fabric:load_conditions`),
+None of this registers with Brewery on the server: no potions,
 effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the inverse of
 `KulturMixinPlugin`).
 
@@ -121,13 +130,28 @@ effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the
    scaled to half size onto the shield, which is fine for bold logos and poor for thin text.
 4. Add a line to `src/main/resources/kultur.json` under your chapter:
    `{ "id": "<id>", "name": "<Name>" }`. Add `"item": true` to make it need a pattern item in the
-   loom, and then also draw a 16×16 icon at `.../item/<id>.png`.
+   loom, and then also draw a 16×16 icon at `.../item/<id>.png`. Add `"loot": true` (it needs `item`)
+   to put the pattern item in structure chests; that is all `loot` does. What the wandering trader
+   Punkphöz sells is ovvar's config (`pool` in `config/ovvar.json`), whose default is a fixed list of
+   ids in `PunkphozConfig.kulturPatterns()`: add yours there too if he should sell it (ovvar's
+   `defaultPoolMatchesKultur` game test, under `-PwithKultur`, checks that every id there exists). A server that already
+   has a `config/ovvar.json` keeps its own `pool`, so add the id to its file as well.
 5. `./gradlew runDatagen` from the repo root, then commit your art and your `kultur.json` line.
    `src/main/generated` is a build artefact, not something to commit — everyone regenerates it
    locally, and the build refuses to package until `runDatagen` has run.
 
+AI-drawn art: files starting with `_` (`_<id>.png`) are AI-drawn drafts and are used as the art for `<id>`.
+To replace one, save your drawing as `<id>.png` beside it and delete the `_` file (if both exist, the
+plain file wins and datagen says it ignores the `_` one).
+
+Placeholder art: every chapter's logo ships as a placeholder, a white frame with pixel (0,0) set to
+opaque magenta (`#FF00FF`). Datagen clears everything outside the banner face, so the marker never
+shows on a banner, only on the placeholder icon. Draw over the whole PNG, marker included. Run the unit
+tests with `-PkulturRelease` and `noPlaceholderArt` fails, listing every file still marked.
+
 Names: the lang file is generated from `name` — "Light Blue ITK" and so on for all sixteen dyes,
-and "<Name> Banner Pattern" for the item.
+and "<Name> Banner Pattern" for the item. `sv_se.json` is generated too: "<Name> (<färg>)" for the layers
+and "Fanmönster: <Name>" for the item.
 
 ## Adding a painting
 
@@ -154,14 +178,20 @@ folder `art/kultur/<chapter>/`.
   server game tests (`KulturGameTests`): every catalogue entry in its registry and tag, gated
   patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
   Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
+  `KulturLoomPacketTests` writes the loom's result with every pattern item as the packet a client gets.
 - The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
-  runs (recipes, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
+  runs (no recipe makes a drink, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
   once. Run both.
 - `./gradlew :mods:metacraft-kultur:runClientGameTest` — a real client joins a test server and
   screenshots a banner, a shield and the painting, and the drinks, into
   `build/run/clientGameTest/screenshots/`. With `-PkulturNoBrewery` it screenshots Kultur's own
   bottles (`drinks_vanilla_bottles.png`) and the inventory at 55 alcohol, Inebriated IV with weakness
-  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test.
+  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test. It also checks
+  the loom on both the server's menu and the client's own list (banner and dye in, every kultur
+  pattern), with black dye and with More Dyes' Cerise: More Dyes is on the client-test runtime
+  (needs `:mods:moredyes:runDatagen` first); `-PkulturNoMoredyes` leaves it out.
+  The client shares the server's JVM, so `SameJvmRegistriesMixin` keeps it from binding the shared
+  item components to its own registries (the loom result could not be sent otherwise).
 - `./gradlew :mods:metacraft-kultur:runServer` — a dev server with the pack auto-hosted; join with a
   vanilla client, `/give @s minecraft:loom`, `/give @s kultur:pirkko_banner_pattern`.
 

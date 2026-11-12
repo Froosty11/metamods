@@ -1,10 +1,11 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "metacraft.kultur.clienttest.mixin",
+	"package": "se.metacraft.kultur.clienttest.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"PolymerHelloMixin",
+		"SameJvmRegistriesMixin",
 		"ServerPackAutoAcceptMixin"
 	],
 	"injectors": {

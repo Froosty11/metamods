@@ -7,7 +7,7 @@ breaks an existing file.
 
 - [Void anchor](#void-anchor): catches you when you fall into the End void.
 - [Concrete cauldron](#concrete-cauldron): throw concrete powder into a water cauldron to make concrete.
-- [Silence mobs](#silence-mobs): the muffler (or a "silence me" name tag) silences a mob.
+- [Silence mobs](#silence-mobs): the echo fork (or a "silence me" name tag) silences a mob.
 
 ## Void anchor
 
@@ -19,13 +19,15 @@ player who fell off an End island; a void anchor does.
   the fuel item tops up an anchor in front of it.
 - **Bind** it by using it with an empty hand. It only works in the End; elsewhere it refuses to bind
   (and, unlike a respawn anchor, never explodes or sets your spawn). One anchor per player; several
-  players may share one, and its charges.
+  players may share one, and its charges. An empty anchor binds too, but says it's out of fuel and
+  names the fuel item.
 - **Fall.** Below the End's lowest Y a rift opens beneath a bound player, their fall eases into it,
   and they come out beside their anchor, which loses one charge. If the anchor is empty, broken or
   blocked, the player is told so and falls as before (into season 5's overworld teleport, if that
-  is on). Players without an anchor see no change.
+  is on). Players without an anchor see no change. As with a respawn anchor, creative players and
+  spectators are caught too, and spend a charge; a flyer stops flying (spectators excepted) and a rider gets off.
 
-`/voidanchor rift [pos]` (permission `metacraft.qol.voidanchor`, level 2) opens a rift that only
+`/voidanchor rift [pos]` (permission `metacraft:voidanchor`, level 2) opens a rift that only
 looks, for checking how it renders.
 
 ### Config
@@ -56,8 +58,8 @@ every Minecraft update**. 26.3 compiles shaders to SPIR-V, hence `gl_VertexIndex
 Which vertex counts as a quad's first depends on where its draw starts in a shared buffer, so the
 swirl repeats every quarter turn: a shifted corner order turns it by 90° and nothing visibly changes.
 
-Block and rift textures are placeholders drawn by `tools/gen_textures.py`; replace them with real art
-whenever.
+The void anchor's textures are hand-drawn. The rift sprites and the white-out flash are placeholders
+drawn by `tools/gen_textures.py`; replace them with real art whenever.
 
 ## Concrete cauldron
 
@@ -73,9 +75,11 @@ Config: the `concrete_cauldron` section of `config/metacraft-qol.json` has just 
 
 ## Silence mobs
 
-**The muffler** (shapeless: any wool, an amethyst shard and string): right-click a mob to silence it,
-again to undo it. It's never used up. It works on mobs with a right-click of their own too
-(villagers, horses), because it acts before them.
+**The echo fork**, a tuning fork that hums sound away (two sculk over an echo shard over an iron
+ingot, shaped like the fork): right-click a mob to silence it,
+again to undo it, and your arm swings. It's never used up. It works on mobs with a right-click of their
+own too (villagers, horses), because it acts before them. A vanilla client sees a brick wearing the
+echo fork's model, so using it on a block does nothing.
 
 **Or a name tag**, for players used to the datapack: one named `silence me` silences the mob, one
 named `unsilence me` undoes it. Case, spaces and underscores don't matter (`Silence_Me` works), and
@@ -90,15 +94,17 @@ there), never ran its "hold an unsilence tag to see silenced mobs" highlight (a 
 and silenced the nearest mob with the name within 16 blocks rather than the one clicked.
 
 Config: the `silence_mobs` section of `config/metacraft-qol.json` has just `enabled`; off, the
-muffler does nothing and "silence me" is just a name.
+echo fork does nothing and "silence me" is just a name.
 
 ## Tests
 
 - `./gradlew :mods:metacraft-qol:runDatagen :mods:metacraft-qol:test` runs every feature's
-  game tests on one test server. Void anchor: charging, binding, dispensers, and the rescue: empty, gone, flying, creative,
+  game tests on one test server. Void anchor: charging, binding (and what it says, empty or charged),
+  dispensers, and the rescue: empty, gone, flying, creative, spectating, riding,
   disconnecting, saved-themselves and shared anchors. Concrete cauldron: stacks, single items, the
-  last level, colours, other items and dry cauldrons. Silence mobs: the muffler and the name tags through
-  a real interact packet, kept names, any case, other names, creative, the muffler's recipe. Each feature's "switched off" tests run in
+  last level, colours, other items and dry cauldrons. Silence mobs: the echo fork and the name tags through
+  a real interact packet, kept names, any case, other names, creative, the echo fork's swing, villagers,
+  its client item and its recipe. Each feature's "switched off" tests run in
   their own test environment (`metacraft:qol_<feature>_off`), whose setup and teardown flip the
   config through a test-only `/qoltest <feature> <true|false>` command, so no other test sees the
   feature off.

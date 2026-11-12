@@ -1,0 +1,8 @@
+// A test skin that ships with metacraft-skins. Delete this folder to remove it for good.
+{
+	name: "&lTest Cap",
+	gradient: { colors: ["#00E5FF", "#2979FF"] },
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "test_cap.json", dyeable: true },
+}

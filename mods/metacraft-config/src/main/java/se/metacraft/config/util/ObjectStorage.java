@@ -5,7 +5,7 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.datafixers.util.Unit;
 import com.mojang.serialization.*;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 
 import java.util.*;
 import java.util.function.Function;
@@ -222,6 +222,7 @@ public class ObjectStorage<T> {
 		if (ops instanceof OpsWithComments<R> comments) {
 			var container = codec.nestedMetadata(MetadataKey.CONTAINER);
 			if (container.isPresent()) {
+				var containerCodec = codec.getContainer(container.get().type());
 				if (container.get().type() == ContainerType.RECORD) {
 					var map = ops.getMap(result);
 					if (map.isSuccess()) {
@@ -286,8 +287,8 @@ public class ObjectStorage<T> {
 					var map = ops.getMap(result);
 					if (map.isSuccess()) {
 						var data = codec.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
-						var key = data.keyByValue().apply(
-							ops.convertTo(JavaOps.INSTANCE, result)
+						var key = containerCodec.orElse(codec).codec().parse(ops, result).flatMap(
+							k -> data.keyByValue().apply(k)
 						).resultOrPartial(METAConfig.LOGGER::error);
 						if (key.isPresent()) {
 							var decoder = data.decoderByKey().apply(key.get()).resultOrPartial(METAConfig.LOGGER::error);

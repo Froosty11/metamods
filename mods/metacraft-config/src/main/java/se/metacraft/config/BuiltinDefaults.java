@@ -14,12 +14,13 @@ import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.data.BlockDataSource;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.util.random.Weighted;
-import nu.metacraft.lib.util.helper.DataResultHelper;
+import se.metacraft.lib.util.helper.DataResultHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
@@ -117,6 +118,9 @@ public class BuiltinDefaults {
 		}
 		if (element.getUnderlying(codec -> codec.codec() == UUIDUtil.STRING_CODEC).isPresent()) {
 			return DataResult.success(new UUID(0, 0).toString());
+		}
+		if (element.getUnderlying(codec -> codec.codec() == TextColor.CODEC).isPresent()) {
+			return DataResult.success(TextColor.WHITE.serialize());
 		}
 		var timeFormatter = element.nestedMetadata(MetadataKey.REMAINDER).flatMap(
 			param -> param.parameters().stream().filter(

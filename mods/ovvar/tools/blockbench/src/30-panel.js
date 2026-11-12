@@ -207,7 +207,7 @@ OVVAR.panel.newPatch = function () {
         id: asked.id, name: asked.name, seat: asked.seat, w: w, h: h,
         artist: asked.artist || null,
         arts: [{file: file, w: w, h: h, 'default': true, generated: false, source: null}],
-        fits: {over: file, clipped: file, filled: file}
+        fits: {over: file, filled: file}
       };
       m.patches.push(entry);
       m.patchById[entry.id] = entry;
@@ -258,7 +258,6 @@ OVVAR.panel.addSize = function () {
   var patches = {};
   m.patches.forEach(function (p) { if (!p.seat) patches[p.id] = p.name; });
   var sizes = {};
-  sizes[m.artPx] = m.artPx + ' × ' + m.artPx + ' (a shoulder)';
   sizes[m.overMax] = m.overMax + ' × ' + m.overMax + ' (an ordinary cell)';
   sizes[m.maxArt] = m.maxArt + ' × ' + m.maxArt + ' (the big back cell)';
   new Dialog('ovvar_add_size', {
@@ -319,7 +318,6 @@ OVVAR.panel.refit = function (m, patch) {
   var own = patch.arts.filter(function (a) { return a['default']; })[0];
   patch.fits = {
     over: (patch.seat || (own.w <= m.overMax && own.h <= m.overMax)) ? own.file : largestIn(m.overMax, m.overMax),
-    clipped: largestIn(m.artPx, m.artPx),
     filled: largestIn(m.maxArt, m.maxArt)
   };
 };
@@ -365,7 +363,7 @@ OVVAR.panel.exportToRepo = function () {
       form: {
         written: {type: 'info', text: files.join('\n')},
         paste: {type: 'info', text: lines.length
-          ? 'Add to the ALL list in Patches.java, last (a design’s instant code is its position):\n\n' + lines.join('\n')
+          ? 'Add a line anywhere in Patches.ALL and put the id in PatchLoot.LOOT or NON_LOOT; droppable (LOOT) patches get the instant slots automatically.\n\n' + lines.join('\n')
           : 'No new catalogue entries — only art was redrawn.'},
         next: {type: 'info', text: 'Then, in the checkout: re-run ./gradlew :mods:ovvar:runDatagen, '
           + 'and commit the new art under mods/ovvar/src/main/resources/art/ovvar/patches/ together '

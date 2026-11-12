@@ -18,11 +18,11 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.discord_chat_fixer.DiscordChatFixer"
+			"se.metacraft.discord_chat_fixer.DiscordChatFixer"
 		]
 	},
 	"mixins": [
-	  "discord-chat-fixer.mixins.json"
+		"discord-chat-fixer.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",

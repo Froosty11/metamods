@@ -57,3 +57,8 @@ run-vanilla/
 
 # claude code worktrees
 .claude/worktrees/
+# Local working notes
+/.scratch/
+/skin/
+/GLOSSARY.md
+mods/ovvar/tools/shaderpatcher/web/dist/

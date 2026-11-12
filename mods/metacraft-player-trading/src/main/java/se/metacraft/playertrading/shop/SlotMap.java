@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.world.inventory.SlotRange;
+import org.pcollections.OrderedPMap;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
@@ -16,6 +17,13 @@ import java.util.stream.Stream;
 public record SlotMap<T>(
 	PMap<SlotRange, T> slots, Int2ObjectMap<PVector<SlotRange>> slotLookup
 ) {
+
+	private static final SlotMap<?> EMPTY = SlotMap.of(OrderedPMap.empty());
+
+	public static <T> SlotMap<T> empty() {
+		//noinspection unchecked
+		return (SlotMap<T>) EMPTY;
+	}
 
 	public static <T> Codec<SlotMap<T>> codec(Codec<PMap<SlotRange, T>> mapCodec) {
 		return mapCodec.xmap(SlotMap::new, SlotMap::slots);

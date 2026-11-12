@@ -1,15 +1,15 @@
 {
-  "branches": {
-    "dev": ["test"],
-    "prod": ["survival", "test"],
-    "minigame": ["event"],
+	"branches": {
+		"dev": ["test"],
+		"prod": ["survival", "test"],
+		"minigame": ["event"],
 		"edvin-test": ["edvin", "edvin2"]
-  },
-  "servers": {
-    "test": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.098974a0"},
-    "survival": {"host": "mc.datasektionen.se", "port": 2022, "user": "github-actions.604966da"},
-    "event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"},
+	},
+	"servers": {
+		"test": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.6a3d6c42"},
+		"survival": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.8b013000"},
+		"event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"},
 		"edvin": {"host": "pterodactyl.kth.it", "port": 3022, "user": "edvin-deploy.e906b112"},
 		"edvin2": {"host": "pterodactyl.kth.it", "port": 3022, "user": "edvin-deploy.00c79c6f"}
-  }
+	}
 }

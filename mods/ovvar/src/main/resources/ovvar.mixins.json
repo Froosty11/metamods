@@ -1,12 +1,23 @@
 {
 	"required": true,
-	"package": "metacraft.ovvar.mixin",
+	"package": "se.metacraft.ovvar.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"CompanionCursorMixin",
 		"CustomClickMixin",
+		"EnchantRandomlyFunctionMixin",
+		"EnchantmentHelperMixin",
+		"EnderPocketsSelectMixin",
 		"ForeignOvveMixin",
-		"ResourcePackResponseMixin"
+		"KeepsakeDeathMixin",
+		"KeyringBreakActionMixin",
+		"KeyringDiggingAccessor",
+		"KeyringLeaveMixin",
+		"MobOvvarMixin",
+		"PiglinOvvarMixin",
+		"ResourcePackResponseMixin",
+		"SpilledDrinkMixin",
+		"WanderingTraderSpawnerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

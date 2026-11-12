@@ -1,4 +1,4 @@
-"""Draws the void anchor's placeholder textures. Run from the module: python3 tools/gen_textures.py
+"""Draws the rift sprites and the white-out flash. Run from the module: python3 tools/gen_textures.py
 
 Everything is drawn from fixed seeds, so a rerun gives the same files. Replace the PNGs with real
 art whenever; nothing else depends on this script.
@@ -9,23 +9,13 @@ from pathlib import Path
 
 from PIL import Image
 
-import anchor_art
-
 ROOT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/metacraft/textures"
-BLOCK = ROOT / "block"
 ITEM = ROOT / "item"
 ASSETS = ROOT.parent
 RIFT_VARIANTS = 8               # keep in step with Rift.VARIANTS
 RAY_VARIANTS = 4                # keep in step with Rift.RAY_VARIANTS
 RIFT_TINT = -65795              # #FEFEFD, the marker the item shader looks for; Rift dyes glowing cracks #FEFEFC
 CORE_TINT = -65797              # #FEFEFB, the shatter rift's core
-
-OBSIDIAN = [(20, 10, 34), (28, 14, 46), (36, 18, 60), (46, 22, 76)]
-CRYING = [(120, 40, 200), (150, 70, 230)]
-RIM = [(92, 56, 120), (110, 70, 140), (78, 46, 104)]
-VOID = (6, 2, 12)
-PIP_OFF = (40, 24, 56)
-PIP_ON = [(200, 130, 255), (240, 200, 255)]
 
 
 def rift(seed, frames=4, size=64, ray=False):
@@ -168,64 +158,11 @@ def flash():
 	return Image.new("RGBA", (128, 16), (255, 255, 255, 255))
 
 
-MUFFLER_OUT=(38,22,30)
-MUFFLER_CU={"hi":(240,170,120),"lt":(214,128,88),"base":(178,92,64),"dk":(128,60,44),"dkr":(88,40,32)}
-MUFFLER_WOOL={"hi":(246,243,238),"lt":(226,221,214),"base":(198,192,184),"dk":(160,152,146)}
-MUFFLER_AM={"hi":(244,220,255),"lt":(206,150,255),"base":(160,96,228),"dk":(104,58,170),"dkr":(70,36,120)}
-MUFFLER_STR=(232,228,214); MUFFLER_STRD=(170,160,140)
-
-
-def muffler():
-	"""A tinkerer's hush gadget: a wool-padded copper cup with an amethyst set in it, on a
-	string-wrapped copper handle, humming a little. (Its recipe: wool, an amethyst shard, string.)"""
-	img=Image.new("RGBA",(16,16))
-	def p(x,y,c):
-		if 0<=x<16 and 0<=y<16: img.putpixel((x,y),c+(255,))
-	# handle, bottom left to the cup
-	for i in range(6):
-		x,y=1+i,14-i
-		p(x-1,y,MUFFLER_OUT); p(x+1,y+1,MUFFLER_OUT)
-	for i in range(6):
-		x,y=1+i,14-i
-		p(x,y,MUFFLER_CU["base"]); p(x+1,y,MUFFLER_CU["dk"]); p(x,y-1,MUFFLER_CU["lt"])
-	p(0,15,MUFFLER_OUT); p(1,15,MUFFLER_OUT); p(0,14,MUFFLER_OUT)
-	# string wrapped round the grip
-	for (x,y) in [(2,12),(3,11),(4,10)]:
-		p(x,y,MUFFLER_STR); p(x+1,y,MUFFLER_STRD)
-	# the cup: a copper rim round a wool pad
-	cx,cy=10.5,5.5
-	for y in range(16):
-		for x in range(16):
-			d=((x-cx)**2+(y-cy)**2)**0.5; shade=(x-cx)+(y-cy)
-			if d<3.3:
-				p(x,y,MUFFLER_WOOL["hi"] if shade<-2 else MUFFLER_WOOL["lt"] if shade<0.5 else MUFFLER_WOOL["base"] if shade<2.5 else MUFFLER_WOOL["dk"])
-			elif d<4.3:
-				p(x,y,MUFFLER_CU["hi"] if shade<-2.5 else MUFFLER_CU["lt"] if shade<0 else MUFFLER_CU["base"] if shade<2.5 else MUFFLER_CU["dk"])
-			elif d<5.0:
-				p(x,y,MUFFLER_OUT)
-	# two gear teeth on the rim
-	for (x,y,c) in [(15,4,MUFFLER_CU["base"]),(15,5,MUFFLER_CU["dk"]),(13,0,MUFFLER_CU["lt"]),(14,0,MUFFLER_CU["base"])]:
-		p(x,y,c)
-	# a coil collar where handle meets cup
-	for (x,y,c) in [(6,9,MUFFLER_CU["hi"]),(7,9,MUFFLER_CU["dk"]),(7,8,MUFFLER_CU["base"]),(6,10,MUFFLER_CU["dkr"])]:
-		p(x,y,c)
-	# the amethyst, set in the pad, held by two copper prongs
-	for (x,y,c) in [(10,3,MUFFLER_AM["lt"]),(10,4,MUFFLER_AM["hi"]),(11,4,MUFFLER_AM["lt"]),(10,5,MUFFLER_AM["lt"]),(11,5,MUFFLER_AM["base"]),(10,6,MUFFLER_AM["base"]),(11,6,MUFFLER_AM["dk"]),(10,7,MUFFLER_AM["dk"]),(11,7,MUFFLER_AM["dkr"])]:
-		p(x,y,c)
-	for (x,y,c) in [(9,7,MUFFLER_CU["base"]),(12,7,MUFFLER_CU["dk"]),(9,6,MUFFLER_CU["lt"]),(12,6,MUFFLER_CU["base"])]:
-		p(x,y,c)
-	# a hum of magic off the cup
-	for (x,y,c) in [(15,1,MUFFLER_AM["lt"]),(14,2,MUFFLER_AM["hi"]),(15,11,MUFFLER_AM["lt"])]:
-		p(x,y,c)
-	return img
-
-
 def write_json(path, data):
 	path.write_text(json.dumps(data, indent="\t") + "\n")
 
 
 def main():
-	anchor_art.draw_all(BLOCK)
 	ITEM.mkdir(parents=True, exist_ok=True)
 	for old in list(ITEM.glob("rift*.png*")) + list((ASSETS / "models/item").glob("rift*.json")) + list((ASSETS / "items").glob("rift*.json")):
 		old.unlink()
@@ -257,7 +194,6 @@ def main():
 	# a title is drawn 10 px above the screen's middle at 4x; ascent puts the glyph's middle there
 	write_json(ASSETS / "font/flash.json", {"providers": [
 		{"type": "bitmap", "file": "metacraft:font/flash.png", "ascent": 253, "height": 512, "chars": ["\ue000"]}]})
-	muffler().save(ITEM / "muffler.png")
 
 if __name__ == "__main__":
 	main()

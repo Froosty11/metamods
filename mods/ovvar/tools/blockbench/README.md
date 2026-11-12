@@ -36,13 +36,14 @@ If the manifest is not there the plugin says so and names the command to run.
   `[a-z0-9_]+` and unique; ordinary art is an even 6–16 px each way (12×12 is the usual), a seat
   patch is 16 wide and 8–12 tall. A blank patch draws nothing and says so in the panel until you
   have painted on it.
-- **Add size…** draws a patch again at 8×8, 12×12 or 16×16 — for when the automatic shrink gets
+- **Add size…** draws a patch again at 12×12 or 16×16 — for when the automatic shrink gets
   an outline or a letter wrong. It starts you from the shrink's own answer.
 - Paint in Blockbench's Paint mode. The ovve redraws on every finished stroke.
 - **Export to repo** writes every art you drew or changed to
   `mods/ovvar/src/main/resources/art/ovvar/patches/`, warns before overwriting anything, and then
-  shows the `Patches.java` line(s) to paste. New entries go **last** in the `ALL` list: a design's
-  instant code is its position, so inserting one in the middle repaints everything already sewn.
+  shows the `Patches.java` line(s) to paste. A line can go anywhere in the `ALL` list; put the id
+  in `PatchLoot.LOOT` or `NON_LOOT` too. Droppable (`LOOT`) patches get the instant slots
+  automatically, since a design's instant code is derived, not its position.
 - Then, in the checkout: re-run `./gradlew :mods:ovvar:runDatagen`, and commit the new art under
   `mods/ovvar/src/main/resources/art/ovvar/patches/` together with the `Patches.java` line. Nothing
   under `src/main/generated/` is ever committed — datagen rewrites it.

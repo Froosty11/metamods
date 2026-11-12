@@ -1,15 +1,20 @@
+import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
@@ -17,9 +22,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.qol.Qol;
-import nu.metacraft.qol.silence_mobs.SilenceMobs;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.qol.Qol;
+import se.metacraft.qol.silence_mobs.SilenceMobs;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -121,36 +126,84 @@ public class SilenceMobsTests {
 			ctx.assertTrue(tag.getCount() == 1, "creative used up the name tag");
 			ctx.succeed();
 		});
-		register("muffler_toggles", ctx -> {
+		register("echo_fork_toggles", ctx -> {
 			var cow = cow(ctx, null);
 			var player = player(ctx, GameType.SURVIVAL);
-			var muffler = new ItemStack(SilenceMobs.MUFFLER);
-			useOn(player, cow, muffler);
-			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
-			useOn(player, cow, muffler);
+			var fork = new ItemStack(SilenceMobs.ECHO_FORK);
+			useOn(player, cow, fork);
+			ctx.assertTrue(cow.isSilent(), "the echo fork didn't silence the cow");
+			useOn(player, cow, fork);
 			ctx.assertTrue(!cow.isSilent(), "a second use didn't unsilence the cow");
-			ctx.assertTrue(muffler.getCount() == 1, "the muffler was used up");
+			ctx.assertTrue(fork.getCount() == 1, "the echo fork was used up");
 			ctx.assertTrue(name(cow) == null, "the cow got named " + name(cow));
 			ctx.succeed();
 		});
-		register("muffler_keeps_name", ctx -> {
+		register("echo_fork_keeps_name", ctx -> {
 			var cow = cow(ctx, "Bob");
-			useOn(player(ctx, GameType.SURVIVAL), cow, new ItemStack(SilenceMobs.MUFFLER));
-			ctx.assertTrue(cow.isSilent(), "the muffler didn't silence the cow");
+			useOn(player(ctx, GameType.SURVIVAL), cow, new ItemStack(SilenceMobs.ECHO_FORK));
+			ctx.assertTrue(cow.isSilent(), "the echo fork didn't silence the cow");
 			ctx.assertTrue(Objects.equals(name(cow), "Bob"), "the cow is now called " + name(cow));
 			ctx.succeed();
 		});
-		register("muffler_recipe", ctx -> {
-			var key = ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(Qol.MODID, "muffler"));
+		register("echo_fork_swings_the_arm", ctx -> {
+			var cow = cow(ctx, null);
+			var player = player(ctx, GameType.SURVIVAL);
+			QolTests.sentTo(player);
+			useOn(player, cow, new ItemStack(SilenceMobs.ECHO_FORK));
+			ctx.assertTrue(cow.isSilent(), "the echo fork didn't silence the cow");
+			ctx.assertTrue(player.isSwinging(), "the player's arm didn't swing");
+			ctx.assertTrue(player.getCurrentSwing().hand() == InteractionHand.MAIN_HAND, "swung " + player.getCurrentSwing().hand());
+			// the client sees a brick and predicts nothing, so the server must tell the user's own client too
+			boolean toSelf = QolTests.sentTo(player).stream().anyMatch(packet ->
+					packet instanceof ClientboundSwingAnimationPacket swing && swing.entityId() == player.getId()
+			);
+			ctx.assertTrue(toSelf, "the player's own client wasn't told to swing");
+			ctx.succeed();
+		});
+		register("echo_fork_item_interaction", ctx -> {
+			var cow = cow(ctx, null);
+			var player = player(ctx, GameType.SURVIVAL);
+			var fork = new ItemStack(SilenceMobs.ECHO_FORK);
+			var result = fork.interactLivingEntity(player, cow, InteractionHand.MAIN_HAND);
+			ctx.assertTrue(cow.isSilent(), "the echo fork didn't silence the cow");
+			ctx.assertTrue(
+					result instanceof InteractionResult.Success success && success.swingSource() == InteractionResult.SwingSource.SERVER_ONLY,
+					"the echo fork's interaction returned " + result + ", expected a server-swung success"
+			);
+			ctx.succeed();
+		});
+		register("echo_fork_before_villager", ctx -> {
+			// a villager without a job turns away whoever right-clicks it, before an item gets a go
+			var villager = EntityTypes.VILLAGER.create(ctx.getLevel(), EntitySpawnReason.COMMAND);
+			var at = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(2, 1, 2)));
+			villager.snapTo(at.x, at.y, at.z, 0, 0);
+			villager.setNoAi(true);
+			ctx.getLevel().addFreshEntity(villager);
+			var player = player(ctx, GameType.SURVIVAL);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SilenceMobs.ECHO_FORK));
+			player.connection.handleInteract(new ServerboundInteractPacket(villager.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
+			ctx.assertTrue(villager.isSilent(), "the villager's own right-click went before the echo fork");
+			ctx.assertTrue(!villager.isTrading(), "the villager started trading");
+			ctx.succeed();
+		});
+		register("echo_fork_client_item_is_not_a_block", ctx -> {
+			// a block item would place a ghost block on the client when the echo fork is used on one
+			var fork = new ItemStack(SilenceMobs.ECHO_FORK);
+			var client = ((PolymerItem) SilenceMobs.ECHO_FORK).getPolymerItem(fork, PacketContext.get());
+			ctx.assertTrue(!(client instanceof BlockItem), "the echo fork shows as " + client + ", a block item");
+			ctx.succeed();
+		});
+		register("echo_fork_recipe", ctx -> {
+			var key = ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(Qol.MODID, "echo_fork"));
 			ctx.assertTrue(ctx.getLevel().getServer().getRecipeManager().byKey(key).isPresent(), "there is no " + key.identifier() + " recipe");
 			ctx.succeed();
 		});
-		register("off_muffler_does_nothing", ctx -> {
+		register("off_echo_fork_does_nothing", ctx -> {
 			var cow = cow(ctx, null);
-			var muffler = new ItemStack(SilenceMobs.MUFFLER);
-			useOn(player(ctx, GameType.SURVIVAL), cow, muffler);
-			ctx.assertTrue(!cow.isSilent(), "the muffler silenced the cow while silence mobs is off");
-			ctx.assertTrue(muffler.getCount() == 1, "the muffler was used up");
+			var fork = new ItemStack(SilenceMobs.ECHO_FORK);
+			useOn(player(ctx, GameType.SURVIVAL), cow, fork);
+			ctx.assertTrue(!cow.isSilent(), "the echo fork silenced the cow while silence mobs is off");
+			ctx.assertTrue(fork.getCount() == 1, "the echo fork was used up");
 			ctx.succeed();
 		});
 		register("off_names_normally", ctx -> {

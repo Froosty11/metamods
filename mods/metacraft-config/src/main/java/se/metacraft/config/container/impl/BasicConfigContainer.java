@@ -4,11 +4,11 @@ import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import se.metacraft.config.extensions.ModificationAware;
 import se.metacraft.config.util.helper.JanksonHelper;
 import se.metacraft.config.container.ConfigContainer;
-import nu.metacraft.lib.util.helper.JsonHelper;
+import se.metacraft.lib.util.helper.JsonHelper;
 import se.metacraft.config.container.ReloadCause;
 import se.metacraft.config.container.ReloadFunction;
 import se.metacraft.config.extensions.LoadAware;
@@ -217,7 +217,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		@Override
 		public void save() {
 			if (config == null) return;
-			JsonHelper.save(configPath, codec, config, lookupSupplier.get());
+			JanksonHelper.save(configPath, codec, config, lookupSupplier.get());
 		}
 
 		@Override

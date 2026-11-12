@@ -9,7 +9,6 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -19,7 +18,6 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.ItemStack;
@@ -30,15 +28,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.mob.GhastBombardier;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.WarDrummer;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.WarDrummer;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.Slot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class DrummerTests {
 
@@ -522,6 +518,41 @@ public class DrummerTests {
 				StageTests.remove(ctx, other.get());
 				ctx.killAllEntities();
 				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("drummer/clients_hit_its_stand_in", ctx -> {
+			// Clients pick the drummer's stand-in, an invisible piglin of its size (so the crosshair shows its attack
+			// indicator), and a blow on it hurts the drummer. It burns when the drummer does, and goes as it dies. BIL's
+			// interaction never burns: clients draw flames over a zero-wide entity without end (a crash).
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var drummer = (WarDrummer) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst();
+				drummer.setNoAi(true);
+				var standIn = drummer.getHolder().hitStandIn();
+				ctx.assertTrue(standIn.standIn() != null && Math.abs(standIn.scale() - 1) < 1e-4, "the stand-in is at scale " + standIn.scale());
+				var player = StageTests.player(ctx);
+				player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+				player.teleportTo(drummer.getX() + 1.5, drummer.getY(), drummer.getZ());
+				standIn.standIn().getInteractionHandler(player).attack(player);
+				ctx.assertTrue(drummer.getHealth() < drummer.getMaxHealth(), "a blow on the stand-in didn't hurt the drummer");
+				drummer.igniteForSeconds(5);
+				ctx.runAfterDelay(2, () -> {
+					ctx.assertTrue((standIn.standIn().getSyncedData().get(eu.pb4.polymer.virtualentity.api.data.EntityData.FLAGS) & 1) != 0,
+							"the stand-in doesn't burn with the drummer");
+					var interactions = drummer.getHolder().getElements().stream()
+							.filter(e -> e instanceof eu.pb4.polymer.virtualentity.api.elements.InteractionElement).toList();
+					ctx.assertFalse(interactions.isEmpty(), "the drummer's holder has no interaction");
+					ctx.assertTrue(interactions.stream().allMatch(e -> (((eu.pb4.polymer.virtualentity.api.elements.InteractionElement) e)
+							.getSyncedData().get(eu.pb4.polymer.virtualentity.api.data.EntityData.FLAGS) & 1) == 0), "the drummer's zero-wide interaction burns");
+					drummer.kill(ctx.getLevel());
+					ctx.runAfterDelay(2, () -> {
+						ctx.assertTrue(standIn.standIn() == null, "the stand-in outlived the drummer");
+						StageTests.remove(ctx, player);
+						ctx.killAllEntities();
+						FormingTests.cleanUp(ctx);
+						ctx.succeed();
+					});
+				});
 			});
 		});
 		NetherRiftsTests.register("drummer/vanilla_clients_see_no_piglin_data", ctx -> {

@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.TreePMap;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataKey;
@@ -151,7 +151,7 @@ public record SubMenu(SubMenuKey key) implements ClickHandler {
 			);
 		}
 		return new SingleValueEditor<>(
-			nonNullObject, type, type.element().codec(),
+			(T) nonNullObject, type, (Codec<T>) type.element().codec(),
 			Optional.of(new ValueEditor.SubMenuParentInfo(parentGUI, key)), Optional.empty()
 		);
 	}

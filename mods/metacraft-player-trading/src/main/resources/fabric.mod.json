@@ -22,6 +22,9 @@
 		],
 		"fabric-datagen": [
 			"se.metacraft.playertrading.DataGen"
+		],
+		"fabric-gametest": [
+			"se.metacraft.playertrading.gametest.DataFixerTest"
 		]
 	},
 	"mixins": [

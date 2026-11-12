@@ -16,8 +16,8 @@ import net.minecraft.world.inventory.SlotRange;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import nu.metacraft.lib.util.METACodecs;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.METACodecs;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.*;
 
 import java.util.List;
@@ -41,12 +41,12 @@ public record Shop(
 					ShopSlotRanges.CODEC, ResourceKey.codec(Registries.PREDICATE),
 					OrderedPMap.empty()
 				)
-			).fieldOf("conditions").forGetter(Shop::conditions)
+			).optionalFieldOf("conditions", SlotMap.empty()).forGetter(Shop::conditions)
 		).apply(instance, Shop::new)
 	);
 
 	public static Shop create(ShopType shopType) {
-		return new Shop(shopType, TreePVector.empty(), SlotMap.of(OrderedPMap.empty()));
+		return new Shop(shopType, TreePVector.empty(), SlotMap.empty());
 	}
 
 	public Shop withShopType(ShopType shopType) {

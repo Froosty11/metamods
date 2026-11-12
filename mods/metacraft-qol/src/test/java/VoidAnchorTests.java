@@ -1,9 +1,13 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -20,12 +24,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.qol.void_anchor.AnchorBinding;
-import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
-import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
-import nu.metacraft.qol.void_anchor.rift.RiftTracker;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.qol.void_anchor.AnchorBinding;
+import se.metacraft.qol.void_anchor.VoidAnchorConfig;
+import se.metacraft.qol.void_anchor.VoidAnchorBlocks;
+import se.metacraft.qol.void_anchor.rift.RiftTracker;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -99,6 +104,20 @@ public class VoidAnchorTests {
 
 	static boolean stillFalling(ServerPlayer player) {
 		return player.getY() < 0;
+	}
+
+	/** The last actionbar message sent to {@code player}; fails the test if there was none. */
+	static Component lastOverlay(GameTestHelper ctx, ServerPlayer player) {
+		var overlays = QolTests.overlaysSentTo(player);
+		if (overlays.isEmpty()) {
+			throw ctx.assertionException("no actionbar message was sent");
+		}
+		return overlays.getLast();
+	}
+
+	/** A translatable message's key, or its text if it isn't one. */
+	static String key(Component message) {
+		return message.getContents() instanceof TranslatableContents translatable ? translatable.getKey() : message.getString();
 	}
 
 	static void register(String name, Consumer<GameTestHelper> test) {
@@ -182,6 +201,34 @@ public class VoidAnchorTests {
 					GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)),
 					"bound to " + AnchorBinding.get(player)
 			);
+			ctx.succeed();
+		});
+		register("bind_empty_says_out_of_fuel", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 500, 0);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			QolTests.sentTo(player);
+			use(player, end, pos, ItemStack.EMPTY);
+			ctx.assertTrue(GlobalPos.of(Level.END, pos).equals(AnchorBinding.get(player)), "an empty anchor didn't bind");
+			var message = lastOverlay(ctx, player);
+			ctx.assertTrue(key(message).equals("block.metacraft.void_anchor.out_of_fuel"), "said " + key(message) + " for an empty anchor");
+			var args = ((TranslatableContents) message.getContents()).getArgs();
+			ctx.assertTrue(
+					args.length == 1 && args[0] instanceof Component fuel && key(fuel).equals(Items.END_CRYSTAL.getDescriptionId()),
+					"the message doesn't name the end crystal: " + Arrays.toString(args)
+			);
+			ctx.succeed();
+		});
+		register("bind_charged_says_bound", ctx -> {
+			var end = end(ctx);
+			var pos = endAnchor(ctx, 520, 1);
+			var player = survivalPlayer(ctx);
+			moveTo(player, end, Vec3.atBottomCenterOf(pos.east()));
+			QolTests.sentTo(player);
+			use(player, end, pos, ItemStack.EMPTY);
+			var message = lastOverlay(ctx, player);
+			ctx.assertTrue(key(message).equals("block.metacraft.void_anchor.bound"), "said " + key(message) + " for a charged anchor");
 			ctx.succeed();
 		});
 		register("resolve_states", ctx -> {
@@ -274,14 +321,50 @@ public class VoidAnchorTests {
 				ctx.succeed();
 			});
 		});
-		register("flying_player_ignored", ctx -> {
+		register("flying_player_caught", ctx -> {
 			var pos = endAnchor(ctx, 260, 2);
 			var player = fallingPlayer(ctx, pos, "flying");
-			player.getAbilities().mayfly = true;
+			player.setGameMode(GameType.CREATIVE);
 			player.getAbilities().flying = true;
-			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a flying player"));
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened for a flying player");
+				ctx.assertTrue(!player.getAbilities().flying, "still flying in the rift");
+			});
 			ctx.runAtTickTime(RESCUED_BY, () -> {
-				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent");
+				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
+				ctx.succeed();
+			});
+		});
+		register("spectator_caught", ctx -> {
+			var pos = endAnchor(ctx, 540, 2);
+			var player = fallingPlayer(ctx, pos, "spectator");
+			player.setGameMode(GameType.SPECTATOR);
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened for a spectator");
+				// a spectator who couldn't fly would sink through the ground at the anchor
+				ctx.assertTrue(player.getAbilities().flying, "a spectator stopped flying");
+			});
+			ctx.runAtTickTime(RESCUED_BY, () -> {
+				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
+				ctx.succeed();
+			});
+		});
+		register("rider_caught", ctx -> {
+			var pos = endAnchor(ctx, 560, 2);
+			var player = fallingPlayer(ctx, pos, "rider");
+			var boat = EntityTypes.OAK_BOAT.create(end(ctx), EntitySpawnReason.COMMAND);
+			boat.snapTo(player.getX(), player.getY(), player.getZ(), 0, 0);
+			end(ctx).addFreshEntity(boat);
+			ctx.assertTrue(player.startRiding(boat), "the player couldn't get in the boat");
+			ctx.runAtTickTime(5, () -> {
+				ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened for a rider");
+				ctx.assertTrue(!player.isPassenger(), "still riding in the rift");
+			});
+			ctx.runAtTickTime(RESCUED_BY, () -> {
+				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
 				ctx.succeed();
 			});
 		});
@@ -338,14 +421,16 @@ public class VoidAnchorTests {
 				ctx.succeed();
 			});
 		});
-		register("creative_player_ignored", ctx -> {
+		register("creative_player_caught", ctx -> {
+			// as a respawn anchor does, a void anchor catches a creative player and spends a charge on them
 			var pos = endAnchor(ctx, 360, 2);
 			var player = fallingPlayer(ctx, pos, "creative");
 			player.setGameMode(GameType.CREATIVE);
 			player.getAbilities().flying = false;
-			ctx.runAtTickTime(5, () -> ctx.assertTrue(!RiftTracker.isRifting(player.getUUID()), "a rift opened for a creative player"));
+			ctx.runAtTickTime(5, () -> ctx.assertTrue(RiftTracker.isRifting(player.getUUID()), "no rift opened for a creative player"));
 			ctx.runAtTickTime(RESCUED_BY, () -> {
-				ctx.assertTrue(charge(end(ctx), pos) == 2, "a charge was spent on a creative player");
+				ctx.assertTrue(rescued(player, pos), "not at the anchor: " + player.position());
+				ctx.assertTrue(charge(end(ctx), pos) == 1, "charge " + charge(end(ctx), pos) + ", expected 1");
 				ctx.succeed();
 			});
 		});

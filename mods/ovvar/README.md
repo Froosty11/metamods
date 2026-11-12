@@ -5,8 +5,12 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 ## What it adds
 
-One ovve per chapter — Data (cerise), IT (purple), the older silicon-blue IT — and the Media
-frack. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
+One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
+silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
+or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
+the wandering trader Punkphöz (below): Arkitektur, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Ingenjör, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
@@ -18,7 +22,7 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 The Media frack is the same item worn as a **chestplate** (`Chapter.slot`): a tailcoat is a top,
-and that is what sets it apart from the ovvar. Its pockets and its patches work as an ovve's, but
+and that is what sets it apart from the ovvar. The B-frack is the same cut without Media's emblem. Its pockets and its patches work as an ovve's, but
 there is no companion top (it is the top), nothing to roll up or down, no legs — only the top's
 cells take a patch, and the coat's tails in the overlay are not drawn — and no cuffs. Wherever
 the code asks what somebody wears it asks `OvveItem.worn`, which looks in whichever slot the
@@ -26,44 +30,22 @@ chapter uses.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
-belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it, and one
-on each shoulder. Nearly every cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`);
-the shoulders are on the arm boxes' *top* faces, rows 16–20 (`Spot.TOP_ROW`). Which rows each part
-uses came out of the playtest:
-
-```
-      ___________
-     /  SHOULDER \         the arm box seen from above: the whole 4×4 top face
-     \___________/         is the cell, and its front edge is the top of the sleeve
-     |           |
-     |  sleeve   |
-```
+belt, the hands and the cuffs), plus the seat, which takes a patch two cells wide across it. Every
+cell is on the boxes' side rows, skin rows 20–32 (`Spot.FACE_ROW`). Which rows each part uses came
+out of the playtest:
 
 | part | faces | cell rows (`v`) |
 | --- | --- | --- |
 | body, chest | front (8 wide) | 21, 26 — row 20 is the collar, row 31 the belt |
 | body, back | back (8 wide) | 21 (`BACK_TOP_LEFT`/`_RIGHT`) *or* 22 (`BACK_BIG`, the whole face) |
 | sleeves | outer, front, back | 21, 25 — a texel lower than they were, row 31 is the hand |
-| shoulders | the arm box's **top** face | 16–20, the whole face (`SHOULDER_R`/`_L`) |
 | legs | outer, front, back | 22, 26 — two texels lower than they were, row 31 is the cuff under a boot |
 | seat | both legs' back faces | 22, following `LEG_BACK_TOP`; a tall seat patch hangs a texel over it each way |
 
-The **shoulders** (`SHOULDER_R`, `SHOULDER_L`) are the one pair of cells not on the boxes' side
-rows: each is the whole of an arm box's top face, the arm strip's u 44..48 on rows 16–20, and any
-plain patch goes on it, centred. `Spot.top()` is the test — read off the row — and it decides three
-things everywhere a cell is drawn: no squeeze round the box (a top face is not on the strip's
-perimeter, so there is no slack to take up), the rows the cell is measured down from
-(`Spot.TOP_ROW`, not `FACE_ROW`), and — the one thing a shoulder does differently from every other
-cell — that **art bigger than the cell is clipped to the face, not bent round it.** A top face's
-four edges have no neighbouring face in the layout to continue onto (the strip is a loop round the
-box's *sides*, not over the top of it), so a 12×12 patch on a shoulder keeps its middle 8×8 and the
-rest is simply cut off, in the pack path, in the dye colour and on a stand alike — unless the patch
-has art at a size that fits the face, which is what the per-size variants are for (ITK's 8×8 is
-drawn, IT's is scaled down from its 16×16; see "art at more than one size"). Bending it over
-the four edges, the way a side cell's overhang bends round the corners, is a later version's job.
-`Spot.face()` answers `TOP_FACE` (4) for them rather than one of the four side faces, which is what
-datagen puts in the placement texture's kind texel and what `ovvar.glsl` reads back. The left arm's
-top face is mirrored in u like every other left-limb face.
+No cell is on a box's top face. There were shoulder cells for a while, one on each arm box's 4×4
+top face, and a patch looked bad there, so they went, with everything that existed only for them:
+the clipped fit, the 8×8 art sizes, the foreshortened caps on the paper doll and the top-face paths
+in the shader. No server had any sewn, so nothing was migrated.
 
 A cell is 4×4 texels except where the entry in `Spot` says otherwise (`Spot.width`/`height`), and
 there are two that do. The **seat** is two cells wide, one tall, across the back of both legs — but
@@ -95,25 +77,26 @@ has no answer all three paths could give. Sew the seat or the legs' back cells, 
 Cells come and go, and players' items and stored wardrobe rows name them by id, so
 `SpotPlacements.CODEC` drops a placement naming a cell or a patch this build has not got — with a
 log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
-and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
+and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived, `SHOULDER_R` and `SHOULDER_L` what went
+later.)
 
 The catalogue (`Patches.java`) holds ITK, METAcraft Rivals '26, IT and Data, then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Ainrave's IN, IN (gold), the three
-Nyckeln keys and KomMN, and last Måns's JGS, TMEIT and TMEIT Marshal. ITK, IT, Data, Spiken, Släggan,
+Nyckeln keys and KomMN, then Måns's JGS, TMEIT and TMEIT Marshal, Ainrave's Data pack, and last
+Millia's Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew (each also at 16×16). ITK, IT, Data, Spiken, Släggan,
 the Maid dress, the ticket and Måns's three are 12×12 and hang over their neighbours (except on the big back
-cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
-ITK, the art that shipped before the 12×12), so it lands whole on a shoulder instead of losing its
-edges, and `itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big
-back cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
-drawn — see "art at more than one size" below; Spiken, Släggan, JGS, TMEIT and TMEIT Marshal each ship
-an 8×8 and a 16×16 beside their 12×12 — Ticket to my heart among them, now Måns's 12×12 redraw in
-place of Cactooz's 9×6 original;
+cell). Most are also drawn at 16×16, which fills the big back cell and is the patch's own inventory
+icon at 1:1 — see "art at more than one size" below: ITK ships `itk_16x16.png`, IT `it_16x16.png`
+(PolymITer's 16×16 IT sprite), and Spiken, Släggan, JGS, TMEIT, TMEIT Marshal, IN, the three Nyckeln
+keys and Millia's six each a 16×16 beside their 12×12 — Ticket to my heart among them, now Måns's
+12×12 redraw in place of Cactooz's 9×6 original; KomMN is 12×8 with a 16×10;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
 seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Ainrave's Nyckeln 0x2, is gone from the
-list; its id still reads as that patch, so an ovve sewn with it loads.) New entries go at the end of the list: a design's instant
-code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
-repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
+list; its id still reads as that patch, so an ovve sewn with it loads.) A new entry can go anywhere in
+the list: items, wardrobes and `combos.json` name patches by id, and a design's instant code is
+derived, not its position — the droppable patches (`PatchLoot.LOOT`) take the first codes, in list
+order, and the rest come after (`Patches.byCode`; see "the dye colour" below). Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
 so the ä lives in the display name only. Seat art is drawn as seen from behind, the only
 way anybody sees a seat, so it reads across the figure the way it was drawn: the art's left half
 goes on the wearer's left leg, which is the leg at the viewer's left from behind
@@ -121,6 +104,88 @@ goes on the wearer's left leg, which is the leg at the viewer's left from behind
 so each of the three paths that draw a seat has to mirror its half back — the pack's `_l` texture
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
+
+**Getting patches.** Punkphöz, the wandering trader (below), sells loot patches for emeralds. The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
+a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
+three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
+event's), TMEIT Marshal (TMEIT's marshals'), METAcrew (the staff's) and KomMN are only ever given: no recipe,
+no chest. Every other patch turns up in structure
+chests (`PatchLoot`): vanilla's `chests/*` tables but the spawn bonus chest, and all of
+Structory's when it is installed, each get a pool with a 5 % chance of one patch, even odds among
+them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
+another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
+`LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
+## The wandering Punkphöz
+
+Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
+ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
+them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's 20 banner patterns, 4 emeralds each; without
+kultur installed they are left out and logged once per config load), and, with Brewery, the Curse of the Spilled Drink's book for 16
+emeralds (one more pool candidate, not a config entry). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+he sold lately from coming straight back.
+
+He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
+(`WanderingTraderSpawnerMixin`). On a cycle where vanilla's roll fails, he gets
+`ceil(players / players_per_roll)` rolls, so a busy server sees him more, and no more than
+`max_loaded` Punkphöz are loaded at once. His own spawn skips vanilla's 1-in-10 gate; his odds are set so
+`share` is his share of all wanderer visits.
+
+His model, `src/main/resources/model/ovvar/punkphoz.bbmodel` (Blockbench, played by BIL), is the vanilla villager rig in
+Dante's look. The rig is the CEM Template Loader's `wandering_trader` template (its `villager` model), nested the way
+`VillagerModel.createBodyModel()` nests it (head > hat, nose; body > jacket; arms; legs), with no hat rim (a wandering trader
+paints none). The texture and the beanie, antenna and trouser cuff are Dante's, from the traders' IT trader
+(`mods/traders/.../it_trader.bbmodel`, left as it is); his UVs fit the rig's boxes unchanged. So do his arms: unlike a
+villager's, which cross in front, his hands are behind his back, the traders' arm boxes on a pivot at (0, 21.05, -0.05) tipped
+-47° about x. The one thing that differs from the traders' model is that the nose, beanie and antenna are under the head, so
+they turn with it. No animation moves the arms (`handsStayBehindHisBack`).
+
+He moves as a vanilla villager does (`VillagerModel.setupAnim`), from the server (`PunkphozAnimations`). BIL turns the `head`
+bone and everything under it with his look, but re-poses a model only while one of its animations plays, so `idle` (the rest
+pose) always plays under the others. `walk` swings the legs, `±cos(walkAnimationPos * 0.6662) * 0.7 * walkAnimationSpeed`:
+baked as 10 speed bands of a 20-frame stride, and every tick the frame for his walk speed and position is picked, so swing and
+stride follow his movement; under walk speed 0.05 he stands still. `shake` is the unhappy "no", head down 0.4 rad and rolling
+`0.3 * sin(0.45 * ticks)`: asked to trade while sold out (no offers, or all out of stock) he says no
+(`WANDERING_TRADER_NO`) and shakes for 40 ticks, as a villager without offers does (vanilla's wandering trader never shakes);
+its loop is 56 ticks, four periods of the roll, so a shake kept going by more asks doesn't jump.
+His look stays level while he shakes, as vanilla's shake replaces the look's pitch. BIL plays one animation at a time, so the
+shake stills his legs.
+
+Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes the defaults):
+
+- `enabled` (true): whether he turns up at all.
+- `share` (0.25, 0 to 0.5): his share of all wanderer visits.
+- `chapter_ovves` (3): how many chapters' ovvar are on offer per visit.
+- `ovve_price` (24): emeralds for one ovve.
+- `patches` (2): how many loot patches are on offer per visit.
+- `patch_price` (6): emeralds for one patch.
+- `pool_picks` (4): how many things from `pool` are on offer per visit.
+- `players_per_roll` (5): how many players online count as one more roll of his visit.
+- `max_loaded` (3): how many Punkphöz can be loaded at once.
+- `pool` (kultur's 19 chapter banner patterns and Pirkko's, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+  `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
+
+**Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
+chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
+`Mob.populateDefaultEquipmentSlots` (`MobOvvarMixin`, wrapping its `setItemSlot`) and
+`Piglin.maybeWearArmor` (`PiglinOvvarMixin`), because a piglin rolls its own gold. Only a slot vanilla
+was about to fill is touched, so each spawn roll is the chance that vanilla's piece becomes a garment
+(`MobOvvar.spawnPiece`); a mob that already wears one keeps it. The chapter is random among those that
+are worn in that slot (fracks are `Chapter.values()` with `slot == CHEST`), an ovve's top is up at
+random where the chapter can roll, and it carries one to three patches from `PatchLoot.LOOT` only,
+all of them instant looks, on cells that show (a frack's top, an ovve's top only when it is up and no
+chest piece covers it). It is unowned, marked `ovvar:mob_ovve`, and pushes no pack and builds no combo.
+The garment can never reach a player: its slot's drop chance is 0, `equipItemIfPossible` is cancelled
+for a slot that holds one (so a swap for better armour can't put it on the ground), `ALLOW_LOAD`
+rejects any item entity holding a marked stack, and the player tick deletes a marked garment found in
+a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`, the player being
+`MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
+patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
+`config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` raises it for a killer wearing Magpie (see Enchantments).
+
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
@@ -137,8 +202,7 @@ vanilla's to swap, and a session stand still refuses everything but sewing. (A f
 chest slot's item, so there vanilla's swap already hands it over and the click is left alone.) While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
-is taken off and worn. A shoulder's sprite lies flat on the arm box's own top face, which faces
-straight up on an unposed stand. A big patch lies flat on its cell's face, the overhang sticking out past
+is taken off and worn. A big patch lies flat on its cell's face, the overhang sticking out past
 the corner (`PatchPieces` can instead cut it at the corners and lay each piece on the face it
 hangs over, so it bends round the box on the stand too; that is off for now,
 `BEND_ROUND_CORNERS`, until the pieces line up with the armour on posed stands); datagen makes
@@ -178,6 +242,143 @@ traces each patch's outline from its opaque texels into `ovvar/outlines.json` (`
 `Seam` spreads the holes along at runtime. Replace the PNGs and `runDatagen`; the
 `sewingLabelsFitTheirButtons` game test checks every label of every seam still measures what the
 client centres without scrolling.
+
+## Enchantments
+
+Six enchantments only an ovve (or the Media frack) takes. The ovve and frack are in no vanilla
+`enchantable/*` tag (only in the generated `#ovvar:enchantable/ovve`), so no vanilla enchantment can
+apply: not Unbreaking, not Mending, not any Protection. Ovves and fracks have enchantability 15
+(leather's); the companion top, cuffs and patches have none. The definitions are handwritten JSON
+under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come from datagen.
+
+- **Ender Pockets** (I): the pockets are the ender chest of whoever uses them, worn or carried.
+  Clicking an item onto it puts the item in the clicking player's ender chest, right-clicking it with
+  an empty cursor takes a whole stack out, and using it from the hand opens the ender chest screen (it
+  does not empty anything on the floor). With the ovve on the cursor, a click on a stack puts as much
+  of it as fits in the chest, and a right-click on an empty slot puts the selected (or newest) stack
+  there, if the slot takes it. Whatever was in its own pockets when it was enchanted is thrown on the ground,
+  never moved into an ender chest. The client is shown the viewer's ender chest as the bundle's
+  contents, newest slot first, with a fill bar over the chest's 27 slots. An Ender Pockets ovve inside
+  the preview (in the ender chest, or in a shulker box or bundle there) shows empty pockets. The
+  server's ovve does not change when the chest does, so the slot sync would never resend it: at the end
+  of every tick the ender chest of a player with one in an open menu or on the cursor is compared with
+  last tick's copy, and on a change (or a preview read that tore) those slots are resent and the
+  selection is cleared.
+- **Patchwork Protection** (I): protection that grows with the patches sewn on, linearly up to
+  `patches_for_max` (16), where it is `max_protection` (4.0, Protection IV). Nothing is consumed and
+  the look does not change. It ignores what Protection ignores (`#minecraft:bypasses_invulnerability`).
+- **Magpie** (I-III): better odds of finding patches. A structure chest's patch chance is
+  `PatchLoot.CHANCE + 0.03 x level` for an opener wearing it (III: 0.14); frack or ovve counts the same.
+  Only loot patches (`PatchLoot.LOOT`) are affected; given-only patches never appear from a new source.
+  A mob ovve's patches drop at `patch_drop_chance + 0.10 x level` (capped at 1) when the killer
+  (`MobOvvar.killer`) wears Magpie: 0.5 becomes 0.8 at III. Without Magpie it is `patch_drop_chance`.
+- **Keepsake** (I): a Keepsake ovve anywhere in the inventory stays with you through death, pockets
+  and all. On respawn it goes back to its slot; if that is taken, anywhere in the inventory; if the
+  inventory is full, it drops at your feet. Nothing is deleted.
+- **Keyring** (I): while mining as a survival player, the best tool from the worn garment's pockets
+  comes to the selected slot and the hand's item goes into the pocket the tool came from. Two tools
+  fit in the pockets. A tool is picked if it is correct for drops where the hand is not, or is faster
+  with the same correctness; blocks with zero destroy time, tools under 2% durability (a constant,
+  Edvin's number) and creative, spectator and `blockActionRestricted` players are skipped. The tool
+  swaps back after `swap_back_ticks` (20) with no break action (a player the server still sees digging
+  counts as acting), right after a break that leaves it below the floor, and on leaving. Swap state is
+  in memory only; whenever the slot or pockets no longer look as the swap left them it is forgotten and
+  every item stays where it is. With Ender Pockets on the same ovve (only by `/give`), Ender Pockets
+  wins and Keyring does nothing.
+- **Curse of the Spilled Drink**: every potion drunk comes back as a weaker, shorter second dose. A
+  duration effect's second dose lands `gap_ticks` (100) after the first would have ended, one level
+  lower (minimum 0) and `duration_scale` (0.5) as long; an instant effect's lands `gap_ticks` after
+  drinking at `instant_scale` (0.5). A second dose never weakens or shortens a stronger effect that is
+  still running. Pending doses are a persistent attachment: they survive logout and are lost on death.
+  The cursed ovve also drips (6 `DRIPPING_WATER` particles at leg height) and squelches
+  (`SLIME_SQUISH_SMALL`) about every `drip_interval_ticks` (200). It needs Brewery, like kultur's
+  drinks (see below). With Brewery, Punkphöz may sell its book for 16 emeralds (`SpilledDrink.WANDERER_PRICE`):
+  it is one more candidate among his `pool_picks` (`PunkphozStock.extras`), never without Brewery.
+
+### The numbers
+
+All `slots: ["armor"]`, `effects: {}`. Costs are base/per-level. "table" is
+`minecraft:in_enchanting_table`, "random loot" is `minecraft:on_random_loot`. None is in
+`non_treasure` or `tradeable`, so librarians never sell them.
+
+| id | max | weight | min_cost | max_cost | anvil | exclusive_set | tags |
+|---|---|---|---|---|---|---|---|
+| `ender_pockets` | 1 | 2 | 15/0 | 65/0 | 4 | `#ovvar:exclusive_set/pockets` | table, random loot |
+| `patchwork_protection` | 1 | 5 | 10/0 | 60/0 | 2 | `#minecraft:exclusive_set/armor` | table, random loot |
+| `magpie` | 3 | 5 | 5/10 | 55/10 | 2 | none | table, random loot |
+| `keepsake` | 1 | 1 | 25/0 | 75/0 | 8 | none | table, random loot |
+| `keyring` | 1 | 2 | 15/0 | 65/0 | 4 | `#ovvar:exclusive_set/pockets` | table, random loot |
+| `spilled_drink_curse` | 1 | 1 | 25/0 | 50/0 | 8 | none | `curse`, `treasure`; random loot only with Brewery |
+
+Ender Pockets and Keyring exclude each other; Patchwork Protection is exclusive with every
+Protection (books and commands enforce it, though nothing else can go on an ovve anyway).
+
+Curse and Brewery: the definition always ships, so an item that has the curse keeps it, and it switches
+on by itself when Brewery is added. Its only source tag, `on_random_loot`, lives in the built-in
+datapack `ovvar:brewery_curse`, registered only when Brewery is loaded
+(`FabricLoader.isModLoaded("brewery")`, read once into `OvveEnchantments.BREWERY`). As a backstop
+`OvveEnchantments.enabled` is false for the curse without Brewery, so `offered` refuses it everywhere
+and its behaviour is off.
+
+### Config
+
+`config/ovvar.json`, block `enchantments`:
+
+```json
+"enchantments": {
+  "ender_pockets": { "enabled": true },
+  "patchwork_protection": { "enabled": true, "patches_for_max": 16, "max_protection": 4.0 },
+  "magpie": { "enabled": true, "chest_chance_per_level": 0.03, "mob_ovvar_chance_per_level": 0.10 },
+  "keepsake": { "enabled": true },
+  "keyring": { "enabled": true, "swap_back_ticks": 20 },
+  "spilled_drink_curse": { "enabled": true, "gap_ticks": 100, "duration_scale": 0.5, "instant_scale": 0.5, "drip_interval_ticks": 200 }
+}
+```
+
+Off means not offered, still registered: the hook does nothing (`OvveEnchantments.level` returns 0) and
+the enchanting table, random loot (`enchant_with_levels`, `enchant_randomly`) and any trade stop
+offering it, but the entry stays in the registry, because removing it would make items lose their
+enchantments. A missing registry entry also means level 0, never an exception.
+
+Ender Pockets off: the ovve has ordinary pockets again, so turning it back on throws whatever they
+gathered meanwhile on the ground (the same spill as on enchanting). Magpie's chest bonus is built when
+loot tables load, so a change to its block needs `/reload` or a restart.
+
+### Hooks
+
+By vanilla method or Fabric event:
+
+- Overrides: `BundleItem.overrideStackedOnOther`, `overrideOtherStackedOnMe` and `use` (`OvveItem`, for
+  Ender Pockets), `PolymerItem.getPolymerItemStack` (the preview, the glint), `Item.inventoryTick`
+  (Ender Pockets' spill, Spilled Drink's drips).
+- Mixins (`se.metacraft.ovvar.mixin`): `BundleItem.toggleSelectedItem` (Ender Pockets'
+  selection), `EnchantmentHelper.getDamageProtection` (Patchwork Protection adds to the sum),
+  `EnchantmentHelper.getAvailableEnchantmentResults` (the table skips what is off),
+  `EnchantRandomlyFunction.run` at `Util.getRandomSafe` (the same filter for `enchant_randomly`),
+  `Player.dropEquipment` before `Inventory.dropAll` (Keepsake stashes), `PotionContents.onConsume` at
+  tail (the curse schedules the second dose), `ServerPlayerGameMode.handleBlockBreakAction` at head
+  (Keyring, before vanilla reads the held tool), `ServerPlayerGameMode`'s `isDestroyingBlock` and
+  `hasDelayedDestroy` (accessor: Keyring keeps the tool while the server still sees the player
+  digging), and `PlayerList.remove` at head (Keyring swaps back on leave; Fabric's `DISCONNECT` can fire
+  on the netty thread, so it is not used).
+- Events: `ServerPlayerEvents.AFTER_RESPAWN` (Keepsake restores; `COPY_FROM` fires before the new
+  player is placed, so a full-inventory drop would land at the origin), `PlayerBlockBreakEvents.AFTER`
+  (Keyring checks the floor), `ServerLivingEntityEvents.AFTER_DEATH` (Keyring drops its state, nothing
+  is lost), `ServerTickEvents.END_SERVER_TICK` (Keyring's swap-back timer, Spilled Drink doses,
+  Ender Pockets' preview resend),
+  `LootTableEvents.MODIFY` (Magpie's chest condition, built from vanilla loot conditions on the
+  opener, so no custom condition type), `PolymerItemUtils.ITEM_MODIFICATION_EVENT` (Ender Pockets'
+  fill bar).
+- Server-only markers: `ovvar:garment_glint` on the companion top and cuffs (copied when the ovve is
+  enchanted, so the glint covers the whole garment) and `ovvar:ender_nested` on an Ender Pockets ovve
+  inside a preview (so a preview never contains itself; Polymer encodes nested stacks on the network
+  thread, after `getPolymerItemStack` returns, so a flag alone is not enough).
+
+Mob ovve garments never carry enchantments: none of the six is in `#minecraft:on_mob_spawn_equipment`
+and vanilla's spawn enchanting leaves a real mob garment alone (test `mobSpawnEquipmentNeverEnchantsAnOvve`).
+
+Tests: `EnchantmentTests`, `EnderPocketsTests` and `KeyringTests` (game tests, run plain and with
+`-PovvarBrewery`), and `OvvarEnchantmentClientTests` (screenshot; cloud only).
 
 ## Wardrobes: one look per player, on every server
 
@@ -259,6 +460,10 @@ row 4   [ patch  ][ patch  ][ patch  ][ patch  ][ patch  ] | [prev][prev][prev][
 row 5   [take out][put in][sew][see in 3D][finish][ · ][ · ][help][close]
 ```
 
+The tab row holds seven tabs. Past seven chapters it shows six at a time, with column 6 a "more"
+tab that opens the next six (the last window's wraps round to the first); `WardrobeGui.tabWindow`
+picks the window, and the one holding the open chapter is the one on show.
+
 **The screen explains itself.** Every slot says what it is and, where it cannot be used, why not:
 
 - a tab is the chapter's *ovve*, named "Data ovve", the one on show glinting and its lore reading
@@ -302,24 +507,13 @@ trouser leg below, which is where that side's cells are.
 garment, and one small glyph per (patch, cell) draws that patch exactly where it lands on the doll —
 cropped to its own art, so the glyph is a dozen pixels square, and placed by space advances and its
 own ascent. The title stacks the bare ovve and then one glyph per sewn placement, so a design is
-composed at the moment the screen opens. A cell sits on exactly one face of one box, and a *side*
-face is seen from exactly one of the four angles, so that is **6 × 4 = 24 bare glyphs plus one per
-(patch, cell the doll can show, angle that draws it) — fixed**, however much anybody sews: nothing
+composed at the moment the screen opens. A cell sits on exactly one face of one box, and a face is
+seen from exactly one of the four angles (`WardrobePreview.angleOf`), so that is **6 × 4 = 24 bare
+glyphs plus one per (patch, cell the doll can show) — fixed**, however much anybody sews: nothing
 is regenerated and no pack is pushed when a patch goes
 on. (v2 keyed the art by patch combination instead, which grew with every design, spent a glyph
 budget and needed a pack build and a loading screen each time somebody sewed something.) `Combos` is
 therefore back to what it was before v2, doing equipment definitions and nothing else.
-
-A **shoulder** is the exception, being on a box's top face: no side of the figure looks down on it,
-so the front and the back views each draw it **foreshortened** — the face's four texel rows averaged
-in pairs into two, a 6 px cap sitting on the top of the sleeve column. Nothing else on the figure
-moves: it is already exactly the panel's height (a face for the top, a face for the trousers), so
-the cap takes the sleeve's own top rows rather than room of its own. It is the same face seen from
-two opposite sides, so the back view's cap is the front view's turned through 180°, and the shoulder
-is the one kind of cell with a glyph on two angles (`WardrobePreview.anglesOf`; `angleOf` names the
-front one, which is the single picture of the cell that callers wanting one get, and where its
-tooltip is quoted from). It is hoverable on both views, each at the slot that view really draws it
-in — which is the sleeve's own slot, the cap sitting on the sleeve's columns.
 
 The cells you cannot see from an angle simply have no glyph there. The wearer's left limbs are the
 mirror images the armour model draws — and a left cell's art is pre-mirrored in its own texture to
@@ -348,18 +542,15 @@ The preview's sixteen slots therefore carry no icon at all: **on every angle**, 
 each placement the angle on show draws — the picture shows through and all that is left of the slot
 is its "\<patch\> on \<spot\>" tooltip. Turn the figure and the tooltips turn with it: a patch sewn
 on the back is hoverable on the back view and its front slot is empty, because a cell is on one face
-of one box and a side face is seen from one of the four sides (a shoulder, on a box's top face, is
-hoverable from the front and from behind).
+of one box and a face is seen from one of the four sides.
 `./gradlew :mods:ovvar:wardrobeSheet` composites the whole screen, and all four angles side by side,
 to a PNG (`WardrobeSheet`, a dev tool) so the doll can be looked at without starting a client, and
 `-PsheetState=audit` prints every cell's glyph against the art it is meant to be showing. "The art",
 for a patch bigger than its cell, is only the part of it that lands on the cell's own face: datagen
 wraps what hangs over round the box, so those columns are drawn on the face next door and the cell's
 glyph is right not to have them. `WardrobePreview.shownArt` is that window — and, for the seat, the
-two legs' halves in the order the back view puts the legs; for a shoulder, the rows of the art
-averaged in the same pairs the cap averages, since those averages are the colours the doll really
-draws — and both the audit and the `wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare
-against it, for every angle that draws the cell.
+two legs' halves in the order the back view puts the legs — and both the audit and the
+`wardrobePreviewDrawsEveryCellsOwnPatchArt` game test compare against it.
 
 **`/ovvar look [player]`** opens the same screen read-only on somebody else's ovve: their chapters as
 tabs (the ones they have a design for — their inventory is none of our business and may not be
@@ -390,8 +581,7 @@ show the cell. The panel is exactly the 4×4 block of 18 px slot cells at rows 1
 slot is the one holding that rectangle's centre, and the tooltip cannot drift from the picture the
 way a hand-kept table could (the front view's slots are the ones the old table gave, and a game
 test pins them). `previewSlot(spot)` is the front overload, for the callers that only ever mean the
-front. A shoulder's cap is over its sleeve's columns, so the two share a slot on the front view and
-the shoulder has one on the back view too. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
+front. Two cells of one angle can still share a slot (16 slots, and a sleeve is 12 px wide), so the
 last placement drawn to a slot wins its tooltip — a design with only one cell per slot (the common
 case) always shows correctly.
 Row 5's "finish" (col 4) is the old `StashGui`'s "Finish sewing" button, shown only while a stash
@@ -423,9 +613,8 @@ its equipment on) — the guard against a copy of somebody's real, pocket-stuffe
 dupe machine.
 
 **Deviations from the design doc**, for the record:
-- The doc calls for 7 backgrounds; `Chapter` has 6 values (`DATA`, `IT`, `IT_KISEL`, `MEDIA`,
-  `DATA_POLYMITER`, `IT_POLYMITER`), so there are 6 — one per chapter, as the doc's own "one
-  background per chapter" says.
+- The doc calls for 7 backgrounds; `Chapter` has 18 values, so there are 18 — one per chapter, as
+  the doc's own "one background per chapter" says.
 - the doc's two piece toggles are gone altogether: the preview shows the whole garment, both halves
   at once, and the two buttons there now turn it instead. Where a half still has to be named it is
   "trousers", not "feet": the legs and waist are what a wearer sees, and the boots render channel
@@ -491,15 +680,12 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-`config/ovvar.json` → `server` (what this server calls itself):
+`config/ovvar.json` → `shaders` (players with a shaderpack):
 
-    name                     this server's name (default "METAcraft"; no longer used for the MOTD)
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default),
+                             where players patch a shaderpack or download ovvar-client.jar
 
-ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
-the file: the defaults are the ones documented here, and a key only needs
-writing to change it.
-
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
+Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
 stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
 you would rather read the help there than here. Every block is always written, even one that is
@@ -508,18 +694,19 @@ exactly its own defaults, so its `_help` is always there too.
 The file backend is fine for one server or a shared mount; a network of servers wants `jdbc`
 (MariaDB/MySQL and PostgreSQL drivers ship in the jar).
 
-## Debug commands (gamemasters)
+## Debug commands (gamemasters: permission `ovvar:gamemaster`, level 2)
 
     /ovvar give [player] <chapter> [patches]   their stored design; with patches (all / cell.patch / ids) those replace it
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
+    /ovvar mob [ovve|frack]                    a persistent zombie at you in a mob ovvar ovve (default) or frack, to look at or kill
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the shaderpack patcher, and how to use it
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher and ovvar-client.jar (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -539,43 +726,51 @@ The file backend is fine for one server or a shared mount; a network of servers 
 `./gradlew :mods:ovvar:runServer` runs a dev server (set `online-mode=false` and turn on Polymer's
 pack host to join it with a plain vanilla client). Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. The
-game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
-with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
-sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping (the
-shoulders are left out of the posed run: an arm rotated 60° about z swings the top of its box into
-the torso, so there is no line of sight to its top face); that a shoulder's plane faces straight up,
-that looking down at one resolves the shoulder and not the sleeve's front face beneath it, and that
-its sprite lies on that plane; that an empty-handed click on a stand's chest takes the whole ovve off
+game tests: `./gradlew :mods:ovvar:runGameTest` (its own world under `build/run/gameTest`, so a dev
+server holding `./run` doesn't get in the way) — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
+sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; that an
+empty-handed click on a stand's chest takes the whole ovve off
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
 swap; and
 the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
 sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
 to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
 finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
-a stand click left to vanilla's swap, and the seam sewing onto it. `WardrobeTests` runs the store
+a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his model and its walk and shake, his stock, his spawn odds and his config. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
 what they say. It also runs the wardrobe screen: that
 nothing the background draws overlaps a slot's icon, the title's glyphs and spaces, the tab row and
 its highlight, the empty-state notices, the four angles and that every visible cell has a glyph of
-its own per angle that draws it, that a placement is drawn by that glyph on the angle that shows it
-and by nothing on the angles that do not, that a shoulder patch is clipped to the arm's top face and
-drawn nowhere else on the texture (the left arm's mirrored), that its cap on the doll is the
-foreshortened top face over the sleeve's own columns, the rotation buttons, the title's length and the stats readout's place, what each mode
+its own on the one angle that draws it, that a placement is drawn by that glyph on the angle that
+shows it and by nothing on the angles that do not, the rotation buttons, the title's length and the stats readout's place, what each mode
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
-read-only and driven by the other player's design.
+read-only and driven by the other player's design. `ComboAssetsParityTests` and `ClientHandshakeTests` hold
+the ovvar-client mod's side ("The ovvar-client mod" below): the client's name-only build is byte for byte the
+pack's, and a player who handshook gets no combination pack and whole combinations while others do not.
 
 ## Adding a chapter
 
-Drop the chapter's 64×64 skin overlay (the same file the website uses; pure green = "erase the
-skin here") into `src/main/resources/art/ovvar/`, add a line to `Chapter.java` naming it and,
-optionally, its rolled-down (nercabbad) overlay and a tint colour, then `runDatagen`. The
-armour layers, equipment definitions, icons and names are derived from that. A chapter can
-instead name a ready-made 64×32 leggings texture for its rolled-down state (`nercabbadArmour`);
-it is shifted to the chapter's colour and used as it is. The `*_polymiter` chapters do this with
-PolymITer's hand-drawn ovve (`art/ovvar/polymiter/nercabbad.png`), there to compare the two
-styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data down`.
+The art is made by `tools/chapter_overlays.py` (`python3 mods/ovvar/tools/chapter_overlays.py`) and
+checked in under `src/main/resources/art/ovvar/`: `<id>.png` (top up), `<id>-nercabbad.png` (rolled
+down) and `icon_<id>.png`. Add the chapter to the tool's list with its colour, run it, and commit
+the PNGs. Then add a line to `Chapter.java` with the overlay names, the cloth `colour` (the
+wardrobe background is tinted with it), `fullName` and `svName` (the item's names in English and
+Swedish) and `wandererOnly` (true: no recipe and no loot, the wandering Punkphöz is the only
+survival source), and run `runDatagen`. The armour layers, equipment definitions, icons and names
+are derived from that. There is no `nercabbadArmour` any more. Trims are drawn by the tool into the
+overlay, not applied by `tint`; `tint` is only for IT's silicon blue.
+
+### Retired chapters
+
+A chapter that is removed goes in `Chapter.RETIRED`, from its old id to the chapter it now loads
+as (`data_polymiter` is IT, `it_polymiter` is the silicon-blue IT). Their items (`<id>_ovve`,
+`_ovve_top`, `_ovve_feet`) are registered as aliases of the successor's, and the aliases are kept
+forever: they cost nothing and an item saved anywhere, components and all, must keep loading.
+The wardrobe codec migrates a stored row by the same map, in order. A retired design becomes its
+successor's if the successor has none. If it has one, the retired design's patches go to the stash,
+one each, so none is lost or made.
 
 ## Adding a patch
 
@@ -589,33 +784,36 @@ layout at four times it (`Spot.DETAIL`), the art scaled up ×2 as datagen bakes 
 dividing by the same ratio (`OVVAR_ART_SCALE`) when it reads the library — so art stays the size it
 always was on the cloth, and the texture's head rows hold four times the library they did. A big patch rides in the dye
 colour like any other (the shader bends it round the corners from its own cell's face, as the
-pack will — except on a shoulder, where it is clipped to the top face instead). Then `runDatagen`.
-The first 21
-designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library is the head rows of the texture (64×16 skin texels less the tables and
+pack will). Put the id in `PatchLoot.LOOT` (it turns up in structure chests) or `PatchLoot.NON_LOOT`
+(crafted or given) — startup and datagen fail if it is in neither. Then `runDatagen`.
+The droppable patches, and only those, ride in the dye colour (instant, previewable): they get the
+first design codes automatically, wherever the line sits, and there is room for 23 of them, so
+a new loot patch takes a spare slot by itself; one past 23 fails datagen and startup (free a
+slot or make one of them `NON_LOOT`). Crafted and given patches only go through the pack;
+the preview library is the head rows of the texture (64×16 skin texels less the tables and
 the marker corner, packed by the texel, an art at its own size) and datagen fails loudly when that runs out.
 
 ### Art at more than one size
 
 A patch may ship its art at another size as well: `<id>_<w>x<h>.png` beside its own PNG, so ITK is
-`itk.png` (12×12, the size its catalogue line declares), `itk_8x8.png` (Kexana's original 8×8 ITK,
-which is what the patch was before the 12×12 was drawn) and `itk_16x16.png`, and IT is `it.png`
+`itk.png` (12×12, the size its catalogue line declares) and `itk_16x16.png`, and IT is `it.png`
 (Cactooz's 12×12) and `it_16x16.png` (PolymITer's own 16×16 sprite). Nothing is declared — the
 catalogue entry stays one line and datagen finds the variants by file name (even sizes up to 16×16;
 a seat patch's variants are 16 px wide, its own width). A file that begins with a patch's id and an
 underscore but is not a size this build can ask for fails datagen, so a misspelt name is not
 silently never drawn.
 
-**The smaller sizes of a 16×16 are scaled down when nobody has drawn them.** A patch that has art
-at 16×16 — as its catalogue size or as a variant — also gets the sizes a cell can ask for below
-that, 12×12 and 8×8, scaled down from it; a drawing of that size always wins, and a seat patch
-never gets any (its width is the two cells', so a narrower one has nowhere to sit). So the artist's
-workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.** IT's 8×8 is
-and IN (gold)'s 12×12 and 8×8 are the generated arts in today's catalogue — ITK, IN and the three
-Nyckeln keys are drawn at all three sizes, so they generate nothing.
+**The smaller size of a 16×16 is scaled down when nobody has drawn it.** A patch that has art at
+16×16 — as its catalogue size or as a variant — also gets the size a cell can ask for below that,
+12×12 (`Patches.GENERATED_SIZES`), scaled down from it; a drawing of that size always wins, and a
+seat patch never gets one (its width is the two cells', so a narrower one has nowhere to sit). So
+the artist's workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.**
+IN (gold)'s 12×12 is the one generated art in today's catalogue — every other patch with a 16×16 is
+drawn at 12×12 as well, so it generates nothing. (There were 8×8s too, drawn and generated, while
+the shoulders asked for them; nothing asks for one now, so they went with the shoulders.)
 
 Nothing is written to the source tree: the generated `Patches.Art` carries the art it is scaled
-from, is named like a variant (`patches/it_8x8`, which is what datagen calls the textures and models
+from, is named like a variant (`patches/in_gold_12x12`, which is what datagen calls the textures and models
 it writes for it) and has no classpath resource of its own — ask `Tex.art(art)` for the pixels and
 it either reads the PNG or scales the source. The scaling is `Tex.downscaled`: an area-weighted
 majority vote, so each output pixel takes whichever colour covers most of the source rectangle it
@@ -623,8 +821,8 @@ stands for and the result uses **no colour the source did not** — which the tr
 key palette is built from every opaque colour of every patch art) and pixel art wants anyway. An
 even split goes to the colour that is rarer in the whole art, which is what keeps an outline, an eye
 or a letter stroke alive: the background always has the votes. It was picked by trying the
-candidates against the sizes the artists had already drawn both of, and its 12 and 8 px ITK are
-pinned texel for texel in the game tests.
+candidates against the sizes the artists had already drawn both of, and its 12 px ITK is pinned
+texel for texel in the game tests.
 
 Which art a place shows is **one function**, `Patches.artFor(patch, cell)`: the largest that
 fits what the cell asks for, and the catalogue's own art when none of them does — which is exactly
@@ -632,16 +830,15 @@ what a patch with a single art gets everywhere. What a cell asks for is `Patches
 
 | fit | the cells | what it shows |
 | --- | --- | --- |
-| `CLIPPED` | a box's **top** face (the shoulders), where the art is cut to the cell | the largest art that fits the cell whole — ITK lands on a shoulder as Kexana's 8×8 instead of losing its edges, IT as the 8×8 scaled from its 16×16 |
 | `FILLED` | a cell as big as art may get (`BACK_BIG`, 16×16) | the largest art the patch has — IT and ITK both fill the back at 16×16 |
 | `OVER` | every other cell, and the seat | the catalogue's own art, hanging over its neighbours, which is the point of an oversize patch — unless that art is over 12×12 (`Patches.OVER_MAX`, a cell and a half), which was drawn to fill the big back cell and would blanket an ordinary cell's neighbours, and then it is the largest art that fits 12×12 instead |
 
 **The fall-back is the old behaviour, exactly.** A cell that finds nothing it can use takes the
 catalogue's art and does with it what it did before variants existed: the item icon scales the
 catalogue's art to fill 16 px and centres it, and an ordinary cell hangs the art over its
-neighbours. Every non-seat patch in today's catalogue is 12×12 or smaller by its catalogue line, so
-the `OVER` rule above never fires for any of them, and every patch but ITK and IT is drawn on every
-cell exactly as it always was.
+neighbours. IN (gold) is the one non-seat patch in today's catalogue over 12×12 by its catalogue
+line, so it is the one the `OVER` rule above fires for; a patch with only the one art is drawn on
+every cell exactly as it always was.
 
 Everything that draws a patch goes through the same call: the pack's placement textures, the instant
 channel's library, the paper doll and its glyphs, a stand's sprites and the inventory icon. The one
@@ -651,9 +848,10 @@ the catalogue's own art whatever the cell will pick.
 The instant path cannot ask the question — the dye colour carries a cell and a design, not a
 choice — so the preview texture's design tables hold a row per (design, fit), the library holds
 every art a design can be drawn as, and the shader reads the row for the fit of the cell it is
-drawing (`OVVAR_FIT_*`, the same three-line rule as `Fit.of`). That is what widened the tables to
-three skin texels each; `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs` reads them back through
-the shader's own constants.
+drawing (`OVVAR_FIT_*`, the same rule as `Fit.of`: filled for a cell bigger than a cell, never the
+seat, over for everything else). Each fit is 32 rows of a table, two of its columns, so the tables
+are four columns wide (`OVVAR_TABLE_COLUMNS`); `theInstantLibraryHoldsEveryArtADesignCanBeDrawnAs`
+reads them back through the shader's own constants.
 
 ## Blockbench plugin
 
@@ -682,28 +880,42 @@ once a client reports a pack loaded (a mixin on the resource-pack response) the 
 every ovve it can see is sent again. Rebuilds are batched: a combination the dye colour can
 still show waits a minute and a half for company; one it cannot is built within two seconds.
 
+Combinations are per chapter: a line of `combos.json` is `chapter/piece:combo`, and a combination
+is built only for the chapter it was sewn on (its bottom twice on an ovve that rolls down, once
+otherwise), so the pack grows with what is sewn, not with the number of chapters. A line from
+before chapters were keyed (`piece:combo`) is read as that combination on each of the chapters
+there were then (Data, IT, Silicon-blue IT, Media) that has the half, so nothing drawn before the
+upgrade is lost; the file is written back in the new form.
+
 The dye colour carries patches without any pack change. Up to three placements per half ride in it
 — six on the legs when the wearer's feet slot carries the second channel (below), four on the top
 when one of them is on the chest or the back (the trim, below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
-no byte is 0; on the top 21 cells × 21 designs, C(441,3) ≈ 14M states under 255³, and a game test
+no byte is 0; on the top 19 cells × 23 designs, C(437,3) ≈ 13.8M states under 255³, and a game test
 holds every half under the 448 states the shader's float binomials are exact to —
-`Looks.INSTANT_STATES`). **Cells and designs share those 448.** The two shoulder cells took the top
-half to 21, so the designs came down from 22 to 21 to stay inside it; the cap test now holds the
-designs to the most that fits as well as the states to the cap, so neither number can be raised on
-its own. The cost is that the 22nd and later entries in the catalogue can no longer ride in the dye
-colour — a patch sewn from one of them waits for the pack to catch up (seconds; and the top's trim
-channel still carries one of them at once). The catalogue is ten long, so nothing in it is affected
-today. The preview texture holds the art of the first 21
-designs — any size, in a block of library cells — plus cell and design tables (a cell's row
-carries its own size beside its position, since a cell is not one size any more, and its row says
-which kind of face it is on: a v above the side rows is a box's top face, where the shader does not
-squeeze and clips the art to the cell); the pack's entity core shader
+`Looks.INSTANT_STATES`). **Cells and designs share those 448.** The top half, with 19 cells, is
+the one that binds: 19 × 23 = 437 fits and 19 × 24 = 456 would not, so `Looks.INSTANT_DESIGNS` is
+23, and the cap test holds the designs to the most that fits as well as the states to the cap, so
+neither number can be raised on its own (a cell added to the top costs designs). **The 23 are the
+droppable patches.** A patch that can turn up in a chest can end up on anyone, so it has to show
+the moment it is sewn: `Patches.byCode` gives `PatchLoot.LOOT` the first codes, in catalogue
+order, and everything else comes after, and `Looks.instant` is exactly "is it loot". While loot
+is fewer than 23, the codes past it are spare: the encoding keeps its fixed 23 (a state is cell × 23 + design, and the shader reads
+the count from the preview texture), but nothing is ever encoded with them and their library and
+table rows stay empty, until a new loot patch takes one by itself. `PatchLoot.check` fails startup
+and datagen if loot ever outgrows the 23. The codes are never stored (the dye colour is worked out
+per packet and the tables ship in the same build), so re-deriving them repaints nothing. The cost
+is that a crafted or given patch (ITK, IT, Data, IN, Medieteknik, Rivals, KomMN, TMEIT Marshal,
+METAcrew) cannot ride in the dye colour — sewn, it waits for the pack to catch up (seconds; and
+the top's trim channel still carries one of them at once). The preview
+texture holds the art of the loot designs — any size, in a block of library cells — plus cell
+and design tables (a cell's row carries its own size beside its position, since a cell is not one
+size any more); the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
-past the first 21 in the catalogue only go through the pack. The tooltip's "Dyed" line is
+that are not loot only go through the pack. The tooltip's "Dyed" line is
 hidden.
 
 The top has a fourth instant slot: the armour trim. The client draws a trim as one more layer
@@ -719,10 +931,7 @@ means two things: the squeeze to square pixels has to be baked in texel by texel
 costs about a column in sixteen on the body's faces but two in eight on a sleeve; and, the binding
 one, there is no `side` for the shader to hide it on the other limb by, so a trim for a cell on one
 arm would be drawn on *both* arms, one of the two mirrored. The body is one box and has no other
-limb to leak onto. A shoulder is therefore out of the channel too, even though a box's top face
-is the one place the squeeze would cost nothing (it is not on the strip's perimeter) — a shoulder
-patch reaches a viewer through the dye colour and then through the pack's own layer
-(`patch/shoulder_r/<patch>.png`), like any cell on a limb. Trims are material-tinted, so the palette is the identity and the
+limb to leak onto. Trims are material-tinted, so the palette is the identity and the
 art comes out as it is; the tooltip's trim line is hidden with the dye line. Everything else is sampled
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
@@ -750,7 +959,7 @@ inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings'
 [Danse](https://github.com/tomalbrc/danse) plays gestures (`/gesture wave`, …) by hiding the real
 player and animating a stand-in built of item displays. We run **our fork**
 ([Froosty11/danse](https://github.com/Froosty11/danse), branch `metacraft`, AGPL-3.0; the build
-fetches its jar from the fork's release [v2.6.0-metacraft.2](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.2), see "The danse fork" below), which adds *body layers*: any mod can put an ordinary textured
+fetches its jar from the fork's release [v2.6.0-metacraft.9](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.9), see "The danse fork" below), which adds *body layers*: any mod can put an ordinary textured
 item model on each part of the stand-in, just inside Danse's armour.
 
 Upstream Danse draws skin and armour as one tinted square per skin texel. Ovvar's layer textures
@@ -793,22 +1002,23 @@ for the "before" frame).
 Danse is by tomalbrc, Drex and ExtraJuiceMan ([tomalbrc/danse](https://github.com/tomalbrc/danse)),
 under the GNU Affero General Public License v3.0 (`LICENSE_danse` inside the jar; upstream's
 `fabric.mod.json` says LGPL-3.0-and-later while its LICENSE file is AGPL-3.0, and we follow the AGPL).
-Ovvar compiles against our fork's release jar, `danse-2.6.0-metacraft.2+26.3.jar` from
-[Froosty11/danse v2.6.0-metacraft.2](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.2),
+Ovvar compiles against our fork's release jar, `danse-2.6.0-metacraft.9+26.3.jar` from
+[Froosty11/danse v2.6.0-metacraft.9](https://github.com/Froosty11/danse/releases/tag/v2.6.0-metacraft.9),
 which the root `build.gradle` fetches as `Froosty11:danse` (an ivy repository on the fork's GitHub
 releases, version `danse_version` in `gradle.properties`). It is `compileOnly` and a dev/test
 `runtimeOnly`: nothing in METAmods includes or relicenses it, and ovvar only calls its API.
 
-The jar is built from branch `metacraft`, commit `4c4a0868738acd88d988e002ce333abeec80845a`:
+The jar is built from branch `metacraft`, commit `529a1b775912683494bae6cf2070e7c399f79922`:
 
-    git clone https://github.com/Froosty11/danse && cd danse && git checkout 4c4a0868738acd88d988e002ce333abeec80845a
+    git clone https://github.com/Froosty11/danse && cd danse && git checkout 529a1b775912683494bae6cf2070e7c399f79922
     JAVA_HOME=<a JDK 25> ./gradlew build
 
 Changes from upstream v2.6.0+26.3: mixins listed as common, a body-layer API
 (`de.tomalbrc.danse.api`, with cropped-texture shells), `/danse source` (open to every player, also
 `/gesture source`), which tells players where this source is, and gestures that end with a real
 teleport (upstream's position packet carried the entity id as its teleport id, which 26.3 could
-answer with a kick). A server that runs ovvar with gestures needs that jar beside it.
+answer with a kick), and a `danse:player_model` that `/kill` and a creative hit remove (upstream's
+answered a creative hit with `kill()`, which 26.3 sends back as a hit it ignores, so nothing could). A server that runs ovvar with gestures needs that jar beside it.
 
 ## The guidebook
 
@@ -831,14 +1041,62 @@ that shows the older state to them until they reload or rejoin (a joining player
 current pack). Every combination is still built in the background within 90 s so the pack is
 complete for whoever joins next.
 
+At startup every stored wardrobe design has its combinations added to the build (capped at 20 s;
+on a timeout or a store that cannot be read it logs a warning and falls back to building them as
+they are sewn). On a shared store, a design sewn on another server after this one started still
+triggers one push for its wearer, as for codes past the instant range.
+
 **This is the feature, not a gap in it.** It is tempting to push the new pack to everybody online
 the moment somebody's design outgrows the dye channels — the people looking at a wearer are the
 ones whose clients draw it, and until they reload they see only the instant part of it. It was
 tried, and it is wrong: a loading screen in the middle of play, for a garment somebody else sewed,
-costs far more than a shoulder patch that turns up a minute late. So the wearer gets the push (they
+costs far more than a patch that turns up a minute late. So the wearer gets the push (they
 caused it, and they are standing at a wardrobe or a stand, not in a fight), everybody else sees
 what their own pack plus the dye channels can show until they choose to `/ovvar reload` or rejoin,
 and reloading stays a thing you do when you want to.
+
+**With metacraft-resource-packs installed** (an optional dependency) the combinations are not put
+in the Polymer pack at all but in a small pack of their own (`ComboPack`: `pack.mcmeta` and the
+equipment definitions, built in memory), served by that mod's pack server through its
+`ServePackCallback` and sent to joining players with the other packs (`EarlyPackPacketsCallback`).
+Sewing then never changes the Polymer pack, so its hash, and the copy every client has cached,
+stays the same until the mods change; a push is a few kilobytes. Who gets pushed, and when, is
+exactly as above. Each build is kept under its SHA-1 and the last three stay downloadable, so a
+player pushed one still gets it if a newer build lands before their download starts. Without the
+mod, everything goes into the Polymer pack as before.
+
+### The ovvar-client mod: no combination pack at all
+
+A player with the optional client mod (`mods/ovvar-client`, `ovvar-client.jar`) never needs the combination
+pack: an equipment asset's name spells out the whole combination, every texture it stacks is already in the
+Polymer pack, and the mod builds any `ovvar:<chapter>/<piece>[_nercabbad]/<combo>` asset its packs lack from the
+name (a mixin on `EquipmentAssetManager.get`). The names and the JSON come from `src/combo`
+(`se.metacraft.ovvar.combo.ComboAssets`, plain Java and Gson), which this mod and the client mod both compile
+(the client's copy moved to `se.metacraft.ovvarclient.combo` by its build, so with both mods on one classpath each
+runs its own), so the two cannot build a definition differently; `ComboAssetsParityTests` checks the client's name-only build
+against `ComboPack`'s bytes, and the cell table it carries against `Spot`.
+
+The handshake: the client registers a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
+(nothing is sent on it). Fabric holds configuration back until it has the client's channels, so on
+`ServerConfigurationConnectionEvents.CONFIGURE`, before the join packs are chosen, `Combos` knows. Such a
+player then gets no `ComboPack` among their join packs, is sent whole combinations (`Looks.look`: the full
+combo as the asset, no dye bits, no trim, nothing owed), is never claimed for or pushed a pack, and
+`/ovvar reload` tells them there is nothing to reload. What they sew or see is still queued for the pack (at
+once when they sew it), so a vanilla player joining later gets it as if the sewer had been vanilla too. A mob's garment stays on the dye for them, as for
+everybody. The chestplate wrap is unchanged (with the whole combination on the legs and top it carries no dye,
+the same as for a vanilla client whose pack holds the combination).
+
+The protocol is `ComboAssets.PROTOCOL`, in the channel's name: a server and a client on different protocols
+never handshake, and that client is pushed the pack as before. So is a vanilla client, a client whose hook
+did not load (its mixin config is not required; no hook, no handshake), and a client without Fabric API. The
+client builds nothing while the base garment is not loaded (no Polymer pack: the textures would be missing). Bump
+the protocol whenever a name could mean something else or build different JSON; `ComboAssetsTest` in the
+client mod pins a hash of the cell table and recipe to catch that, and reads `src/combo/goldens.json`, which
+the game tests compare to the pack (`-PupdateComboGoldens` rewrites it).
+
+What a modded player still gets: the Polymer pack on join (its loading screen stays, it holds every texture),
+and, without metacraft-resource-packs, the combinations are in that Polymer pack anyway, so what goes away
+there are the pushes mid-play. With metacraft-resource-packs the combination pack is skipped on join too.
 
 ## Square pixels
 
@@ -860,51 +1118,40 @@ of the marker: R = 2·inflate).
 
 ## Asymmetric sleeves and legs
 
-**Seeing what the shader makes of a top face.** Three dev switches in `ovvar.glsl`, all off and
-`theTopFaceDebugPaintShipsOff` holding them off, paint a limb box's top face instead of drawing it:
-
-| switch | layer | what it paints |
-| --- | --- | --- |
-| `OVVAR_DEBUG_TOP_FACE_SIDES` | base garment | **red** where the mirror test calls the fragment mirrored, **blue** where it does not |
-| `OVVAR_DEBUG_TOP_FACE_MISS` | preview | **magenta** where no cell of the instant design matched the fragment |
-| `OVVAR_DEBUG_TOP_FACE_HIT` | preview | **green** where a cell *did* match — instead of the art, so the colour says the shader got all the way to the library |
-
-(`OVVAR_DEBUG_TOP_FACES` turns on all three.) They are separate because a run with all three on
-cannot say which of the paintings changed the picture: `..._HIT` alone leaves the frame otherwise
-normal, so two green shoulders mean the shader is drawing both and anything still missing is later
-than this shader, while one green shoulder means the preview path really does reach a cell on one
-arm only. They paint from four opaque texels datagen puts in every texture of ours (`DEBUG_X`, the
-marker row's right-hand end), so a program of ours still only ever returns a texture coordinate.
-
 The armour model draws the left arm and leg as mirror images of the right ones from the same
 texture strips, so vanilla can't show different art per side. The same shader detects mirrored
 fragments from the handedness of the texture mapping: on a base texture it samples the limb boxes
 one strip up, where datagen puts the mirrored left-side art; a placement texture is marked with
 its side and hidden on the other limb; the preview slots carry the side in their cell.
 
-**The handedness is read with the sense of the kind of face the fragment is on.** A box's top and
-bottom faces need not unwrap the way its four sides do: v runs *across* the box there, from the back
-edge to the front, instead of down it (which is what puts the top face's last row against the front
-face's first, and is why a shoulder patch reads with the art's top towards the wearer's back). Only
-u's direction is then in question, and the handedness follows from it; the derivation is written out
-in `ovvar.glsl`. `OVVAR_MIRROR_SENSE` is the side faces' calibration and `OVVAR_TOP_FACE_SAME_SENSE`
-says whether the top's is the same one — it is, which the playtest settled: taking it as inverted
-put each shoulder's art on the other shoulder. So the top face's u runs the wearer's right to left,
-the same way the front face's does, which is also what the edge they share demands.
+The right limbs read a copy too. Datagen copies the right arm's and the right leg's box unchanged
+to skin texel (16, 0) in the head rows of the top and the bottom layer (`Spot.RIGHT_COPY_X`, the
+same row as the mirror strip; columns 16–31 are otherwise unused, and datagen `require`s them
+empty), and fills the box itself with a magenta/black checker (`Spot.CHECKER_A`/`CHECKER_B`, one
+skin texel square) wherever the copy has cloth. Our shader draws both limbs from their copies
+(`OVVAR_RIGHT_COPY_X`, pinned by `ShaderLayoutTests`), so vanilla clients and patched shaderpacks
+see exactly what they always did; any other shader samples the box and shows the limbs as a
+missing texture, which is the cue to run `/ovvar shaders` (the tooltip and the guidebook say so).
+The paper doll and the Blockbench plugin put the copy back on the box before they draw.
 
-`mirrored` is computed from both senses, exactly once, and every path reads that one bool, so a top
-face and a side face can never disagree about which arm they are on
-(`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL does not run in the game
-tests). Note what the senses *cannot* explain: both arms' top faces are the very same texels, so
-`mirrored` is the only thing that can tell them apart, and under either sense exactly one of the two
-shoulder cells is selected per arm — every setting predicts both shoulders drawing, one patch each.
-A bare shoulder is not a state either constant can produce. Clients whose core shaders are replaced (Iris, OptiFine) see the plain
-mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
-(built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
-autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
-or, where autohost serves nothing, the way into the downloaded pack): double-clicked, it writes a
-`+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
+`OVVAR_MIRROR_SENSE` is the calibration, and it holds for a box's top and bottom faces as well as its
+sides: v runs *across* the box there, from the back edge to the front, instead of down it, but u
+runs the wearer's right to left the way the front face's does (the edge the two share demands it),
+so the handedness comes out the same; the derivation is written out in `ovvar.glsl`. That is what
+lets the base garment draw the left arm's top face from the mirror strip as well. `mirrored` is
+computed exactly once and every path reads that one bool, so no two of them can disagree about
+which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
+does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
+https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or with `ovvar-client.jar`, the one
+optional client jar (`mods/ovvar-client`, which replaced both `OvvarShaderPatcher.jar` and the
+`ovvar-shaderpatch` mod). In the mods folder it patches the instance's packs at every start (see "The
+ovvar-client mod" below). Its Main-Class is the patcher from `tools/shaderpatcher` (compiled for Java 11+),
+shipped inside the resource pack at `assets/ovvar/shaderpatcher/ovvar-client.jar` and still served by Polymer's
+autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-client.jar`, though the
+page links the website's own copy. Double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+several at once, Cancel does nothing) and writes a
+`+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
 MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's
@@ -918,16 +1165,73 @@ sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Sol
 (OpenGL 4.1), so they are unchecked. Check a pack in game with
 `./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
 
+### Client test under a shaderpack (unpatched pack shows the checker)
+
+`OvvarShaderpackClientTests` does nothing unless `-Povvar.iris.expect=checker|art` is given (and then
+`-Piris=<pack.zip>` is required). It stands a Data ovve on a mannequin with nothing sewn, waits 100 ticks and
+crops the right leg's front face: `checker` wants at least 30% of its pixels within 40 per channel of #FF00FF
+(an unpatched pack draws the checker that fills the original right-limb box), `art` wants none. It first asserts
+through Iris's API that a pack is in use and is the one named by `-Piris`; Iris falls back silently otherwise.
+In the cloud (environment `Minecraft`):
+
+```
+curl -L -o bsl.zip <BSL download URL from Modrinth>
+./gradlew :mods:ovvar-client:jar
+java -jar mods/ovvar-client/build/libs/ovvar-client-*.jar bsl.zip              # writes bsl+ovvar.zip next to it
+./gradlew :mods:ovvar:runClientGameTest                                        # vanilla, unchanged
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=checker
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
+```
+
+Without hand patching, through the client mod (`mods/ovvar-client`, which patches the instance's shaderpacks at
+`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote
+(`-PshaderpatchMod` is the old name of `-PovvarClientMod` and still works):
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PovvarClientMod
+```
+
+Iris's log then names `bsl+ovvar.zip`, and `unpatchedPackShowsChecker` passes with `art`.
+
+With `-Piris` set, `OvvarClientTests` and `OvvarDanseClientTests` skip themselves (their screenshots are judged
+against vanilla rendering), so only this test runs. It also requires at least half of the cropped leg to differ from the
+background, so `art` cannot pass on a crop that missed the leg.
+
+Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
+
+### Chapter text colours on nametags (`-PtextColours`)
+
+`NametagColoursClientTests` runs only with `-PtextColours`. The build copies the test copy of the
+chapter-text-colors resource pack (`tools/shaderpatcher/test-packs/chapter-text-colors`) into
+`build/run/clientGameTest/resourcepacks/`, and the test selects it itself. Then it summons a nametag in dark purple
+and in dark blue in front of a white wall. Each one must draw much closer to its chapter colour drawn literally
+(`#E83D84` cerise, `#CC99FF` laserviolet) than to its stock colour one step off (`#AB00AB`, `#0000AB`, which no
+patch touches). The test compares the tags with each other rather than with fixed RGB because a shaderpack lights
+and tone-maps text: under BSL, a correctly recoloured tag is pale and tinted towards the sky. It runs before
+`OvvarShaderpackClientTests`, so a failing leg check there does not hide it. The other way round, a failure here
+stops the run, so `OvvarShaderpackClientTests`, `OvvarEnchantmentClientTests` and `MobOvvarClientTests` don't run
+(this only happens under `-PtextColours`). The client writes the selection to the run dir's `options.txt`. Every
+`runClientGameTest` first deletes the copied pack, so a killed run cannot leave the pack switched on.
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -PovvarClientMod -PtextColours   # the patched shaderpack
+./gradlew :mods:ovvar:runClientGameTest -PtextColours                                        # control: the resource pack alone
+```
+
+Screenshots: `build/run/clientGameTest/screenshots/text_colours_*.png`. The log lines `[ovvar-clienttest] text colours:` give each glyph colour.
+
 ## Credits
 
-Patch art: the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
-size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
-until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
+Patch art: ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too), with
 PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
-Maid dress by Mackan; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
+Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew by Millia; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
 original to this mod, cut from the chapter skin
-overlays on metacraft.se/style.
+overlays on metacraft.se/style. The chapters' colours are from the THS Reglemente 2021
+(9.5.11–9.5.22) and the chapters' own stadgar; the B-frack's art is the Media frack's.
+
+Punkphöz: Dante's look (texture, beanie, antenna) from the traders' IT trader in `mods/traders` by ripsquid; the rig from
+Ewan Howell's CEM Template Loader (Blockbench plugin, `wandering_trader` template), after Mojang's villager model.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
 the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be
