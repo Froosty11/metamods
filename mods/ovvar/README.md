@@ -135,11 +135,12 @@ He comes on top of vanilla's wanderers and never replaces one; vanilla's own spa
 
 His model, `src/main/resources/model/ovvar/punkphoz.bbmodel` (Blockbench, played by BIL), is the vanilla villager rig in
 Dante's look. The rig is the CEM Template Loader's `wandering_trader` template (its `villager` model), nested the way
-`VillagerModel.createBodyModel()` nests it (head > hat, nose; body > jacket; arms; legs) with vanilla's exact arm pose
-(`offsetAndRotation(0, 3, -1, -0.75, 0, 0)`) and no hat rim (a wandering trader paints none). The texture and the beanie,
-antenna and trouser cuff are Dante's, from the traders' IT trader (`mods/traders/.../it_trader.bbmodel`, left as it is); his
-UVs fit the rig's boxes unchanged. Two things differ from the traders' model: the arms cross in front, as a villager's do (there
-they sat at -47° and crossed behind the back), and the nose, beanie and antenna are under the head, so they turn with it.
+`VillagerModel.createBodyModel()` nests it (head > hat, nose; body > jacket; arms; legs), with no hat rim (a wandering trader
+paints none). The texture and the beanie, antenna and trouser cuff are Dante's, from the traders' IT trader
+(`mods/traders/.../it_trader.bbmodel`, left as it is); his UVs fit the rig's boxes unchanged. So do his arms: unlike a
+villager's, which cross in front, his hands are behind his back, the traders' arm boxes on a pivot at (0, 21.05, -0.05) tipped
+-47° about x. The one thing that differs from the traders' model is that the nose, beanie and antenna are under the head, so
+they turn with it. No animation moves the arms (`handsStayBehindHisBack`).
 
 He moves as a vanilla villager does (`VillagerModel.setupAnim`), from the server (`PunkphozAnimations`). BIL turns the `head`
 bone and everything under it with his look, but re-poses a model only while one of its animations plays, so `idle` (the rest
