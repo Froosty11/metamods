@@ -134,6 +134,31 @@ public class ComboAssetsTest {
 		assertSame(EquipmentAssetManager.MISSING, manager.get(key("feet")));
 	}
 
+	/**
+	 * The combination OvvarClientTests films twice for its stability check (the Data top, four front patches; in the
+	 * goldens through ComboAssetsParityTests): every lookup, before and after other combinations are built, hands
+	 * the renderer the one object, equal field for field to what the server's pack holds. (The cloud run's
+	 * frame-to-frame difference was the mannequin's arm sway, not this asset; this pins that it is not.)
+	 */
+	@Test
+	void theStabilityShotsCombinationIsOneObjectEqualToThePacks() throws ReflectiveOperationException, IOException {
+		String path = "data/top/front_top_left.itk-front_top_right.nyckeln0x2-front_low_left.it-front_low_right.data";
+		JsonElement golden = goldens().get(PREFIX + path + ".json");
+		assertTrue(golden != null, "the goldens lack the stability shot's combination " + path);
+		EquipmentClientInfo pack = EquipmentClientInfo.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(golden.getAsString())).getOrThrow();
+		EquipmentAssetManager manager = new EquipmentAssetManager();
+		Method apply = EquipmentAssetManager.class.getDeclaredMethod("apply", Map.class, ResourceManager.class, ProfilerFiller.class);
+		apply.setAccessible(true);
+		apply.invoke(manager, Map.of(Identifier.fromNamespaceAndPath("ovvar", "data/top"), EquipmentClientInfo.builder().build()), null, InactiveProfiler.INSTANCE);
+		EquipmentClientInfo first = manager.get(key(path));
+		assertEquals(pack, first);
+		assertEquals(pack.layers(), first.layers());
+		for (int frame = 0; frame < 100; frame++) {
+			if (frame == 50) manager.get(key("data/top/front_top_left.itk"));
+			assertSame(first, manager.get(key(path)), "lookup " + frame + " handed out another object");
+		}
+	}
+
 	private static ResourceKey<EquipmentAsset> key(String path) {
 		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("ovvar", path));
 	}

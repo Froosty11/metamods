@@ -110,6 +110,10 @@ public final class ComboAssetsParityTests {
 				}
 			}
 		}
+		// the client screenshot test's own combination (OvvarClientTests: the Data top, four front patches),
+		// so the very asset that test draws on a modded client is pinned against the pack's
+		out.add(key(Chapter.DATA, Piece.TOP, place(Spot.FRONT_TOP_LEFT, "itk"), place(Spot.FRONT_TOP_RIGHT, "nyckeln"),
+				place(Spot.FRONT_LOW_LEFT, "it"), place(Spot.FRONT_LOW_RIGHT, "data")));
 		// every instant design, once each, on a cell it fits
 		List<Patches.Patch> designs = Patches.byCode();
 		for (int i = 0; i < Math.min(Looks.INSTANT_DESIGNS, designs.size()); i++) {

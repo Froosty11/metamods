@@ -145,9 +145,22 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					System.out.println("[ovvar-clienttest] server legs: " + legs + " " + legs.getComponentsPatch());
 				});
 
-				Path first = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches").withSize(1920, 1080));
-				ctx.waitTicks(5);
-				Path second = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches_again").withSize(1920, 1080));
+				// The two frames below must differ only by what the garment's drawing does between frames. A
+				// mannequin's arms sway by age (HumanoidModel's idle bob), and how far they move in five ticks
+				// depends only on where in that sine the run's timing lands: the modded client's run (fixed
+				// waits instead of a pack reload) landed on a steep part: 901 changed pixels against the vanilla
+				// run's 477, every one of them on the arms (the arms swung ~4 px inward against ~2 px outward).
+				// So the sway is held for these two frames; anything the garment's drawing changes still counts.
+				Path first, second;
+				StillArms.hold(true);
+				try {
+					ctx.waitTicks(1);
+					first = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches").withSize(1920, 1080));
+					ctx.waitTicks(5);
+					second = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches_again").withSize(1920, 1080));
+				} finally {
+					StillArms.hold(false);
+				}
 
 				BufferedImage a = read(first), b = read(second);
 				Region box = Region.subjectBox(a);
@@ -158,8 +171,8 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				assertPresent(a, box, "itk (green)", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				assertPresent(a, box, "it (lilac rim)", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
 				// The garment surface must be steady between two frames: the prototype's tag crawl changed
-				// interior pixels by large amounts every frame, which this catches. A few silhouette pixels
-				// shift by sub-pixel model interpolation (small deltas); those are tolerated.
+				// interior pixels by large amounts every frame, which this catches. The arms' sway is held
+				// (above); a few silhouette pixels may still shift sub-pixel, and 1% is tolerated.
 				int flicker = flickering(a, b, box, 24);
 				int budget = (box.x1() - box.x0()) * (box.y1() - box.y0()) / 100;   // 1% for residual edge motion
 				if (flicker > budget) throw new AssertionError(flicker + " pixel(s) over the mannequin flickered by more than a step between two still frames (budget " + budget + ")");
