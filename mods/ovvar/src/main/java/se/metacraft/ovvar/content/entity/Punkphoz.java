@@ -4,9 +4,13 @@ import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.UseItemGoal;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -19,8 +23,10 @@ import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 import java.util.Optional;
 
 /**
- * Punkphöz: a wandering trader in the traders' model (BIL). He wanders, trades and leaves like the vanilla one, but
- * drinks no invisibility potion (or milk) at dusk: his model has no invisible look to show.
+ * Punkphöz: a wandering trader in his own BIL model, the vanilla villager rig in Dante's look ({@code /model/ovvar/punkphoz.bbmodel}).
+ * He wanders, trades and leaves like the vanilla one, but drinks no invisibility potion (or milk) at dusk: his model has no
+ * invisible look to show. He walks and shakes his head the way a vanilla villager does ({@link PunkphozAnimations}), and shakes it
+ * when asked to trade with nothing left to sell, as a villager without offers does (vanilla's wandering trader never does).
  */
 public class Punkphoz extends WanderingTrader implements AnimatedEntity {
 
@@ -41,6 +47,41 @@ public class Punkphoz extends WanderingTrader implements AnimatedEntity {
 	protected void registerGoals() {
 		super.registerGoals();
 		goalSelector.removeAllGoals(g -> g instanceof UseItemGoal);
+	}
+
+	/** The villager's unhappy shake: how many ticks it lasts ({@code Villager.setUnhappy}). */
+	public static final int UNHAPPY_TICKS = 40;
+
+	/** Asked to trade while sold out (no offers, or every one out of stock), he shakes his head and says no, then trades as before. */
+	@Override
+	public InteractionResult mobInteract(Player player, InteractionHand hand) {
+		if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && !player.getItemInHand(hand).is(Items.VILLAGER_SPAWN_EGG)
+				&& isAlive() && !isTrading() && !isBaby() && soldOut()) {
+			setUnhappyCounter(UNHAPPY_TICKS);
+			makeSound(SoundEvents.WANDERING_TRADER_NO);
+		}
+		return super.mobInteract(player, hand);
+	}
+
+	private boolean soldOut() {
+		return getOffers().stream().allMatch(MerchantOffer::isOutOfStock);
+	}
+
+	/**
+	 * Counts the shake down, as {@code Villager.tick} does. While he shakes his look is level, so the shake's own head pitch is
+	 * the whole of it, as vanilla's {@code head.xRot = 0.4} overrides the look's pitch; then the animations follow his state.
+	 */
+	@Override
+	public void tick() {
+		super.tick();
+		if (level().isClientSide()) return;
+		int unhappy = getUnhappyCounter();
+		if (unhappy > 0) {
+			setUnhappyCounter(unhappy - 1);
+			setXRot(0);
+			xRotO = 0;
+		}
+		PunkphozAnimations.tick(this);
 	}
 
 	/** His stock for this visit ({@link PunkphozStock#roll}), counted in the world's {@link PunkphozHistory}. */

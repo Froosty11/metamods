@@ -253,9 +253,9 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	// ---- Punkphöz
 
 	/**
-	 * What a vanilla client sees of Punkphöz: his model shows (the traders' IT trader, drawn by Polymer), a right-click opens
-	 * a trade screen with the configured number of offers, the first offer can be bought, and he is still fine, and the client
-	 * still connected, after being hurt once with a trader llama leashed to him. Compile-checked; runs in the cloud.
+	 * What a vanilla client sees of Punkphöz: his model shows (the villager rig in Dante's look, drawn by Polymer), his head shakes
+	 * when he is unhappy, a right-click opens a trade screen with the configured number of offers, the first offer can be bought,
+	 * and he is still fine, and the client still connected, after being hurt once with a trader llama leashed to him. Compile-checked; runs in the cloud.
 	 */
 	private static void punkphozShows(ClientGameTestContext ctx) {
 		Properties props = new Properties();
@@ -287,6 +287,21 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				int shown = differingInCrop(empty, first);
 				System.out.println("[ovvar-clienttest] punkphoz changed pixels=" + shown);
 				if (shown < 4000) throw new AssertionError("Punkphoz's model doesn't show: only " + shown + " pixels differ from the empty view");
+
+				// the villager's unhappy shake: his head drops and rolls, so the head crop changes; then let it run out
+				server.runOnServer(mc -> mc.getPlayerList().getPlayers().getFirst().level()
+						.getEntities(PunkphozEntities.PUNKPHOZ, p -> true).getFirst().setUnhappyCounter(Punkphoz.UNHAPPY_TICKS));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(10);
+				BufferedImage shaking = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_shake").withSize(1920, 1080)));
+				int shook = differingInHeadCrop(first, shaking);
+				System.out.println("[ovvar-clienttest] punkphoz shake changed head pixels=" + shook);
+				if (shook < 800) throw new AssertionError("Punkphoz's head doesn't shake: only " + shook + " head pixels changed");
+				ctx.waitTicks(Punkphoz.UNHAPPY_TICKS + 10);
+				// and back at rest once it has run out (the idle under it re-poses him)
+				int rested = differingInHeadCrop(first, read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_shake").withSize(1920, 1080))));
+				System.out.println("[ovvar-clienttest] punkphoz head pixels changed after the shake=" + rested);
+				if (rested * 2 > shook) throw new AssertionError("Punkphoz's head didn't come back to rest: " + rested + " head pixels still differ (" + shook + " while shaking)");
 
 				// right-click him the way a player does, through the use key
 				ctx.getInput().pressKey(options -> options.keyUse);
@@ -336,6 +351,12 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	 */
 	private static int differingInCrop(BufferedImage a, BufferedImage b) {
 		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 4 / 10, w = 260, h = a.getHeight() * 3 / 10;
+		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
+	}
+
+	/** How many pixels differ around Punkphöz's head (3 blocks off at eye height: the band just above the middle of the view). */
+	private static int differingInHeadCrop(BufferedImage a, BufferedImage b) {
+		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 3 / 10, w = 260, h = a.getHeight() / 4;
 		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
 	}
 

@@ -14,8 +14,8 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 
 /**
- * Punkphöz's entity type and model. Server-side (Polymer): vanilla clients see the BIL display model, the traders'
- * IT trader copied in at build time as {@code /model/ovvar/punkphoz.bbmodel}.
+ * Punkphöz's entity type and model. Server-side (Polymer): vanilla clients see the BIL display model
+ * {@code /model/ovvar/punkphoz.bbmodel}, the vanilla villager rig in Dante's look, with {@link PunkphozAnimations}'s animations.
  */
 public final class PunkphozEntities {
 

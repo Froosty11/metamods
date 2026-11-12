@@ -262,12 +262,6 @@ if (project.hasProperty('ovvar.iris.expect')) {
 }
 
 processResources {
-	// Punkphöz's model is the traders' IT trader (mods/traders/src/main/resources/model/traders/it_trader.bbmodel),
-	// copied in at build time so the two never drift apart and mods/traders stays untouched.
-	from(project(':mods:traders').file('src/main/resources/model/traders/it_trader.bbmodel')) {
-		into 'model/ovvar'
-		rename { 'punkphoz.bbmodel' }
-	}
 	// The ovvar-client jar (also the double-clickable patcher) and the patcher's README ride along in the
 	// mod's resources, for autohost to serve (pack/ShaderPatcher); an implicit dependency on its jar task.
 	from(clientJar) {
