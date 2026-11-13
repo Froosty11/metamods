@@ -19,6 +19,7 @@
 			"se.metacraft.ovvar.Ovvar"
 		],
 		"fabric-gametest": [
+			"se.metacraft.ovvar.gametest.AsyncTickTests",
 			"se.metacraft.ovvar.gametest.DanseShellParityTests",
 			"se.metacraft.ovvar.gametest.DanseModelsTests",
 			"se.metacraft.ovvar.gametest.DanseLayersTests",

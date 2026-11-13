@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
@@ -67,7 +68,8 @@ import java.util.function.Supplier;
  * time it is touched or ticked, never moved into anybody's ender chest.
  *
  * The client is shown the viewer's own ender chest as the bundle's contents ({@link #view}), newest
- * first like a bundle: the item icons and the scroll, and no fill bar ({@link #dropFillBar}). A preview never contains itself: an
+ * first like a bundle: the item icons and the scroll, as stand-ins of count 1 that weigh almost nothing, so a
+ * vanilla client never sees the pockets full, and no fill bar line ({@link #dropFillBar}). A preview never contains itself: an
  * Ender Pockets ovve inside the preview (in the ender chest, or in a shulker box or bundle there) is
  * handed over marked {@link ModComponents#ENDER_NESTED} and shows empty pockets. A marker, not only a
  * flag for the duration of the call, because Polymer turns nested stacks into client stacks later,
@@ -78,12 +80,12 @@ import java.util.function.Supplier;
  * {@link #tick} keeps a copy of the ender chest of every player who has an Ender Pockets ovve in an open
  * menu or on the cursor, and when it differs, or a preview read tore, resends those slots ({@link #resend}).
  *
- * A vanilla client decides its bundle clicks itself, as a bundle that is full at 64 items. In survival that is
- * only its prediction: the click packet still comes, the server puts the stack in the chest, and
- * {@link #afterClick} resends the slot and the cursor. In creative the client's inventory is its own and it
- * sends back the ovve as it changed it, which Polymer turns back into the server's ovve; {@link #creativeEdit}
- * puts that change into the ender chest instead (and while the shown contents weigh 64 items or more the
- * vanilla client refuses the click before anything is sent: in creative, use the ovve to open the chest).
+ * A vanilla client decides its bundle clicks itself. In survival that is only its prediction: the click packet
+ * comes whatever it predicted, the server puts the stack in the chest, and {@link #afterClick} resends the slot and
+ * the cursor. In creative the client's inventory is its own: it refuses an insert into a bundle it thinks is full
+ * before anything is sent, which is why the stand-ins weigh so little, and otherwise sends back the ovve as it
+ * changed it, which Polymer turns back into the server's ovve; {@link #creativeEdit} puts the inserted items into
+ * the ender chest, and a stand-in it took out becomes the real stack when it lands in a slot ({@link #creativeSlot}).
  */
 public final class EnderPockets {
 	private EnderPockets() {}
@@ -136,17 +138,25 @@ public final class EnderPockets {
 	// ---- the view
 
 	/**
-	 * What the viewer's client is shown as the pockets: their ender chest's non-empty slots from 26 down to
-	 * 0, with {@code selected} applied the way the bundle applies its own selection. EMPTY without a viewer.
+	 * What the viewer's client is shown as the pockets: one entry per non-empty slot of their ender chest, from 26
+	 * down to 0, each a {@link #shownEntry stand-in} that weighs as little as a vanilla bundle lets an entry weigh,
+	 * with {@code selected} applied the way the bundle applies its own selection. EMPTY without a viewer.
+	 *
+	 * <p>A vanilla client treats the pockets as a bundle: at a total weight of 1 it draws the bar full and red and,
+	 * in creative (where its own inventory logic decides), refuses every insert before anything is sent. Shown as
+	 * they are, one stack of 64 already weighs 1. As stand-ins of count 1 that stack up to {@value #SHOWN_MAX_STACK}
+	 * a full chest of 27 weighs 27/{@value #SHOWN_MAX_STACK}: the bar is a sliver (4 pixels of 13, never red) and a
+	 * stack of 64 can go in. A vanilla 26.3 bundle has no component that hides the bar while keeping the icons.
 	 */
 	public static BundleContents view(@Nullable ServerPlayer viewer, int selected) {
 		if (viewer == null) return BundleContents.EMPTY;
 		List<ItemStackTemplate> items = new ArrayList<>();
 		try {
 			Container ender = viewer.getEnderChestInventory();
+			PacketContext context = viewer.connection == null ? PacketContext.get() : viewer.connection.getPacketContext();
 			for (int slot = ender.getContainerSize() - 1; slot >= 0; slot--) {
 				ItemStack stack = ender.getItem(slot);
-				if (!stack.isEmpty()) items.add(ItemStackTemplate.fromNonEmptyStack(forView(stack, 0)));
+				if (!stack.isEmpty()) items.add(shownEntry(stack, slot, context, viewer.registryAccess()));
 			}
 		} catch (RuntimeException e) {
 			// The network thread builds client stacks while the server thread may be changing the chest: a torn
@@ -160,6 +170,72 @@ public final class EnderPockets {
 		BundleContents.Mutable mutable = view.asMutable();
 		mutable.toggleSelectedItem(selected);
 		return mutable.toImmutable();
+	}
+
+	/** The most a {@code max_stack_size} component may say (its codec's range): the lightest a bundle entry can be. */
+	static final int SHOWN_MAX_STACK = 99;
+	/** The custom data key on a {@link #shownEntry stand-in}: the ender slot it shows and {@link #identity} of what was there. */
+	static final String SHOWN_KEY = "ovvar:ender_shown";
+
+	/**
+	 * One ender slot as the client's pockets show it, already in its client form: the stack's icon, model, glint and
+	 * name (with its count, "Stone ×64", since the icon is drawn as one), but count 1, stackable to
+	 * {@value #SHOWN_MAX_STACK} and without what a vanilla bundle weighs heavier (durability, nested bundle contents,
+	 * bees), so the entry weighs 1/{@value #SHOWN_MAX_STACK}. Marked {@link #SHOWN_KEY} with its slot: a stand-in is
+	 * never a real item, and one that comes back from a creative client is swapped for the real stack
+	 * ({@link #creativeSlot}).
+	 */
+	private static ItemStackTemplate shownEntry(ItemStack real, int slot, @Nullable PacketContext context, HolderLookup.Provider lookup) {
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(forView(real, 0).copyWithCount(1), context, lookup).copyWithCount(1);
+		if (real.getCount() > 1) {
+			client.set(DataComponents.CUSTOM_NAME, Component.empty().withStyle(style -> style.withItalic(false))
+					.append(client.getHoverName()).append(" ×" + real.getCount()));
+		}
+		client.remove(DataComponents.MAX_DAMAGE);
+		client.remove(DataComponents.DAMAGE);
+		client.remove(DataComponents.BUNDLE_CONTENTS);
+		client.remove(DataComponents.BEES);
+		client.set(DataComponents.MAX_STACK_SIZE, SHOWN_MAX_STACK);
+		CustomData.update(DataComponents.CUSTOM_DATA, client, tag -> {
+			// Polymer's own copy of the server stack would let it turn the stand-in back into a real item on the way in.
+			tag.remove(PolymerItemUtils.POLYMER_STACK);
+			CompoundTag shown = new CompoundTag();
+			shown.putInt("slot", slot);
+			shown.putInt("of", identity(real));
+			tag.put(SHOWN_KEY, shown);
+		});
+		return ItemStackTemplate.fromNonEmptyStack(client);
+	}
+
+	/** What a stand-in says was in its slot: the whole stack, count and components. */
+	private static int identity(ItemStack real) {
+		return ItemStackTemplate.fromNonEmptyStack(real).hashCode();
+	}
+
+	/** A stand-in's {@link #SHOWN_KEY} (slot, identity), or null for anything else. */
+	private static int @Nullable [] shownMark(ItemStack stack) {
+		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+		if (data == null) return null;
+		CompoundTag shown = data.copyTag().getCompoundOrEmpty(SHOWN_KEY);
+		if (shown.isEmpty()) return null;
+		return new int[] {shown.getIntOr("slot", -1), shown.getIntOr("of", 0)};
+	}
+
+	private static boolean isShownEntry(ItemStackTemplate entry) {
+		return shownMark(entry.create()) != null;
+	}
+
+	/** {@link #fingerprint} of the chest as it is now: the stand-ins {@link #view} would show, by their marks. */
+	private static int fingerprintNow(Container ender) {
+		List<Integer> marks = new ArrayList<>();
+		for (int slot = ender.getContainerSize() - 1; slot >= 0; slot--) {
+			ItemStack stack = ender.getItem(slot);
+			if (!stack.isEmpty()) {
+				marks.add(slot);
+				marks.add(identity(stack));
+			}
+		}
+		return marks.hashCode();
 	}
 
 	/**
@@ -533,9 +609,9 @@ public final class EnderPockets {
 
 	/**
 	 * Takes metacraft-bundles' fill bar off an Ender Pockets ovve: it measures the ovve's own pockets, which
-	 * stay empty, and the ender chest's fullness is not the bundle's. What vanilla draws from the shown contents
-	 * itself (the bar on the slot, and "Full" at 64 items) comes from {@code bundle_contents} on the client and
-	 * cannot be taken off without taking the icons with it.
+	 * stay empty, and the ender chest's fullness is not the bundle's. The bar vanilla draws on the slot comes from
+	 * the weight of {@code bundle_contents} on the client and cannot be taken off without taking the icons with it;
+	 * the stand-ins keep it a sliver ({@link #view}).
 	 */
 	private static ItemStack dropFillBar(ItemStack server, ItemStack client, PacketContext context) {
 		if (!(server.getItem() instanceof OvveItem) || !has(server)) return client;
@@ -551,16 +627,25 @@ public final class EnderPockets {
 
 	// ---- creative
 
-	/** What {@link #creativeEdit} compares: the shown entries, in order. */
+	/** What {@link #creativeEdit} compares: the shown stand-ins' marks (slot, identity), in order. Other entries are skipped. */
 	static int fingerprint(List<ItemStackTemplate> shown) {
-		return shown.hashCode();
+		List<Integer> marks = new ArrayList<>();
+		for (ItemStackTemplate entry : shown) {
+			int[] mark = shownMark(entry.create());
+			if (mark == null) continue;
+			marks.add(mark[0]);
+			marks.add(mark[1]);
+		}
+		return marks.hashCode();
 	}
 
 	/**
 	 * {@code OvveItem.getDecodedItemStack}'s part, on the network thread, for a client stack coming back (a
-	 * creative player's inventory slot): if the client changed the pockets it was shown, the change goes into
-	 * the ender chest at the end of the tick ({@link #applyCreativeEdit}). Polymer hands the server the ovve as
-	 * it was, which is right: its own pockets stay empty.
+	 * creative player's inventory slot). The vanilla client edits the pockets itself in creative: an insert adds
+	 * an entry of its own next to the stand-ins, a take-out takes a stand-in onto its cursor. Inserts go into the
+	 * ender chest on the server thread ({@link #applyCreativeEdit}); a take-out changes nothing here, the stack
+	 * leaves the chest when the stand-in lands in a slot ({@link #creativeSlot}). Polymer hands the server the
+	 * ovve as it was, which is right: its own pockets stay empty.
 	 */
 	public static void creativeEdit(ItemStack client, @Nullable PacketContext context) {
 		ServerPlayer player = viewer(context);
@@ -573,7 +658,7 @@ public final class EnderPockets {
 		MinecraftServer server = player.level().getServer();
 		TaskScheduler.scheduleImmediately(server, () -> {
 			try {
-				applyCreativeEdit(player, shown, edited);
+				applyCreativeEdit(player, shown, edited, context);
 			} catch (RuntimeException e) {
 				Ovvar.LOGGER.debug("[{}] ender pockets: {}'s creative edit: {}", Ovvar.MOD_ID, player.getUUID(), e.toString());
 			}
@@ -581,40 +666,79 @@ public final class EnderPockets {
 	}
 
 	/**
-	 * A creative client's edit of the pockets it was shown, applied to the ender chest: what it added goes in
-	 * (what does not fit is gone, as from a creative cursor), what it took out comes out, newest first. Only a
-	 * creative player's, only if the chest still shows what the client was shown (else the client simply had
-	 * not seen the latest chest, and nothing is taken out that it never saw), and only one direction at a time
-	 * (one click is one insert or one take-out). The client is sent the chest as it is afterwards.
+	 * A creative client's edit of the pockets it was shown, applied to the ender chest: the entries it added
+	 * (anything not a stand-in) go in, in their server form, and what does not fit is gone, as from a creative
+	 * cursor. Only a creative player's, and only if the stand-ins it sent back are the ones it was shown and the
+	 * chest still holds what they show (else the client had not seen the latest chest, or sent the same insert
+	 * twice). The client is sent the chest as it is afterwards.
 	 */
-	static void applyCreativeEdit(ServerPlayer player, int shown, List<ItemStackTemplate> edited) {
+	static void applyCreativeEdit(ServerPlayer player, int shown, List<ItemStackTemplate> edited, @Nullable PacketContext context) {
 		if (player.isRemoved() || !player.hasInfiniteMaterials()) return;
 		TORN.add(player.getUUID());
-		List<ItemStackTemplate> now = view(player, -1).items();
-		if (fingerprint(now) != shown) return;
-		Map<ItemStackTemplate, Integer> delta = new HashMap<>();
-		for (ItemStackTemplate t : edited) delta.merge(t.withCount(1), t.count(), Integer::sum);
-		for (ItemStackTemplate t : now) delta.merge(t.withCount(1), -t.count(), Integer::sum);
-		boolean added = delta.values().stream().anyMatch(n -> n > 0), taken = delta.values().stream().anyMatch(n -> n < 0);
-		if (added == taken) return;
 		PlayerEnderChestContainer ender = player.getEnderChestInventory();
-		for (Map.Entry<ItemStackTemplate, Integer> e : delta.entrySet()) {
-			int n = e.getValue();
-			if (n > 0) {
-				ItemStack stack = e.getKey().create();
-				int max = Math.max(1, stack.getMaxStackSize());
-				for (int left = n; left > 0 && !stack.isEmpty(); left -= max) ender.addItem(stack.copyWithCount(Math.min(left, max)));
-			} else if (n < 0) {
-				int left = -n;
-				for (int slot = ender.getContainerSize() - 1; slot >= 0 && left > 0; slot--) {
-					ItemStack there = ender.getItem(slot);
-					if (there.isEmpty() || !ItemStackTemplate.fromNonEmptyStack(forView(there, 0)).withCount(1).equals(e.getKey())) continue;
-					int take = Math.min(left, there.getCount());
-					there.shrink(take);
-					left -= take;
-				}
-				ender.setChanged();
-			}
+		if (fingerprint(edited) != shown || fingerprintNow(ender) != shown) return;
+		for (ItemStackTemplate entry : edited) {
+			if (isShownEntry(entry)) continue;
+			ItemStack added = scrub(PolymerItemUtils.getRealItemStack(entry.create(), context, player.registryAccess()), 0);
+			int max = Math.max(1, added.getMaxStackSize());
+			for (int left = added.getCount(); left > 0 && !added.isEmpty(); left -= max) ender.addItem(added.copyWithCount(Math.min(left, max)));
 		}
+	}
+
+	/**
+	 * A creative slot packet's stack, before the server puts it in the slot ({@code EnderPocketsCreativeMixin}): a
+	 * stand-in the client took out of the pockets becomes the real stack from the ender slot it shows, which
+	 * leaves the chest now — if the slot still holds exactly that, else nothing (a stand-in is never a real item).
+	 * Stand-ins inside a container are taken out of it. The client is then sent the slot as it really is.
+	 */
+	public static ItemStack creativeSlot(ServerPlayer player, int slotNum, ItemStack stack) {
+		int[] mark = shownMark(stack);
+		ItemStack out;
+		if (mark != null) {
+			PlayerEnderChestContainer ender = player.getEnderChestInventory();
+			int slot = mark[0];
+			ItemStack real = slot >= 0 && slot < ender.getContainerSize() ? ender.getItem(slot) : ItemStack.EMPTY;
+			if (!real.isEmpty() && identity(real) == mark[1]) {
+				out = real;
+				ender.setItem(slot, ItemStack.EMPTY);
+			} else {
+				out = ItemStack.EMPTY;
+			}
+		} else {
+			out = scrub(stack, 0);
+			if (out == stack) return stack;
+		}
+		TORN.add(player.getUUID());
+		AbstractContainerMenu menu = player.inventoryMenu;
+		if (slotNum >= 0 && slotNum < menu.slots.size()) {
+			TaskScheduler.scheduleImmediately(player.level().getServer(), () -> player.connection.send(
+					new ClientboundContainerSetSlotPacket(menu.containerId, menu.incrementStateId(), slotNum, menu.getSlot(slotNum).getItem().copy())));
+		}
+		return out;
+	}
+
+	/** {@code stack} without any stand-in in its containers (walked as {@link #forView} walks them); itself when there is none. */
+	private static ItemStack scrub(ItemStack stack, int depth) {
+		if (stack.isEmpty() || depth >= MAX_DEPTH) return stack;
+		ItemStack copy = null;
+		for (TypedDataComponent<?> component : stack.getComponents()) {
+			if (!(component.value() instanceof ContainerComponent<?> container) || container.size() == 0) continue;
+			List<ItemStack> kept = new ArrayList<>();
+			boolean changed = false;
+			for (ItemStack inside : container.itemCopies().toList()) {
+				if (!inside.isEmpty() && shownMark(inside) != null) {
+					changed = true;
+					kept.add(ItemStack.EMPTY);
+					continue;
+				}
+				ItemStack s = scrub(inside, depth + 1);
+				changed |= s != inside;
+				kept.add(s);
+			}
+			if (!changed) continue;
+			if (copy == null) copy = stack.copy();
+			setUnchecked(copy, component.type(), container.copyWithContents(kept.stream()));
+		}
+		return copy == null ? stack : copy;
 	}
 }
