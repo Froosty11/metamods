@@ -374,6 +374,8 @@ public final class EnchantmentTests {
 		near(helper, Magpie.chestChance(3, cfg), 0.14f, "chestChance(3)");
 		near(helper, Magpie.mobOvvarChance(0.25f, 2, cfg), 0.45f, "mobOvvarChance(0.25, 2)");
 		near(helper, Magpie.mobOvvarChance(0.95f, 3, cfg), 1.0f, "mobOvvarChance(0.95, 3)");
+		// patch_drop_chance 0 means "never": Magpie lifts a chance, it does not make one.
+		near(helper, Magpie.mobOvvarChance(0f, 3, cfg), 0f, "mobOvvarChance(0, 3)");
 		helper.assertValueEqual(Magpie.level(null), 0, "level(null)");
 		helper.succeed();
 	}
@@ -530,8 +532,11 @@ public final class EnchantmentTests {
 			if (s.is(Items.DIRT) && s.getCount() == 10) dirt = true;
 			if (s.is(ModContent.ovve(Chapter.DATA))) data = true;
 		}
-		helper.assertTrue(itOvve, "the plain IT ovve dropped");
-		helper.assertTrue(dirt, "the 10 dirt dropped");
+		// With Universal Graves (-PwithGraves) the rest goes into a grave instead: keepsakeOutlivesAGrave.
+		if (!GRAVES) {
+			helper.assertTrue(itOvve, "the plain IT ovve dropped");
+			helper.assertTrue(dirt, "the 10 dirt dropped");
+		}
 		helper.assertFalse(data, "the Keepsake ovve dropped");
 
 		ServerPlayer fresh = helper.makeMockServerPlayerInLevel();
@@ -558,6 +563,71 @@ public final class EnchantmentTests {
 		} finally {
 			if (fresh != player) fresh.discard();
 		}
+		helper.succeed();
+	}
+
+	static final boolean GRAVES = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("universal-graves");
+
+	/** What Universal Graves holds for {@code owner}, read reflectively (it is only on the runtime under -PwithGraves). */
+	static List<ItemStack> graveItems(GameTestHelper helper, java.util.UUID owner) {
+		List<ItemStack> items = new java.util.ArrayList<>();
+		try {
+			Object manager = Class.forName("eu.pb4.graves.grave.GraveManager").getField("INSTANCE").get(null);
+			for (Object grave : (java.util.Collection<?>) manager.getClass().getMethod("getByUuid", java.util.UUID.class).invoke(manager, owner)) {
+				for (Object positioned : (List<?>) grave.getClass().getMethod("getItems").invoke(grave)) {
+					items.add((ItemStack) positioned.getClass().getMethod("stack").invoke(positioned));
+				}
+			}
+		} catch (ReflectiveOperationException e) {
+			helper.fail("can't read Universal Graves' graves: " + e);
+		}
+		return items;
+	}
+
+	/** Universal Graves takes the inventory before vanilla's death drop: the Keepsake ovve must be set aside before that. */
+	@GameTest
+	public void keepsakeOutlivesAGrave(GameTestHelper helper) {
+		if (!GRAVES) {
+			helper.succeed();
+			return;
+		}
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		player.getInventory().setItem(6, new ItemStack(Items.DIRT, 10));
+		player.die(helper.getLevel().damageSources().generic());
+		ServerPlayer fresh = helper.getLevel().getServer().getPlayerList().respawn(player, false, Entity.RemovalReason.KILLED);
+		try {
+			ItemStack legs = fresh.getItemBySlot(EquipmentSlot.LEGS);
+			helper.assertTrue(legs.is(ModContent.ovve(Chapter.DATA)), "the respawned player wears the ovve: " + legs);
+			helper.assertValueEqual(dirtIn(legs), 3, "dirt in the respawned ovve");
+		} finally {
+			if (fresh != player) fresh.discard();
+		}
+		// Graves may place the grave a tick later.
+		helper.succeedWhen(() -> {
+			List<ItemStack> grave = graveItems(helper, player.getUUID());
+			helper.assertTrue(grave.stream().anyMatch(s -> s.is(Items.DIRT) && s.getCount() == 10), "the dirt is in a grave (Graves ran): " + grave);
+			helper.assertFalse(grave.stream().anyMatch(s -> s.is(ModContent.ovve(Chapter.DATA))), "the Keepsake ovve is not in the grave: " + grave);
+		});
+	}
+
+	/** keepInventory on: nothing is set aside, the ovve simply stays where it is. */
+	@GameTest
+	public void keepsakeLeavesKeepInventoryAlone(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		var rules = helper.getLevel().getGameRules();
+		boolean was = rules.get(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY);
+		rules.set(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY, true, helper.getLevel().getServer());
+		try {
+			player.die(helper.getLevel().damageSources().generic());
+		} finally {
+			rules.set(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY, was, helper.getLevel().getServer());
+		}
+		helper.assertFalse(player.hasAttached(Keepsake.KEPT), "nothing stashed under keepInventory");
+		helper.assertTrue(player.getItemBySlot(EquipmentSlot.LEGS).is(ModContent.ovve(Chapter.DATA)), "the ovve stays worn");
 		helper.succeed();
 	}
 
@@ -635,6 +705,41 @@ public final class EnchantmentTests {
 	private static void drinkSwiftness(GameTestHelper helper, ServerPlayer player) {
 		ItemStack potion = PotionContents.createItemStack(Items.POTION, Potions.SWIFTNESS);
 		new PotionContents(Potions.SWIFTNESS).onConsume(helper.getLevel(), player, potion, potion.get(DataComponents.CONSUMABLE));
+	}
+
+	/**
+	 * A Brewery drink has no potion_contents: its effects come from its drink type, through Brewery's own
+	 * consumption effects. Only with Brewery on the runtime (-PovvarBrewery); green tea gives Resistance.
+	 */
+	@GameTest
+	public void breweryDrinkSchedulesTheDose(GameTestHelper helper) {
+		if (!OvveEnchantments.BREWERY) {
+			helper.succeed();
+			return;
+		}
+		ItemStack tea;
+		try {
+			tea = (ItemStack) Class.forName("eu.pb4.brewery.drink.DrinkUtils")
+					.getMethod("createDrink", net.minecraft.resources.Identifier.class, int.class, double.class, int.class, net.minecraft.world.level.block.Block.class)
+					.invoke(null, net.minecraft.resources.Identifier.fromNamespaceAndPath("brewery", "green_tea"), 0, 10.0, 0, net.minecraft.world.level.block.Blocks.FIRE);
+		} catch (ReflectiveOperationException e) {
+			helper.fail("can't make Brewery's green tea: " + e);
+			return;
+		}
+		ServerPlayer cursed = cursedPlayer(helper, true);
+		cursed.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, tea);
+		tea.finishUsingItem(helper.getLevel(), cursed);
+		helper.assertTrue(cursed.hasEffect(MobEffects.RESISTANCE), "the tea gave Resistance (the drink is right): " + cursed.getActiveEffects());
+		List<SpilledDrink.Dose> doses = cursed.getAttachedOrElse(SpilledDrink.DOSES, List.of());
+		helper.assertValueEqual(doses.size(), 1, "doses after a Brewery drink");
+		helper.assertTrue(doses.getFirst().effect().is(MobEffects.RESISTANCE.unwrapKey().orElseThrow()), "the dose is Resistance: " + doses);
+
+		ServerPlayer plain = cursedPlayer(helper, false);
+		ItemStack more = tea.copy();
+		plain.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, more);
+		more.finishUsingItem(helper.getLevel(), plain);
+		helper.assertValueEqual(plain.getAttachedOrElse(SpilledDrink.DOSES, List.of()).size(), 0, "doses without the curse");
+		helper.succeed();
 	}
 
 	@GameTest

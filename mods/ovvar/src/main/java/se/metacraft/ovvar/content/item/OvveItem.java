@@ -399,6 +399,13 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 		return out;
 	}
 
+	/** A client stack coming back (a creative slot): Polymer restores the server's ovve; Ender Pockets takes the client's edit to the ender chest. */
+	@Override
+	public ItemStack getDecodedItemStack(ItemStack client, ItemStack decoded, PacketContext context, HolderLookup.Provider lookup) {
+		if (EnderPockets.has(decoded)) EnderPockets.creativeEdit(client, context);
+		return decoded;
+	}
+
 	private ItemStack basePolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
 		return PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
 	}

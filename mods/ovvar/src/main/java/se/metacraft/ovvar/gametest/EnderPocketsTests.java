@@ -1,6 +1,5 @@
 package se.metacraft.ovvar.gametest;
 
-import com.mojang.serialization.DataResult;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -10,6 +9,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -26,7 +27,6 @@ import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.GameType;
-import org.apache.commons.lang3.math.Fraction;
 import se.metacraft.bundles.util.BundleHelper;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.ModComponents;
@@ -213,11 +213,228 @@ public final class EnderPocketsTests {
 		BundleContents shown = client.get(DataComponents.BUNDLE_CONTENTS);
 		helper.assertTrue(shown != null && shown.size() == 1 && shown.items().getFirst().item().value() == Items.DIAMOND
 				&& shown.items().getFirst().count() == 5, "the client pockets are [diamond×5]: " + shown);
-		List<Component> lore = client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
-		Component want = BundleHelper.getOccupancyText(DataResult.success(Fraction.getFraction(5, 64 * 27)));
-		helper.assertFalse(lore.isEmpty(), "the client stack has a fill bar");
-		helper.assertValueEqual(lore.getFirst(), want, "the fill bar");
 		helper.succeed();
+	}
+
+	// ---- what the client is shown: the icons and the scroll, no fullness
+
+	/** Does any part of {@code line} draw with metacraft-bundles' bar font (the fill bar lore line)? */
+	private static boolean drawsABar(Component line) {
+		boolean[] bar = {false};
+		line.visit((style, text) -> {
+			if (style.getFont() instanceof FontDescription.Resource font && font.id().getPath().equals("bundle_textures")) bar[0] = true;
+			return java.util.Optional.empty();
+		}, Style.EMPTY);
+		return bar[0];
+	}
+
+	private static List<Component> lore(ItemStack client) {
+		return client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
+	}
+
+	@GameTest
+	public void enderClientStackHasNoFillBar(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(0, new ItemStack(Items.STONE, 64));
+		ender.setItem(1, new ItemStack(Items.DIRT, 5));
+		ItemStack ovve = enderOvve(helper);
+		player.setItemInHand(InteractionHand.MAIN_HAND, ovve);
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(ovve, player.connection.getPacketContext(), helper.getLevel().registryAccess());
+		helper.assertTrue(client.is(Items.BUNDLE), "the client item is a bundle (tooltip icons, scroll): " + client);
+		helper.assertTrue(client.has(DataComponents.BUNDLE_CONTENTS) && client.get(DataComponents.BUNDLE_CONTENTS).size() == 2,
+				"the client stack carries the icons: " + client.get(DataComponents.BUNDLE_CONTENTS));
+		helper.assertFalse(lore(client).stream().anyMatch(EnderPocketsTests::drawsABar), "no fill bar line: " + lore(client));
+		helper.succeed();
+	}
+
+	@GameTest
+	public void normalOvveKeepsItsFillBar(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+		BundleContents.Mutable pockets = ovve.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).asMutable();
+		pockets.tryInsert(new ItemStack(Items.DIRT, 32));
+		ovve.set(DataComponents.BUNDLE_CONTENTS, pockets.toImmutable());
+		player.setItemInHand(InteractionHand.MAIN_HAND, ovve);
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(ovve, player.connection.getPacketContext(), helper.getLevel().registryAccess());
+		Component want = BundleHelper.getOccupancyText(ovve);
+		helper.assertTrue(lore(client).contains(want), "the normal ovve keeps its fill bar " + want + ": " + lore(client));
+		helper.assertTrue(client.get(DataComponents.BUNDLE_CONTENTS).size() == 1, "and its own pockets: " + client.get(DataComponents.BUNDLE_CONTENTS));
+		helper.succeed();
+	}
+
+	// ---- the real click packet, from a vanilla client that predicted a full bundle
+
+	/** What a vanilla client sends for a click: its predicted cursor, which (for a "full" bundle) is still the stack it holds. */
+	private static void clickPacket(ServerPlayer player, int slot, int button, ItemStack predictedCursor) {
+		var menu = player.containerMenu;
+		player.connection.handleContainerClick(new net.minecraft.network.protocol.game.ServerboundContainerClickPacket(menu.containerId, menu.getStateId(),
+				(short) slot, (byte) button, ContainerInput.PICKUP, new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(),
+				predictedCursor.isEmpty() ? net.minecraft.network.HashedStack.EMPTY : net.minecraft.network.HashedStack.create(predictedCursor, c -> 0)));
+	}
+
+	@GameTest
+	public void insertFillsPartialsThenEmptySlotsUpTo27Stacks(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(0, new ItemStack(Items.STONE, 64));
+		ender.setItem(5, new ItemStack(Items.DIRT, 40));
+		ender.setItem(9, new ItemStack(Items.DIRT, 10));
+		player.getInventory().setItem(9, enderOvve(helper));
+		Set<UUID> before = itemIds(helper, player, 4);
+		int given = 0;
+
+		// One stack of 64 already fills a vanilla bundle: the client predicts a refusal, the server takes it anyway.
+		player.inventoryMenu.setCarried(new ItemStack(Items.DIRT, 64));
+		given += 64;
+		clickPacket(player, 9, 0, player.inventoryMenu.getCarried().copy());
+		helper.assertTrue(player.inventoryMenu.getCarried().isEmpty(), "the first 64 went in: " + player.inventoryMenu.getCarried());
+		assertStack(helper, ender.getItem(5), Items.DIRT, 64, "partial slot 5 filled first");
+		assertStack(helper, ender.getItem(9), Items.DIRT, 50, "then partial slot 9");
+		helper.assertTrue(ender.getItem(1).isEmpty(), "no empty slot used while partials had room");
+
+		// Then the empty slots, until 27 full stacks.
+		for (int i = 0; i < 30 && ender.getItems().stream().anyMatch(s -> s.isEmpty() || s.getCount() < 64); i++) {
+			player.inventoryMenu.setCarried(new ItemStack(Items.DIRT, 64));
+			given += 64;
+			clickPacket(player, 9, 0, player.inventoryMenu.getCarried().copy());
+		}
+		for (int slot = 0; slot < 27; slot++) helper.assertValueEqual(ender.getItem(slot).getCount(), 64, "ender slot " + slot + " full");
+		int left = player.inventoryMenu.getCarried().getCount();
+		helper.assertValueEqual(left, given - 64 * 26 + 50, "what did not fit stays on the cursor");
+
+		// Full: refused, nothing moves.
+		clickPacket(player, 9, 0, player.inventoryMenu.getCarried().copy());
+		helper.assertValueEqual(player.inventoryMenu.getCarried().getCount(), left, "a full chest refuses");
+		helper.assertValueEqual(total(helper, player, Items.DIRT, before), given + 50, "dirt conserved");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void takeOutByPacketResendsSlotAndCursor(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(4, new ItemStack(Items.APPLE, 3));
+		ender.setItem(7, new ItemStack(Items.STONE, 64));
+		ender.setItem(8, new ItemStack(Items.DIRT, 64));
+		player.getInventory().setItem(9, enderOvve(helper));
+		var channel = channel(helper, player);
+		player.containerMenu.broadcastChanges();
+		sentSlots(helper, player, channel, 0, 9);
+
+		clickPacket(player, 9, 1, ItemStack.EMPTY);
+		assertStack(helper, player.inventoryMenu.getCarried(), Items.DIRT, 64, "the newest stack on the cursor");
+		helper.assertTrue(ender.getItem(8).isEmpty(), "ender slot 8 emptied");
+		helper.runAfterDelay(1, () -> {
+			channel.runPendingTasks();
+			ItemStack cursor = null, slot = null;
+			Object packet;
+			while ((packet = channel.readOutbound()) != null) {
+				if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket set) cursor = set.contents();
+				if (packet instanceof net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket set && set.getContainerId() == 0 && set.getSlot() == 9)
+					slot = PolymerItemUtils.getPolymerItemStack(set.getItem(), player.connection.getPacketContext(), helper.getLevel().registryAccess());
+			}
+			helper.assertTrue(cursor != null && cursor.is(Items.DIRT) && cursor.getCount() == 64, "the client is told its cursor holds the dirt: " + cursor);
+			helper.assertTrue(slot != null && shown(slot, Items.DIRT) == 0 && shown(slot, Items.STONE) == 64 && shown(slot, Items.APPLE) == 3,
+					"the client is sent the ovve without the dirt: " + (slot == null ? null : slot.get(DataComponents.BUNDLE_CONTENTS)));
+			helper.succeed();
+		});
+	}
+
+	// ---- creative: the client's inventory is its own, it sends back the ovve as it changed it
+
+	private static ServerPlayer creative(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.CREATIVE);
+		return player;
+	}
+
+	/** The ovve in inventory slot 9 as this player's client has it, with its pockets changed the way the client changed them. */
+	private static ItemStack clientEdited(GameTestHelper helper, ServerPlayer player, java.util.function.UnaryOperator<List<ItemStackTemplate>> edit) {
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(player.getInventory().getItem(9), player.connection.getPacketContext(), helper.getLevel().registryAccess());
+		List<ItemStackTemplate> items = edit.apply(new java.util.ArrayList<>(client.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).items()));
+		client.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(items));
+		return client;
+	}
+
+	/** The creative slot packet as the server decodes it (Polymer turns the client stack back into the server's) and handles it. */
+	private static void sendCreative(GameTestHelper helper, ServerPlayer player, ItemStack client) {
+		ItemStack real = PolymerItemUtils.getRealItemStack(client, player.connection.getPacketContext(), helper.getLevel().registryAccess());
+		player.connection.handleSetCreativeModeSlot(new net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket(9, real));
+	}
+
+	@GameTest
+	public void creativeInsertGoesToTheEnderChest(GameTestHelper helper) {
+		ServerPlayer player = creative(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(0, new ItemStack(Items.DIAMOND, 5));
+		player.getInventory().setItem(9, enderOvve(helper));
+		ItemStack client = clientEdited(helper, player, items -> {
+			items.addFirst(new ItemStackTemplate(Items.EMERALD, 3));
+			return items;
+		});
+		sendCreative(helper, player, client);
+		helper.runAfterDelay(1, () -> {
+			assertStack(helper, ender.getItem(0), Items.DIAMOND, 5, "the diamonds stay");
+			int emeralds = ender.getItems().stream().filter(s -> s.is(Items.EMERALD)).mapToInt(ItemStack::getCount).sum();
+			helper.assertValueEqual(emeralds, 3, "the emeralds went into the ender chest");
+			helper.assertTrue(pocketsEmpty(player.getInventory().getItem(9)), "the ovve's own pockets stay empty");
+			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void creativeTakeOutLeavesTheEnderChest(GameTestHelper helper) {
+		ServerPlayer player = creative(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(2, new ItemStack(Items.APPLE, 3));
+		ender.setItem(5, new ItemStack(Items.STONE, 10));
+		player.getInventory().setItem(9, enderOvve(helper));
+		// The client's removeOne: the first entry (the newest, ender slot 5) goes onto its cursor.
+		ItemStack client = clientEdited(helper, player, items -> {
+			items.removeFirst();
+			return items;
+		});
+		sendCreative(helper, player, client);
+		helper.runAfterDelay(1, () -> {
+			helper.assertTrue(ender.getItem(5).isEmpty(), "the stone left the ender chest: " + ender.getItem(5));
+			assertStack(helper, ender.getItem(2), Items.APPLE, 3, "the apples stay");
+			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void creativeStaleViewChangesNothing(GameTestHelper helper) {
+		ServerPlayer player = creative(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(0, new ItemStack(Items.DIAMOND, 5));
+		player.getInventory().setItem(9, enderOvve(helper));
+		ItemStack client = clientEdited(helper, player, items -> items);
+		// The chest changes before the client has seen it: its ovve, sent back unchanged, must not "take out" the new stack.
+		ender.setItem(1, new ItemStack(Items.EMERALD, 3));
+		sendCreative(helper, player, client);
+		helper.runAfterDelay(1, () -> {
+			assertStack(helper, ender.getItem(0), Items.DIAMOND, 5, "the diamonds stay");
+			assertStack(helper, ender.getItem(1), Items.EMERALD, 3, "the emeralds stay");
+			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void survivalCreativePacketChangesNothing(GameTestHelper helper) {
+		ServerPlayer player = survivor(helper);
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		ender.setItem(0, new ItemStack(Items.DIAMOND, 5));
+		player.getInventory().setItem(9, enderOvve(helper));
+		ItemStack client = clientEdited(helper, player, items -> {
+			items.addFirst(new ItemStackTemplate(Items.EMERALD, 3));
+			return items;
+		});
+		sendCreative(helper, player, client);
+		helper.runAfterDelay(1, () -> {
+			helper.assertFalse(ender.getItems().stream().anyMatch(s -> s.is(Items.EMERALD)), "no emeralds from a survival player's packet");
+			helper.succeed();
+		});
 	}
 
 	// ---- the ovve on the cursor (stackedOnOther), every item counted before and after

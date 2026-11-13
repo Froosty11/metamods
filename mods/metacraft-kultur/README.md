@@ -8,19 +8,17 @@ comes from); the ovvar and patches from there live in `mods/ovvar`.
 
 ## What is here, and what is not
 
-Every chapter has a banner pattern of its own, its logo: gated (it needs its pattern item in the loom),
-found in structure chests and sold by Punkphöz, a wandering trader who turns up now and then. Their
-banner and shield art is Edvin's, hand-drawn; the pattern items' icons are still AI drafts (below).
-Bygg was called Ingenjör until 2026-11 (an old `kultur:ingenjor_banner_pattern` loads as Bygg's);
-Produktion has a pattern but no ovve.
+Every chapter has a banner pattern of its own, its logo, free in any loom (no pattern item; Edvin,
+2026-11). Their banner and shield art is Edvin's, hand-drawn. The logos had pattern items for a few
+days in 2026-11; an old one (and `kultur:ingenjor_banner_pattern`, Bygg was called Ingenjör) now
+loads as paper. Produktion has a pattern but no ovve.
 
-IT's content besides its logo: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko
-pattern behind a pattern item ("gated", below — `kultur:pirkko_banner_pattern`, sold by Punkphöz by
-default and never in chests), Emelie Stark's painting "The Guardian of Kistan" (3×4), and PolymITer's
-four drinks (below). Data and Media have their logo pattern, as every chapter does, and nothing else
-yet.
-
-Not here yet: hand-drawn icons for the chapter pattern items.
+IT's content besides its logo: the ITK, QMISK and TMEIT banner patterns and the Pirkko pattern, all
+four behind a pattern item ("gated", below — `kultur:itk_banner_pattern` and so on), sold by Punkphöz
+by default and never in chests; Emelie Stark's painting "The Guardian of Kistan" (3×4), and
+PolymITer's four drinks (below). The clubs' item icons are their shield art on Pirkko's scroll,
+from `tools/chapter_item_icons.py`. Data and Media have their logo pattern, as every chapter does,
+and nothing else yet.
 
 With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet: its dyes
 work in the vanilla loom; nothing in this module knows about that. A Cerise Pirkko needs the Pirkko
@@ -133,10 +131,11 @@ effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the
 4. Add a line to `src/main/resources/kultur.json` under your chapter:
    `{ "id": "<id>", "name": "<Name>" }`. Add `"item": true` to make it need a pattern item in the
    loom, and then also draw a 16×16 icon at `.../item/<id>.png`. Add `"loot": true` (it needs `item`)
-   to put the pattern item in structure chests; that is all `loot` does. What the wandering trader
+   to put the pattern item in structure chests; that is all `loot` does, and no pattern has it for now
+   (the gated patterns are Punkphöz's alone). What the wandering trader
    Punkphöz sells is ovvar's config (`pool` in `config/ovvar.json`), whose default is a fixed list of
    ids in `PunkphozConfig.kulturPatterns()`: add yours there too if he should sell it (ovvar's
-   `defaultPoolMatchesKultur` game test, under `-PwithKultur`, checks that every id there exists). A server that already
+   `defaultPoolMatchesKultur` game test, under `-PwithKultur`, checks that it is exactly the patterns with an item). A server that already
    has a `config/ovvar.json` keeps its own `pool`, so add the id to its file as well.
 5. `./gradlew runDatagen` from the repo root, then commit your art and your `kultur.json` line.
    `src/main/generated` is a build artefact, not something to commit — everyone regenerates it

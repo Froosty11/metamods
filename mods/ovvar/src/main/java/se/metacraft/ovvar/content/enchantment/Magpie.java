@@ -44,8 +44,12 @@ public final class Magpie {
 		return PatchLoot.CHANCE + level * cfg.chestChancePerLevel();
 	}
 
-	/** A mob ovve's patch drop chance with {@code base} as its un-enchanted chance, capped at 1. */
+	/**
+	 * A mob ovve's patch drop chance with {@code base} as its un-enchanted chance, capped at 1. A base of 0
+	 * ({@code patch_drop_chance} 0: patches never drop) stays 0: Magpie raises a chance, it does not make one.
+	 */
 	public static float mobOvvarChance(float base, int level, EnchantmentsConfig.Magpie cfg) {
+		if (base <= 0f) return 0f;
 		return Math.min(1f, base + level * cfg.mobOvvarChancePerLevel());
 	}
 
