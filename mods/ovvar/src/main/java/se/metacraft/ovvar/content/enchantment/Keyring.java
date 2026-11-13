@@ -24,11 +24,11 @@ import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.mixin.KeyringDiggingAccessor;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Keyring: when a survival player starts breaking a block, the best tool in the worn garment's pockets
@@ -64,7 +64,8 @@ public final class Keyring {
 		}
 	}
 
-	private static final Map<UUID, Swap> SWAPS = new HashMap<>();
+	/** Touched from entity ticks too, which async (parallel entity ticking) runs off the server thread. */
+	private static final Map<UUID, Swap> SWAPS = new ConcurrentHashMap<>();
 
 	public static void init() {
 		PlayerBlockBreakEvents.AFTER.register((level, player, pos, state, blockEntity) -> {
