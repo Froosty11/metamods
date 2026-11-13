@@ -707,6 +707,41 @@ public final class EnchantmentTests {
 		new PotionContents(Potions.SWIFTNESS).onConsume(helper.getLevel(), player, potion, potion.get(DataComponents.CONSUMABLE));
 	}
 
+	/**
+	 * A Brewery drink has no potion_contents: its effects come from its drink type, through Brewery's own
+	 * consumption effects. Only with Brewery on the runtime (-PovvarBrewery); green tea gives Resistance.
+	 */
+	@GameTest
+	public void breweryDrinkSchedulesTheDose(GameTestHelper helper) {
+		if (!OvveEnchantments.BREWERY) {
+			helper.succeed();
+			return;
+		}
+		ItemStack tea;
+		try {
+			tea = (ItemStack) Class.forName("eu.pb4.brewery.drink.DrinkUtils")
+					.getMethod("createDrink", net.minecraft.resources.Identifier.class, int.class, double.class, int.class, net.minecraft.world.level.block.Block.class)
+					.invoke(null, net.minecraft.resources.Identifier.fromNamespaceAndPath("brewery", "green_tea"), 0, 10.0, 0, net.minecraft.world.level.block.Blocks.FIRE);
+		} catch (ReflectiveOperationException e) {
+			helper.fail("can't make Brewery's green tea: " + e);
+			return;
+		}
+		ServerPlayer cursed = cursedPlayer(helper, true);
+		cursed.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, tea);
+		tea.finishUsingItem(helper.getLevel(), cursed);
+		helper.assertTrue(cursed.hasEffect(MobEffects.RESISTANCE), "the tea gave Resistance (the drink is right): " + cursed.getActiveEffects());
+		List<SpilledDrink.Dose> doses = cursed.getAttachedOrElse(SpilledDrink.DOSES, List.of());
+		helper.assertValueEqual(doses.size(), 1, "doses after a Brewery drink");
+		helper.assertTrue(doses.getFirst().effect().is(MobEffects.RESISTANCE.unwrapKey().orElseThrow()), "the dose is Resistance: " + doses);
+
+		ServerPlayer plain = cursedPlayer(helper, false);
+		ItemStack more = tea.copy();
+		plain.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, more);
+		more.finishUsingItem(helper.getLevel(), plain);
+		helper.assertValueEqual(plain.getAttachedOrElse(SpilledDrink.DOSES, List.of()).size(), 0, "doses without the curse");
+		helper.succeed();
+	}
+
 	@GameTest
 	public void drinkingSchedulesTheDose(GameTestHelper helper) {
 		ServerPlayer cursed = cursedPlayer(helper, true);
