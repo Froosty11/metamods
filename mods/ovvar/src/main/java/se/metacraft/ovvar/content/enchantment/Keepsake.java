@@ -8,6 +8,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import se.metacraft.ovvar.content.ModContent;
 
 import java.util.ArrayList;
@@ -27,8 +29,9 @@ public final class Keepsake {
 			b -> b.persistent(Kept.CODEC.listOf()));
 
 	/**
-	 * Called just before the death drop empties the inventory (keepInventory off): every Keepsake ovve,
-	 * wherever it is, moves into {@link #KEPT} with its slot, so it is not dropped. The companion top
+	 * Called as the death drop starts (keepInventory off), before vanilla or a grave mod empties the
+	 * inventory: every Keepsake ovve, wherever it is, moves into {@link #KEPT} with its slot, so it is not
+	 * dropped. One with Curse of Vanishing stays, for vanilla to destroy as before. The companion top
 	 * is not one of them (it holds no enchantment, and {@code OvveTop} clears it on death already); the
 	 * cuffs are virtual and never in the inventory.
 	 */
@@ -38,7 +41,8 @@ public final class Keepsake {
 		int before = kept.size();
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			ItemStack stack = inventory.getItem(slot);
-			if (OvveEnchantments.level(stack, OvveEnchantments.KEEPSAKE) > 0) {
+			if (OvveEnchantments.level(stack, OvveEnchantments.KEEPSAKE) > 0
+					&& !EnchantmentHelper.has(stack, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
 				kept.add(new Kept(slot, stack.copy()));
 				inventory.setItem(slot, ItemStack.EMPTY);
 			}

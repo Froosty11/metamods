@@ -3,6 +3,8 @@
 	"package": "se.metacraft.ovvar.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"BreweryDrinkMixin",
+		"BreweryDrinkMixin$PotionEffect",
 		"CompanionCursorMixin",
 		"CustomClickMixin",
 		"EnchantRandomlyFunctionMixin",

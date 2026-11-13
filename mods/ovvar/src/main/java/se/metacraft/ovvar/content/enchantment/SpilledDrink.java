@@ -78,9 +78,37 @@ public final class SpilledDrink {
 
 	/** Called after a potion is drunk: a cursed wearer gets the second doses scheduled. */
 	public static void onDrink(LivingEntity drinker, PotionContents contents, ItemStack stack) {
-		if (!(drinker instanceof ServerPlayer player) || OvveEnchantments.level(drinker, OvveEnchantments.SPILLED_DRINK_CURSE) <= 0) return;
+		if (!(drinker instanceof ServerPlayer) || OvveEnchantments.level(drinker, OvveEnchantments.SPILLED_DRINK_CURSE) <= 0) return;
 		List<MobEffectInstance> drunk = new ArrayList<>();
 		contents.forEachEffect(drunk::add, stack.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1f));
+		onDrink(drinker, drunk);
+	}
+
+	// A Brewery drink has no potion_contents: its drink type's effects go through Brewery's own
+	// ConsumptionEffect$Potion. BreweryDrinkMixin collects them while a drink is being finished.
+	private static final ThreadLocal<List<MobEffectInstance>> BREWERY_DRINK = new ThreadLocal<>();
+
+	/** BreweryDrinkMixin, as Brewery's {@code DrinkItem.finishUsingItem} starts: collect the effects it gives. */
+	public static void breweryDrinkStarts() {
+		BREWERY_DRINK.set(new ArrayList<>());
+	}
+
+	/** BreweryDrinkMixin, as one of the drink's potion effects is given (outside a drink: nothing). */
+	public static void breweryEffect(MobEffectInstance effect) {
+		List<MobEffectInstance> drunk = BREWERY_DRINK.get();
+		if (drunk != null) drunk.add(new MobEffectInstance(effect));
+	}
+
+	/** BreweryDrinkMixin, as the drink is finished: the effects it gave, as from a potion. */
+	public static void breweryDrinkEnds(LivingEntity drinker) {
+		List<MobEffectInstance> drunk = BREWERY_DRINK.get();
+		BREWERY_DRINK.remove();
+		if (drunk != null && !drunk.isEmpty()) onDrink(drinker, drunk);
+	}
+
+	/** A cursed wearer who just drank these effects gets their second doses scheduled. */
+	public static void onDrink(LivingEntity drinker, List<MobEffectInstance> drunk) {
+		if (!(drinker instanceof ServerPlayer player) || OvveEnchantments.level(drinker, OvveEnchantments.SPILLED_DRINK_CURSE) <= 0) return;
 		long now = player.level().getServer().overworld().getGameTime();
 		List<Dose> doses = secondDoses(drunk, now, OvvarConfig.get().enchantments().spilledDrink());
 		if (doses.isEmpty()) return;
