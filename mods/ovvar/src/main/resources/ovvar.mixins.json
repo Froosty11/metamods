@@ -9,6 +9,7 @@
 		"CustomClickMixin",
 		"EnchantRandomlyFunctionMixin",
 		"EnchantmentHelperMixin",
+		"EnderPocketsCreativeMixin",
 		"EnderPocketsSelectMixin",
 		"ForeignOvveMixin",
 		"KeepsakeDeathMixin",
