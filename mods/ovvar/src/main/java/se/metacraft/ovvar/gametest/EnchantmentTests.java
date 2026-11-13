@@ -532,8 +532,11 @@ public final class EnchantmentTests {
 			if (s.is(Items.DIRT) && s.getCount() == 10) dirt = true;
 			if (s.is(ModContent.ovve(Chapter.DATA))) data = true;
 		}
-		helper.assertTrue(itOvve, "the plain IT ovve dropped");
-		helper.assertTrue(dirt, "the 10 dirt dropped");
+		// With Universal Graves (-PwithGraves) the rest goes into a grave instead: keepsakeOutlivesAGrave.
+		if (!GRAVES) {
+			helper.assertTrue(itOvve, "the plain IT ovve dropped");
+			helper.assertTrue(dirt, "the 10 dirt dropped");
+		}
 		helper.assertFalse(data, "the Keepsake ovve dropped");
 
 		ServerPlayer fresh = helper.makeMockServerPlayerInLevel();
@@ -560,6 +563,71 @@ public final class EnchantmentTests {
 		} finally {
 			if (fresh != player) fresh.discard();
 		}
+		helper.succeed();
+	}
+
+	static final boolean GRAVES = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("universal-graves");
+
+	/** What Universal Graves holds for {@code owner}, read reflectively (it is only on the runtime under -PwithGraves). */
+	static List<ItemStack> graveItems(GameTestHelper helper, java.util.UUID owner) {
+		List<ItemStack> items = new java.util.ArrayList<>();
+		try {
+			Object manager = Class.forName("eu.pb4.graves.grave.GraveManager").getField("INSTANCE").get(null);
+			for (Object grave : (java.util.Collection<?>) manager.getClass().getMethod("getByUuid", java.util.UUID.class).invoke(manager, owner)) {
+				for (Object positioned : (List<?>) grave.getClass().getMethod("getItems").invoke(grave)) {
+					items.add((ItemStack) positioned.getClass().getMethod("stack").invoke(positioned));
+				}
+			}
+		} catch (ReflectiveOperationException e) {
+			helper.fail("can't read Universal Graves' graves: " + e);
+		}
+		return items;
+	}
+
+	/** Universal Graves takes the inventory before vanilla's death drop: the Keepsake ovve must be set aside before that. */
+	@GameTest
+	public void keepsakeOutlivesAGrave(GameTestHelper helper) {
+		if (!GRAVES) {
+			helper.succeed();
+			return;
+		}
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		player.getInventory().setItem(6, new ItemStack(Items.DIRT, 10));
+		player.die(helper.getLevel().damageSources().generic());
+		ServerPlayer fresh = helper.getLevel().getServer().getPlayerList().respawn(player, false, Entity.RemovalReason.KILLED);
+		try {
+			ItemStack legs = fresh.getItemBySlot(EquipmentSlot.LEGS);
+			helper.assertTrue(legs.is(ModContent.ovve(Chapter.DATA)), "the respawned player wears the ovve: " + legs);
+			helper.assertValueEqual(dirtIn(legs), 3, "dirt in the respawned ovve");
+		} finally {
+			if (fresh != player) fresh.discard();
+		}
+		// Graves may place the grave a tick later.
+		helper.succeedWhen(() -> {
+			List<ItemStack> grave = graveItems(helper, player.getUUID());
+			helper.assertTrue(grave.stream().anyMatch(s -> s.is(Items.DIRT) && s.getCount() == 10), "the dirt is in a grave (Graves ran): " + grave);
+			helper.assertFalse(grave.stream().anyMatch(s -> s.is(ModContent.ovve(Chapter.DATA))), "the Keepsake ovve is not in the grave: " + grave);
+		});
+	}
+
+	/** keepInventory on: nothing is set aside, the ovve simply stays where it is. */
+	@GameTest
+	public void keepsakeLeavesKeepInventoryAlone(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		player.setItemSlot(EquipmentSlot.LEGS, keepsakeOvve(helper, 3));
+		var rules = helper.getLevel().getGameRules();
+		boolean was = rules.get(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY);
+		rules.set(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY, true, helper.getLevel().getServer());
+		try {
+			player.die(helper.getLevel().damageSources().generic());
+		} finally {
+			rules.set(net.minecraft.world.level.gamerules.GameRules.KEEP_INVENTORY, was, helper.getLevel().getServer());
+		}
+		helper.assertFalse(player.hasAttached(Keepsake.KEPT), "nothing stashed under keepInventory");
+		helper.assertTrue(player.getItemBySlot(EquipmentSlot.LEGS).is(ModContent.ovve(Chapter.DATA)), "the ovve stays worn");
 		helper.succeed();
 	}
 

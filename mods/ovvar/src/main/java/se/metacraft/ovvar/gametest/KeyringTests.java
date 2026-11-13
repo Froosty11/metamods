@@ -208,27 +208,37 @@ public final class KeyringTests {
 		assertStack(helper, player.getInventory().getItem(0), Items.IRON_PICKAXE, 1, "the hand after START");
 		Set<UUID> before = new HashSet<>();
 		for (ItemEntity e : helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(8))) before.add(e.getUUID());
+		var where = player.getBoundingBox().inflate(8);
 		player.die(helper.getLevel().damageSources().generic());
 		Keyring.tick(helper.getLevel().getServer());
-
-		int pickaxes = 0, ovves = 0, torchesLoose = 0;
-		for (ItemEntity e : helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(8))) {
-			if (before.contains(e.getUUID())) continue;
-			ItemStack s = e.getItem();
-			if (s.is(Items.IRON_PICKAXE)) pickaxes += s.getCount();
-			if (s.is(Items.TORCH)) torchesLoose += s.getCount();
-			if (s.is(ModContent.ovve(Chapter.DATA))) {
-				ovves += s.getCount();
-				List<ItemStack> in = pockets(s);
-				if (in.size() != 1) helper.fail("the dropped ovve's pockets hold one stack: " + in);
-				assertStack(helper, in.getFirst(), Items.TORCH, 5, "the dropped ovve's pockets");
-			}
-		}
-		helper.assertValueEqual(pickaxes, 1, "iron pickaxes dropped");
-		helper.assertValueEqual(ovves, 1, "ovves dropped");
-		helper.assertValueEqual(torchesLoose, 0, "loose torches");
 		helper.assertTrue(Keyring.swapOf(player) == null, "no swap remains");
-		helper.succeed();
+
+		helper.succeedWhen(() -> {
+			int pickaxes = 0, ovves = 0, torchesLoose = 0;
+			for (ItemStack s : droppedOrBuried(helper, player, where, before)) {
+				if (s.is(Items.IRON_PICKAXE)) pickaxes += s.getCount();
+				if (s.is(Items.TORCH)) torchesLoose += s.getCount();
+				if (s.is(ModContent.ovve(Chapter.DATA))) {
+					ovves += s.getCount();
+					List<ItemStack> in = pockets(s);
+					if (in.size() != 1) helper.fail("the dropped ovve's pockets hold one stack: " + in);
+					assertStack(helper, in.getFirst(), Items.TORCH, 5, "the dropped ovve's pockets");
+				}
+			}
+			helper.assertValueEqual(pickaxes, 1, "iron pickaxes dropped");
+			helper.assertValueEqual(ovves, 1, "ovves dropped");
+			helper.assertValueEqual(torchesLoose, 0, "loose torches");
+		});
+	}
+
+	/** What a death left behind: new item entities near the player, and, with Universal Graves (-PwithGraves), its grave's items. */
+	private static List<ItemStack> droppedOrBuried(GameTestHelper helper, ServerPlayer player, net.minecraft.world.phys.AABB where, Set<UUID> before) {
+		List<ItemStack> out = new java.util.ArrayList<>();
+		for (ItemEntity e : helper.getLevel().getEntitiesOfClass(ItemEntity.class, where)) {
+			if (!before.contains(e.getUUID())) out.add(e.getItem());
+		}
+		if (EnchantmentTests.GRAVES) out.addAll(EnchantmentTests.graveItems(helper, player.getUUID()));
+		return out;
 	}
 
 	@GameTest(maxTicks = 200)
@@ -258,19 +268,8 @@ public final class KeyringTests {
 		assertStack(helper, player.getInventory().getItem(0), Items.IRON_PICKAXE, 1, "the hand after START");
 		Set<UUID> before = new HashSet<>();
 		for (ItemEntity e : helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(8))) before.add(e.getUUID());
+		var where = player.getBoundingBox().inflate(8);
 		player.die(helper.getLevel().damageSources().generic());
-
-		int pickaxes = 0, ovves = 0, torchesLoose = 0;
-		for (ItemEntity e : helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(8))) {
-			if (before.contains(e.getUUID())) continue;
-			ItemStack s = e.getItem();
-			if (s.is(Items.IRON_PICKAXE)) pickaxes += s.getCount();
-			if (s.is(Items.TORCH)) torchesLoose += s.getCount();
-			if (s.is(ModContent.ovve(Chapter.DATA))) ovves += s.getCount();
-		}
-		helper.assertValueEqual(pickaxes, 1, "iron pickaxes dropped");
-		helper.assertValueEqual(ovves, 0, "Keepsake ovves dropped");
-		helper.assertValueEqual(torchesLoose, 0, "loose torches");
 
 		ServerPlayer fresh = helper.getLevel().getServer().getPlayerList().respawn(player, false, Entity.RemovalReason.KILLED);
 		try {
@@ -285,6 +284,16 @@ public final class KeyringTests {
 		} finally {
 			if (fresh != player) fresh.discard();
 		}
-		helper.succeed();
+		helper.succeedWhen(() -> {
+			int pickaxes = 0, ovves = 0, torchesLoose = 0;
+			for (ItemStack s : droppedOrBuried(helper, player, where, before)) {
+				if (s.is(Items.IRON_PICKAXE)) pickaxes += s.getCount();
+				if (s.is(Items.TORCH)) torchesLoose += s.getCount();
+				if (s.is(ModContent.ovve(Chapter.DATA))) ovves += s.getCount();
+			}
+			helper.assertValueEqual(pickaxes, 1, "iron pickaxes dropped");
+			helper.assertValueEqual(ovves, 0, "Keepsake ovves dropped");
+			helper.assertValueEqual(torchesLoose, 0, "loose torches");
+		});
 	}
 }
