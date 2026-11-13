@@ -10,6 +10,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.network.Connection;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.HashedStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
@@ -39,8 +40,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ContainerComponent;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
-import org.apache.commons.lang3.math.Fraction;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.bundles.util.BundleHelper;
 import se.metacraft.lib.util.TaskScheduler;
@@ -66,7 +67,7 @@ import java.util.function.Supplier;
  * time it is touched or ticked, never moved into anybody's ender chest.
  *
  * The client is shown the viewer's own ender chest as the bundle's contents ({@link #view}), newest
- * first like a bundle, with a fill bar over the chest's 27 slots. A preview never contains itself: an
+ * first like a bundle: the item icons and the scroll, and no fill bar ({@link #dropFillBar}). A preview never contains itself: an
  * Ender Pockets ovve inside the preview (in the ender chest, or in a shulker box or bundle there) is
  * handed over marked {@link ModComponents#ENDER_NESTED} and shows empty pockets. A marker, not only a
  * flag for the duration of the call, because Polymer turns nested stacks into client stacks later,
@@ -76,14 +77,21 @@ import java.util.function.Supplier;
  * Polymer's, which compares server stacks once a slot has been sent) never resends it by itself. So
  * {@link #tick} keeps a copy of the ender chest of every player who has an Ender Pockets ovve in an open
  * menu or on the cursor, and when it differs, or a preview read tore, resends those slots ({@link #resend}).
+ *
+ * A vanilla client decides its bundle clicks itself, as a bundle that is full at 64 items. In survival that is
+ * only its prediction: the click packet still comes, the server puts the stack in the chest, and
+ * {@link #afterClick} resends the slot and the cursor. In creative the client's inventory is its own and it
+ * sends back the ovve as it changed it, which Polymer turns back into the server's ovve; {@link #creativeEdit}
+ * puts that change into the ender chest instead (and while the shown contents weigh 64 items or more the
+ * vanilla client refuses the click before anything is sent: in creative, use the ovve to open the chest).
  */
 public final class EnderPockets {
 	private EnderPockets() {}
 
-	/** The fill bar's phase on {@link PolymerItemUtils#ITEM_MODIFICATION_EVENT}: after metacraft-bundles adds its own bar. */
+	/** {@link #dropFillBar}'s phase on {@link PolymerItemUtils#ITEM_MODIFICATION_EVENT}: after metacraft-bundles adds its bar. */
 	public static final Identifier FILL_BAR_PHASE = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "ender_pockets");
-	/** An ender chest's slots: the fill bar's capacity, in bundles. */
-	public static final int ENDER_SLOTS = 27;
+	/** The client stack's custom data key for {@link #fingerprint} of the view it shows, read back by {@link #creativeEdit}. */
+	static final String VIEW_KEY = "ovvar:ender_view";
 	/** How deep {@link #forView} looks into containers in containers; anything deeper is shown empty. */
 	private static final int MAX_DEPTH = 8;
 
@@ -97,7 +105,7 @@ public final class EnderPockets {
 
 	public static void init() {
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.addPhaseOrdering(Event.DEFAULT_PHASE, FILL_BAR_PHASE);
-		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(FILL_BAR_PHASE, EnderPockets::fillBar);
+		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(FILL_BAR_PHASE, EnderPockets::dropFillBar);
 		ServerTickEvents.END_SERVER_TICK.register(EnderPockets::tick);
 	}
 
@@ -495,6 +503,10 @@ public final class EnderPockets {
 			else BUILDING.set(outer);
 		}
 		out.set(DataComponents.BUNDLE_CONTENTS, view);
+		if (!ovve.has(ModComponents.ENDER_NESTED) && outer == null && viewer(context) != null) {
+			int shown = fingerprint(view.items());
+			CustomData.update(DataComponents.CUSTOM_DATA, out, tag -> tag.putInt(VIEW_KEY, shown));
+		}
 		return out;
 	}
 
@@ -519,24 +531,90 @@ public final class EnderPockets {
 		return connection != null && connection.getPacketListener() instanceof ServerGamePacketListenerImpl listener ? listener.player : null;
 	}
 
-	/** Swaps metacraft-bundles' fill bar (the ovve's own, empty pockets) for the ender chest's. */
-	private static ItemStack fillBar(ItemStack server, ItemStack client, PacketContext context) {
+	/**
+	 * Takes metacraft-bundles' fill bar off an Ender Pockets ovve: it measures the ovve's own pockets, which
+	 * stay empty, and the ender chest's fullness is not the bundle's. What vanilla draws from the shown contents
+	 * itself (the bar on the slot, and "Full" at 64 items) comes from {@code bundle_contents} on the client and
+	 * cannot be taken off without taking the icons with it.
+	 */
+	private static ItemStack dropFillBar(ItemStack server, ItemStack client, PacketContext context) {
 		if (!(server.getItem() instanceof OvveItem) || !has(server)) return client;
 		Component own = BundleHelper.getOccupancyText(server);
 		ItemLore lore = client.get(DataComponents.LORE);
-		// No bar to swap: metacraft-bundles' rendering is off.
+		// No bar to take off: metacraft-bundles' rendering is off.
 		if (own == null || lore == null || !lore.lines().contains(own)) return client;
-		BundleContents view = BUILDING.get();
-		if (view == null) view = shownTo(server, context);
 		List<Component> lines = new ArrayList<>(lore.lines());
 		lines.remove(own);
-		lines.addFirst(BundleHelper.getOccupancyText(view.weight().map(EnderPockets::chestShare)));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}
 
-	private static Fraction chestShare(Fraction weight) {
-		Fraction share = weight.divideBy(Fraction.getFraction(ENDER_SLOTS, 1));
-		return share.compareTo(Fraction.ONE) > 0 ? Fraction.ONE : share;
+	// ---- creative
+
+	/** What {@link #creativeEdit} compares: the shown entries, in order. */
+	static int fingerprint(List<ItemStackTemplate> shown) {
+		return shown.hashCode();
+	}
+
+	/**
+	 * {@code OvveItem.getDecodedItemStack}'s part, on the network thread, for a client stack coming back (a
+	 * creative player's inventory slot): if the client changed the pockets it was shown, the change goes into
+	 * the ender chest at the end of the tick ({@link #applyCreativeEdit}). Polymer hands the server the ovve as
+	 * it was, which is right: its own pockets stay empty.
+	 */
+	public static void creativeEdit(ItemStack client, @Nullable PacketContext context) {
+		ServerPlayer player = viewer(context);
+		CustomData data = client.get(DataComponents.CUSTOM_DATA);
+		if (player == null || data == null) return;
+		CompoundTag tag = data.copyTag();
+		if (!tag.contains(VIEW_KEY)) return;
+		int shown = tag.getIntOr(VIEW_KEY, 0);
+		List<ItemStackTemplate> edited = List.copyOf(client.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).items());
+		MinecraftServer server = player.level().getServer();
+		TaskScheduler.scheduleImmediately(server, () -> {
+			try {
+				applyCreativeEdit(player, shown, edited);
+			} catch (RuntimeException e) {
+				Ovvar.LOGGER.debug("[{}] ender pockets: {}'s creative edit: {}", Ovvar.MOD_ID, player.getUUID(), e.toString());
+			}
+		});
+	}
+
+	/**
+	 * A creative client's edit of the pockets it was shown, applied to the ender chest: what it added goes in
+	 * (what does not fit is gone, as from a creative cursor), what it took out comes out, newest first. Only a
+	 * creative player's, only if the chest still shows what the client was shown (else the client simply had
+	 * not seen the latest chest, and nothing is taken out that it never saw), and only one direction at a time
+	 * (one click is one insert or one take-out). The client is sent the chest as it is afterwards.
+	 */
+	static void applyCreativeEdit(ServerPlayer player, int shown, List<ItemStackTemplate> edited) {
+		if (player.isRemoved() || !player.hasInfiniteMaterials()) return;
+		TORN.add(player.getUUID());
+		List<ItemStackTemplate> now = view(player, -1).items();
+		if (fingerprint(now) != shown) return;
+		Map<ItemStackTemplate, Integer> delta = new HashMap<>();
+		for (ItemStackTemplate t : edited) delta.merge(t.withCount(1), t.count(), Integer::sum);
+		for (ItemStackTemplate t : now) delta.merge(t.withCount(1), -t.count(), Integer::sum);
+		boolean added = delta.values().stream().anyMatch(n -> n > 0), taken = delta.values().stream().anyMatch(n -> n < 0);
+		if (added == taken) return;
+		PlayerEnderChestContainer ender = player.getEnderChestInventory();
+		for (Map.Entry<ItemStackTemplate, Integer> e : delta.entrySet()) {
+			int n = e.getValue();
+			if (n > 0) {
+				ItemStack stack = e.getKey().create();
+				int max = Math.max(1, stack.getMaxStackSize());
+				for (int left = n; left > 0 && !stack.isEmpty(); left -= max) ender.addItem(stack.copyWithCount(Math.min(left, max)));
+			} else if (n < 0) {
+				int left = -n;
+				for (int slot = ender.getContainerSize() - 1; slot >= 0 && left > 0; slot--) {
+					ItemStack there = ender.getItem(slot);
+					if (there.isEmpty() || !ItemStackTemplate.fromNonEmptyStack(forView(there, 0)).withCount(1).equals(e.getKey())) continue;
+					int take = Math.min(left, there.getCount());
+					there.shrink(take);
+					left -= take;
+				}
+				ender.setChanged();
+			}
+		}
 	}
 }
