@@ -82,7 +82,22 @@ public final class ComboAssets {
 
 	// ---- names
 
-	/** An asset's path: {@code <chapter>/<piece>[_nercabbad][/<combo>]}. */
+	/**
+	 * Between a chapter's id and a named variant's in a cloth id ({@code it.spaceships}). Chapter ids never
+	 * hold one, so the cloth id stays one path segment and reads back unambiguously.
+	 */
+	public static final String VARIANT_SEPARATOR = ".";
+
+	/**
+	 * The cloth a garment is drawn in, where every name below says {@code <chapter>}: the chapter's id, or
+	 * {@code <chapter>.<variant>} for a named variant's cloth (null or empty: none). A variant's assets are
+	 * named and built exactly as a chapter's, so this changes no name a client already reads.
+	 */
+	public static String clothId(String chapter, String variant) {
+		return variant == null || variant.isEmpty() ? chapter : chapter + VARIANT_SEPARATOR + variant;
+	}
+
+	/** An asset's path: {@code <chapter>/<piece>[_nercabbad][/<combo>]}, the chapter being a {@link #clothId}. */
 	public static String assetPath(String chapter, String piece, boolean nercabbad, String combo) {
 		return chapter + "/" + piece + (nercabbad ? NERCABBAD : "") + (combo.isEmpty() ? "" : "/" + combo);
 	}

@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Spot;
 import se.metacraft.ovvar.datagen.GeneratedAssets;
 import se.metacraft.ovvar.datagen.Tex;
@@ -30,9 +31,9 @@ public final class ShaderLayoutTests {
 	private static final int BOX = 16 * D;
 
 	/** One generated base layer, with what datagen started it from. */
-	private record Layer(Chapter chapter, GeneratedAssets.BaseLayer base, Tex tex) {
+	private record Layer(Cloth chapter, GeneratedAssets.BaseLayer base, Tex tex) {
 		String label() {
-			return chapter.id + "/" + base.name();
+			return chapter.id() + "/" + base.name();
 		}
 
 		int boxX() { return base.box()[0] * D; }
@@ -185,18 +186,22 @@ public final class ShaderLayoutTests {
 
 	// ---- helpers
 
-	/** Every chapter's generated base layers, each checked to be a base garment texture (kind 0). */
+	/**
+	 * Every cloth's generated base layers, each checked to be a base garment texture (kind 0): every
+	 * chapter's and every named variant's, whose art follows the same layout (the right-limb copy, the
+	 * checker) for the shader patcher and Spot.
+	 */
 	private static List<Layer> layers(List<String> wrong) {
 		List<Layer> out = new ArrayList<>();
-		for (Chapter chapter : Chapter.values()) {
+		for (Cloth chapter : Cloth.all()) {
 			for (GeneratedAssets.BaseLayer base : GeneratedAssets.baseLayers(chapter)) {
-				Tex tex = generated(base.piece().layer + "/" + chapter.id + "/" + base.name());
+				Tex tex = generated(base.piece().layer + "/" + chapter.id() + "/" + base.name());
 				if (tex.get(GeneratedAssets.MARKER_X, GeneratedAssets.MARKER_Y) != GeneratedAssets.MARKER) {
-					wrong.add(chapter.id + "/" + base.name() + ": no marker texel");
+					wrong.add(chapter.id() + "/" + base.name() + ": no marker texel");
 					continue;
 				}
 				if (Tex.r(tex.get(GeneratedAssets.MARKER_KIND_X, GeneratedAssets.MARKER_Y)) != 0) {
-					wrong.add(chapter.id + "/" + base.name() + ": kind texel R is not 0 (a base garment)");
+					wrong.add(chapter.id() + "/" + base.name() + ": kind texel R is not 0 (a base garment)");
 					continue;
 				}
 				out.add(new Layer(chapter, base, tex));

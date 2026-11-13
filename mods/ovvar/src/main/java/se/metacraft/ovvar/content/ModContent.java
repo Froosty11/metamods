@@ -98,6 +98,11 @@ public final class ModContent {
 			Identifier ovveId = ovveId(chapter);
 			requireAsset("items/" + ovveId.getPath() + ".json", ovveId);
 			requireAsset("equipment/" + Looks.assetPath(chapter, chapter.ownPiece(), false, "") + ".json", ovveId);
+			// each named variant's cloth and icon, which datagen makes from variants.json (Variants)
+			for (Variants.Variant v : Variants.of(chapter)) {
+				requireAsset("equipment/" + Looks.assetPath(new Cloth(chapter, v), chapter.ownPiece(), false, "") + ".json", ovveId);
+				requireAsset("models/" + Variants.iconModel(v).getPath() + ".json", ovveId);
+			}
 			ArmorType type = chapter.slot == EquipmentSlot.CHEST ? ArmorType.CHESTPLATE : ArmorType.LEGGINGS;
 			OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, chapter.ownPiece(), type)
 					.component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)

@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
@@ -32,7 +33,12 @@ public final class EquipmentJson {
 	private EquipmentJson() {}
 
 	public static String baseTexture(Chapter chapter, Piece piece, boolean nercabbad) {
-		return ComboAssets.baseTexture(chapter.id, piece.id, nercabbad);
+		return baseTexture(Cloth.of(chapter), piece, nercabbad);
+	}
+
+	/** The cloth's base texture for a half: a chapter's, or a named variant's ({@code ovvar:it.spaceships/top}). */
+	public static String baseTexture(Cloth cloth, Piece piece, boolean nercabbad) {
+		return ComboAssets.baseTexture(cloth.id(), piece.id, nercabbad);
 	}
 
 	/** Texture names (without namespace and layer folder) a placement is drawn with: one, or two for the seat. */
@@ -56,12 +62,17 @@ public final class EquipmentJson {
 	 *  preview, then the chestplate's own humanoid layer on top. A vanilla chestplate's arms and neck
 	 *  are largely transparent, so the sleeves and collar of the ovve show through underneath. */
 	public static ResourceKey<EquipmentAsset> chestAsset(Chapter chapter, String material) {
-		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "chest/" + chapter.id + "/" + material));
+		return chestAsset(Cloth.of(chapter), material);
 	}
 
-	public static String chestJson(Chapter chapter, String material) {
+	/** The chest wrap per cloth: a variant's top shows under the chestplate as its own cloth. */
+	public static ResourceKey<EquipmentAsset> chestAsset(Cloth cloth, String material) {
+		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "chest/" + cloth.id() + "/" + material));
+	}
+
+	public static String chestJson(Cloth cloth, String material) {
 		JsonArray layers = new JsonArray();
-		layers.add(layer(baseTexture(chapter, Piece.TOP, false), false));       // the ovve top fabric, underneath
+		layers.add(layer(baseTexture(cloth, Piece.TOP, false), false));       // the ovve top fabric, underneath
 		layers.add(layer(Ovvar.MOD_ID + ":" + previewTexture(Piece.TOP), true)); // its instant patches, in the dye colour
 		layers.add(layer("minecraft:" + material, false));                       // the chestplate on top
 		JsonObject byType = new JsonObject();
@@ -95,8 +106,13 @@ public final class EquipmentJson {
 	 * top has to be later in the list whatever order the placements arrived in.
 	 */
 	public static List<String> layerTextures(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {
+		return layerTextures(Cloth.of(chapter), piece, nercabbad, placements);
+	}
+
+	/** {@link #layerTextures(Chapter, Piece, boolean, List)} on a cloth: the same, its cloth at the bottom. */
+	public static List<String> layerTextures(Cloth cloth, Piece piece, boolean nercabbad, List<Placement> placements) {
 		List<String> out = new ArrayList<>();
-		out.add(baseTexture(chapter, piece, nercabbad));
+		out.add(baseTexture(cloth, piece, nercabbad));
 		for (Placement p : Spot.stacked(placements)) {
 			if (p.piece() != piece) throw new IllegalArgumentException(p + " is not on the " + piece);
 			for (String t : textures(p)) out.add(Ovvar.MOD_ID + ":" + t);
@@ -105,7 +121,11 @@ public final class EquipmentJson {
 	}
 
 	public static String json(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {
-		return ComboAssets.json(piece.layer, layerTextures(chapter, piece, nercabbad, placements), Ovvar.MOD_ID + ":" + previewTexture(piece));
+		return json(Cloth.of(chapter), piece, nercabbad, placements);
+	}
+
+	public static String json(Cloth cloth, Piece piece, boolean nercabbad, List<Placement> placements) {
+		return ComboAssets.json(piece.layer, layerTextures(cloth, piece, nercabbad, placements), Ovvar.MOD_ID + ":" + previewTexture(piece));
 	}
 
 	private static JsonObject layer(String texture, boolean dyeable) {
@@ -114,7 +134,11 @@ public final class EquipmentJson {
 
 	/** The pack path of a combination's definition. */
 	public static String packPath(Chapter chapter, Piece piece, boolean nercabbad, Combos.Combo combo) {
-		return "assets/" + Ovvar.MOD_ID + "/equipment/" + Looks.assetPath(chapter, piece, nercabbad, combo.key()) + ".json";
+		return packPath(Cloth.of(chapter), piece, nercabbad, combo);
+	}
+
+	public static String packPath(Cloth cloth, Piece piece, boolean nercabbad, Combos.Combo combo) {
+		return "assets/" + Ovvar.MOD_ID + "/equipment/" + Looks.assetPath(cloth, piece, nercabbad, combo.key()) + ".json";
 	}
 
 	/** All (chapter, nercabbad) variants a piece's combination needs: none for a half the garment lacks (a frack's legs). */

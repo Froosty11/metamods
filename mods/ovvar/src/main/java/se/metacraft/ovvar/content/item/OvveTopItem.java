@@ -3,6 +3,8 @@ package se.metacraft.ovvar.content.item;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
+import se.metacraft.ovvar.content.Variants;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.Piece;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
@@ -61,7 +63,7 @@ public final class OvveTopItem extends Item implements PolymerItem {
 	@Override
 	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
 		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.TOP, false, context, lookup);
+		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, new Cloth(chapter, Variants.of(stack)), Piece.TOP, false, context, lookup);
 		out.set(DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(true, TooltipDisplay.DEFAULT.hiddenComponents()));   // no hover tooltip: the slot reads as empty
 		if (Boolean.TRUE.equals(stack.get(ModComponents.GARMENT_GLINT))) out.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);   // an enchanted ovve's sleeves
 		return out;

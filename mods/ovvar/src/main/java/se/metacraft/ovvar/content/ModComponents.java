@@ -106,6 +106,13 @@ public final class ModComponents {
 	public static final DataComponentType<Unit> MOB_OVVE = register("mob_ovve",
 			DataComponentType.<Unit>builder().persistent(Unit.CODEC));
 
+	/**
+	 * On the companion top (and cuffs) of an ovve wearing a named variant: the variant's id, so the top is
+	 * drawn in the same cloth ({@link Variants#of}). Copied from the ovve each tick, never saved; Polymer strips it.
+	 */
+	public static final DataComponentType<String> VARIANT = register("variant",
+			DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
+
 	private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
 		return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
 	}
@@ -113,6 +120,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED, MOB_OVVE);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED, MOB_OVVE, VARIANT);
 	}
 }

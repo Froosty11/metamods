@@ -14,6 +14,7 @@ import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.compat.resource_packs.ResourcePacksCompat;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.OvveTopItem;
@@ -210,8 +211,12 @@ public final class Combos {
 
 	/** Does the pack a player has hold this combination? {@code player} null: the current pack. */
 	public static boolean isBuilt(Chapter chapter, Piece piece, Combo combo, @Nullable UUID player) {
+		return isBuilt(Cloth.of(chapter), piece, combo, player);
+	}
+
+	public static boolean isBuilt(Cloth cloth, Piece piece, Combo combo, @Nullable UUID player) {
 		if (combo.isEmpty()) return true;
-		KeyedCombo key = key(chapter, piece, combo);
+		KeyedCombo key = key(cloth, piece, combo);
 		Set<KeyedCombo> current = BUILT.getOrDefault(generation, Set.of());
 		if (player == null) return current.contains(key);
 		return BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current).contains(key);
@@ -219,13 +224,21 @@ public final class Combos {
 
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
 	public static boolean isKnown(Chapter chapter, Piece piece, Combo combo) {
-		return KNOWN.contains(key(chapter, piece, combo));
+		return isKnown(Cloth.of(chapter), piece, combo);
+	}
+
+	public static boolean isKnown(Cloth cloth, Piece piece, Combo combo) {
+		return KNOWN.contains(key(cloth, piece, combo));
 	}
 
 	/**
 	 * Marks every half of every design as known for its chapter (the halves that chapter has),
 	 * without scheduling a build (the startup build follows), so no player gets a pack push merely
 	 * because a patch they wear left the instant range. Returns how many keys were new.
+	 *
+	 * <p>Per chapter only, never per named variant: a stored design knows no name, and building every
+	 * design once more for each of its chapter's variants would multiply the pack for an easter egg. A
+	 * variant's combinations are built when first seen and kept in combos.json from then on.
 	 */
 	public static int prebuild(Collection<Map.Entry<Chapter, SpotPlacements>> designs) {
 		int added = 0;
@@ -235,7 +248,7 @@ public final class Combos {
 				if (!chapter.pieces().contains(piece)) continue;
 				Optional<SpotPlacements> half = design.getValue().forPiece(piece);
 				if (half.isEmpty()) continue;
-				if (KNOWN.add(key(chapter, piece, Placement.combo(half.get().asPlacementList())))) added++;
+				if (KNOWN.add(key(Cloth.of(chapter), piece, Placement.combo(half.get().asPlacementList())))) added++;
 			}
 		}
 		if (added > 0) dirty.set(true);
@@ -246,19 +259,23 @@ public final class Combos {
 	public static void markBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
 		BUILT.compute(generation, (g, built) -> {
 			Set<KeyedCombo> next = built == null ? new HashSet<>() : new HashSet<>(built);
-			next.add(key(chapter, piece, combo));
+			next.add(key(Cloth.of(chapter), piece, combo));
 			return Set.copyOf(next);
 		});
 	}
 
 	/** Tests only: drops a combination from the known set (and has it saved without it), so a test leaves nothing behind. */
 	public static void forgetForTest(Chapter chapter, Piece piece, Combo combo) {
-		if (KNOWN.remove(key(chapter, piece, combo))) dirty.set(true);
+		forgetForTest(Cloth.of(chapter), piece, combo);
+	}
+
+	public static void forgetForTest(Cloth cloth, Piece piece, Combo combo) {
+		if (KNOWN.remove(key(cloth, piece, combo))) dirty.set(true);
 	}
 
 	/** Tests only: undoes {@link #markBuiltForTest} in every generation still held, so nothing test-only stays behind. */
 	public static void unmarkBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
-		KeyedCombo key = key(chapter, piece, combo);
+		KeyedCombo key = key(Cloth.of(chapter), piece, combo);
 		BUILT.replaceAll((g, built) -> {
 			if (!built.contains(key)) return built;
 			Set<KeyedCombo> next = new HashSet<>(built);
@@ -269,7 +286,11 @@ public final class Combos {
 
 	/** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
 	public static void request(Chapter chapter, Piece piece, Combo combo, boolean urgent) {
-		KeyedCombo key = key(chapter, piece, combo);
+		request(Cloth.of(chapter), piece, combo, urgent);
+	}
+
+	public static void request(Cloth cloth, Piece piece, Combo combo, boolean urgent) {
+		KeyedCombo key = key(cloth, piece, combo);
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
 		if (KNOWN.add(key)) dirty.set(true);
 		if (generating && building.contains(key)) return;   // the build under way has it
@@ -282,18 +303,22 @@ public final class Combos {
 	 * already does — since a sewing session is nowhere near a fight.
 	 */
 	public static void claim(ServerPlayer player, Chapter chapter, Piece piece, Combo combo) {
-		KeyedCombo key = key(chapter, piece, combo);
+		claim(player, Cloth.of(chapter), piece, combo);
+	}
+
+	public static void claim(ServerPlayer player, Cloth cloth, Piece piece, Combo combo) {
+		KeyedCombo key = key(cloth, piece, combo);
 		if (drawsCombos(player.getUUID())) {
 			// Their client draws it already: no claim, no push. Still built at once, so whoever joins next
 			// without the mod has it in their pack, as if the sewer had been a vanilla client.
-			request(chapter, piece, combo, true);
+			request(cloth, piece, combo, true);
 			return;
 		}
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
 			if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
 			return;
 		}
-		request(chapter, piece, combo, true);
+		request(cloth, piece, combo, true);
 		CLAIMED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player.getUUID());
 	}
 
@@ -464,12 +489,12 @@ public final class Combos {
 		}
 	}
 
-	/** The equipment definitions of one combination (each rolled-down variant of its chapter) as pack path and JSON; how many. */
+	/** The equipment definitions of one combination (each rolled-down state of its chapter, in its cloth) as pack path and JSON; how many. */
 	static int files(KeyedCombo key, BiConsumer<String, String> out) {
 		int files = 0;
-		Chapter chapter = key.chapter();
-		for (boolean[] v : EquipmentJson.variants(chapter, key.piece())) {
-			out.accept(EquipmentJson.packPath(chapter, key.piece(), v[0], key.combo()), EquipmentJson.json(chapter, key.piece(), v[0], key.combo().placements()));
+		Cloth cloth = key.cloth();
+		for (boolean[] v : EquipmentJson.variants(cloth.chapter(), key.piece())) {
+			out.accept(EquipmentJson.packPath(cloth, key.piece(), v[0], key.combo()), EquipmentJson.json(cloth, key.piece(), v[0], key.combo().placements()));
 			files++;
 		}
 		return files;
@@ -477,8 +502,8 @@ public final class Combos {
 
 	// ---- keys
 
-	private static KeyedCombo key(Chapter chapter, Piece piece, Combo combo) {
-		return new KeyedCombo(chapter, piece, combo);
+	private static KeyedCombo key(Cloth cloth, Piece piece, Combo combo) {
+		return new KeyedCombo(cloth, piece, combo);
 	}
 
 	/**
@@ -500,7 +525,7 @@ public final class Combos {
 							Combo.KEY_CODEC.parse(JavaOps.INSTANCE, line.substring(colon + 1)).map(combo -> Pair.of(piece, combo)));
 			legacy.resultOrPartial(Ovvar.LOGGER::warn).ifPresent(pc -> {
 				for (Chapter chapter : LEGACY_CHAPTERS) {
-					if (chapter.pieces().contains(pc.getFirst())) out.add(key(chapter, pc.getFirst(), pc.getSecond()));
+					if (chapter.pieces().contains(pc.getFirst())) out.add(key(Cloth.of(chapter), pc.getFirst(), pc.getSecond()));
 				}
 			});
 		}
@@ -573,8 +598,19 @@ public final class Combos {
 		}
 	}
 
-	/** One combination on one half of one chapter's garment; its key is {@code chapter/piece:combo}. */
-	public record KeyedCombo(Chapter chapter, Piece piece, Combo combo) implements Comparable<KeyedCombo> {
+	/**
+	 * One combination on one half of one cloth (a chapter's garment, or a named variant of it); its key is
+	 * {@code cloth/piece:combo}, the cloth being {@code <chapter>} or {@code <chapter>.<variant>}.
+	 */
+	public record KeyedCombo(Cloth cloth, Piece piece, Combo combo) implements Comparable<KeyedCombo> {
+
+		public KeyedCombo(Chapter chapter, Piece piece, Combo combo) {
+			this(Cloth.of(chapter), piece, combo);
+		}
+
+		public Chapter chapter() {
+			return cloth.chapter();
+		}
 
 		public static final Codec<KeyedCombo> KEY_CODEC = Codec.STRING.comapFlatMap(
 				key -> {
@@ -583,9 +619,9 @@ public final class Combos {
 					if (slash < 0 || colon < slash) {
 						return DataResult.error(() -> "bad combo key " + key);
 					}
-					Chapter chapter = Chapter.byId(key.substring(0, slash));
+					Cloth chapter = Cloth.byId(key.substring(0, slash));
 					if (chapter == null) {
-						return DataResult.error(() -> "unknown chapter in combo key " + key);
+						return DataResult.error(() -> "unknown chapter or variant in combo key " + key);
 					}
 					return Piece.CODEC.parse(JavaOps.INSTANCE, key.substring(slash+1, colon)).flatMap(
 							piece -> Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon+1)).map(
@@ -597,7 +633,7 @@ public final class Combos {
 		);
 
 		public String key() {
-			return chapter.id + "/" + piece.id + ":" + combo.key();
+			return cloth.id() + "/" + piece.id + ":" + combo.key();
 		}
 
 		@Override

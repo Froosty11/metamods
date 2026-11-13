@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
@@ -43,23 +44,23 @@ import java.util.zip.ZipInputStream;
  */
 public final class ComboAssetsParityTests {
 
-	/** Every chapter and every variant it has, ovve and frack, overlapping cells, the seat, given-only and every instant design. */
+	/** Every cloth (each chapter and each of its named variants) and every rolled-down state it has, ovve and frack, overlapping cells, the seat, given-only and every instant design. */
 	@GameTest
 	public void theClientBuildsEveryCombinationExactlyAsThePackHoldsIt(GameTestHelper helper) {
 		Set<Combos.KeyedCombo> combos = sample();
 		Map<String, String> files = unzip(ComboPack.build(combos).zip());
 		files.remove("pack.mcmeta");
-		Set<Chapter> chapters = new HashSet<>();
+		Set<Cloth> chapters = new HashSet<>();
 		int nercabbad = 0;
 		for (Map.Entry<String, String> file : files.entrySet()) {
 			String path = assetPath(file.getKey());
 			Optional<String> built = ComboAssets.jsonFor(path);
 			assertThat(built.isPresent(), "the client cannot build " + path);
 			assertThat(built.get().equals(file.getValue()), "the client builds " + path + " differently from the pack:\n" + built.get() + "\nvs\n" + file.getValue());
-			chapters.add(Chapter.byId(path.substring(0, path.indexOf('/'))));
+			chapters.add(Cloth.byId(path.substring(0, path.indexOf('/'))));
 			if (path.contains(ComboAssets.NERCABBAD)) nercabbad++;
 		}
-		assertThat(chapters.equals(Set.of(Chapter.values())), "not every chapter was checked: " + chapters);
+		assertThat(chapters.equals(Set.copyOf(Cloth.all())), "not every chapter and named variant was checked: " + chapters);
 		assertThat(nercabbad > 0, "no rolled-down variant was checked");
 		goldens(files);
 		helper.succeed();
@@ -95,8 +96,8 @@ public final class ComboAssetsParityTests {
 	/** The combinations checked: see the test above. */
 	static Set<Combos.KeyedCombo> sample() {
 		Set<Combos.KeyedCombo> out = new HashSet<>();
-		for (Chapter chapter : Chapter.values()) {
-			for (Piece piece : chapter.pieces()) {
+		for (Cloth chapter : Cloth.all()) {
+			for (Piece piece : chapter.chapter().pieces()) {
 				if (piece == Piece.TOP) {
 					// the big back cell under a back-top one, a given-only design with a '-' in its id, an instant one
 					out.add(key(chapter, piece, place(Spot.BACK_TOP_LEFT, "tmeit-marshal"), place(Spot.BACK_BIG, "kth"),
@@ -112,7 +113,7 @@ public final class ComboAssetsParityTests {
 		}
 		// the client screenshot test's own combination (OvvarClientTests: the Data top, four front patches),
 		// so the very asset that test draws on a modded client is pinned against the pack's
-		out.add(key(Chapter.DATA, Piece.TOP, place(Spot.FRONT_TOP_LEFT, "itk"), place(Spot.FRONT_TOP_RIGHT, "nyckeln"),
+		out.add(key(Cloth.of(Chapter.DATA), Piece.TOP, place(Spot.FRONT_TOP_LEFT, "itk"), place(Spot.FRONT_TOP_RIGHT, "nyckeln"),
 				place(Spot.FRONT_LOW_LEFT, "it"), place(Spot.FRONT_LOW_RIGHT, "data")));
 		// every instant design, once each, on a cell it fits
 		List<Patches.Patch> designs = Patches.byCode();
@@ -132,7 +133,7 @@ public final class ComboAssetsParityTests {
 		return new Placement(spot, p);
 	}
 
-	private static Combos.KeyedCombo key(Chapter chapter, Piece piece, Placement... placements) {
+	private static Combos.KeyedCombo key(Cloth chapter, Piece piece, Placement... placements) {
 		return new Combos.KeyedCombo(chapter, piece, Placement.combo(List.of(placements)));
 	}
 

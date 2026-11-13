@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import de.tomalbrc.danse.api.BodyLayerModels;
 import de.tomalbrc.danse.util.MinecraftSkinParser.BodyPart;
 import se.metacraft.ovvar.Ovvar;
-import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
@@ -67,15 +67,15 @@ public final class DanseModels {
 		return Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "danse/" + piece.id + "/" + part.getName());
 	}
 
-	/** {@code data/top}: the base texture's name without namespace or layer folder. */
-	public static String baseKey(Chapter chapter, Piece piece, boolean nercabbad) {
-		return EquipmentJson.baseTexture(chapter, piece, nercabbad).substring(Ovvar.MOD_ID.length() + 1);
+	/** {@code data/top}, {@code it.spaceships/top}: the base texture's name without namespace or layer folder. */
+	public static String baseKey(Cloth cloth, Piece piece, boolean nercabbad) {
+		return EquipmentJson.baseTexture(cloth, piece, nercabbad).substring(Ovvar.MOD_ID.length() + 1);
 	}
 
-	public static List<String> strings(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {
+	public static List<String> strings(Cloth cloth, Piece piece, boolean nercabbad, List<Placement> placements) {
 		List<Spot> cells = Spot.cells(piece);
 		List<String> out = new ArrayList<>(1 + cells.size());
-		out.add(baseKey(chapter, piece, nercabbad));
+		out.add(baseKey(cloth, piece, nercabbad));
 		for (int i = 0; i < cells.size(); i++) out.add("");
 		for (Placement placement : placements) {
 			int at = cells.indexOf(placement.spot());
@@ -96,9 +96,9 @@ public final class DanseModels {
 		JsonArray models = new JsonArray();
 
 		JsonArray baseCases = new JsonArray();
-		for (Chapter chapter : Chapter.values()) {
-			for (boolean[] variant : EquipmentJson.variants(chapter, piece)) {
-				String key = baseKey(chapter, piece, variant[0]);
+		for (Cloth cloth : Cloth.all()) {   // every chapter's cloth and every named variant's
+			for (boolean[] variant : EquipmentJson.variants(cloth.chapter(), piece)) {
+				String key = baseKey(cloth, piece, variant[0]);
 				String model = prefix + "base/" + key;
 				if (shell(piece, part, key, true, model, isLeft(part) ? -Spot.MIRROR_SHIFT : 0, 0f, out)) {
 					baseCases.add(when(key, model));

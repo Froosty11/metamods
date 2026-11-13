@@ -749,7 +749,8 @@ shows it and by nothing on the angles that do not, the rotation buttons, the tit
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
 read-only and driven by the other player's design. `ComboAssetsParityTests` and `ClientHandshakeTests` hold
 the ovvar-client mod's side ("The ovvar-client mod" below): the client's name-only build is byte for byte the
-pack's, and a player who handshook gets no combination pack and whole combinations while others do not.
+pack's, and a player who handshook gets no combination pack and whole combinations while others do not. `VariantTests` hold named variants: the exact name and its near misses, an anvil rename and unname, the
+companion top, the icon's `select`, patches and combinations on a variant, the chest wrap and a Danse stand-in.
 
 ## Adding a chapter
 
@@ -772,6 +773,48 @@ forever: they cost nothing and an item saved anywhere, components and all, must 
 The wardrobe codec migrates a stored row by the same map, in order. A retired design becomes its
 successor's if the successor has none. If it has one, the retired design's patches go to the stash,
 one each, so none is lost or made.
+
+## Named variants
+
+An ovve or frack whose custom name is **exactly** a variant's name — case, spaces and all, unstyled, which is
+what an anvil writes — is drawn in that variant's cloth instead of its chapter's, worn and as its inventory icon.
+A variant belongs to one chapter: the same name on another chapter's ovve is just a name. Patches go on top as
+on the chapter's own cloth (combos, the instant channel, the trim). A mob's garment never wears one.
+
+**Adding one** is art plus one line. The line goes in `src/main/resources/art/ovvar/variants.json`, under the
+chapter's id:
+
+    { "it": [ { "name": "<the exact name>", "texture": "<id>" } ] }
+
+`<id>` is `[a-z0-9_]`, unique within the chapter. The art goes in `art/ovvar/variants/<chapter>/`: `<id>.png`, a
+64×64 skin overlay drawn exactly like the chapter's (pure green erases the skin), `<id>-nercabbad.png` if the
+chapter rolls down, and `<id>-icon.png`, 16×16. Then `runDatagen`. A file named `_<file>` is AI-drawn and used
+until a plain-named file replaces it (the plain one wins; datagen logs that it ignores the `_` one), the same
+rule as kultur's `ArtFiles`. Datagen and startup fail on a bad line or missing art. The first variant, IT's, was
+drawn by `Claude outputs/ovvar-update/textures/variants.py` from the IT overlay and is `_`-marked.
+
+**How it works.** A *cloth* (`content/Cloth`) is a chapter plus an optional variant, with the id `<chapter>` or
+`<chapter>.<variant>` (`ComboAssets.clothId`; no chapter id has a '.'). Everything that used to be named after
+the chapter's base is named after the cloth: base textures (`textures/entity/equipment/<layer>/<cloth>/...`),
+the empty and the combination equipment assets (`ovvar:<cloth>/<piece>[_nercabbad]/<combo>`), `combos.json`
+lines, the chest wrap (`chest/<cloth>/<material>`) and the Danse base select. A variant's layers are cut from its
+overlay by the same `GeneratedAssets.baseLayers` as a chapter's, so the right-limb copy at (16, 0), the checker and
+the mirror strips are there for the shaders and the patcher (`ShaderLayoutTests` runs over every cloth).
+Nothing is stored on the item: `Cloth.of(stack)` reads the name each time a packet is built, so renaming, or
+taking the name off, re-dresses the ovve for everyone who sees it (players, mannequins, stands, Danse
+stand-ins). The companion top gets the variant's id in a never-saved `ovvar:variant` component from its ovve
+each tick.
+
+The **icon** is vanilla's: the chapter's item definition is a `minecraft:select` on the `minecraft:custom_name`
+component, one case per variant, falling back to the chapter's icon. Polymer passes the name on to the client,
+so a dropped or held ovve shows the variant's icon with no server-side model switching.
+
+**ovvar-client** builds a variant's combinations from their names like a chapter's (`ComboAssets.jsonFor` took
+the first segment as given), with no protocol change; the parity goldens cover every cloth.
+
+**Pack size.** The startup pre-build stays per chapter: a stored design knows no item name, and building every
+design again for each variant would multiply the pack for an easter egg. A variant's combinations are built when
+first seen and `combos.json` remembers them from then on.
 
 ## Adding a patch
 

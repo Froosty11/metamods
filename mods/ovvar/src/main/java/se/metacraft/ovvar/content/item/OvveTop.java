@@ -20,6 +20,8 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
+import se.metacraft.ovvar.content.Variants;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModComponents;
@@ -129,7 +131,8 @@ public final class OvveTop {
 				|| !ItemStack.isSameItemSameComponents(wearer.getItemBySlot(EquipmentSlot.CHEST), original)) return client;
 		String material = material(original);
 		if (material == null) return client;
-		dressChest(client, legs, ovve.chapter, material, context);
+		// the ovve's own cloth under the chestplate: a named variant's, if it wears one
+		dressChest(client, legs, new Cloth(ovve.chapter, Variants.of(legs)), material, context);
 		return client;
 	}
 
@@ -144,7 +147,7 @@ public final class OvveTop {
 	}
 
 	/** The client's chestplate re-pointed at the composite asset (ovve top under the chestplate) with the top's dye. */
-	private static void dressChest(ItemStack client, ItemStack ovve, Chapter chapter, String material, PacketContext context) {
+	private static void dressChest(ItemStack client, ItemStack ovve, Cloth cloth, String material, PacketContext context) {
 		GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
 		// dye only: the wrap draws the instant patches, never the pack combo, so don't queue a build for it.
 		Looks.Look look = Looks.look(ovve, Piece.TOP, profile == null ? null : profile.id(), false);
@@ -152,7 +155,7 @@ public final class OvveTop {
 		if (base == null) return;
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.CHEST)
 				.setEquipSound(base.equipSound())
-				.setAsset(EquipmentJson.chestAsset(chapter, material))
+				.setAsset(EquipmentJson.chestAsset(cloth, material))
 				.setDamageOnHurt(base.damageOnHurt())
 				.setSwappable(base.swappable())
 				.setDispensable(base.dispensable())
@@ -177,6 +180,8 @@ public final class OvveTop {
 		if (MobOvvar.is(ovve)) top.set(ModComponents.MOB_OVVE, Unit.INSTANCE);   // a mob's top queues no combo either
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
 		if (ovve.isEnchanted()) top.set(ModComponents.GARMENT_GLINT, true);   // the whole garment glints
+		Variants.Variant variant = Variants.of(ovve);
+		if (variant != null) top.set(ModComponents.VARIANT, variant.id());   // a named variant's top is drawn in its cloth
 		return top;
 	}
 
@@ -187,7 +192,7 @@ public final class OvveTop {
 	 * cauldron or crafting table.
 	 */
 	static void dress(
-			ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
+			ItemStack client, Equippable base, ItemStack garment, Cloth cloth, Piece piece, boolean nercabbad,
 			PacketContext context, HolderLookup.Provider lookup
 	) {
 		// Unwearable (/give ...[!minecraft:equippable] is legal): nothing to dress, the client gets it as is.
@@ -196,7 +201,7 @@ public final class OvveTop {
 		Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
 				.setEquipSound(base.equipSound())
-				.setAsset(Looks.asset(chapter, piece, nercabbad, look.combo().key()))
+				.setAsset(Looks.asset(cloth, piece, nercabbad, look.combo().key()))
 				.setDamageOnHurt(base.damageOnHurt())
 				.setSwappable(false)
 				.setDispensable(false)

@@ -171,8 +171,9 @@ public final class Looks {
 		// On an armour stand the patches are display entities (StandDisplays); the armour draws none.
 		var all = Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND)) ? Optional.<SpotPlacements>empty() : sewn(stack, piece);
 		List<Placement> core = SpotPlacements.asPlacementList(all);
-		// Combinations are built per chapter; something that is not a garment has none built, and asks for none.
-		Chapter chapter = chapterOf(stack);
+		// Combinations are built per cloth (the chapter's, or the named variant it wears); something that is
+		// not a garment has none built, and asks for none.
+		Cloth cloth = Cloth.of(stack);
 
 		// A viewer with ovvar-client builds any combination from its asset name: the whole of it, no
 		// dye bits, nothing to claim (Combos#drawsCombos). A mob's garment stays on the dye for them
@@ -181,15 +182,15 @@ public final class Looks {
 		// The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
 		// if it fits there (few enough, designs the channel can name), else the pack must catch up.
 		int baked = core.size();
-		while (baked > 0 && (chapter == null || !(drawsAll || Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player)))) baked--;
+		while (baked > 0 && (cloth == null || !(drawsAll || Combos.isBuilt(cloth, piece, Placement.combo(core.subList(0, baked)), player)))) baked--;
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
-		if (requestCombo && chapter != null && baked < core.size() && !MobOvvar.is(stack)) Combos.request(chapter, piece, Placement.combo(core), urgent);
+		if (requestCombo && cloth != null && baked < core.size() && !MobOvvar.is(stack)) Combos.request(cloth, piece, Placement.combo(core), urgent);
 		// Seen by a client that draws it anyway: still queued (lazily) for everyone else's pack.
-		if (drawsAll && requestCombo && chapter != null && !core.isEmpty() && !Combos.isBuilt(chapter, piece, Placement.combo(core), null)) {
-			Combos.request(chapter, piece, Placement.combo(core), false);
+		if (drawsAll && requestCombo && cloth != null && !core.isEmpty() && !Combos.isBuilt(cloth, piece, Placement.combo(core), null)) {
+			Combos.request(cloth, piece, Placement.combo(core), false);
 		}
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
@@ -213,11 +214,11 @@ public final class Looks {
 	 */
 	public static void claimIfNeeded(ServerPlayer player, ItemStack stack) {
 		if (MobOvvar.is(stack)) return;   // a mob's garment is always drawn in full: no pack push for it
-		Chapter chapter = chapterOf(stack);
-		if (chapter == null) return;
+		Cloth cloth = Cloth.of(stack);
+		if (cloth == null) return;
 		for (Piece piece : Piece.values()) {
 			if (!look(stack, piece, player.getUUID()).complete()) {
-				Combos.claim(player, chapter, piece, Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece))));
+				Combos.claim(player, cloth, piece, Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece))));
 			}
 		}
 	}
@@ -261,11 +262,19 @@ public final class Looks {
 	// ---- assets
 
 	public static ResourceKey<EquipmentAsset> asset(Chapter chapter, Piece piece, boolean nercabbad, String combo) {
-		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, assetPath(chapter, piece, nercabbad, combo)));
+		return asset(Cloth.of(chapter), piece, nercabbad, combo);
+	}
+
+	public static ResourceKey<EquipmentAsset> asset(Cloth cloth, Piece piece, boolean nercabbad, String combo) {
+		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, assetPath(cloth, piece, nercabbad, combo)));
 	}
 
 	public static String assetPath(Chapter chapter, Piece piece, boolean nercabbad, String combo) {
-		return ComboAssets.assetPath(chapter.id, piece.id, nercabbad, combo);
+		return assetPath(Cloth.of(chapter), piece, nercabbad, combo);
+	}
+
+	public static String assetPath(Cloth cloth, Piece piece, boolean nercabbad, String combo) {
+		return ComboAssets.assetPath(cloth.id(), piece.id, nercabbad, combo);
 	}
 
 	// ---- the dye bits

@@ -60,7 +60,7 @@ public class ComboAssetsTest {
 	void everyGoldenCombinationBuildsByteForByteFromItsName() throws IOException {
 		Map<String, JsonElement> goldens = goldens();
 		Set<String> chapters = new HashSet<>();
-		boolean frack = false, rolled = false, seat = false, overlap = false;
+		boolean frack = false, rolled = false, seat = false, overlap = false, variant = false;
 		for (Map.Entry<String, JsonElement> golden : goldens.entrySet()) {
 			String path = assetPath(golden.getKey());
 			assertEquals(Optional.of(golden.getValue().getAsString()), ComboAssets.jsonFor(path), path);
@@ -69,9 +69,12 @@ public class ComboAssetsTest {
 			rolled |= path.contains("_nercabbad/");
 			seat |= path.contains("seat.");
 			overlap |= path.contains("back_big.") && path.contains("back_top_left.");
+			// a named variant's cloth (ovvar's Cloth): <chapter>.<variant> in the chapter's place, built the same
+			variant |= path.substring(0, path.indexOf('/')).contains(ComboAssets.VARIANT_SEPARATOR);
 		}
 		assertTrue(chapters.size() >= 18, "the goldens cover only " + chapters);
-		assertTrue(frack && rolled && seat && overlap, "the goldens miss a case: frack " + frack + ", rolled " + rolled + ", seat " + seat + ", overlap " + overlap);
+		assertTrue(frack && rolled && seat && overlap && variant, "the goldens miss a case: frack " + frack + ", rolled " + rolled + ", seat " + seat
+				+ ", overlap " + overlap + ", named variant " + variant);
 	}
 
 	/** And the definition parses into what the client draws: one layer per texture, the preview dyeable. */
@@ -84,6 +87,22 @@ public class ComboAssetsTest {
 			EquipmentClientInfo expected = EquipmentClientInfo.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(golden.getValue().getAsString())).getOrThrow();
 			assertEquals(expected, built.get(), path);
 		}
+	}
+
+	/**
+	 * A named variant's cloth is just another first segment ({@code <chapter>.<variant>}): built like a chapter's,
+	 * its own cloth at the bottom, with no protocol change (a client on protocol 1 already took the segment as given).
+	 */
+	@Test
+	void aNamedVariantsCombinationBuildsOnItsOwnCloth() {
+		String cloth = ComboAssets.clothId("it", "spaceships");
+		assertEquals("it.spaceships", cloth);
+		assertEquals("it", ComboAssets.clothId("it", null));
+		String json = ComboAssets.jsonFor(ComboAssets.assetPath(cloth, "bottom", true, "seat.rivals")).orElseThrow();
+		String first = JsonParser.parseString(json).getAsJsonObject().getAsJsonObject("layers").getAsJsonArray("humanoid_leggings")
+				.get(0).getAsJsonObject().get("texture").getAsString();
+		assertEquals("ovvar:it.spaceships/bottom_nercabbad", first);
+		assertEquals(ComboAssets.jsonFor("it/bottom_nercabbad/seat.rivals").orElseThrow().replace("ovvar:it/", "ovvar:it.spaceships/"), json);
 	}
 
 	@Test

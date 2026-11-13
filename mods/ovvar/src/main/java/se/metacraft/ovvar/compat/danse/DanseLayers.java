@@ -2,7 +2,7 @@ package se.metacraft.ovvar.compat.danse;
 
 import de.tomalbrc.danse.api.BodyLayerProvider;
 import de.tomalbrc.danse.util.MinecraftSkinParser.BodyPart;
-import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.item.OvveFeetItem;
@@ -41,19 +41,19 @@ public final class DanseLayers implements BodyLayerProvider {
 		if (inner) {
 			if (!(legs.getItem() instanceof OvveItem ovve) || !DanseModels.draws(Piece.BOTTOM, part)) return ItemStack.EMPTY;
 			boolean nercabbad = ovve.chapter.rollable && !OvveItem.topUp(legs);
-			return stack(Piece.BOTTOM, part, ovve.chapter, nercabbad, placements(legs, Piece.BOTTOM));
+			return stack(Piece.BOTTOM, part, Cloth.of(legs), nercabbad, placements(legs, Piece.BOTTOM));
 		}
 		if (!DanseModels.draws(Piece.TOP, part)) return ItemStack.EMPTY;
 		ItemStack chest = equipment.get(EquipmentSlot.CHEST);
 		if (chest.getItem() instanceof OvveTopItem top) {
-			return stack(Piece.TOP, part, top.chapter, false, placements(chest, Piece.TOP));
+			return stack(Piece.TOP, part, Cloth.of(chest), false, placements(chest, Piece.TOP));
 		}
 		// A frack: worn in the chest slot, its own top.
 		if (chest.getItem() instanceof OvveItem frack && frack.chapter.ownPiece() == Piece.TOP) {
-			return stack(Piece.TOP, part, frack.chapter, false, placements(chest, Piece.TOP));
+			return stack(Piece.TOP, part, Cloth.of(chest), false, placements(chest, Piece.TOP));
 		}
 		if (chest.has(ModComponents.WRAPPED_TOP) && legs.getItem() instanceof OvveItem ovve && OvveItem.topUp(legs)) {
-			return stack(Piece.TOP, part, ovve.chapter, false, placements(legs, Piece.TOP));
+			return stack(Piece.TOP, part, Cloth.of(legs), false, placements(legs, Piece.TOP));
 		}
 		return ItemStack.EMPTY;
 	}
@@ -66,11 +66,11 @@ public final class DanseLayers implements BodyLayerProvider {
 				|| stack.getItem() instanceof OvveFeetItem;
 	}
 
-	private static ItemStack stack(Piece piece, BodyPart part, Chapter chapter, boolean nercabbad, List<Placement> placements) {
+	private static ItemStack stack(Piece piece, BodyPart part, Cloth cloth, boolean nercabbad, List<Placement> placements) {
 		ItemStack out = new ItemStack(Items.PAPER);
 		out.set(DataComponents.ITEM_MODEL, DanseModels.itemModel(piece, part));
 		out.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
-				List.of(), List.of(), DanseModels.strings(chapter, piece, nercabbad, placements), List.of()));
+				List.of(), List.of(), DanseModels.strings(cloth, piece, nercabbad, placements), List.of()));
 		return out;
 	}
 

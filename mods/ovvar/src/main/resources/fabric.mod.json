@@ -36,6 +36,7 @@
 			"se.metacraft.ovvar.gametest.EnderPocketsTests",
 			"se.metacraft.ovvar.gametest.KeyringTests",
 			"se.metacraft.ovvar.gametest.ChapterArtTests",
+			"se.metacraft.ovvar.gametest.VariantTests",
 			"se.metacraft.ovvar.gametest.ChapterTests",
 			"se.metacraft.ovvar.gametest.ChapterMigrationTests",
 			"se.metacraft.ovvar.gametest.MobOvvarTests",

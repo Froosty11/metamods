@@ -10,6 +10,8 @@ import se.metacraft.ovvar.store.Wardrobes;
 import se.metacraft.ovvar.content.enchantment.EnderPockets;
 import se.metacraft.ovvar.content.enchantment.SpilledDrink;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
+import se.metacraft.ovvar.content.Variants;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.Ownership;
@@ -395,7 +397,8 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 				: basePolymerItemStack(stack, flag, context, lookup);
 		// An ovve's item is its bottom half, rolled down when the top is; a frack's is its top.
 		Piece piece = chapter.ownPiece();
-		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, piece, piece == Piece.BOTTOM && !topUp(stack), context, lookup);
+		// in the cloth its name calls up, if it is a named variant's (the icon picks it client-side, from the name)
+		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, new Cloth(chapter, Variants.of(stack)), piece, piece == Piece.BOTTOM && !topUp(stack), context, lookup);
 		return out;
 	}
 

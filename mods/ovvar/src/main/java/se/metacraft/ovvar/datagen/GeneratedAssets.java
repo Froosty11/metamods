@@ -6,6 +6,8 @@ import com.google.gson.JsonParser;
 import se.metacraft.ovvar.ModCommands;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.Cloth;
+import se.metacraft.ovvar.content.Variants;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.item.OvveFeet;
@@ -351,15 +353,23 @@ public final class GeneratedAssets implements DataProvider {
 			int colour = overlay.dominant();
 			chapterColours.put(chapter, colour);
 
-			// The base layers: the top, and for an ovve the bottom (and rolled down, the nercabbad).
-			for (BaseLayer base : baseLayers(chapter)) layer(chapter, base.piece(), base.name(), base.drawn());
-			equipment(chapter, Piece.TOP, false);
-
-			// The chest wrap: the top under a real chestplate of each metal material. The chestplate's
-			// arms and neck are largely transparent, so the ovve's sleeves show through underneath.
-			for (String material : OvveFeet.MATERIALS) {
-				files.json(assets.resolve("equipment/chest/" + chapter.id + "/" + material + ".json"),
-						JsonParser.parseString(EquipmentJson.chestJson(chapter, material)));
+			// The chapter's cloth and each named variant's: base layers (the top, and for an ovve the bottom
+			// and rolled down, the nercabbad), the empty equipment assets and the chest wrap. A variant's
+			// layers are cut from its own overlay by the very same code, so the right-limb copy, the
+			// checker and the mirror strips the shaders and the Spot layout rely on come out the same.
+			for (Cloth cloth : Cloth.all()) {
+				if (cloth.chapter() != chapter) continue;
+				for (BaseLayer base : baseLayers(cloth)) layer(cloth, base.piece(), base.name(), base.drawn());
+				for (Piece piece : chapter.pieces()) {
+					equipment(cloth, piece, false);
+					if (piece == Piece.BOTTOM && chapter.rollable) equipment(cloth, piece, true);
+				}
+				// The chest wrap: the top under a real chestplate of each metal material. The chestplate's
+				// arms and neck are largely transparent, so the ovve's sleeves show through underneath.
+				for (String material : OvveFeet.MATERIALS) {
+					files.json(assets.resolve("equipment/" + EquipmentJson.chestAsset(cloth, material).identifier().getPath() + ".json"),
+							JsonParser.parseString(EquipmentJson.chestJson(cloth, material)));
+				}
 			}
 
 			String ovve = ModContent.ovveId(chapter).getPath();
@@ -368,15 +378,12 @@ public final class GeneratedAssets implements DataProvider {
 			// black, white or grey cloth tints to the grey's stray hue.
 			Tex own = ownIcon(chapter);
 			Tex garmentIcon = own != null ? own : icon.tinted(colour);
-			item(ovve, garmentIcon);
+			item(ovve, garmentIcon, variantIcons(chapter));
 			lang.put("item." + MOD + "." + ovve, chapter.fullName);
 			swedish.put("item." + MOD + "." + ovve, chapter.svName);
 			// A frack is all top: no legs layer (what the overlay paints on the legs, the coat's tails,
 			// is left out — a chest item cannot draw there), no companion top, no cuffs.
 			if (!chapter.pieces().contains(Piece.BOTTOM)) continue;
-
-			equipment(chapter, Piece.BOTTOM, false);
-			if (chapter.rollable) equipment(chapter, Piece.BOTTOM, true);
 
 			String topItem = ModContent.topId(chapter).getPath();
 			item(topItem, Tex.blank(16, 16).blit(garmentIcon, 0, 0, 16, 8, 0, 0));
@@ -575,9 +582,9 @@ public final class GeneratedAssets implements DataProvider {
 	}
 
 	/** The equipment definition of one half with nothing sewn on; Combos writes the others into the pack. */
-	private void equipment(Chapter chapter, Piece piece, boolean nercabbad) {
-		files.json(assets.resolve("equipment/" + Looks.assetPath(chapter, piece, nercabbad, "") + ".json"),
-				JsonParser.parseString(EquipmentJson.json(chapter, piece, nercabbad, List.of())));
+	private void equipment(Cloth cloth, Piece piece, boolean nercabbad) {
+		files.json(assets.resolve("equipment/" + Looks.assetPath(cloth, piece, nercabbad, "") + ".json"),
+				JsonParser.parseString(EquipmentJson.json(cloth, piece, nercabbad, List.of())));
 	}
 
 	/**
@@ -740,7 +747,17 @@ public final class GeneratedAssets implements DataProvider {
 
 	/** A chapter's base layers: the top, and for an ovve the bottom and (if it rolls down) the nercabbad. */
 	public static List<BaseLayer> baseLayers(Chapter chapter) {
-		Tex overlay = overlay(chapter.overlay, chapter);
+		return baseLayers(Cloth.of(chapter));
+	}
+
+	/**
+	 * A cloth's base layers: a chapter's from its overlays, a named variant's from its own
+	 * ({@link Variants#art}: {@code variants/<chapter>/<id>.png} and {@code <id>-nercabbad.png}, the
+	 * plain file before the AI-drawn {@code _} one), cut exactly as a chapter's are.
+	 */
+	public static List<BaseLayer> baseLayers(Cloth cloth) {
+		Chapter chapter = cloth.chapter();
+		Tex overlay = clothOverlay(cloth, false);
 		List<BaseLayer> out = new ArrayList<>();
 		// The top: body and sleeves, on the chest slot's layer.
 		Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
@@ -759,7 +776,7 @@ public final class GeneratedAssets implements DataProvider {
 
 		if (!chapter.rollable) return out;
 		// Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
-		Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
+		Tex rolled = clothOverlay(cloth, true);
 		Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
 				.blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
 		out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", cut, RIGHT_LEG, rolled, LEFT_LEG));
@@ -868,6 +885,33 @@ public final class GeneratedAssets implements DataProvider {
 		return null;
 	}
 
+	/** The 64×64 overlay a cloth is cut from, top up or rolled down. A variant's is never tinted. */
+	private static Tex clothOverlay(Cloth cloth, boolean nercabbad) {
+		Chapter chapter = cloth.chapter();
+		if (cloth.variant() == null) return overlay(nercabbad ? chapter.nercabbadOverlay : chapter.overlay, chapter);
+		String file = nercabbad ? "-nercabbad" : "";
+		String name = Variants.art(cloth.variant(), file);
+		require(name != null, "variant " + cloth.variant() + " has no art: art/" + MOD + "/" + Variants.ART_DIR + chapter.id + "/"
+				+ cloth.variant().id() + file + ".png (or _" + cloth.variant().id() + file + ".png, AI-drawn)");
+		Tex tex = art(name);
+		require(tex.width == 64 && tex.height == 64, name + ".png is not a 64×64 skin overlay");
+		return flattened(tex.withoutGreenKey());
+	}
+
+	/** A chapter's named variants' icons ({@code <id>-icon.png}, 16×16), by variant. */
+	private static Map<Variants.Variant, Tex> variantIcons(Chapter chapter) {
+		Map<Variants.Variant, Tex> out = new LinkedHashMap<>();
+		for (Variants.Variant v : Variants.of(chapter)) {
+			String name = Variants.art(v, "-icon");
+			require(name != null, "variant " + v + " has no icon: art/" + MOD + "/" + Variants.ART_DIR + chapter.id + "/" + v.id() + "-icon.png (or _"
+					+ v.id() + "-icon.png, AI-drawn)");
+			Tex tex = art(name);
+			require(tex.width == 16 && tex.height == 16, name + ".png is not 16×16");
+			out.put(v, tex);
+		}
+		return out;
+	}
+
 	private static Tex overlay(String name, Chapter chapter) {
 		Tex tex = art(name);
 		require(tex.width == 64 && tex.height == 64, name + ".png is not a 64×64 skin overlay");
@@ -876,18 +920,44 @@ public final class GeneratedAssets implements DataProvider {
 		return flattened(tex);
 	}
 
-	private void layer(Chapter chapter, Piece piece, String name, Tex tex) {
+	private void layer(Cloth cloth, Piece piece, String name, Tex tex) {
 		tex = marked(tex, piece);
-		files.png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + chapter.id + "/" + name + ".png"), tex);
+		files.png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + cloth.id() + "/" + name + ".png"), tex);
 	}
 
 	/** Item definition, flat model and texture for one item. */
 	private void item(String name, Tex texture) {
+		item(name, texture, Map.of());
+	}
+
+	/**
+	 * The same, and for a garment with named variants the definition selects on the stack's
+	 * {@code custom_name} (vanilla's own item model {@code select}): each variant's exact name shows its
+	 * icon ({@link Variants#iconModel}), anything else the garment's. The case is the plain-text component
+	 * an anvil writes, so the icon and the worn cloth ({@link Variants#named}) agree on every name.
+	 */
+	private void item(String name, Tex texture, Map<Variants.Variant, Tex> variants) {
 		require(texture.width == 16 && texture.height == 16, name + " icon is not 16×16");
-		files.json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
-		files.json(assets.resolve("models/item/" + name + ".json"),
-				obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/" + name)));
-		files.png(assets.resolve("textures/item/" + name + ".png"), texture);
+		JsonObject definition = J.itemDef(MOD + ":item/" + name);
+		if (!variants.isEmpty()) {
+			JsonArray cases = new JsonArray();
+			for (Map.Entry<Variants.Variant, Tex> v : variants.entrySet()) {
+				String model = Variants.iconModel(v.getKey()).getPath();
+				flat(model, v.getValue());
+				cases.add(obj("when", v.getKey().name(), "model", obj("type", "minecraft:model", "model", MOD + ":" + model)));
+			}
+			definition = obj("model", obj("type", "minecraft:select", "property", "minecraft:component", "component", "minecraft:custom_name",
+					"cases", cases, "fallback", definition.get("model")));
+		}
+		files.json(assets.resolve("items/" + name + ".json"), definition);
+		flat("item/" + name, texture);
+	}
+
+	/** A flat generated item model and its texture at {@code models/<path>} and {@code textures/<path>}. */
+	private void flat(String path, Tex texture) {
+		require(texture.width == 16 && texture.height == 16, path + " icon is not 16×16");
+		files.json(assets.resolve("models/" + path + ".json"), obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":" + path)));
+		files.png(assets.resolve("textures/" + path + ".png"), texture);
 	}
 
 	/**
