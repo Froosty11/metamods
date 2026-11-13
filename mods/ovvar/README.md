@@ -259,7 +259,15 @@ under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come
   of it as fits in the chest, and a right-click on an empty slot puts the selected (or newest) stack
   there, if the slot takes it. Whatever was in its own pockets when it was enchanted is thrown on the ground,
   never moved into an ender chest. The client is shown the viewer's ender chest as the bundle's
-  contents, newest slot first, with a fill bar over the chest's 27 slots. An Ender Pockets ovve inside
+  contents, newest slot first: one stand-in per slot, drawn as the item with count 1 and its count in
+  the name ("Cobblestone ×64"), that stacks to 99 and carries no durability or nested contents, so the
+  whole chest weighs at most 27/99 of a vanilla bundle. The vanilla client never sees the pockets full:
+  its bar stays a sliver (4 pixels of 13 for a full chest, never red; no vanilla component hides it
+  while keeping the icons), and in creative, where the client decides inserts itself, it still lets a
+  stack in (a little less than 64 when the chest is nearly full: the rest stays on the cursor). A
+  creative insert goes into the ender chest only if the stand-ins sent back still match the chest; a
+  stand-in a creative client takes out becomes the real stack from its slot when it lands in a slot,
+  and nothing if that slot changed meanwhile. An Ender Pockets ovve inside
   the preview (in the ender chest, or in a shulker box or bundle there) shows empty pockets. The
   server's ovve does not change when the chest does, so the slot sync would never resend it: at the end
   of every tick the ender chest of a player with one in an open menu or on the cursor is compared with
