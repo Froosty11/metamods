@@ -374,6 +374,8 @@ public final class EnchantmentTests {
 		near(helper, Magpie.chestChance(3, cfg), 0.14f, "chestChance(3)");
 		near(helper, Magpie.mobOvvarChance(0.25f, 2, cfg), 0.45f, "mobOvvarChance(0.25, 2)");
 		near(helper, Magpie.mobOvvarChance(0.95f, 3, cfg), 1.0f, "mobOvvarChance(0.95, 3)");
+		// patch_drop_chance 0 means "never": Magpie lifts a chance, it does not make one.
+		near(helper, Magpie.mobOvvarChance(0f, 3, cfg), 0f, "mobOvvarChance(0, 3)");
 		helper.assertValueEqual(Magpie.level(null), 0, "level(null)");
 		helper.succeed();
 	}
