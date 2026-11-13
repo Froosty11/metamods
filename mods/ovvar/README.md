@@ -791,7 +791,10 @@ chapter's id:
 chapter rolls down, and `<id>-icon.png`, 16×16. Then `runDatagen`. A file named `_<file>` is AI-drawn and used
 until a plain-named file replaces it (the plain one wins; datagen logs that it ignores the `_` one), the same
 rule as kultur's `ArtFiles`. Datagen and startup fail on a bad line or missing art. The first variant, IT's, was
-drawn by `Claude outputs/ovvar-update/textures/variants.py` from the IT overlay and is `_`-marked.
+drawn by `Claude outputs/ovvar-update/textures/variants.py` from the IT overlay and is `_`-marked: "Spaceships
+ovve", the IT top (#8A57BD) over Kiselblå legs drawn exactly as the Silicon-blue IT ovve's (`Chapter.IT_KISEL`,
+#769BB0, the in-game colour; IN's presskit Kiselblå is #44687D) below an uneven seam, and a band round the right
+sleeve tip in QMISK's red, #C91A25 (qmisk.se's CSS, `--color-qmisk`).
 
 **How it works.** A *cloth* (`content/Cloth`) is a chapter plus an optional variant, with the id `<chapter>` or
 `<chapter>.<variant>` (`ComboAssets.clothId`; no chapter id has a '.'). Everything that used to be named after
