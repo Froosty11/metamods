@@ -3,7 +3,8 @@
 		"dev": ["test"],
 		"prod": ["survival", "test"],
 		"minigame": ["event"],
-		"edvin-test": ["edvin", "edvin2"]
+		"edvin-test": ["edvin"],
+		"edvin2": ["edvin2"]
 	},
 	"servers": {
 		"test": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.6a3d6c42"},

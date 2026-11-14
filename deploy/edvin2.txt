@@ -1,4 +1,4 @@
-# edvin2 (branch edvin-test): Edvin Private 2, 00c79c6f, testing Avatar's bending: the usual performance mods and
+# edvin2 (branch edvin2): Edvin Private 2, 00c79c6f, testing Avatar's bending: the usual performance mods and
 # Avatar, nothing else. Avatar's repo is private, so its jar is a release on this fork.
 # One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <name> <url> sha256:<hex>
 # How to change this: deploy/README.md

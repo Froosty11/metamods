@@ -42,16 +42,45 @@ jobs:
         env:
           BRANCH: ${{ github.base_ref || github.ref_name }}
         run: echo "servers=$(jq -c --arg b "$BRANCH" '.branches[$b] // []' deploy/servers.json)" >> "$GITHUB_OUTPUT"
+      - name: whether anything needs our mods built
+        # A push whose servers list none of our modules, only external mods, needs nothing of ours built: it builds
+        # those servers' sets and deploys them, a minute or two instead of ten. Pull requests and every other branch
+        # build and test everything.
+        id: ours
+        env:
+          SERVERS: ${{ steps.servers.outputs.servers }}
+        run: |
+          needed=true
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$SERVERS" != "[]" ]; then
+            needed=false
+            for server in $(echo "$SERVERS" | jq -r '.[]'); do
+              if grep -Ev '^[[:space:]]*(#|$|external |datapack )' "deploy/$server.txt" | grep -q .; then
+                needed=true
+              fi
+            done
+          fi
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
       - name: datagen
+        if: steps.ours.outputs.needed == 'true'
         run: ./gradlew runDatagen
       - name: build
+        if: steps.ours.outputs.needed == 'true'
         run: ./gradlew build
       - name: deploy tooling tests
+        if: steps.ours.outputs.needed == 'true'
         run: ./gradlew -p buildSrc test
       - name: build each server's set
+        env:
+          NEEDED: ${{ steps.ours.outputs.needed }}
+          SERVERS: ${{ steps.servers.outputs.servers }}
         run: |
-          for list in deploy/*.txt; do
-            ./gradlew deploySet -Pserver="$(basename "$list" .txt)"
+          if [ "$NEEDED" = true ]; then
+            servers=$(for list in deploy/*.txt; do basename "$list" .txt; done)
+          else
+            servers=$(echo "$SERVERS" | jq -r '.[]')
+          fi
+          for server in $servers; do
+            ./gradlew deploySet -Pserver="$server"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -59,6 +88,7 @@ jobs:
           path: build/deploy/
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
+        if: steps.ours.outputs.needed == 'true'
         with:
           name: Artifacts
           path: dist/build/libs/
