@@ -50,7 +50,7 @@ external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metac
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3.metacraft.2/polydecorations-0.13.1+26.3.metacraft.2.jar sha256:d05cf8c798f931ae15d1909fbb6ff719489eb376adf17ba56b038f67106ed317
 
 # Avatar (bending), here only. Its repo is private, so the jar is a release on this fork.
-external avatar-server https://github.com/Froosty11/metamods/releases/download/avatar-2026-11-14/avatar-server-2026-11-14.jar sha256:407da49f3a546e5ebaeca489868462bac9257eea6a3b6b767eae2c281ded1181
+external avatar-server https://github.com/Froosty11/metamods/releases/download/avatar-2026-11-14b/avatar-server-2026-11-14b.jar sha256:a767926df2e954ee212867a582d5cd423fa14e7b6c5d27fbb608fa96b79e8b3e
 
 #METAcraft forks
 external confnportal https://github.com/METAcraft-KTH/Configurable-Nether-Portals-Mod/releases/download/1.1.1-26.3/confnportal-1.1.1.jar sha256:4faf4835523092454ee1b4f86b14eeca1e18e0c99e579b8a1b39a0f06006cb36
