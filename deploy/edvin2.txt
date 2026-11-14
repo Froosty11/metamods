@@ -46,7 +46,7 @@ traders
 external leukocyte-plus https://github.com/METAcraft-KTH/LeukocytePlus/releases/download/26.3-1.0.0/leukocyte-plus-1.0.0.jar sha256:05ad7649d73485e6d17e418407fce5fad3a407a94f924bd7b57e8bd589b24ed9
 
 #edvin forks
-external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.9/danse-2.6.0-metacraft.9%2B26.3.jar sha256:919f6c1449d8cf80ea3b9b38b596baae670a2d5f58e214623efcffa4a8cfa2f2
+# No Danse here: its gestures fight Avatar's bending rig over the player model.
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3.metacraft.2/polydecorations-0.13.1+26.3.metacraft.2.jar sha256:d05cf8c798f931ae15d1909fbb6ff719489eb376adf17ba56b038f67106ed317
 
 # Avatar (bending), here only. Its repo is private, so the jar is a release on this fork.
