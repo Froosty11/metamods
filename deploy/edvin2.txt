@@ -33,7 +33,7 @@ metacraft-mob-modifiers
 metacraft-player-trading
 portal-opening
 nether-rifts
-ovvar
+# No ovvar here: its player shaders fight Avatar's rig.
 metacraft-booklet
 metacraft-kultur
 moredyes
