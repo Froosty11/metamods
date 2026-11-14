@@ -3,7 +3,7 @@
 # One per line: a folder under mods/, external <mod-id> <url> sha256:<hex>, or datapack <name> <url> sha256:<hex>
 # How to change this: deploy/README.md
 
-external avatar-server https://github.com/Froosty11/metamods/releases/download/avatar-2026-11-14f/avatar-server-2026-11-14f.jar sha256:74fedc4ec42f796c9ab55d9808e8a94a5a02ebe3dc8edb9cf7c3a0989dcfa31d
+external avatar-server https://github.com/Froosty11/metamods/releases/download/avatar-2026-11-14g/avatar-server-2026-11-14g.jar sha256:bcc82819a232df104307b47cbf967c2df93bed622362e11a20eee191a756cfed
 
 external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fabric-api-0.165.0%2B26.3.jar sha256:18442e2ad466d6ef41c37dbb4cb68495e6ca6658b1f1ee9be76143d155ef2c88
 external polymer-bundled https://cdn.modrinth.com/data/xGdtZczs/versions/3fDXSiRx/polymer-bundled-0.18.5%2B26.3.jar sha256:fc78cc7e77e0f61e5c4c02e4339ada9ad88fd387d1bc85deb0fc4a76ba1849a2
